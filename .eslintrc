@@ -1,0 +1,29 @@
+{
+  "extends": ["@grafana/eslint-config"],
+  "root": true,
+  "plugins": ["@emotion", "lodash", "jest", "import"],
+  "settings": {
+    "import/internal-regex": "^(src/)|(@grafana)",
+    "import/external-module-folders": ["node_modules", ".yarn"]
+  },
+  "rules": {
+    "react/prop-types": "off",
+    "@emotion/jsx-import": "error",
+    "object-curly-spacing": [2, "always"],
+    "lodash/import-scope": [2, "member"],
+    "jest/no-focused-tests": "error",
+    "@typescript-eslint/array-type": 0,
+    "import/order": [
+      "error",
+      {
+        "groups": [["builtin", "external"], "internal", "parent", "sibling", "index"],
+        "newlines-between": "always",
+        "alphabetize": { "order": "asc" }
+      }
+    ],
+
+    // Use typescript's no-redeclare for compatibility with overrides
+    "no-redeclare": "off",
+    "@typescript-eslint/no-redeclare": ["error"]
+  }
+}

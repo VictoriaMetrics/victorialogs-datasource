@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "jsx": "react",
+    "baseUrl": "/",
+    "outDir": "victorialogs-datasource",
+    "rootDirs": ["/"],
+    "allowJs": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "useUnknownInCatchVariables": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo"
+  },
+  "extends": "./.config/tsconfig.json",
+}

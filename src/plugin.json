@@ -1,0 +1,36 @@
+{
+  "type": "datasource",
+  "name": "VictoriaLogs",
+  "id": "victorialogs-datasource",
+  "category": "logging",
+  "logs": true,
+  "metrics": true,
+  "alerting": true,
+  "annotations": true,
+  "streaming": true,
+  "backend": false,
+  "executable": "victorialogs_backend_plugin",
+  "queryOptions": {
+    "maxDataPoints": true
+  },
+  "info": {
+    "description": "VictoriaLogs datasource plugin for grafana",
+    "author": {
+      "name": "VictoriaMetrics",
+      "url": "https://victoriametrics.com/"
+    },
+    "keywords": ["datasource"],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [],
+    "screenshots": [],
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=10.0.3",
+    "plugins": []
+  }
+}
