@@ -34,3 +34,7 @@ e2e-results/
 .idea
 
 .eslintcache
+
+# Docker
+.cache
+gocache-for-docker
