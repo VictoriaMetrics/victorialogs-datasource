@@ -1,25 +1,12 @@
 import React from 'react';
 
-import { LokiQueryField } from './LokiQueryField';
-import { LokiQueryEditorProps } from './types';
+import { VictoriaLogsQueryEditorProps } from "../../types";
 
-export function LokiQueryEditorForAlerting(props: LokiQueryEditorProps) {
-  const { query, data, datasource, onChange, onRunQuery, history } = props;
+const QueryEditorForAlerting = (props: VictoriaLogsQueryEditorProps) => {
 
   return (
-    <LokiQueryField
-      datasource={datasource}
-      query={query}
-      onChange={onChange}
-      onRunQuery={onRunQuery}
-      history={history}
-      data={data}
-      placeholder="Enter a Loki query"
-      data-testid={testIds.editor}
-    />
+    <div>QueryEditorForAlerting</div>
   );
 }
 
-export const testIds = {
-  editor: 'loki-editor-cloud-alerting',
-};
+export default QueryEditorForAlerting

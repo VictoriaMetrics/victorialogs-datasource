@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
-import { ConfigDescriptionLink, ConfigSubSection } from '@grafana/experimental';
 import { InlineField, InlineSwitch } from '@grafana/ui';
 
 export function AlertingSettings({
@@ -9,16 +8,7 @@ export function AlertingSettings({
   onOptionsChange,
 }: Pick<DataSourcePluginOptionsEditorProps, 'options' | 'onOptionsChange'>) {
   return (
-    <ConfigSubSection
-      title="Alerting"
-      description={
-        <ConfigDescriptionLink
-          description="Manage alert rules for the Loki data source."
-          suffix="loki/configure-loki-data-source/#alerting"
-          feature="alerting"
-        />
-      }
-    >
+    <div>
       <InlineField
         labelWidth={29}
         label="Manage alert rules in Alerting UI"
@@ -35,6 +25,6 @@ export function AlertingSettings({
           }
         />
       </InlineField>
-    </ConfigSubSection>
+    </div>
   );
 }
