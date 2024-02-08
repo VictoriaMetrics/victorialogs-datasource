@@ -4,16 +4,20 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"strconv"
 )
 
-const instantQueryPath = "/logsql/query"
+const (
+	instantQueryPath = "/select/logsql/query"
+	defaultMaxLines  = 1000
+)
 
 // Query represents backend query object
 type Query struct {
 	RefID        string `json:"refId"`
 	Expr         string `json:"expr"`
 	LegendFormat string `json:"legendFormat"`
-	MaxLines     int
+	MaxLines     int    `json:"maxLines"`
 	url          *url.URL
 }
 
@@ -47,7 +51,13 @@ func (q *Query) queryInstantURL(queryParams url.Values) string {
 			values.Add(k, v)
 		}
 	}
+
+	if q.MaxLines <= 0 {
+		q.MaxLines = defaultMaxLines
+	}
+
 	values.Set("query", q.Expr)
+	values.Set("limit", strconv.Itoa(q.MaxLines))
 
 	q.url.RawQuery = values.Encode()
 	return q.url.String()

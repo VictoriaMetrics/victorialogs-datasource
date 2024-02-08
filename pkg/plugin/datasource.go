@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	health = "/-/healthy"
+	health = "/health"
 )
 
 // NewDatasource creates a new datasource instance.
@@ -116,13 +116,14 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 		return newResponseError(err, backend.Status(resp.StatusCode))
 	}
 
-	var r Response
+	// TODO implement correct response
+	var r interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
 		err = fmt.Errorf("failed to decode body response: %w", err)
 		return newResponseError(err, backend.StatusInternal)
 	}
 
-	log.DefaultLogger.Debug("RESPONSE => %#v", r)
+	// TODO convert response to the data Frames
 	// frames, err := r.getDataFrames()
 	// if err != nil {
 	// 	err = fmt.Errorf("failed to prepare data from reponse: %w", err)
