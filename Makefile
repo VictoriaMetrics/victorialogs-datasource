@@ -57,13 +57,14 @@ app-via-docker-windows-amd64:
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(MAKE) app-via-docker-windows-goarch
 
 victorialogs-backend-plugin-build: \
-	victorialogs-backend-plugin-linux-amd64-prod \
-	victorialogs-backend-plugin-linux-arm-prod \
-	victorialogs-backend-plugin-linux-arm64-prod \
-	victorialogs-backend-plugin-linux-386-prod \
-	victorialogs-backend-plugin-amd64-prod \
-	victorialogs-backend-plugin-arm64-prod \
-	victorialogs-backend-plugin-windows-prod
+	victorialogs-backend-plugin-amd64-prod
+#	victorialogs-backend-plugin-linux-amd64-prod \
+#	victorialogs-backend-plugin-linux-arm-prod \
+#	victorialogs-backend-plugin-linux-arm64-prod \
+#	victorialogs-backend-plugin-linux-386-prod \
+
+#	victorialogs-backend-plugin-arm64-prod \
+#	victorialogs-backend-plugin-windows-prod
 
 victorialogs-frontend-plugin-build: \
 	frontend-build

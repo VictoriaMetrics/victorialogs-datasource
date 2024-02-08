@@ -116,13 +116,34 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 		return newResponseError(err, backend.Status(resp.StatusCode))
 	}
 
-	// TODO implement correct response
-	var r interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
-		err = fmt.Errorf("failed to decode body response: %w", err)
+	dec := json.NewDecoder(resp.Body)
+
+	t, err := dec.Token()
+	if err != nil {
 		return newResponseError(err, backend.StatusInternal)
 	}
 
+	if t != json.Delim('{') {
+		return newResponseError(fmt.Errorf("expected {, got %v", t), backend.StatusInternal)
+	}
+
+	for dec.More() {
+		var r Response
+		err := dec.Decode(&r)
+		if err != nil {
+			return newResponseError(err, backend.StatusInternal)
+		}
+
+		log.DefaultLogger.Info("RESPONSE => %#v", r)
+	}
+
+	// var r Response
+	// if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
+	// 	err = fmt.Errorf("failed to decode body response: %w", err)
+	// 	return newResponseError(err, backend.StatusInternal)
+	// }
+
+	// log.DefaultLogger.Info("RESPONSE => %#v", r)
 	// TODO convert response to the data Frames
 	// frames, err := r.getDataFrames()
 	// if err != nil {

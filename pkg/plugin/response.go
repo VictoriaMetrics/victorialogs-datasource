@@ -12,6 +12,7 @@ type Data struct {
 
 // Response contains fields from query response
 type Response struct {
-	Status string `json:"status"`
-	Data   Data   `json:"data"`
+	Message string `json:"_msg"`
+	Stream  string `json:"_stream"`
+	Time    string `json:"_time"`
 }
