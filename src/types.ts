@@ -46,3 +46,13 @@ export interface Query extends QueryFromSchema {
 }
 
 export type VictoriaLogsQueryEditorProps = QueryEditorProps<VictoriaLogsDatasource, Query, Options>;
+
+export type DerivedFieldConfig = {
+  matcherRegex: string;
+  name: string;
+  url?: string;
+  urlDisplayLabel?: string;
+  datasourceUid?: string;
+  matcherType?: 'label' | 'regex';
+};
+

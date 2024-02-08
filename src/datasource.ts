@@ -1,10 +1,14 @@
 import { Observable } from "rxjs";
+import { map } from 'rxjs/operators';
 
 import { DataQueryRequest, DataQueryResponse, DataSourceInstanceSettings } from '@grafana/data';
 import { DataSourceWithBackend } from '@grafana/runtime';
 
+import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
 import { Query, Options } from './types';
+
+
 
 export class VictoriaLogsDatasource
   extends DataSourceWithBackend<Query, Options> {
@@ -26,53 +30,25 @@ export class VictoriaLogsDatasource
     // this.logContextProvider = new LogContextProvider(this);
   }
 
-  query(options: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-    console.log('query')
-    const promises = options.targets.map(target => {
-      const query = target.expr; // Получение запроса из объекта target
-      const server = this.instanceSettings.url; // URL сервера из настроек источника данных
-      const url = `${server}/select/logsql/query`
-      const params = new URLSearchParams({
-        query: encodeURIComponent(query.trim())
-      })
-      const options = {
-        method: 'GET',
-        headers: {
-          "Accept": "application/stream+json; charset=utf-8",
-          "Content-Type": "application/x-www-form-urlencoded",
-        }
-      }
+  query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
+    const queries = request.targets
+      .map((q) => ({ ...q, maxLines: q.maxLines ?? this.maxLines }));
 
-      return fetch(`${url}?${params}`, options)
-        .then(response => response.text())
-        .then(text => {
-          console.log(text)
-          const data = text.split('\n')
-            .map(line => {
-              try {
-                return JSON.parse(line);
-              } catch (e) {
-                return null;
-              }
-            })
-            .filter(line => line)
-            .slice(-this.maxLines); // Ограничение количества строк
+    const fixedRequest: DataQueryRequest<Query> = {
+      ...request,
+      targets: queries,
+    };
 
-          return { data };
-        })
-        .catch(error => {
-          console.error('Error fetching logs:', error);
-          throw new Error(`Error fetching logs: ${error.message}`);
-        });
-    });
+    return this.runQuery(fixedRequest);
+  }
 
-    return new Observable<DataQueryResponse>(subscriber => {
-      Promise.all(promises).then(data => {
-        subscriber.next({ data });
-        subscriber.complete();
-      }).catch(error => {
-        subscriber.error(error);
-      });
-    });
+  runQuery(fixedRequest: DataQueryRequest<Query>) {
+    return super
+      .query(fixedRequest)
+      .pipe(
+        map((response) =>
+          transformBackendResult(response, fixedRequest.targets, [])
+        )
+      );
   }
 }
