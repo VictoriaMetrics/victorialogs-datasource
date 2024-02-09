@@ -12,6 +12,8 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
+
+	"github.com/VictoriaMetrics/grafana-logs-datasource/pkg/utils"
 )
 
 const (
@@ -118,28 +120,48 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 
 	dec := json.NewDecoder(resp.Body)
 
-	var logs []Response
+	labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+	labelsField.Name = "__labels" // avoid automatically spreading this by labels
+
+	labelTypesField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+	labelTypesField.Name = "__labelTypes" // avoid automatically spreading this by labels
+
+	timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+	timeFd.Name = "Time"
+
+	lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+	lineField.Name = "Line"
+
+	// Nanoseconds time field
+	// tsField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+	// tsField.Name = "TS"
+
+	// indexedLabels := data.Labels{}
+
 	for dec.More() {
 		var r Response
 		err := dec.Decode(&r)
 		if err != nil {
 			return newResponseError(err, backend.StatusInternal)
 		}
-		logs = append(logs, r)
+		if msg, ok := r[messageField]; ok {
+			lineField.Append(msg)
+		}
+		if time, ok := r[timeField]; ok {
+			getTime, err := utils.GetTime(time)
+			if err != nil {
+				return newResponseError(err, backend.StatusInternal)
+			}
+			timeFd.Append(getTime)
+		}
 	}
 
-	// log.DefaultLogger.Info("RESPONSE => %#v", r)
-	// TODO convert response to the data Frames
-	// frames, err := r.getDataFrames()
-	// if err != nil {
-	// 	err = fmt.Errorf("failed to prepare data from reponse: %w", err)
-	// 	return newResponseError(err, backend.StatusInternal)
-	// }
-	// for i := range frames {
-	// 	q.addMetadataToMultiFrame(frames[i])
-	// }
+	rsp := backend.DataResponse{}
+	frame := data.NewFrame("", lineField, timeFd)
+	frame.Meta = &data.FrameMeta{}
+	rsp.Frames = append(rsp.Frames, frame)
 
-	return backend.DataResponse{Frames: data.Frames{}}
+	return rsp
 }
 
 // CheckHealth handles health checks sent from Grafana to the plugin.
