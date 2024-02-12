@@ -135,7 +135,7 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 		if err != nil {
 			return newResponseError(err, backend.StatusInternal)
 		}
-		log.DefaultLogger.Info("RESOSNE => %#v", r)
+
 		for fieldName, value := range r {
 			switch fieldName {
 			case messageField:
