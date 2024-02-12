@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/VictoriaMetrics/metricsql"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
@@ -118,25 +119,15 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 		return newResponseError(err, backend.Status(resp.StatusCode))
 	}
 
-	dec := json.NewDecoder(resp.Body)
-
-	labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
-	labelsField.Name = "__labels" // avoid automatically spreading this by labels
-
-	labelTypesField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
-	labelTypesField.Name = "__labelTypes" // avoid automatically spreading this by labels
-
 	timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
 	timeFd.Name = "Time"
 
 	lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 	lineField.Name = "Line"
 
-	// Nanoseconds time field
-	// tsField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
-	// tsField.Name = "TS"
+	var labels data.Labels
 
-	// indexedLabels := data.Labels{}
+	dec := json.NewDecoder(resp.Body)
 
 	for dec.More() {
 		var r Response
@@ -144,20 +135,46 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 		if err != nil {
 			return newResponseError(err, backend.StatusInternal)
 		}
-		if msg, ok := r[messageField]; ok {
-			lineField.Append(msg)
-		}
-		if time, ok := r[timeField]; ok {
-			getTime, err := utils.GetTime(time)
-			if err != nil {
-				return newResponseError(err, backend.StatusInternal)
+		for fieldName, value := range r {
+			switch fieldName {
+			case messageField:
+				lineField.Append(value)
+			case timeField:
+				getTime, err := utils.GetTime(value)
+				if err != nil {
+					return newResponseError(err, backend.StatusInternal)
+				}
+				timeFd.Append(getTime)
+			case streamField:
+				expr, err := metricsql.Parse(value)
+				if err != nil {
+					return newResponseError(err, backend.StatusInternal)
+				}
+				if mExpr, ok := expr.(*metricsql.MetricExpr); ok {
+					for _, filters := range mExpr.LabelFilterss {
+						for _, filter := range filters {
+							labels[filter.Label] = filter.Value
+						}
+					}
+				}
+			default:
+				labels[fieldName] = value
 			}
-			timeFd.Append(getTime)
 		}
 	}
 
+	frame := data.NewFrame("", timeFd, lineField)
+
+	for fieldName, value := range labels {
+		labelsField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+		labelsField.Name = fieldName
+		for i := 0; i < q.MaxLines; i++ {
+			labelsField.Append(value)
+		}
+		frame.Fields = append(frame.Fields, labelsField)
+	}
+
 	rsp := backend.DataResponse{}
-	frame := data.NewFrame("", lineField, timeFd)
 	frame.Meta = &data.FrameMeta{}
 	rsp.Frames = append(rsp.Frames, frame)
 
@@ -202,4 +219,14 @@ func newHealthCheckErrorf(format string, args ...interface{}) *backend.CheckHeal
 func newResponseError(err error, httpStatus backend.Status) backend.DataResponse {
 	log.DefaultLogger.Error(err.Error())
 	return backend.DataResponse{Status: httpStatus, Error: err}
+}
+
+func labelsToRawJson(labels data.Labels) (json.RawMessage, error) {
+	// data.Labels when converted to JSON keep the fields sorted
+	bytes, err := json.Marshal(labels)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
 }
