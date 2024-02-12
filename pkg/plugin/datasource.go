@@ -119,6 +119,9 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 		return newResponseError(err, backend.Status(resp.StatusCode))
 	}
 
+	labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+	labelsField.Name = "labels"
+
 	timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
 	timeFd.Name = "Time"
 
@@ -162,18 +165,15 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 				labels[fieldName] = value
 			}
 		}
-	}
 
-	frame := data.NewFrame("", timeFd, lineField)
-
-	for fieldName, value := range labels {
-		labelsField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
-		labelsField.Name = fieldName
-		for i := 0; i < q.MaxLines; i++ {
-			labelsField.Append(value)
+		d, err := labelsToRawJson(labels)
+		if err != nil {
+			return newResponseError(err, backend.StatusInternal)
 		}
-		frame.Fields = append(frame.Fields, labelsField)
+		labelsField.Append(d)
 	}
+
+	frame := data.NewFrame("", timeFd, lineField, labelsField)
 
 	rsp := backend.DataResponse{}
 	frame.Meta = &data.FrameMeta{}
