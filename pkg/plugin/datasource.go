@@ -125,7 +125,7 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 	lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 	lineField.Name = "Line"
 
-	var labels data.Labels
+	labels := data.Labels{}
 
 	dec := json.NewDecoder(resp.Body)
 
@@ -135,6 +135,7 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 		if err != nil {
 			return newResponseError(err, backend.StatusInternal)
 		}
+		log.DefaultLogger.Info("RESOSNE => %#v", r)
 		for fieldName, value := range r {
 			switch fieldName {
 			case messageField:
