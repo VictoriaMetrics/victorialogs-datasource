@@ -1,0 +1,87 @@
+name: main
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "src/**"
+      - "**.md"
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "src/**"
+      - "**.md"
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.21.5
+          check-latest: true
+          cache: true
+
+      - name: Dependencies
+        run: |
+          make check-all
+          git diff --exit-code
+
+  test:
+    needs: lint
+    strategy:
+      matrix:
+        scenario: ["golang-test", "golang-test-race"]
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.20.2
+          check-latest: true
+          cache: true
+
+      - name: run tests
+        run: |
+          make ${{ matrix.scenario}}
+
+  build:
+    needs: test
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        id: go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.21.5
+          check-latest: true
+          cache: true
+
+      - uses: actions/cache@v3
+        with:
+          path: gocache-for-docker
+          key:  gocache-docker-${{ runner.os }}-${{ steps.go.outputs.go-version }}-${{ hashFiles('go.mod') }}
+
+      - name: Build
+        run: |
+          make victorialogs-backend-plugin-build
