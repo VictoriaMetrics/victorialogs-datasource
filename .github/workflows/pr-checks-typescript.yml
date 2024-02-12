@@ -37,7 +37,7 @@ jobs:
       - name: Set up node
         uses: actions/setup-node@v1
         with:
-          node-version: 18.13.0
+          node-version: 20.9.0
 
       - name: Install all dependencies
         run: yarn install
@@ -56,7 +56,7 @@ jobs:
       - name: Set up node
         uses: actions/setup-node@v1
         with:
-          node-version: 18.13.0
+          node-version: 20.9.0
 
       - name: Install all dependencies
         run: yarn install
