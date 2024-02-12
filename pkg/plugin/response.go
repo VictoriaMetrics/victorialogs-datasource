@@ -75,7 +75,7 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 			}
 		}
 
-		d, err := labelsToRawJson(labels)
+		d, err := labelsToJSON(labels)
 		if err != nil {
 			return newResponseError(err, backend.StatusInternal)
 		}
@@ -91,8 +91,9 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 	return rsp
 }
 
-func labelsToRawJson(labels data.Labels) (json.RawMessage, error) {
-	// data.Labels when converted to JSON keep the fields sorted
+// labelsToJSON converts labels to json representation
+// data.Labels when converted to JSON keep the fields sorted
+func labelsToJSON(labels data.Labels) (json.RawMessage, error) {
 	bytes, err := json.Marshal(labels)
 	if err != nil {
 		return nil, err
