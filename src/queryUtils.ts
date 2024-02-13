@@ -3,8 +3,6 @@ import { escapeRegExp } from 'lodash';
 
 import { Filter, FilterOp, LineFilter, OrFilter, parser, PipeExact, PipeMatch, String } from "@grafana/lezer-logql"
 
-
-
 export function getNodesFromQuery(query: string, nodeTypes?: number[]): SyntaxNode[] {
   const nodes: SyntaxNode[] = [];
   const tree = parser.parse(query);
@@ -59,8 +57,6 @@ export function getHighlighterExpressionsFromQuery(input = ''): string[] {
 
       // Only filter expressions with |~ operator are treated as regular expressions
       if (pipeMatch) {
-        // When using backticks, Loki doesn't require to escape special characters and we can just push regular expression to highlights array
-        // When using quotes, we have extra backslash escaping and we need to replace \\ with \
         resultTerm = backtickedTerm ? unwrappedFilterTerm : unwrappedFilterTerm.replace(/\\\\/g, '\\');
       } else {
         // We need to escape this string so it is not matched as regular expression

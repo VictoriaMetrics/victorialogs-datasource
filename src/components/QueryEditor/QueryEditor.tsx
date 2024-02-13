@@ -1,8 +1,9 @@
+import { css } from "@emotion/css";
 import { isEqual } from 'lodash';
 import React, { useEffect, useState } from 'react';
 
-import { CoreApp, LoadingState } from '@grafana/data';
-import { Button } from '@grafana/ui';
+import { CoreApp, GrafanaTheme2, LoadingState } from '@grafana/data';
+import { Button, useStyles2 } from '@grafana/ui';
 
 import { Query, VictoriaLogsQueryEditorProps } from "../../types";
 
@@ -10,6 +11,8 @@ import QueryCodeEditor from "./QueryCodeEditor";
 import { getQueryWithDefaults } from "./state";
 
 const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
+  const styles = useStyles2(getStyles);
+
   const { onChange, onRunQuery, data, app, queries } = props;
   const [dataIsStale, setDataIsStale] = useState(false);
 
@@ -27,7 +30,10 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   };
 
   return (
-    <>
+    <div className={styles.wrapper}>
+      <div className="flex-grow-1">
+        <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true}/>
+      </div>
       <div>
         {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
           <Button
@@ -41,12 +47,19 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
           </Button>
         )}
       </div>
-      <div>
-        <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
-      </div>
-    </>
+    </div>
   );
 });
 
-QueryEditor.displayName = 'LokiQueryEditor';
+const getStyles = (theme: GrafanaTheme2) => {
+  return {
+    wrapper: css`
+      display: flex;
+      align-items: flex-start;
+      gap: ${theme.spacing(1)};
+    `
+  };
+};
+
+QueryEditor.displayName = 'QueryEditor';
 export default QueryEditor

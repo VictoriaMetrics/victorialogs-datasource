@@ -3,7 +3,7 @@ import { DataQueryResponse, DataFrame, isDataFrame, FieldType, QueryResultMeta, 
 import { getDerivedFields } from './getDerivedFields';
 import { makeTableFrames } from './makeTableFrames';
 import { getHighlighterExpressionsFromQuery } from './queryUtils';
-import { dataFrameHasLokiError } from './responseUtils';
+import { dataFrameHasError } from './responseUtils';
 import { DerivedFieldConfig, Query, QueryType } from './types';
 
 function isMetricFrame(frame: DataFrame): boolean {
@@ -28,11 +28,9 @@ function processStreamFrame(
 ): DataFrame {
   const custom: Record<string, string> = {
     ...frame.meta?.custom, // keep the original meta.custom
-    // used by logsModel
-    lokiQueryStatKey: 'Summary: total bytes processed',
   };
 
-  if (dataFrameHasLokiError(frame)) {
+  if (dataFrameHasError(frame)) {
     custom.error = 'Error when parsing some of the logs';
   }
 
@@ -102,8 +100,6 @@ function groupFrames(
 }
 
 function improveError(error: DataQueryError | undefined, queryMap: Map<string, Query>): DataQueryError | undefined {
-  // many things are optional in an error-object, we need an error-message to exist,
-  // and we need to find the loki-query, based on the refId in the error-object.
   if (error === undefined) {
     return error;
   }
@@ -121,7 +117,7 @@ function improveError(error: DataQueryError | undefined, queryMap: Map<string, Q
   if (message.includes('escape') && query.expr.includes('\\')) {
     return {
       ...error,
-      message: `${message}. Make sure that all special characters are escaped with \\. For more information on escaping of special characters visit LogQL documentation at https://grafana.com/docs/loki/latest/logql/.`,
+      message: `${message}. Make sure that all special characters are escaped with \\. For more information on escaping of special characters visit LogQL documentation at https://docs.victoriametrics.com/victorialogs/logsql/.`,
     };
   }
 
@@ -133,7 +129,7 @@ export function transformBackendResult(
   queries: Query[],
   derivedFieldConfigs: DerivedFieldConfig[]
 ): DataQueryResponse {
-  const { data, error, ...rest } = response;
+  const { data, errors, ...rest } = response;
 
   // in the typescript type, data is an array of basically anything.
   // we do know that they have to be dataframes, so we make a quick check,
@@ -149,9 +145,11 @@ export function transformBackendResult(
 
   const { streamsFrames, metricInstantFrames, metricRangeFrames } = groupFrames(dataFrames, queryMap);
 
+  const improvedErrors = errors && errors.map((error) => improveError(error, queryMap)).filter((e) => e !== undefined);
+
   return {
     ...rest,
-    error: improveError(error, queryMap),
+    errors: improvedErrors as DataQueryError[],
     data: [
       ...processMetricRangeFrames(metricRangeFrames),
       ...processMetricInstantFrames(metricInstantFrames),

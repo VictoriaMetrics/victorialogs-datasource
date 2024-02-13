@@ -1,4 +1,4 @@
-import { DataSourceJsonData, QueryEditorProps } from '@grafana/data';
+import { DataFrame, DataSourceJsonData, KeyValue, QueryEditorProps } from '@grafana/data';
 import { DataQuery } from '@grafana/schema';
 
 import { VictoriaLogsDatasource } from "./datasource";
@@ -20,10 +20,6 @@ export enum SupportingQueryType {
   DataSample = 'dataSample',
   LogsSample = 'logsSample',
   LogsVolume = 'logsVolume',
-}
-
-export enum QueryEditorMode {
-  Code = 'code',
 }
 
 export enum QueryType {
@@ -55,4 +51,18 @@ export type DerivedFieldConfig = {
   datasourceUid?: string;
   matcherType?: 'label' | 'regex';
 };
+
+export interface QueryFilterOptions extends KeyValue<string> {
+}
+
+export enum FilterActionType {
+  FILTER_FOR = 'FILTER_FOR',
+  FILTER_OUT = 'FILTER_OUT',
+}
+
+export interface ToggleFilterAction {
+  type: FilterActionType;
+  options: QueryFilterOptions;
+  frame?: DataFrame;
+}
 

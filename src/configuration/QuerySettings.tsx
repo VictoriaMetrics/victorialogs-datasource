@@ -13,11 +13,10 @@ export const QuerySettings = (props: Props) => {
     <div>
       <InlineField
         label="Maximum lines"
-        htmlFor="loki_config_maxLines"
         labelWidth={22}
         tooltip={
           <>
-            Loki queries must contain a limit of the maximum number of lines returned (default: 1000). Increase this
+            VictoriaLogs queries must contain a limit of the maximum number of lines returned (default: 1000). Increase this
             limit to have a bigger result set for ad-hoc analysis. Decrease this limit if your browser becomes sluggish
             when displaying the log results.
           </>
@@ -25,7 +24,6 @@ export const QuerySettings = (props: Props) => {
       >
         <Input
           type="number"
-          id="loki_config_maxLines"
           value={maxLines}
           onChange={(event: React.FormEvent<HTMLInputElement>) => onMaxLinedChange(event.currentTarget.value)}
           width={16}
