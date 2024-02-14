@@ -3,19 +3,15 @@ import React from "react";
 const tips = [
   {
     title: "Datasource",
-    url: "https://github.com/VictoriaMetrics/grafana-datasource#victoriametrics-data-source-for-grafana",
+    url: "https://github.com/VictoriaMetrics/grafana-logs-datasource",
   },
   {
-    title: "Cluster VM",
-    url: "https://docs.victoriametrics.com/Cluster-VictoriaMetrics.html#url-format",
+    title: "VictoriaLogs",
+    url: "https://docs.victoriametrics.com/victorialogs/",
   },
   {
-    title: "Grafana setup",
-    url: "https://docs.victoriametrics.com/Single-server-VictoriaMetrics.html#grafana-setup",
-  },
-  {
-    title: "MetricsQL",
-    url: "https://docs.victoriametrics.com/MetricsQL.html",
+    title: "LogsQL",
+    url: "https://docs.victoriametrics.com/victorialogs/logsql/",
   },
   {
     title: "VictoriaMetrics",

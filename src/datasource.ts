@@ -1,78 +1,85 @@
 import { Observable } from "rxjs";
+import { map } from 'rxjs/operators';
 
 import { DataQueryRequest, DataQueryResponse, DataSourceInstanceSettings } from '@grafana/data';
 import { DataSourceWithBackend } from '@grafana/runtime';
 
+import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
-import { Query, Options } from './types';
+import { escapeLabelValueInSelector } from "./languageUtils";
+import { addLabelToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
+import { Query, Options, ToggleFilterAction, QueryFilterOptions, FilterActionType } from './types';
 
 export class VictoriaLogsDatasource
   extends DataSourceWithBackend<Query, Options> {
   maxLines: number;
 
   constructor(
-    private instanceSettings: DataSourceInstanceSettings<Options>,
-    // private readonly templateSrv: TemplateSrv = getTemplateSrv()
+    instanceSettings: DataSourceInstanceSettings<Options>,
   ) {
     super(instanceSettings);
 
-    // this.languageProvider = new LanguageProvider(this);
     const settingsData = instanceSettings.jsonData || {};
     this.maxLines = parseInt(settingsData.maxLines ?? '0', 10) || 10;
     this.annotations = {
       QueryEditor: QueryEditor,
     };
-    // this.variables = new LokiVariableSupport(this);
-    // this.logContextProvider = new LogContextProvider(this);
   }
 
-  query(options: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-    console.log('query')
-    const promises = options.targets.map(target => {
-      const query = target.expr; // Получение запроса из объекта target
-      const server = this.instanceSettings.url; // URL сервера из настроек источника данных
-      const url = `${server}/select/logsql/query`
-      const params = new URLSearchParams({
-        query: encodeURIComponent(query.trim())
-      })
-      const options = {
-        method: 'GET',
-        headers: {
-          "Accept": "application/stream+json; charset=utf-8",
-          "Content-Type": "application/x-www-form-urlencoded",
-        }
+  query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
+    const queries = request.targets.filter(q => q.expr).map((q) => {
+      // include time range in query if not already present
+      if (!/_time/.test(q.expr)) {
+        const timerange = `_time:[${request.range.from.toISOString()}, ${request.range.to.toISOString()}]`
+        q.expr = `${timerange} AND ${q.expr}`;
       }
-
-      return fetch(`${url}?${params}`, options)
-        .then(response => response.text())
-        .then(text => {
-          console.log(text)
-          const data = text.split('\n')
-            .map(line => {
-              try {
-                return JSON.parse(line);
-              } catch (e) {
-                return null;
-              }
-            })
-            .filter(line => line)
-            .slice(-this.maxLines); // Ограничение количества строк
-
-          return { data };
-        })
-        .catch(error => {
-          console.error('Error fetching logs:', error);
-          throw new Error(`Error fetching logs: ${error.message}`);
-        });
+      return { ...q, maxLines: q.maxLines ?? this.maxLines }
     });
 
-    return new Observable<DataQueryResponse>(subscriber => {
-      Promise.all(promises).then(data => {
-        subscriber.next({ data });
-        subscriber.complete();
-      }).catch(error => {
-        subscriber.error(error);
-      });
-    });
+    const fixedRequest: DataQueryRequest<Query> = {
+      ...request,
+      targets: queries,
+    };
+
+    return this.runQuery(fixedRequest);
+  }
+
+  runQuery(fixedRequest: DataQueryRequest<Query>) {
+    return super
+      .query(fixedRequest)
+      .pipe(
+        map((response) =>
+          transformBackendResult(response, fixedRequest.targets, [])
+        )
+      );
+  }
+
+  toggleQueryFilter(query: Query, filter: ToggleFilterAction): Query {
+    let expression = query.expr ?? '';
+
+    if (!filter.options?.key || !filter.options?.value) {
+      return { ...query, expr: expression };
+    }
+
+    const isFilterFor = filter.type === FilterActionType.FILTER_FOR;
+    const isFilterOut = filter.type === FilterActionType.FILTER_OUT;
+    const value = escapeLabelValueInSelector(filter.options.value);
+    const hasFilter = queryHasFilter(expression, filter.options.key, value)
+    const operator = filter.type === FilterActionType.FILTER_FOR ? 'AND' : 'NOT';
+
+    if (hasFilter) {
+      expression = removeLabelFromQuery(expression, filter.options.key, value);
+    }
+
+    if ((isFilterFor && !hasFilter) || isFilterOut) {
+      expression = addLabelToQuery(expression, filter.options.key, value, operator);
+    }
+
+    return { ...query, expr: expression };
+  }
+
+  queryHasFilter(query: Query, filter: QueryFilterOptions): boolean {
+    let expression = query.expr ?? '';
+    return queryHasFilter(expression, filter.key, filter.value);
   }
 }

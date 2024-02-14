@@ -6,12 +6,12 @@ import { VictoriaLogsDatasource } from "../../datasource";
 import { Options, Query } from "../../types";
 import { MonacoQueryFieldWrapper } from "../monaco-query-field/MonacoQueryFieldWrapper";
 
-export interface LokiQueryFieldProps extends QueryEditorProps<VictoriaLogsDatasource, Query, Options> {
+export interface QueryFieldProps extends QueryEditorProps<VictoriaLogsDatasource, Query, Options> {
   ExtraFieldElement?: React.ReactNode;
   'data-testid'?: string;
 }
 
-const QueryField: React.FC<LokiQueryFieldProps> = (props) => {
+const QueryField: React.FC<QueryFieldProps> = (props) => {
   const {
     ExtraFieldElement,
     query,
@@ -50,7 +50,7 @@ const QueryField: React.FC<LokiQueryFieldProps> = (props) => {
             onChange={onChangeQuery}
             onRunQuery={onRunQuery}
             initialValue={query.expr ?? ''}
-            placeholder="Enter a MetricsQL query…"
+            placeholder="Enter a LogsQL query…"
           />
         </div>
       </div>

@@ -1,6 +1,6 @@
-PKG_PREFIX := https://github.com/VictoriaMetrics/grafana-datasource
+PKG_PREFIX := https://github.com/VictoriaMetrics/grafana-logs-datasource
 
-DATEINFO_TAG ?= $(shell date -u +'%Y%m%d-%H%M%S')
+DATEINFO_TAG ?= $(shell date -u +'%Y%m%d%H%M%S')
 BUILDINFO_TAG ?= $(shell echo $$(git describe --long --all | tr '/' '-')$$( \
 	      git diff-index --quiet HEAD -- || echo '-dirty-'$$(git diff-index -u HEAD | openssl sha1 | cut -d' ' -f2 | cut -c 1-8)))
 
@@ -9,7 +9,7 @@ ifeq ($(PKG_TAG),)
 PKG_TAG := $(BUILDINFO_TAG)
 endif
 
-GO_BUILDINFO = -X '$(PKG_PREFIX)/victoriametrics-datasource/buildinfo.Version=$(APP_NAME)-$(DATEINFO_TAG)-$(BUILDINFO_TAG)'
+GO_BUILDINFO = -X 'github.com/grafana/grafana-plugin-sdk-go/build.buildInfoJSON={\"time\":${DATEINFO_TAG},\"id\":\"victorialogs-datasource\",\"version\":\"${BUILDINFO_TAG}\",\"branch\":\"${PKG_TAG}\"}'
 
 .PHONY: $(MAKECMDGOALS)
 
@@ -17,7 +17,7 @@ include pkg/Makefile
 include deployment/*/Makefile
 
 app-local-goos-goarch:
-	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(RACE) -ldflags "$(GO_BUILDINFO)" -o victoriametrics-datasource/$(APP_NAME)_$(GOOS)_$(GOARCH)$(RACE) pkg/
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(RACE) -ldflags "$(GO_BUILDINFO)" -o victorialogs-datasource/$(APP_NAME)_$(GOOS)_$(GOARCH)$(RACE) pkg/
 
 app-via-docker-goos-goarch:
 	APP_SUFFIX='_$(GOOS)_$(GOARCH)' \
@@ -56,45 +56,45 @@ app-via-docker-darwin-arm64:
 app-via-docker-windows-amd64:
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(MAKE) app-via-docker-windows-goarch
 
-victoriametrics-backend-plugin-build: \
-	victoriametrics-backend-plugin-linux-amd64-prod \
-	victoriametrics-backend-plugin-linux-arm-prod \
-	victoriametrics-backend-plugin-linux-arm64-prod \
-	victoriametrics-backend-plugin-linux-386-prod \
-	victoriametrics-backend-plugin-amd64-prod \
-	victoriametrics-backend-plugin-arm64-prod \
-	victoriametrics-backend-plugin-windows-prod
+victorialogs-backend-plugin-build: \
+	victorialogs-backend-plugin-amd64-prod \
+	victorialogs-backend-plugin-linux-amd64-prod \
+	victorialogs-backend-plugin-linux-arm-prod \
+	victorialogs-backend-plugin-linux-arm64-prod \
+	victorialogs-backend-plugin-linux-386-prod \
+	victorialogs-backend-plugin-arm64-prod \
+	victorialogs-backend-plugin-windows-prod
 
-victorimetrics-frontend-plugin-build: \
+victorialogs-frontend-plugin-build: \
 	frontend-build
 
-victoriametrics-datasource-plugin-build: \
-	victorimetrics-frontend-plugin-build \
-	victoriametrics-backend-plugin-build
+victorialogs-datasource-plugin-build: \
+	victorialogs-frontend-plugin-build \
+	victorialogs-backend-plugin-build
 
-victoriametrics-datasource-plugin-pack:
-	tar -czf victoriametrics-datasource-$(PKG_TAG).tar.gz victoriametrics-datasource \
-	&& sha256sum victoriametrics-datasource-$(PKG_TAG).tar.gz \
-	> victoriametrics-datasource-$(PKG_TAG)_checksums.txt \
-	&& rm -rf ./victoriametrics-datasource
+victorialogs-datasource-plugin-pack:
+	tar -czf victorialogs-datasource-$(PKG_TAG).tar.gz victorialogs-datasource \
+	&& sha256sum victorialogs-datasource-$(PKG_TAG).tar.gz \
+	> victorialogs-datasource-$(PKG_TAG)_checksums.txt \
+	&& rm -rf ./victorialogs-datasource
 
-victoriametrics-datasource-frontend-plugin-pack: \
+victorialogs-datasource-frontend-plugin-pack: \
 	frontend-pack
 
-victoriametrics-datasource-frontend-plugin-release: \
-	victorimetrics-frontend-plugin-build \
-	victoriametrics-datasource-frontend-plugin-pack
+victorialogs-datasource-frontend-plugin-release: \
+	victorialogs-frontend-plugin-build \
+	victorialogs-datasource-frontend-plugin-pack
 
-victoriametrics-datasource-plugin-release: \
-	victorimetrics-frontend-plugin-build \
-	victoriametrics-backend-plugin-build \
-	victoriametrics-datasource-plugin-pack
+victorialogs-datasource-plugin-release: \
+	victorialogs-frontend-plugin-build \
+	victorialogs-backend-plugin-build \
+	victorialogs-datasource-plugin-pack
 
 build-release:
-	git checkout $(TAG) && $(MAKE) victoriametrics-datasource-plugin-release
+	git checkout $(TAG) && $(MAKE) victorialogs-datasource-plugin-release
 
 frontend-build-release:
-	git checkout $(TAG) && $(MAKE) victoriametrics-datasource-frontend-plugin-release
+	git checkout $(TAG) && $(MAKE) victorialogs-datasource-frontend-plugin-release
 
 golang-test:
 	go test ./pkg/...

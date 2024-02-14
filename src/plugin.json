@@ -7,8 +7,8 @@
   "metrics": true,
   "alerting": true,
   "annotations": true,
-  "streaming": true,
-  "backend": false,
+  "streaming": false,
+  "backend": true,
   "executable": "victorialogs_backend_plugin",
   "queryOptions": {
     "maxDataPoints": true
@@ -16,7 +16,7 @@
   "info": {
     "description": "VictoriaLogs datasource plugin for grafana",
     "author": {
-      "name": "VictoriaMetrics",
+      "name": "VictoriaLogs",
       "url": "https://victoriametrics.com/"
     },
     "keywords": ["datasource"],

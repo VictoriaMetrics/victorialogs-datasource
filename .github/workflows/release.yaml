@@ -1,0 +1,47 @@
+name: Release
+on:
+  release:
+    types:
+      - created
+env:
+  NAME: victorialogs-datasource
+  TAG: ${{ github.event.release.tag_name }}
+jobs:
+  release:
+    name: Release on GitHub
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Build Project
+        run: |
+          yarn install
+          npm run build
+      - name: Build ZIP
+        run: |
+          cp -r ./dist ./${{ env.NAME }} && zip ${{ env.NAME }}-${{ env.TAG }}.zip ${{ env.NAME }} -r && rm -rf ${{ env.NAME }}
+          sha1sum ./${{ env.NAME }}-${{ env.TAG }}.zip >${{ env.NAME }}-${{ env.TAG }}.zip.sha1
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./${{ env.NAME }}-${{ env.TAG }}.zip
+          asset_name: ${{ env.NAME }}-${{ env.TAG }}.zip
+          asset_content_type: application/zip
+      - name: Upload Release SHA
+        id: upload-release-sha
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./${{ env.NAME }}-${{ env.TAG }}.zip.sha1
+          asset_name: ${{ env.NAME }}-${{ env.TAG }}.zip.sha1
+          asset_content_type: application/zip
+      - name: Update version package.json
+        uses: pocket-apps/action-update-version@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}

@@ -5,8 +5,10 @@
   "scripts": {
     "build": "webpack -c ./.config/webpack/webpack.config.ts --env production",
     "dev": "webpack -w -c ./.config/webpack/webpack.config.ts --env development",
-    "test": "jest --watch --onlyChanged",
-    "test:ci": "jest --passWithNoTests --maxWorkers 4",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch --onlyChanged",
+    "test:ci": "jest --maxWorkers 4",
+    "test:coverage": "jest --collectCoverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint --cache --ignore-path ./.gitignore --ext .js,.jsx,.ts,.tsx .",
     "lint:fix": "npm run lint -- --fix",
@@ -66,12 +68,12 @@
     "@grafana/schema": "10.0.3",
     "@grafana/ui": "10.0.3",
     "@lezer/common": "^1.2.1",
+    "@lezer/lr": "^1.4.0",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-jest": "^27.6.3",
     "eslint-plugin-lodash": "^7.4.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "tslib": "2.5.3"
-  },
-  "packageManager": "npm@10.2.4"
+  }
 }
