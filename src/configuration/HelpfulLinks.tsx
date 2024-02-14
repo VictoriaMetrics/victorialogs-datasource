@@ -3,7 +3,7 @@ import React from "react";
 const tips = [
   {
     title: "Datasource",
-    url: "https://github.com/VictoriaMetrics/grafana-logs-datasource",
+    url: "https://github.com/VictoriaMetrics/victorialogs-datasource",
   },
   {
     title: "VictoriaLogs",

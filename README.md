@@ -60,8 +60,8 @@ Please find the example of provisioning Grafana instance with VictoriaLogs datas
 1. Download the latest release:
 
    ``` bash
-   ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/grafana-logs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-   curl -L https://github.com/VictoriaMetrics/grafana-logs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o plugin.tar.gz
+   ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/victorialogs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+   curl -L https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o plugin.tar.gz
    tar -xf plugin.tar.gz -C ./victorialogs-datasource
    rm plugin.tar.gz
    ```
@@ -72,7 +72,7 @@ Please find the example of provisioning Grafana instance with VictoriaLogs datas
      version: '3.0'
      services:
         grafana:
-           container_name: 'grafana-logs-datasource'
+           container_name: 'victorialogs-datasource'
            build:
               context: ./.config
               args:
@@ -80,7 +80,7 @@ Please find the example of provisioning Grafana instance with VictoriaLogs datas
            ports:
               - 3000:3000/tcp
            volumes:
-              - ./victorialogs-datasource:/var/lib/grafana/plugins/grafana-logs-datasource
+              - ./victorialogs-datasource:/var/lib/grafana/plugins/victorialogs-datasource
               - ./provisioning:/etc/grafana/provisioning
    ```
 
@@ -115,8 +115,8 @@ extraInitContainers:
      - |
        set -ex
        mkdir -p /var/lib/grafana/plugins/
-       ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/grafana-logs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-       curl -L https://github.com/VictoriaMetrics/grafana-logs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/plugin.tar.gz
+       ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/victorialogs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+       curl -L https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/plugin.tar.gz
        tar -xf /var/lib/grafana/plugins/plugin.tar.gz -C /var/lib/grafana/plugins/
        rm /var/lib/grafana/plugins/plugin.tar.gz
     volumeMounts:
@@ -175,8 +175,8 @@ spec:
                 - |
                   set -ex
                   mkdir -p /var/lib/grafana/plugins/
-                  ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/grafana-logs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-                  curl -L https://github.com/VictoriaMetrics/grafana-logs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/plugin.tar.gz
+                  ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/victorialogs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+                  curl -L https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/plugin.tar.gz
                   tar -xf /var/lib/grafana/plugins/plugin.tar.gz -C /var/lib/grafana/plugins/
                   rm /var/lib/grafana/plugins/plugin.tar.gz
               volumeMounts:
@@ -195,8 +195,8 @@ This example uses init container to download and install plugin.
 1. To download plugin build and move contents into Grafana plugins directory:
 
    ``` bash
-   ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/grafana-logs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-   curl -L https://github.com/VictoriaMetrics/grafana-logs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/plugin.tar.gz
+   ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/victorialogs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+   curl -L https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/plugin.tar.gz
    tar -xf /var/lib/grafana/plugins/plugin.tar.gz -C /var/lib/grafana/plugins/
    rm /var/lib/grafana/plugins/plugin.tar.gz
    ```
@@ -279,10 +279,10 @@ This command will build frontend part and backend part or the plugin and locate 
    * `git tag -s v1.xx.y` in `master` branch
 1. Run `TAG=v1.xx.y make build-release` to build and package binaries in `*.tar.gz` release archives.
 1. Run `git push origin v1.xx.y` to push the tag created `v1.xx.y` at step 2 to public GitHub repository
-1. Go to <https://github.com/VictoriaMetrics/grafana-logs-datasource/releases> and verify that draft release with the name `TAG` has been created and this release contains all the needed binaries and checksums.
+1. Go to <https://github.com/VictoriaMetrics/victorialogs-datasource/releases> and verify that draft release with the name `TAG` has been created and this release contains all the needed binaries and checksums.
 1. Remove the `draft` checkbox for the `TAG` release and manually publish it.
 
 ## License
 
 This project is licensed under
-the [AGPL-3.0-only](https://github.com/VictoriaMetrics/grafana-logs-datasource/blob/main/LICENSE).
+the [AGPL-3.0-only](https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/LICENSE).

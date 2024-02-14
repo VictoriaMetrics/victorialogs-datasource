@@ -27,7 +27,7 @@ services:
     volumes:
       - ./:/victorialogs-datasource
       # for speedup yarn install
-      - "node_modules:/grafana-logs-datasource/node_modules"
+      - "node_modules:/victorialogs-datasource/node_modules"
     command: |
       bash -xec "
         if [[ "3" == `ls -la ./node_modules/ | wc -l` ]]; then yarn install --omit=dev; fi && \
@@ -35,7 +35,7 @@ services:
       "
 
   grafana:
-    container_name: 'grafana-logs-datasource'
+    container_name: 'victorialogs-datasource'
     build:
       context: ./.config
       args:

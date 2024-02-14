@@ -1,4 +1,4 @@
-PKG_PREFIX := https://github.com/VictoriaMetrics/grafana-logs-datasource
+PKG_PREFIX := https://github.com/VictoriaMetrics/victorialogs-datasource
 
 DATEINFO_TAG ?= $(shell date -u +'%Y%m%d%H%M%S')
 BUILDINFO_TAG ?= $(shell echo $$(git describe --long --all | tr '/' '-')$$( \

@@ -8,7 +8,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 
-	"github.com/VictoriaMetrics/grafana-logs-datasource/pkg/utils"
+	"github.com/VictoriaMetrics/victorialogs-datasource/pkg/utils"
 )
 
 const (

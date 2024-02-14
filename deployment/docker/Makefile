@@ -1,5 +1,5 @@
 DOCKER_NAMESPACE := victorialogs-datasource
-PKG_PREFIX := github.com/VictoriaMetrics/grafana-logs-datasource
+PKG_PREFIX := github.com/VictoriaMetrics/victorialogs-datasource
 
 ROOT_IMAGE ?= alpine:3.18.0
 CERTS_IMAGE := alpine:3.18.0
