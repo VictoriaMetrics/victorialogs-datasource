@@ -21,11 +21,11 @@ const (
 func NewDatasource(ctx context.Context, settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 	opts, err := settings.HTTPClientOptions(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("http client options: %w", err)
+		return nil, fmt.Errorf("error create httpclient.Options based on settings: %w", err)
 	}
 	cl, err := httpclient.New(opts)
 	if err != nil {
-		return nil, fmt.Errorf("httpclient new: %w", err)
+		return nil, fmt.Errorf("error create a new http.Client: %w", err)
 	}
 	return &Datasource{
 		settings:   settings,
@@ -97,7 +97,7 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 	req, err := http.NewRequestWithContext(ctx, settings.HTTPMethod, reqURL, nil)
 	if err != nil {
 		err = fmt.Errorf("failed to create new request with context: %w", err)
-		return newResponseError(err, backend.StatusBadRequest)
+		return newResponseError(err, backend.StatusInternal)
 	}
 	resp, err := d.httpClient.Do(req)
 	if err != nil {

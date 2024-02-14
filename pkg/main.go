@@ -14,7 +14,7 @@ func main() {
 	backend.Logger.Info("Starting VictoriaLogs datasource backend ...")
 
 	if err := datasource.Manage("victorialogs-datasource-http-backend", plugin.NewDatasource, datasource.ManageOpts{}); err != nil {
-		log.DefaultLogger.Error("Failed to process VictoriaLogs datasource backend :%s", err.Error())
+		log.DefaultLogger.Error("Failed to process VictoriaLogs datasource backend: %s", err.Error())
 		os.Exit(1)
 	}
 }
