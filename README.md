@@ -1,7 +1,8 @@
 # VictoriaLogs datasource for Grafana
 
-The [VictoriaLogs](https://docs.VictoriaLogs.com/victorialogs/) datasource plugin allows you to query and visualize
-data from [VictoriaLogs](https://docs.VictoriaLogs.com/victorialogs/) in Grafana.
+
+The VictoriaLogs datasource plugin allows you to query and visualize
+[VictoriaLogs](https://docs.victoriametrics.com/victorialogs/) data in [Grafana](https://grafana.com).
 
 * [Installation](#installation)
 * [How to make new release](#how-to-make-new-release)
@@ -9,7 +10,7 @@ data from [VictoriaLogs](https://docs.VictoriaLogs.com/victorialogs/) in Grafana
 
 ## Installation
 
-Installing VictoriaLogs Grafana datasource 
+Installing VictoriaLogs datasource 
 [requires](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#allow_loading_unsigned_plugins) 
 the following changes to Grafana's `grafana.ini` config:
 
@@ -18,7 +19,7 @@ the following changes to Grafana's `grafana.ini` config:
 allow_loading_unsigned_plugins = victorialogs-datasource
 ```
 
-For `grafana-operator` users, please adjust `config:` section in your `kind=Grafana` resource as below
+If using `grafana-operator`, adjust `config` section in your `kind=Grafana` resource as below:
 
 ```
   config:
@@ -26,32 +27,26 @@ For `grafana-operator` users, please adjust `config:` section in your `kind=Graf
       allow_loading_unsigned_plugins: "victorialogs-datasource"
 ```
 
-For detailed instructions on how to install the plugin on Grafana Cloud or locally,
+For detailed instructions on how to install the plugin in Grafana Cloud or locally,
 please checkout the [Plugin installation docs](https://grafana.com/docs/grafana/latest/plugins/installation/).
 
 ### Grafana Provisioning
 
-Provision of Grafana plugin requires to create [datasource config file](http://docs.grafana.org/administration/provisioning/#datasources).
-
-Example of config file for provisioning VictoriaLogs datasource is the following:
+Provisioning of Grafana plugin requires creating [datasource config file](http://docs.grafana.org/administration/provisioning/#datasources):
 
 ```yaml
 apiVersion: 1
-
-# List of data sources to insert/update depending on what's
-# available in the database.
 datasources:
-  # <string, required> Name of the VictoriaLogs datasource
-  # displayed in Grafana panels and queries.
+    # <string, required> Name of the VictoriaLogs datasource
+    # displayed in Grafana panels and queries.
   - name: VictoriaLogs
     # <string, required> Sets the data source type.
     type: victorialogs-datasource
-      # <string, required> Sets the access mode, either
-      # proxy or direct (Server or Browser in the UI).
-      # Some data sources are incompatible with any setting
-    # but proxy (Server).
-    access: proxy
-    # <string> Sets default URL of the single node version of VictoriaLogs
+    # <string, required> Sets the access mode, either
+    # proxy or direct (Server or Browser in the UI).
+    access: prox
+    # <string> Sets URL for sending queries to VictoriaLogs server.
+    # see https://docs.victoriametrics.com/victorialogs/querying/
     url: http://victorialogs:9428
     # <string> Sets the pre-selected datasource for new panels.
     # You can set only one default data source per organization.
@@ -95,7 +90,7 @@ Please find the example of provisioning Grafana instance with VictoriaLogs datas
 docker-compose -f docker-compose.yaml up
 ```
 
-After Grafana starts successfully, datasources should be present in the datasources tab
+After Grafana starts successfully, datasource should be available in the datasources tab
 
 <img src="docs/assets/provision_datasources.png" width="800" alt="Configuration">
 
