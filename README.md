@@ -1,133 +1,313 @@
-# Grafana data source plugin template
+# VictoriaLogs datasource for Grafana
 
-This template is a starting point for building a Data Source Plugin for Grafana.
+The [VictoriaLogs](https://docs.victoriametrics.com/victorialogs/) datasource plugin allows you to query and visualize
+data from VictoriaLog in Grafana.
 
-## What are Grafana data source plugins?
+* [Motivation](#motivation)
+* [Installation](#installation)
+* [How to make new release](#how-to-make-new-release)
+* [Frequently Asked Questions](#faq)
+* [License](#license)
 
-Grafana supports a wide range of data sources, including Prometheus, MySQL, and even Datadog. There’s a good chance you can already visualize metrics from the systems you have set up. In some cases, though, you already have an in-house metrics solution that you’d like to add to your Grafana dashboards. Grafana Data Source Plugins enables integrating such solutions with Grafana.
+## Motivation
 
-## Getting started
+Thanks to VictoriaLogs [API](https://docs.victoriametrics.com/victorialogs/querying/) users can use
+[Prometheus datasource](https://docs.victoriametrics.com/#grafana-setup) for Grafana to query data from VictoriaLogs.
+VictoriaLogs has differences between Loki and other log solutions so we decided to create a datasource plugin specifically for VictoriaLogs.
+The benefits of using VictoriaLogs plugin are the following:
 
-### Backend
+* [LogsQL](https://docs.victoriametrics.com/victorialogs/logsql/) query language support;
+* Better logs visualisation;
+* Useful interface;
 
-1. Update [Grafana plugin SDK for Go](https://grafana.com/developers/plugin-tools/introduction/grafana-plugin-sdk-for-go) dependency to the latest minor version:
+## Installation
 
-   ```bash
-   go get -u github.com/grafana/grafana-plugin-sdk-go
-   go mod tidy
+Installing VictoriaLogs Grafana datasource [requires](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#allow_loading_unsigned_plugins) the following changes to Grafana's `grafana.ini` config:
+
+``` ini
+[plugins]
+allow_loading_unsigned_plugins = victorialogs-datasource
+```
+
+For `grafana-operator` users, please adjust `config:` section in your `kind=Grafana` resource as below
+
+```
+  config:
+    plugins:
+      allow_loading_unsigned_plugins: "victorialogs-datasource"
+```
+
+See [why VictoriaLogs datasource is unsigned](#why-victoriaMetrics-datasource-is-unsigned).
+
+For detailed instructions on how to install the plugin on Grafana Cloud or locally, please checkout the [Plugin installation docs](https://grafana.com/docs/grafana/latest/plugins/installation/).
+
+### Grafana Provisioning
+
+Provision of Grafana plugin requires to create [datasource config file](http://docs.grafana.org/administration/provisioning/#datasources).
+
+Example of config file for provisioning VictoriaLogs datasource is the following:
+
+```yaml
+apiVersion: 1
+
+# List of data sources to insert/update depending on what's
+# available in the database.
+datasources:
+  # <string, required> Name of the VictoriaMetrics datasource
+  # displayed in Grafana panels and queries.
+  - name: VictoriaLogs
+    # <string, required> Sets the data source type.
+    type: victorialogs-datasource
+      # <string, required> Sets the access mode, either
+      # proxy or direct (Server or Browser in the UI).
+      # Some data sources are incompatible with any setting
+    # but proxy (Server).
+    access: proxy
+    # <string> Sets default URL of the single node version of VictoriaMetrics
+    url: http://victorialogs:9428
+    # <string> Sets the pre-selected datasource for new panels.
+    # You can set only one default data source per organization.
+    isDefault: true
+```
+
+Please find the example of provisioning Grafana instance with VictoriaLogs datasource below:
+
+1. Create folder `./provisioning/datasource` with datasource example file:
+
+1. Download the latest release:
+
+   ``` bash
+   ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/grafana-logs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+   curl -L https://github.com/VictoriaMetrics/grafana-logs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o plugin.tar.gz
+   tar -xf plugin.tar.gz -C ./victorialogs-datasource
+   rm plugin.tar.gz
    ```
 
-2. Build backend plugin binaries for Linux, Windows and Darwin:
+1. Define Grafana installation via docker-compose:
 
-   ```bash
-   mage -v
+   ```yaml
+     version: '3.0'
+     services:
+        grafana:
+           container_name: 'grafana-logs-datasource'
+           build:
+              context: ./.config
+              args:
+                 grafana_version: ${GRAFANA_VERSION:-9.1.2}
+           ports:
+              - 3000:3000/tcp
+           volumes:
+              - ./victorialogs-datasource:/var/lib/grafana/plugins/grafana-logs-datasource
+              - ./provisioning:/etc/grafana/provisioning
    ```
 
-3. List all available Mage targets for additional commands:
+1. Run docker-compose file:
 
-   ```bash
-   mage -l
+```
+docker-compose -f docker-compose.yaml up
+```
+
+When Grafana starts successfully datasources should be present on the datasources tab
+
+<img src="docs/assets/provision_datasources.png" width="800" alt="Configuration">
+
+### Install in Kubernetes
+
+#### Grafana helm chart
+
+Example with Grafana [helm chart](https://github.com/grafana/helm-charts/blob/main/charts/grafana/README.md):
+
+``` yaml
+extraInitContainers:
+  - name: "load-vm-ds-plugin"
+    image: "curlimages/curl:7.85.0"
+    command: [ "/bin/sh" ]
+    workingDir: "/var/lib/grafana"
+    securityContext:
+      runAsUser: 472
+      runAsNonRoot: true
+      runAsGroup: 472
+    args:
+     - "-c"
+     - |
+       set -ex
+       mkdir -p /var/lib/grafana/plugins/
+       ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/grafana-logs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+       curl -L https://github.com/VictoriaMetrics/grafana-logs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/plugin.tar.gz
+       tar -xf /var/lib/grafana/plugins/plugin.tar.gz -C /var/lib/grafana/plugins/
+       rm /var/lib/grafana/plugins/plugin.tar.gz
+    volumeMounts:
+      # For grafana-operator users, change `name: storage` to `name: grafana-data`
+      - name: storage
+        mountPath: /var/lib/grafana
+```
+
+For `grafana-operator` users, the above configuration should be done for the part `/spec/deployment/spec/template/spec/initContainers` of your `kind=Grafana` resource.
+
+This example uses init container to download and install plugin. To allow Grafana using this container as a sidecar set the following config:
+
+```yaml
+sidecar:
+  datasources:
+    initDatasources: true
+    enabled: true
+```
+
+See more about chart settings [here](https://github.com/grafana/helm-charts/blob/541d97051de87a309362e02d08741ffc868cfcd6/charts/grafana/values.yaml)
+
+Another option would be to build custom Grafana image with plugin based on same installation instructions.
+
+#### Grafana operator
+
+Example with Grafana [operator](https://github.com/grafana-operator/grafana-operator):
+
+```yaml
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: grafana-vm
+spec:
+  persistentVolumeClaim:
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 200Mi
+  deployment:
+    spec:
+      template:
+        spec:
+          initContainers:
+            - name: "load-vm-ds-plugin"
+              image: "curlimages/curl:7.85.0"
+              command: [ "/bin/sh" ]
+              workingDir: "/var/lib/grafana"
+              securityContext:
+                runAsUser: 10001
+                runAsNonRoot: true
+                runAsGroup: 10001
+              args:
+                - "-c"
+                - |
+                  set -ex
+                  mkdir -p /var/lib/grafana/plugins/
+                  ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/grafana-logs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+                  curl -L https://github.com/VictoriaMetrics/grafana-logs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/plugin.tar.gz
+                  tar -xf /var/lib/grafana/plugins/plugin.tar.gz -C /var/lib/grafana/plugins/
+                  rm /var/lib/grafana/plugins/plugin.tar.gz
+              volumeMounts:
+                - name: grafana-data
+                  mountPath: /var/lib/grafana
+  config:
+    plugins:
+      allow_loading_unsigned_plugins: victorialogs-datasource
+```
+
+See [Grafana operator reference](https://grafana-operator.github.io/grafana-operator/docs/grafana/) to find more about Grafana operator.
+This example uses init container to download and install plugin.
+
+### Dev release installation
+
+1. To download plugin build and move contents into Grafana plugins directory:
+
+   ``` bash
+   ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/grafana-logs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+   curl -L https://github.com/VictoriaMetrics/grafana-logs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/plugin.tar.gz
+   tar -xf /var/lib/grafana/plugins/plugin.tar.gz -C /var/lib/grafana/plugins/
+   rm /var/lib/grafana/plugins/plugin.tar.gz
    ```
 
-### Frontend
+1. Restart Grafana
 
-1. Install dependencies
+## Getting started development
 
-   ```bash
-   npm install
-   ```
+### 1. Configure Grafana
 
-2. Build plugin in development mode and run in watch mode
+Installing dev version of Grafana plugin requires to change `grafana.ini` config to allow loading unsigned plugins:
 
-   ```bash
-   npm run dev
-   ```
+``` ini
+# Directory where Grafana will automatically scan and look for plugins
+plugins = {{path to directory with plugin}}
+```
 
-3. Build plugin in production mode
+``` ini
+[plugins]
+allow_loading_unsigned_plugins = victorialogs-datasource
+```
 
-   ```bash
-   npm run build
-   ```
+### 2. Run the plugin
 
-4. Run the tests (using Jest)
+In the project directory, you can run:
 
-   ```bash
-   # Runs the tests and watches for changes, requires git init first
-   npm run test
+```
+# install dependencies
+yarn install
 
-   # Exits after running all the tests
-   npm run test:ci
-   ```
+# run the app in the development mode
+yarn dev
 
-5. Spin up a Grafana instance and run the plugin inside it (using Docker)
+# build the plugin for production to the `dist` folder and zip build
+yarn build:zip
+```
 
-   ```bash
-   npm run server
-   ```
+### 3. How to build backend plugin
 
-6. Run the E2E tests (using Cypress)
+From the root folder of the project run the following command:
 
-   ```bash
-   # Spins up a Grafana instance first that we tests against
-   npm run server
+```
+make victorialogs-backend-plugin-build
+```
 
-   # Starts the tests
-   npm run e2e
-   ```
+This command will build executable multi-platform files to the `dist` folder for the following platforms:
 
-7. Run the linter
+* linux/amd64
+* linux/arm64
+* linux/arm
+* linux/386
+* amd64
+* arm64
+* windows
 
-   ```bash
-   npm run lint
+### 4.How to build frontend plugin
 
-   # or
+From the root folder of the project run the following command:
 
-   npm run lint:fix
-   ```
+```
+make victorialogs-frontend-plugin-build
+```
 
-# Distributing your plugin
+This command will build all frontend app into `dist` folder.
 
-When distributing a Grafana plugin either within the community or privately the plugin must be signed so the Grafana application can verify its authenticity. This can be done with the `@grafana/sign-plugin` package.
+### 5. How to build frontend and backend parts of the plugin:
 
-_Note: It's not necessary to sign a plugin during development. The docker development environment that is scaffolded with `@grafana/create-plugin` caters for running the plugin without a signature._
+When frontend and backend parts of the plugin is required, run the following command from the root folder of the project:
 
-## Initial steps
+```
+make victorialogs-datasource-plugin-build
+```
 
-Before signing a plugin please read the Grafana [plugin publishing and signing criteria](https://grafana.com/legal/plugins/#plugin-publishing-and-signing-criteria) documentation carefully.
+This command will build frontend part and backend part or the plugin and locate both parts into `dist` folder.
 
-`@grafana/create-plugin` has added the necessary commands and workflows to make signing and distributing a plugin via the grafana plugins catalog as straightforward as possible.
+## How to make new release
 
-Before signing a plugin for the first time please consult the Grafana [plugin signature levels](https://grafana.com/legal/plugins/#what-are-the-different-classifications-of-plugins) documentation to understand the differences between the types of signature level.
+1. Make sure there are no open security issues.
+1. Create a release tag:
+   * `git tag -s v1.xx.y` in `master` branch
+1. Run `TAG=v1.xx.y make build-release` to build and package binaries in `*.tar.gz` release archives.
+1. Run `git push origin v1.xx.y` to push the tag created `v1.xx.y` at step 2 to public GitHub repository
+1. Go to <https://github.com/VictoriaMetrics/grafana-logs-datasource/releases> and verify that draft release with the name `TAG` has been created and this release contains all the needed binaries and checksums.
+1. Remove the `draft` checkbox for the `TAG` release and manually publish it.
 
-1. Create a [Grafana Cloud account](https://grafana.com/signup).
-2. Make sure that the first part of the plugin ID matches the slug of your Grafana Cloud account.
-   - _You can find the plugin ID in the `plugin.json` file inside your plugin directory. For example, if your account slug is `acmecorp`, you need to prefix the plugin ID with `acmecorp-`._
-3. Create a Grafana Cloud API key with the `PluginPublisher` role.
-4. Keep a record of this API key as it will be required for signing a plugin
+## FAQ
 
-## Signing a plugin
+### Why VictoriaLogs datasource is unsigned?
 
-### Using Github actions release workflow
+Based on our previous experience of [developing Grafana plugins](https://grafana.com/grafana/plugins/vertamedia-clickhouse-datasource/) the signing procedure was a formal act. But when we tried [to sign the plugin](https://grafana.com/docs/grafana/latest/developers/plugins/publish-a-plugin/sign-a-plugin/)
+we were told by GrafanaLabs representative the plugin falls into a Commercial signature level.
+It matters not if plugin or VictoriaLogs itself are opensource. The announced cost of Commercial signature level was much higher than expected, so we interrupted the procedure.
 
-If the plugin is using the github actions supplied with `@grafana/create-plugin` signing a plugin is included out of the box. The [release workflow](./.github/workflows/release.yml) can prepare everything to make submitting your plugin to Grafana as easy as possible. Before being able to sign the plugin however a secret needs adding to the Github repository.
+## License
 
-1. Please navigate to "settings > secrets > actions" within your repo to create secrets.
-2. Click "New repository secret"
-3. Name the secret "GRAFANA_API_KEY"
-4. Paste your Grafana Cloud API key in the Secret field
-5. Click "Add secret"
-
-#### Push a version tag
-
-To trigger the workflow we need to push a version tag to github. This can be achieved with the following steps:
-
-1. Run `npm version <major|minor|patch>`
-2. Run `git push origin main --follow-tags`
-
-## Learn more
-
-Below you can find source code for existing app plugins and other related documentation.
-
-- [Basic data source plugin example](https://github.com/grafana/grafana-plugin-examples/tree/master/examples/datasource-basic#readme)
-- [`plugin.json` documentation](https://grafana.com/developers/plugin-tools/reference-plugin-json)
-- [How to sign a plugin?](https://grafana.com/developers/plugin-tools/publish-a-plugin/sign-a-plugin)
+This project is licensed under
+the [AGPL-3.0-only](https://github.com/VictoriaMetrics/grafana-logs-datasource/blob/main/LICENSE).
