@@ -230,7 +230,7 @@ yarn install
 # run the app in the development mode
 yarn dev
 
-# build the plugin for production to the `dist` folder and zip build
+# build the plugin for production to the `victorialogs-datasource` folder and zip build
 yarn build:zip
 ```
 
@@ -242,7 +242,7 @@ From the root folder of the project run the following command:
 make victorialogs-backend-plugin-build
 ```
 
-This command will build executable multi-platform files to the `dist` folder for the following platforms:
+This command will build executable multi-platform files to the `victorialogs-datasource` folder for the following platforms:
 
 * linux/amd64
 * linux/arm64
@@ -260,7 +260,7 @@ From the root folder of the project run the following command:
 make victorialogs-frontend-plugin-build
 ```
 
-This command will build all frontend app into `dist` folder.
+This command will build all frontend app into `victorialogs-datasource` folder.
 
 ### 5. How to build frontend and backend parts of the plugin:
 
@@ -270,7 +270,7 @@ When frontend and backend parts of the plugin is required, run the following com
 make victorialogs-datasource-plugin-build
 ```
 
-This command will build frontend part and backend part or the plugin and locate both parts into `dist` folder.
+This command will build frontend part and backend part or the plugin and locate both parts into `victorialogs-datasource` folder.
 
 ## How to make new release
 
