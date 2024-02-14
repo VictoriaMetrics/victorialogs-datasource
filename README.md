@@ -1,28 +1,17 @@
 # VictoriaLogs datasource for Grafana
 
-The [VictoriaLogs](https://docs.victoriametrics.com/victorialogs/) datasource plugin allows you to query and visualize
-data from VictoriaLog in Grafana.
+The [VictoriaLogs](https://docs.VictoriaLogs.com/victorialogs/) datasource plugin allows you to query and visualize
+data from [VictoriaLogs](https://docs.VictoriaLogs.com/victorialogs/) in Grafana.
 
-* [Motivation](#motivation)
 * [Installation](#installation)
 * [How to make new release](#how-to-make-new-release)
-* [Frequently Asked Questions](#faq)
 * [License](#license)
-
-## Motivation
-
-Thanks to VictoriaLogs [API](https://docs.victoriametrics.com/victorialogs/querying/) users can use
-[Prometheus datasource](https://docs.victoriametrics.com/#grafana-setup) for Grafana to query data from VictoriaLogs.
-VictoriaLogs has differences between Loki and other log solutions so we decided to create a datasource plugin specifically for VictoriaLogs.
-The benefits of using VictoriaLogs plugin are the following:
-
-* [LogsQL](https://docs.victoriametrics.com/victorialogs/logsql/) query language support;
-* Better logs visualisation;
-* Useful interface;
 
 ## Installation
 
-Installing VictoriaLogs Grafana datasource [requires](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#allow_loading_unsigned_plugins) the following changes to Grafana's `grafana.ini` config:
+Installing VictoriaLogs Grafana datasource 
+[requires](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#allow_loading_unsigned_plugins) 
+the following changes to Grafana's `grafana.ini` config:
 
 ``` ini
 [plugins]
@@ -37,9 +26,8 @@ For `grafana-operator` users, please adjust `config:` section in your `kind=Graf
       allow_loading_unsigned_plugins: "victorialogs-datasource"
 ```
 
-See [why VictoriaLogs datasource is unsigned](#why-victoriaMetrics-datasource-is-unsigned).
-
-For detailed instructions on how to install the plugin on Grafana Cloud or locally, please checkout the [Plugin installation docs](https://grafana.com/docs/grafana/latest/plugins/installation/).
+For detailed instructions on how to install the plugin on Grafana Cloud or locally,
+please checkout the [Plugin installation docs](https://grafana.com/docs/grafana/latest/plugins/installation/).
 
 ### Grafana Provisioning
 
@@ -53,7 +41,7 @@ apiVersion: 1
 # List of data sources to insert/update depending on what's
 # available in the database.
 datasources:
-  # <string, required> Name of the VictoriaMetrics datasource
+  # <string, required> Name of the VictoriaLogs datasource
   # displayed in Grafana panels and queries.
   - name: VictoriaLogs
     # <string, required> Sets the data source type.
@@ -63,7 +51,7 @@ datasources:
       # Some data sources are incompatible with any setting
     # but proxy (Server).
     access: proxy
-    # <string> Sets default URL of the single node version of VictoriaMetrics
+    # <string> Sets default URL of the single node version of VictoriaLogs
     url: http://victorialogs:9428
     # <string> Sets the pre-selected datasource for new panels.
     # You can set only one default data source per organization.
@@ -93,7 +81,7 @@ Please find the example of provisioning Grafana instance with VictoriaLogs datas
            build:
               context: ./.config
               args:
-                 grafana_version: ${GRAFANA_VERSION:-9.1.2}
+                 grafana_version: ${GRAFANA_VERSION:-10.0.3}
            ports:
               - 3000:3000/tcp
            volumes:
@@ -107,7 +95,7 @@ Please find the example of provisioning Grafana instance with VictoriaLogs datas
 docker-compose -f docker-compose.yaml up
 ```
 
-When Grafana starts successfully datasources should be present on the datasources tab
+After Grafana starts successfully, datasources should be present in the datasources tab
 
 <img src="docs/assets/provision_datasources.png" width="800" alt="Configuration">
 
@@ -298,14 +286,6 @@ This command will build frontend part and backend part or the plugin and locate 
 1. Run `git push origin v1.xx.y` to push the tag created `v1.xx.y` at step 2 to public GitHub repository
 1. Go to <https://github.com/VictoriaMetrics/grafana-logs-datasource/releases> and verify that draft release with the name `TAG` has been created and this release contains all the needed binaries and checksums.
 1. Remove the `draft` checkbox for the `TAG` release and manually publish it.
-
-## FAQ
-
-### Why VictoriaLogs datasource is unsigned?
-
-Based on our previous experience of [developing Grafana plugins](https://grafana.com/grafana/plugins/vertamedia-clickhouse-datasource/) the signing procedure was a formal act. But when we tried [to sign the plugin](https://grafana.com/docs/grafana/latest/developers/plugins/publish-a-plugin/sign-a-plugin/)
-we were told by GrafanaLabs representative the plugin falls into a Commercial signature level.
-It matters not if plugin or VictoriaLogs itself are opensource. The announced cost of Commercial signature level was much higher than expected, so we interrupted the procedure.
 
 ## License
 
