@@ -44,7 +44,7 @@ datasources:
     type: victorialogs-datasource
     # <string, required> Sets the access mode, either
     # proxy or direct (Server or Browser in the UI).
-    access: prox
+    access: proxy
     # <string> Sets URL for sending queries to VictoriaLogs server.
     # see https://docs.victoriametrics.com/victorialogs/querying/
     url: http://victorialogs:9428
