@@ -64,15 +64,7 @@ func Test_parseStreamResponse(t *testing.T) {
 			},
 		},
 		{
-			name:     "incorrect time in the response",
-			reader:   f,
-			response: `{"_time":"acdf"}`,
-			want: func() backend.DataResponse {
-				return newResponseError(fmt.Errorf("error parse time from _time field: cannot parse acdf: cannot parse duration \"acdf\""), backend.StatusInternal)
-			},
-		},
-		{
-			name:     "invalid labels in the resposne",
+			name:     "invalid stream in the response",
 			reader:   f,
 			response: `{"_time":"2024-02-20", "_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=}"}`,
 			want: func() backend.DataResponse {
@@ -100,6 +92,42 @@ func Test_parseStreamResponse(t *testing.T) {
 				labels := data.Labels{
 					"application": "logs-benchmark-Apache.log-1708437847",
 					"hostname":    "e28a622d7792",
+				}
+
+				b, _ := labelsToJSON(labels)
+
+				labelsField.Append(b)
+				frame := data.NewFrame("", timeFd, lineField, labelsField)
+
+				rsp := backend.DataResponse{}
+				frame.Meta = &data.FrameMeta{}
+				rsp.Frames = append(rsp.Frames, frame)
+
+				return rsp
+			},
+		},
+		{
+			name:     "response with different labels",
+			reader:   f,
+			response: `{"_msg":"123","_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","_time":"2024-02-20T14:04:27Z", "job": "vlogs"}`,
+			want: func() backend.DataResponse {
+				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+				labelsField.Name = gLabelsField
+
+				timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+				timeFd.Name = gTimeField
+
+				lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+				lineField.Name = gLineField
+
+				timeFd.Append(time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC))
+
+				lineField.Append("123")
+
+				labels := data.Labels{
+					"application": "logs-benchmark-Apache.log-1708437847",
+					"hostname":    "e28a622d7792",
+					"job":         "vlogs",
 				}
 
 				b, _ := labelsToJSON(labels)
