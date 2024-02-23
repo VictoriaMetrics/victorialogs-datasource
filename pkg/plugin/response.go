@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/VictoriaMetrics/metricsql"
@@ -48,7 +49,7 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 		var r Response
 		err := dec.Decode(&r)
 		if err != nil {
-			return newResponseError(err, backend.StatusInternal)
+			return newResponseError(fmt.Errorf("error decode response: %s", err), backend.StatusInternal)
 		}
 
 		for fieldName, value := range r {
@@ -58,7 +59,7 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 			case timeField:
 				getTime, err := utils.GetTime(value)
 				if err != nil {
-					return newResponseError(err, backend.StatusInternal)
+					return newResponseError(fmt.Errorf("error parse time from _time field: %s", err), backend.StatusInternal)
 				}
 				timeFd.Append(getTime)
 			case streamField:
