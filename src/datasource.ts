@@ -1,13 +1,21 @@
+import { map as lodashMap } from 'lodash';
 import { Observable } from "rxjs";
 import { map } from 'rxjs/operators';
 
-import { DataQueryRequest, DataQueryResponse, DataSourceInstanceSettings } from '@grafana/data';
-import { DataSourceWithBackend } from '@grafana/runtime';
+import {
+  AdHocVariableFilter,
+  DataQueryRequest,
+  DataQueryResponse,
+  DataSourceInstanceSettings,
+  ScopedVars
+} from '@grafana/data';
+import { DataSourceWithBackend, getTemplateSrv, TemplateSrv } from '@grafana/runtime';
 
 import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
-import { escapeLabelValueInSelector } from "./languageUtils";
+import { escapeLabelValueInSelector, isRegexSelector } from "./languageUtils";
 import { addLabelToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
+import { replaceVariables, returnVariables } from "./parsingUtils";
 import { Query, Options, ToggleFilterAction, QueryFilterOptions, FilterActionType } from './types';
 
 export class VictoriaLogsDatasource
@@ -16,6 +24,7 @@ export class VictoriaLogsDatasource
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<Options>,
+    private readonly templateSrv: TemplateSrv = getTemplateSrv()
   ) {
     super(instanceSettings);
 
@@ -82,4 +91,71 @@ export class VictoriaLogsDatasource
     let expression = query.expr ?? '';
     return queryHasFilter(expression, filter.key, filter.value);
   }
+
+  applyTemplateVariables(target: Query, scopedVars: ScopedVars, adhocFilters?: AdHocVariableFilter[]): Query {
+    const { __auto, __interval, __interval_ms, __range, __range_s, __range_ms, ...rest } = scopedVars || {};
+    const exprWithAdHoc = this.addAdHocFilters(target.expr, adhocFilters);
+
+    const variables = {
+      ...rest,
+      __interval: {
+        value: '$__interval',
+      },
+      __interval_ms: {
+        value: '$__interval_ms',
+      },
+    };
+    return {
+      ...target,
+      legendFormat: this.templateSrv.replace(target.legendFormat, rest),
+      expr: this.templateSrv.replace(exprWithAdHoc, variables, this.interpolateQueryExpr),
+    };
+  }
+
+  addAdHocFilters(queryExpr: string, adhocFilters?: AdHocVariableFilter[]) {
+    if (!adhocFilters) {
+      return queryExpr;
+    }
+
+    let expr = replaceVariables(queryExpr);
+
+    expr = adhocFilters.reduce((acc: string, filter: { key: string; operator: string; value: string }) => {
+      const { key, operator } = filter;
+      let { value } = filter;
+      if (isRegexSelector(operator)) {
+        value = regularEscape(value);
+      } else {
+        value = escapeLabelValueInSelector(value, operator);
+      }
+      return addLabelToQuery(acc, key, operator, value);
+    }, expr);
+
+    return returnVariables(expr);
+  }
+
+  interpolateQueryExpr(value: any, variable: any) {
+    if (!variable.multi && !variable.includeAll) {
+      return regularEscape(value);
+    }
+
+    if (typeof value === 'string') {
+      return specialRegexEscape(value);
+    }
+
+    return lodashMap(value, specialRegexEscape).join('|');
+  }
+}
+
+export function regularEscape(value: any) {
+  if (typeof value === 'string') {
+    return value.replace(/'/g, "\\\\'");
+  }
+  return value;
+}
+
+export function specialRegexEscape(value: any) {
+  if (typeof value === 'string') {
+    return regularEscape(value.replace(/\\/g, '\\\\\\\\').replace(/[$^*{}\[\]+?.()|]/g, '\\\\$&'));
+  }
+  return value;
 }
