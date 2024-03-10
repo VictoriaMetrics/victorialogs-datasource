@@ -45,7 +45,7 @@ const QueryField: React.FC<QueryFieldProps> = (props) => {
       >
         <div className="gf-form--grow flex-shrink-1 min-width-15">
           <MonacoQueryFieldWrapper
-            runQueryOnBlur
+            runQueryOnBlur={false}
             history={history ?? []}
             onChange={onChangeQuery}
             onRunQuery={onRunQuery}
