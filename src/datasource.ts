@@ -40,7 +40,7 @@ export class VictoriaLogsDatasource
       // include time range in query if not already present
       if (!/_time/.test(q.expr)) {
         const timerange = `_time:[${request.range.from.toISOString()}, ${request.range.to.toISOString()}]`
-        q.expr = `${timerange} AND ${q.expr}`;
+        q.expr = `${timerange} AND (${q.expr})`;
       }
       return { ...q, maxLines: q.maxLines ?? this.maxLines }
     });
