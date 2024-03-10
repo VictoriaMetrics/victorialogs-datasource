@@ -29,7 +29,7 @@ export class VictoriaLogsDatasource
     super(instanceSettings);
 
     const settingsData = instanceSettings.jsonData || {};
-    this.maxLines = parseInt(settingsData.maxLines ?? '0', 10) || 10;
+    this.maxLines = parseInt(settingsData.maxLines ?? '0', 10) || 1000;
     this.annotations = {
       QueryEditor: QueryEditor,
     };
@@ -58,7 +58,7 @@ export class VictoriaLogsDatasource
       .query(fixedRequest)
       .pipe(
         map((response) =>
-          transformBackendResult(response, fixedRequest.targets, [])
+          transformBackendResult(response, fixedRequest.targets, [], this.maxLines)
         )
       );
   }
