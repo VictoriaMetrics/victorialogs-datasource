@@ -29,7 +29,7 @@ export class VictoriaLogsDatasource
     super(instanceSettings);
 
     const settingsData = instanceSettings.jsonData || {};
-    this.maxLines = parseInt(settingsData.maxLines ?? '0', 10) || 10;
+    this.maxLines = parseInt(settingsData.maxLines ?? '0', 10) || 1000;
     this.annotations = {
       QueryEditor: QueryEditor,
     };
@@ -40,7 +40,7 @@ export class VictoriaLogsDatasource
       // include time range in query if not already present
       if (!/_time/.test(q.expr)) {
         const timerange = `_time:[${request.range.from.toISOString()}, ${request.range.to.toISOString()}]`
-        q.expr = `${timerange} AND ${q.expr}`;
+        q.expr = `${timerange} AND (${q.expr})`;
       }
       return { ...q, maxLines: q.maxLines ?? this.maxLines }
     });
@@ -58,7 +58,7 @@ export class VictoriaLogsDatasource
       .query(fixedRequest)
       .pipe(
         map((response) =>
-          transformBackendResult(response, fixedRequest.targets, [])
+          transformBackendResult(response, fixedRequest.targets, [], this.maxLines)
         )
       );
   }
