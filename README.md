@@ -6,6 +6,7 @@ The VictoriaLogs datasource plugin allows you to query and visualize
 
 * [Installation](#installation)
 * [How to make new release](#how-to-make-new-release)
+* [Notes](#notes)
 * [License](#license)
 
 ## Installation
@@ -281,6 +282,12 @@ This command will build frontend part and backend part or the plugin and locate 
 1. Run `git push origin v1.xx.y` to push the tag created `v1.xx.y` at step 2 to public GitHub repository
 1. Go to <https://github.com/VictoriaMetrics/victorialogs-datasource/releases> and verify that draft release with the name `TAG` has been created and this release contains all the needed binaries and checksums.
 1. Remove the `draft` checkbox for the `TAG` release and manually publish it.
+
+## Notes
+
+In the `plugin.json` file of our plugin, the `metrics` field is set to `true`. This is not to support metric queries in the classical sense but to ensure our plugin can be selected in the Grafana panel editor.
+
+For more information on the fields in `plugin.json`, please refer to the [Grafana documentation](https://grafana.com/developers/plugin-tools/reference-plugin-json#properties).
 
 ## License
 
