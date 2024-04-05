@@ -4,7 +4,7 @@
   "id": "victorialogs-datasource",
   "category": "logging",
   "logs": true,
-  "metrics": false,
+  "metrics": true,
   "alerting": false,
   "annotations": true,
   "streaming": false,
