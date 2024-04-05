@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.2.1
+
 * BUGFIX: change the `metrics` flag from `false` to `true` in `plugin.json` to ensure the plugin appears in the Grafana datasource selection list.
 
 ## v0.2.0
