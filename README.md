@@ -63,7 +63,7 @@ Please find the example of provisioning Grafana instance with VictoriaLogs datas
    ``` bash
    ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/victorialogs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
    curl -L https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o plugin.tar.gz
-   tar -xf plugin.tar.gz -C ./victorialogs-datasource
+   tar -xf plugin.tar.gz -C ./
    rm plugin.tar.gz
    ```
 
