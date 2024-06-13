@@ -56,33 +56,22 @@ datasources:
 
 Please find the example of provisioning Grafana instance with VictoriaLogs datasource below:
 
-1. Create folder `./provisioning/datasource` with datasource example file:
-
-1. Download the latest release:
-
-   ``` bash
-   ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/victorialogs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-   curl -L https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o plugin.tar.gz
-   tar -xf plugin.tar.gz -C ./
-   rm plugin.tar.gz
-   ```
+1. Create a file at `./provisioning/datasources/vm.yml` with datasource example file.
 
 1. Define Grafana installation via docker-compose:
 
    ```yaml
-     version: '3.0'
-     services:
-        grafana:
-           container_name: 'victorialogs-datasource'
-           build:
-              context: ./.config
-              args:
-                 grafana_version: ${GRAFANA_VERSION:-10.0.3}
-           ports:
-              - 3000:3000/tcp
-           volumes:
-              - ./victorialogs-datasource:/var/lib/grafana/plugins/victorialogs-datasource
-              - ./provisioning:/etc/grafana/provisioning
+    version: '3.0'
+    services:
+       grafana:
+         image: grafana/grafana:11.0.0
+         environment:
+         - GF_INSTALL_PLUGINS=https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/v0.2.1/victorialogs-datasource-v0.2.1.zip;victorialogs-datasource
+         - GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=victorialogs-datasource
+         ports:
+         - 3000:3000/tcp
+         volumes:
+         - ./provisioning:/etc/grafana/provisioning
    ```
 
 1. Run docker-compose file:
@@ -100,6 +89,16 @@ After Grafana starts successfully, datasource should be available in the datasou
 #### Grafana helm chart
 
 Example with Grafana [helm chart](https://github.com/grafana/helm-charts/blob/main/charts/grafana/README.md):
+
+Option 1. Using Grafana provisioning:
+
+``` yaml
+env:
+  GF_INSTALL_PLUGINS: "https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/v0.2.1/victorialogs-datasource-v0.2.1.zip;victorialogs-datasource"
+  GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: "victorialogs-datasource"
+```
+
+Option 2. Using init container:
 
 ``` yaml
 extraInitContainers:
@@ -139,7 +138,7 @@ sidecar:
 
 See more about chart settings [here](https://github.com/grafana/helm-charts/blob/541d97051de87a309362e02d08741ffc868cfcd6/charts/grafana/values.yaml)
 
-Another option would be to build custom Grafana image with plugin based on same installation instructions.
+Option 3 would be to build custom Grafana image with plugin based on same installation instructions.
 
 #### Grafana operator
 
