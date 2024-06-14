@@ -98,7 +98,14 @@ env:
   GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: "victorialogs-datasource"
 ```
 
-Option 2. Using init container:
+Option 2. Using Grafana plugins section in `values.yaml`:
+
+``` yaml
+plugins:
+  - https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/v0.2.1/victorialogs-datasource-v0.2.1.zip;victorialogs-datasource
+```
+
+Option 3. Using init container:
 
 ``` yaml
 extraInitContainers:
@@ -138,7 +145,7 @@ sidecar:
 
 See more about chart settings [here](https://github.com/grafana/helm-charts/blob/541d97051de87a309362e02d08741ffc868cfcd6/charts/grafana/values.yaml)
 
-Option 3 would be to build custom Grafana image with plugin based on same installation instructions.
+Option 4 would be to build custom Grafana image with plugin based on same installation instructions.
 
 #### Grafana operator
 
