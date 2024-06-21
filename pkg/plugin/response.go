@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/VictoriaMetrics/metricsql"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -84,6 +85,16 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 			return newResponseError(err, backend.StatusInternal)
 		}
 		labelsField.Append(d)
+
+		if timeFd.Len() == 0 {
+			lineField.Append(string(d))
+		}
+	}
+
+	if timeFd.Len() == 0 {
+		for i := 0; i < lineField.Len(); i++ {
+			timeFd.Append(time.Now())
+		}
 	}
 
 	frame := data.NewFrame("", timeFd, lineField, labelsField)
