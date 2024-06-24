@@ -86,17 +86,17 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 		}
 		labelsField.Append(d)
 
-		// some logsql requests can return only labels or fields without _time field
-		// in that case we need to fill time field with current time value
-		// to avoid empty time field in the response. Please see the test for more details.
+		// Grafana expects lineField to be always non-empty.
 		if timeFd.Len() == 0 {
 			lineField.Append(string(d))
 		}
 	}
 
+	// Grafana expects time field to be always non-empty.
 	if timeFd.Len() == 0 {
+		now := time.Now()
 		for i := 0; i < lineField.Len(); i++ {
-			timeFd.Append(time.Now())
+			timeFd.Append(now)
 		}
 	}
 
