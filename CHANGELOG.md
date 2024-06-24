@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix issue when VictoriaLogs returns different fields without stream labels. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/23). 
+
 ## v0.2.1
 
 * BUGFIX: change the `metrics` flag from `false` to `true` in `plugin.json` to ensure the plugin appears in the Grafana datasource selection list.

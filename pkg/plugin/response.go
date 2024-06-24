@@ -86,6 +86,9 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 		}
 		labelsField.Append(d)
 
+		// some logsql requests can return only labels or fields without _time field
+		// in that case we need to fill time field with current time value
+		// to avoid empty time field in the response. Please see the test for more details.
 		if timeFd.Len() == 0 {
 			lineField.Append(string(d))
 		}
