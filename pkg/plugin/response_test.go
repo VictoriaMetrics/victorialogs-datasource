@@ -14,9 +14,10 @@ import (
 
 func Test_parseStreamResponse(t *testing.T) {
 	tests := []struct {
-		name     string
-		response string
-		want     func() backend.DataResponse
+		name                string
+		response            string
+		want                func() backend.DataResponse
+		expectedFieldLength map[string]int
 	}{
 		{
 			name:     "empty response",
@@ -39,12 +40,22 @@ func Test_parseStreamResponse(t *testing.T) {
 
 				return rsp
 			},
+			expectedFieldLength: map[string]int{
+				gLabelsField: 0,
+				gTimeField:   0,
+				gLineField:   0,
+			},
 		},
 		{
 			name:     "incorrect response",
 			response: "abcd",
 			want: func() backend.DataResponse {
 				return newResponseError(fmt.Errorf("error decode response: invalid character 'a' looking for beginning of value"), backend.StatusInternal)
+			},
+			expectedFieldLength: map[string]int{
+				gLabelsField: 0,
+				gTimeField:   0,
+				gLineField:   0,
 			},
 		},
 		{
@@ -53,12 +64,22 @@ func Test_parseStreamResponse(t *testing.T) {
 			want: func() backend.DataResponse {
 				return newResponseError(fmt.Errorf("error parse time from _time field: cannot parse acdf: cannot parse duration \"acdf\""), backend.StatusInternal)
 			},
+			expectedFieldLength: map[string]int{
+				gLabelsField: 0,
+				gTimeField:   0,
+				gLineField:   0,
+			},
 		},
 		{
 			name:     "invalid stream in the response",
 			response: `{"_time":"2024-02-20", "_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=}"}`,
 			want: func() backend.DataResponse {
 				return newResponseError(fmt.Errorf("StringExpr: unexpected token \"}\"; want \"string\"; unparsed data: \"}\""), backend.StatusInternal)
+			},
+			expectedFieldLength: map[string]int{
+				gLabelsField: 0,
+				gTimeField:   0,
+				gLineField:   0,
 			},
 		},
 		{
@@ -94,6 +115,11 @@ func Test_parseStreamResponse(t *testing.T) {
 
 				return rsp
 			},
+			expectedFieldLength: map[string]int{
+				gLabelsField: 1,
+				gTimeField:   1,
+				gLineField:   1,
+			},
 		},
 		{
 			name:     "response with different labels",
@@ -128,6 +154,11 @@ func Test_parseStreamResponse(t *testing.T) {
 				rsp.Frames = append(rsp.Frames, frame)
 
 				return rsp
+			},
+			expectedFieldLength: map[string]int{
+				gLabelsField: 1,
+				gTimeField:   1,
+				gLineField:   1,
 			},
 		},
 		{
@@ -169,6 +200,11 @@ func Test_parseStreamResponse(t *testing.T) {
 
 				return rsp
 			},
+			expectedFieldLength: map[string]int{
+				gLabelsField: 2,
+				gTimeField:   2,
+				gLineField:   2,
+			},
 		},
 		{
 			name:     "response with different labels only one label",
@@ -200,6 +236,11 @@ func Test_parseStreamResponse(t *testing.T) {
 
 				return rsp
 			},
+			expectedFieldLength: map[string]int{
+				gLabelsField: 1,
+				gTimeField:   1,
+				gLineField:   1,
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -219,6 +260,14 @@ func Test_parseStreamResponse(t *testing.T) {
 								}
 							}
 						}
+					}
+
+					// check that the field length is equal
+					fieldName := got.Frames[i].Fields[j].Name
+					gotLength := got.Frames[i].Fields[j].Len()
+					wantLength := tt.expectedFieldLength[fieldName]
+					if gotLength != wantLength {
+						t.Errorf("field length not equal for field: %s;  got: %d, want %d", fieldName, gotLength, wantLength)
 					}
 				}
 			}
