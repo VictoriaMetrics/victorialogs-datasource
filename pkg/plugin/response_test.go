@@ -14,10 +14,9 @@ import (
 
 func Test_parseStreamResponse(t *testing.T) {
 	tests := []struct {
-		name                string
-		response            string
-		want                func() backend.DataResponse
-		expectedFieldLength map[string]int
+		name     string
+		response string
+		want     func() backend.DataResponse
 	}{
 		{
 			name:     "empty response",
@@ -40,22 +39,12 @@ func Test_parseStreamResponse(t *testing.T) {
 
 				return rsp
 			},
-			expectedFieldLength: map[string]int{
-				gLabelsField: 0,
-				gTimeField:   0,
-				gLineField:   0,
-			},
 		},
 		{
 			name:     "incorrect response",
 			response: "abcd",
 			want: func() backend.DataResponse {
 				return newResponseError(fmt.Errorf("error decode response: invalid character 'a' looking for beginning of value"), backend.StatusInternal)
-			},
-			expectedFieldLength: map[string]int{
-				gLabelsField: 0,
-				gTimeField:   0,
-				gLineField:   0,
 			},
 		},
 		{
@@ -64,22 +53,12 @@ func Test_parseStreamResponse(t *testing.T) {
 			want: func() backend.DataResponse {
 				return newResponseError(fmt.Errorf("error parse time from _time field: cannot parse acdf: cannot parse duration \"acdf\""), backend.StatusInternal)
 			},
-			expectedFieldLength: map[string]int{
-				gLabelsField: 0,
-				gTimeField:   0,
-				gLineField:   0,
-			},
 		},
 		{
 			name:     "invalid stream in the response",
 			response: `{"_time":"2024-02-20", "_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=}"}`,
 			want: func() backend.DataResponse {
 				return newResponseError(fmt.Errorf("StringExpr: unexpected token \"}\"; want \"string\"; unparsed data: \"}\""), backend.StatusInternal)
-			},
-			expectedFieldLength: map[string]int{
-				gLabelsField: 0,
-				gTimeField:   0,
-				gLineField:   0,
 			},
 		},
 		{
@@ -115,11 +94,6 @@ func Test_parseStreamResponse(t *testing.T) {
 
 				return rsp
 			},
-			expectedFieldLength: map[string]int{
-				gLabelsField: 1,
-				gTimeField:   1,
-				gLineField:   1,
-			},
 		},
 		{
 			name:     "response with different labels",
@@ -154,11 +128,6 @@ func Test_parseStreamResponse(t *testing.T) {
 				rsp.Frames = append(rsp.Frames, frame)
 
 				return rsp
-			},
-			expectedFieldLength: map[string]int{
-				gLabelsField: 1,
-				gTimeField:   1,
-				gLineField:   1,
 			},
 		},
 		{
@@ -200,11 +169,6 @@ func Test_parseStreamResponse(t *testing.T) {
 
 				return rsp
 			},
-			expectedFieldLength: map[string]int{
-				gLabelsField: 2,
-				gTimeField:   2,
-				gLineField:   2,
-			},
 		},
 		{
 			name:     "response with different labels only one label",
@@ -236,44 +200,47 @@ func Test_parseStreamResponse(t *testing.T) {
 
 				return rsp
 			},
-			expectedFieldLength: map[string]int{
-				gLabelsField: 1,
-				gTimeField:   1,
-				gLineField:   1,
-			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := io.NopCloser(bytes.NewBuffer([]byte(tt.response)))
 			w := tt.want()
-			got := parseStreamResponse(r)
-			// if time field is empty, fill it with the value from the response
-			// because time field in the parseStreamResponse generated as time.Now()
-			for i, frame := range w.Frames {
-				for j, field := range frame.Fields {
-					if field.Name == gTimeField && field.Len() == 0 {
-						for _, f := range got.Frames {
-							for _, f2 := range f.Fields {
-								if f2.Name == gTimeField {
-									w.Frames[i].Fields[j] = f2
-								}
-							}
+			resp := parseStreamResponse(r)
+			if w.Error != nil {
+				if !reflect.DeepEqual(w, resp) {
+					t.Errorf("parseStreamResponse() = %#v, want %#v", resp, w)
+				}
+				return
+			}
+
+			if len(resp.Frames) != 1 {
+				t.Fatalf("expected for response to always contain 1 Frame; got %d", len(resp.Frames))
+			}
+			got := resp.Frames[0]
+			want := w.Frames[0]
+			expFieldsLen := got.Fields[0].Len()
+			for j, field := range want.Fields {
+				// if time field is empty, fill it with the value from the response
+				// because time field in the parseStreamResponse generated as time.Now()
+				if field.Name == gTimeField && field.Len() == 0 {
+					for _, f := range got.Fields {
+						if f.Name == gTimeField {
+							want.Fields[j] = f
 						}
 					}
+				}
 
-					// check that the field length is equal
-					fieldName := got.Frames[i].Fields[j].Name
-					gotLength := got.Frames[i].Fields[j].Len()
-					wantLength := tt.expectedFieldLength[fieldName]
-					if gotLength != wantLength {
-						t.Errorf("field length not equal for field: %s;  got: %d, want %d", fieldName, gotLength, wantLength)
-					}
+				// all fields within response should have equal length
+				gf := got.Fields[j]
+				if gf.Len() != expFieldsLen {
+					t.Fatalf("expected all fields to have equal length %d; got %d instead for field %q",
+						expFieldsLen, gf.Len(), gf.Name)
 				}
 			}
 
-			if !reflect.DeepEqual(got, w) {
-				t.Errorf("parseStreamResponse() = %#v, want %#v", got, w)
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("parseStreamResponse() = %#v, want %#v", got, want)
 			}
 		})
 	}
