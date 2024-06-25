@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"time"
 )
 
 const (
@@ -18,7 +19,14 @@ type Query struct {
 	Expr         string `json:"expr"`
 	LegendFormat string `json:"legendFormat"`
 	MaxLines     int    `json:"maxLines"`
+	TimeRange    TimeRange
 	url          *url.URL
+}
+
+// TimeRange represents time range backend object
+type TimeRange struct {
+	From time.Time
+	To   time.Time
 }
 
 // GetQueryURL calculates step and clear expression from template variables,
@@ -56,8 +64,18 @@ func (q *Query) queryInstantURL(queryParams url.Values) string {
 		q.MaxLines = defaultMaxLines
 	}
 
+	now := time.Now()
+	if q.TimeRange.From.IsZero() {
+		q.TimeRange.From = now.Add(-time.Minute * 5)
+	}
+	if q.TimeRange.To.IsZero() {
+		q.TimeRange.To = now
+	}
+
 	values.Set("query", q.Expr)
 	values.Set("limit", strconv.Itoa(q.MaxLines))
+	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
+	values.Set("end", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
 
 	q.url.RawQuery = values.Encode()
 	return q.url.String()

@@ -88,6 +88,7 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 		settings.HTTPMethod = http.MethodPost
 	}
 
+	q.TimeRange = TimeRange(query.TimeRange)
 	reqURL, err := q.getQueryURL(d.settings.URL, settings.QueryParams)
 	if err != nil {
 		err = fmt.Errorf("failed to create request URL: %w", err)
