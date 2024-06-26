@@ -92,14 +92,6 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 		}
 	}
 
-	// Grafana expects lineFields to be always non-empty.
-	if lineField.Len() == 0 {
-		for i := 0; i < labelsField.Len(); i++ {
-			label := labelsField.At(i)
-			lineField.Append(fmt.Sprintf("%s", label))
-		}
-	}
-
 	// Grafana expects time field to be always non-empty.
 	if timeFd.Len() == 0 {
 		now := time.Now()
