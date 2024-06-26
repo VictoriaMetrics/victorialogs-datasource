@@ -2,9 +2,6 @@ import { groupBy } from "lodash";
 
 import { DataFrame, Field, FieldType } from "@grafana/data";
 
-type NumberField = Field<number, number[]>;
-type StringField = Field<string, string[]>;
-
 export function makeTableFrames(instantMetricFrames: DataFrame[]): DataFrame[] {
   // first we remove frames that have no refId
   // (we will group them by refId, so we need it to be set)
@@ -16,8 +13,8 @@ export function makeTableFrames(instantMetricFrames: DataFrame[]): DataFrame[] {
 }
 
 function makeTableFrame(instantMetricFrames: DataFrame[], refId: string): DataFrame {
-  const tableTimeField: NumberField = { name: 'Time', config: {}, values: [], type: FieldType.time };
-  const tableValueField: NumberField = {
+  const tableTimeField: Field = { name: 'Time', config: {}, values: [], type: FieldType.time };
+  const tableValueField: Field = {
     name: `Value #${refId}`,
     config: {},
     values: [],
@@ -31,7 +28,7 @@ function makeTableFrame(instantMetricFrames: DataFrame[], refId: string): DataFr
 
   const sortedLabelNames = Array.from(allLabelNames).sort();
 
-  const labelFields: StringField[] = sortedLabelNames.map((labelName) => ({
+  const labelFields: Field[] = sortedLabelNames.map((labelName) => ({
     name: labelName,
     config: { filterable: true },
     values: [],
