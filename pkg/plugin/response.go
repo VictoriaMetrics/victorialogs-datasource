@@ -1,6 +1,8 @@
 package plugin
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +11,7 @@ import (
 	"github.com/VictoriaMetrics/metricsql"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
+	"github.com/valyala/fastjson"
 
 	"github.com/VictoriaMetrics/victorialogs-datasource/pkg/utils"
 )
@@ -44,41 +47,55 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 
 	labels := data.Labels{}
 
-	dec := json.NewDecoder(reader)
+	scanner := bufio.NewScanner(reader)
 
-	for dec.More() {
-		var r Response
-		err := dec.Decode(&r)
+	for scanner.Scan() {
+		value, err := fastjson.Parse(scanner.Text())
 		if err != nil {
 			return newResponseError(fmt.Errorf("error decode response: %s", err), backend.StatusInternal)
 		}
 
-		for fieldName, value := range r {
-			switch fieldName {
-			case messageField:
-				lineField.Append(value)
-			case timeField:
-				getTime, err := utils.GetTime(value)
-				if err != nil {
-					return newResponseError(fmt.Errorf("error parse time from _time field: %s", err), backend.StatusInternal)
-				}
-				timeFd.Append(getTime)
-			case streamField:
-				expr, err := metricsql.Parse(value)
-				if err != nil {
-					return newResponseError(err, backend.StatusInternal)
-				}
-				if mExpr, ok := expr.(*metricsql.MetricExpr); ok {
-					for _, filters := range mExpr.LabelFilterss {
-						for _, filter := range filters {
-							labels[filter.Label] = filter.Value
-						}
+		if value.Exists(messageField) {
+			message := value.GetStringBytes(messageField)
+			lineField.Append(string(message))
+		}
+		if value.Exists(timeField) {
+			t := value.GetStringBytes(timeField)
+			getTime, err := utils.GetTime(string(t))
+			if err != nil {
+				return newResponseError(fmt.Errorf("error parse time from _time field: %s", err), backend.StatusInternal)
+			}
+			timeFd.Append(getTime)
+		}
+		if value.Exists(streamField) {
+			stream := value.GetStringBytes(streamField)
+			expr, err := metricsql.Parse(string(stream))
+			if err != nil {
+				return newResponseError(err, backend.StatusInternal)
+			}
+			if mExpr, ok := expr.(*metricsql.MetricExpr); ok {
+				for _, filters := range mExpr.LabelFilterss {
+					for _, filter := range filters {
+						labels[filter.Label] = filter.Value
 					}
 				}
-			default:
-				labels[fieldName] = value
 			}
 		}
+
+		obj, err := value.Object()
+		if err != nil {
+			return newResponseError(fmt.Errorf("error get object from decoded response: %s", err), backend.StatusInternal)
+		}
+		obj.Visit(func(key []byte, v *fastjson.Value) {
+			if bytes.Equal(key, []byte(timeField)) ||
+				bytes.Equal(key, []byte(streamField)) ||
+				bytes.Equal(key, []byte(messageField)) {
+				return
+			}
+			fieldName := string(key)
+			value := string(v.GetStringBytes())
+			labels[fieldName] = value
+		})
 
 		d, err := labelsToJSON(labels)
 		if err != nil {
@@ -120,10 +137,10 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 // labelsToJSON converts labels to json representation
 // data.Labels when converted to JSON keep the fields sorted
 func labelsToJSON(labels data.Labels) (json.RawMessage, error) {
-	bytes, err := json.Marshal(labels)
+	b, err := json.Marshal(labels)
 	if err != nil {
 		return nil, err
 	}
 
-	return bytes, nil
+	return b, nil
 }
