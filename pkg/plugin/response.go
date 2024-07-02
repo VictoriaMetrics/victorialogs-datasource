@@ -28,10 +28,6 @@ const (
 	gLineField   = "Line"
 )
 
-// Response contains fields from query response
-// It represents victoria logs response
-type Response map[string]string
-
 // parseStreamResponse reads data from the reader and collects
 // fields and frame with necessary information
 func parseStreamResponse(reader io.Reader) backend.DataResponse {
