@@ -46,7 +46,7 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 	scanner := bufio.NewScanner(reader)
 
 	for scanner.Scan() {
-		value, err := fastjson.Parse(scanner.Text())
+		value, err := fastjson.ParseBytes(scanner.Bytes())
 		if err != nil {
 			return newResponseError(fmt.Errorf("error decode response: %s", err), backend.StatusInternal)
 		}
