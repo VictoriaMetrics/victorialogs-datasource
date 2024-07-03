@@ -54,10 +54,10 @@ jobs:
           aliases:
           - /victorialogs/victorialogs-datasource.html
           ---
-          ' > ../__vm-docs-repo/docs/victorialogs/victorialogs-datasource.md
+          ' > ../__vm-docs-repo/docs/VictoriaLogs/victorialogs-datasource.md
 
-          cat ./README.md >>  ../__vm-docs-repo/docs/victorialogs/victorialogs-datasource.md
-          sed -i 's|docs/assets/||g' ../__vm-docs-repo/docs/victorialogs-datasource.md
+          cat ./README.md >>  ../__vm-docs-repo/docs/VictoriaLogs/victorialogs-datasource.md
+          sed -i 's|docs/assets/||g' ../__vm-docs-repo/docs/VictoriaLogs/victorialogs-datasource.md
           
           cp docs/assets/* ../__vm-docs-repo/docs/
         working-directory: "__vm-datasource-repo"
