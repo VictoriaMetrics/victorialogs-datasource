@@ -59,7 +59,7 @@ jobs:
           cat ./README.md >>  ../__vm-docs-repo/docs/VictoriaLogs/victorialogs-datasource.md
           sed -i 's|docs/assets/||g' ../__vm-docs-repo/docs/VictoriaLogs/victorialogs-datasource.md
           
-          cp docs/assets/* ../__vm-docs-repo/docs/
+          cp docs/assets/* ../__vm-docs-repo/docs/victorialogs/
         working-directory: "__vm-datasource-repo"
 
       - name: Commit and push changes
