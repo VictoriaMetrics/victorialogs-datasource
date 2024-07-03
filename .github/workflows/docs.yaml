@@ -52,7 +52,7 @@ jobs:
               parent: 'victorialogs'
               weight: 9
           aliases:
-          - /victorialogs-datasource.html
+          - /victorialogs/victorialogs-datasource.html
           ---
           ' > ../__vm-docs-repo/docs/victorialogs/victorialogs-datasource.md
 
