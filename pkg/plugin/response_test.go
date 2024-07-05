@@ -297,7 +297,7 @@ func Test_parseStreamResponse(t *testing.T) {
 
 				value, err := fastjson.Parse(`{"_msg":"\u001b[2m2024-06-26T13:20:34.608Z\u001b[0;39m \u001b[33m WARN\u001b[0;39m \u001b[35m1\u001b[0;39m \u001b[2m---\u001b[0;39m \u001b[2m[           main]\u001b[0;39m \u001b[36mjakarta.persistence.spi                 \u001b[0;39m \u001b[2m:\u001b[0;39m jakarta.persistence.spi::No valid providers found. "}`)
 				if err != nil {
-					return newResponseError(fmt.Errorf("error decode response: %s", err), backend.StatusInternal)
+					t.Fatalf("error decode response: %s", err)
 				}
 
 				if value.Exists(messageField) {
