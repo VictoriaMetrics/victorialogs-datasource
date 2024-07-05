@@ -3,14 +3,14 @@ module github.com/VictoriaMetrics/victorialogs-datasource
 go 1.21.6
 
 require (
-	github.com/VictoriaMetrics/metricsql v0.70.0
+	github.com/VictoriaMetrics/metricsql v0.76.0
 	github.com/grafana/grafana-plugin-sdk-go v0.236.0
 	github.com/valyala/fastjson v1.6.4
 )
 
 require (
 	github.com/BurntSushi/toml v1.3.2 // indirect
-	github.com/VictoriaMetrics/metrics v1.24.0 // indirect
+	github.com/VictoriaMetrics/metrics v1.34.0 // indirect
 	github.com/apache/arrow/go/v15 v15.0.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -85,7 +85,7 @@ require (
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/mod v0.13.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/tools v0.14.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
