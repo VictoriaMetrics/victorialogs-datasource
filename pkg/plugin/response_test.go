@@ -10,6 +10,7 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
+	"github.com/valyala/fastjson"
 )
 
 func Test_parseStreamResponse(t *testing.T) {
@@ -265,6 +266,48 @@ func Test_parseStreamResponse(t *testing.T) {
 					"compose_project": "app",
 					"compose_service": "gateway",
 					"_stream_id":      "00000000000000009eaf29866f70976a098adc735393deb1",
+				}
+
+				b, _ := labelsToJSON(labels)
+				labelsField.Append(b)
+
+				frame := data.NewFrame("", timeFd, lineField, labelsField)
+
+				rsp := backend.DataResponse{}
+				frame.Meta = &data.FrameMeta{}
+				rsp.Frames = append(rsp.Frames, frame)
+
+				return rsp
+			},
+		},
+		{
+			name:     "response has unicode",
+			response: `{"_time":"2024-06-26T13:20:34.000Z","_stream":"{compose_project=\"app\",compose_service=\"gateway\"}","_msg":"\u001b[2m2024-06-26T13:20:34.608Z\u001b[0;39m \u001b[33m WARN\u001b[0;39m \u001b[35m1\u001b[0;39m \u001b[2m---\u001b[0;39m \u001b[2m[           main]\u001b[0;39m \u001b[36mjakarta.persistence.spi                 \u001b[0;39m \u001b[2m:\u001b[0;39m jakarta.persistence.spi::No valid providers found. ","compose_project":"app","compose_service":"gateway"}`,
+			want: func() backend.DataResponse {
+				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+				labelsField.Name = gLabelsField
+
+				timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+				timeFd.Name = gTimeField
+
+				lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+				lineField.Name = gLineField
+
+				timeFd.Append(time.Date(2024, 06, 26, 13, 20, 34, 0, time.UTC))
+
+				value, err := fastjson.Parse(`{"_msg":"\u001b[2m2024-06-26T13:20:34.608Z\u001b[0;39m \u001b[33m WARN\u001b[0;39m \u001b[35m1\u001b[0;39m \u001b[2m---\u001b[0;39m \u001b[2m[           main]\u001b[0;39m \u001b[36mjakarta.persistence.spi                 \u001b[0;39m \u001b[2m:\u001b[0;39m jakarta.persistence.spi::No valid providers found. "}`)
+				if err != nil {
+					return newResponseError(fmt.Errorf("error decode response: %s", err), backend.StatusInternal)
+				}
+
+				if value.Exists(messageField) {
+					message := value.GetStringBytes(messageField)
+					lineField.Append(string(message))
+				}
+
+				labels := data.Labels{
+					"compose_project": "app",
+					"compose_service": "gateway",
 				}
 
 				b, _ := labelsToJSON(labels)
