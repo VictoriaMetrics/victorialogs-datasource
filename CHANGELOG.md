@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.2.4
+
 * BUGFIX: fix bug with parsing response when one of the field contains ANSI escape sequences. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/24).
 
 ## v0.2.3
