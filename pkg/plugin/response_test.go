@@ -323,7 +323,7 @@ func Test_parseStreamResponse(t *testing.T) {
 			},
 		},
 		{
-			name:     "response has",
+			name:     "response has labels and message, time field is empty",
 			response: `{"count":"507","_msg":"507"}`,
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
