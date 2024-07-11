@@ -322,6 +322,37 @@ func Test_parseStreamResponse(t *testing.T) {
 				return rsp
 			},
 		},
+		{
+			name:     "response has",
+			response: `{"count":"507","_msg":"507"}`,
+			want: func() backend.DataResponse {
+				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+				labelsField.Name = gLabelsField
+
+				timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+				timeFd.Name = gTimeField
+
+				lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+				lineField.Name = gLineField
+
+				lineField.Append("507")
+
+				labels := data.Labels{
+					"count": "507",
+				}
+
+				b, _ := labelsToJSON(labels)
+				labelsField.Append(b)
+
+				frame := data.NewFrame("", timeFd, lineField, labelsField)
+
+				rsp := backend.DataResponse{}
+				frame.Meta = &data.FrameMeta{}
+				rsp.Frames = append(rsp.Frames, frame)
+
+				return rsp
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
