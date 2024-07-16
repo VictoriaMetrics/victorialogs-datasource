@@ -58,7 +58,7 @@ jobs:
           ' > ../__vm-docs-repo/docs/VictoriaLogs/victorialogs-datasource.md
 
           cat ./README.md >>  ../__vm-docs-repo/docs/VictoriaLogs/victorialogs-datasource.md
-          sed -i 's|docs/assets/|/victorialogs|g' ../__vm-docs-repo/docs/VictoriaLogs/victorialogs-datasource.md
+          sed -i 's|docs/assets/||g' ../__vm-docs-repo/docs/VictoriaLogs/victorialogs-datasource.md
           
           cp docs/assets/* ../__vm-docs-repo/docs/VictoriaLogs/
         working-directory: "__vm-datasource-repo"
