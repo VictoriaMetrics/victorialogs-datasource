@@ -2,6 +2,9 @@
 
 ## tip
 
+* BUGFIX: fix bug with parsing response when time field is empty but message and labels are present.
+  It happens when the user tries to show only stats number. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/45).
+
 ## v0.2.4
 
 * BUGFIX: fix bug with parsing response when one of the field contains ANSI escape sequences. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/24).

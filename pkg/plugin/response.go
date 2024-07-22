@@ -98,11 +98,6 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 			return newResponseError(err, backend.StatusInternal)
 		}
 		labelsField.Append(d)
-
-		// Grafana expects lineField to be always non-empty.
-		if timeFd.Len() == 0 {
-			lineField.Append(string(d))
-		}
 	}
 
 	// Grafana expects lineFields to be always non-empty.
