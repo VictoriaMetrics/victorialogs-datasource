@@ -44,12 +44,14 @@ jobs:
       # Copies README.md and assets from docs/assets
       - name: Update ds docs in VM repo
         run: |
+          sed -i '/VictoriaLogs datasource for Grafana/g' README.md
           echo '---
           weight: 9
-          title: VictoriaLogs datasource for Grafana
+          title: Grafana datasource
           editLink: https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/README.md
           menu:
             docs:
+              identifier: victorialogs-grafana-datasource
               parent: 'victorialogs'
               weight: 9
           aliases:
