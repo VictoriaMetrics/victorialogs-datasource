@@ -23,6 +23,8 @@ func NewDatasource(ctx context.Context, settings backend.DataSourceInstanceSetti
 	if err != nil {
 		return nil, fmt.Errorf("error create httpclient.Options based on settings: %w", err)
 	}
+	opts.ForwardHTTPHeaders = true
+
 	cl, err := httpclient.New(opts)
 	if err != nil {
 		return nil, fmt.Errorf("error create a new http.Client: %w", err)

@@ -2,6 +2,9 @@
 
 ## tip
 
+* BUGFIX: fix issue with forwarding headers from datasource to the backend or proxy. 
+  It might be helpful if a user wants to use some kind of authentication. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/54)
+
 ## v0.2.5
 
 * BUGFIX: fix bug with parsing response when time field is empty but message and labels are present.
