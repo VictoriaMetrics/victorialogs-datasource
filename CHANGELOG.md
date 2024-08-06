@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.2.6
+
 * BUGFIX: fix issue with forwarding headers from datasource to the backend or proxy. 
   It might be helpful if a user wants to use some kind of authentication. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/54)
 
