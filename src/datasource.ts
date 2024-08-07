@@ -9,27 +9,49 @@ import {
   DataSourceInstanceSettings,
   ScopedVars
 } from '@grafana/data';
-import { DataSourceWithBackend, getTemplateSrv, TemplateSrv } from '@grafana/runtime';
+import {
+  BackendSrvRequest,
+  DataSourceWithBackend,
+  getTemplateSrv,
+  TemplateSrv
+} from '@grafana/runtime';
 
 import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
 import { escapeLabelValueInSelector, isRegexSelector } from "./languageUtils";
+import LogsQlLanguageProvider from "./language_provider";
 import { addLabelToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
 import { replaceVariables, returnVariables } from "./parsingUtils";
+import { regularEscape, specialRegexEscape } from "./regexUtils";
 import { Query, Options, ToggleFilterAction, QueryFilterOptions, FilterActionType } from './types';
 
 export class VictoriaLogsDatasource
   extends DataSourceWithBackend<Query, Options> {
+  id: number;
+  url: string;
   maxLines: number;
+  basicAuth?: string;
+  withCredentials?: boolean;
+  httpMethod: string;
+  customQueryParameters: URLSearchParams;
+  languageProvider?: LogsQlLanguageProvider;
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<Options>,
-    private readonly templateSrv: TemplateSrv = getTemplateSrv()
+    private readonly templateSrv: TemplateSrv = getTemplateSrv(),
+    languageProvider?: LogsQlLanguageProvider,
   ) {
     super(instanceSettings);
 
     const settingsData = instanceSettings.jsonData || {};
+    this.id = instanceSettings.id;
+    this.url = instanceSettings.url!;
+    this.basicAuth = instanceSettings.basicAuth;
+    this.withCredentials = instanceSettings.withCredentials;
+    this.httpMethod = instanceSettings.jsonData.httpMethod || 'POST';
     this.maxLines = parseInt(settingsData.maxLines ?? '0', 10) || 1000;
+    this.customQueryParameters = new URLSearchParams(instanceSettings.jsonData.customQueryParameters);
+    this.languageProvider = languageProvider ?? new LogsQlLanguageProvider(this);
     this.annotations = {
       QueryEditor: QueryEditor,
     };
@@ -139,18 +161,14 @@ export class VictoriaLogsDatasource
 
     return lodashMap(value, specialRegexEscape).join('|');
   }
-}
 
-export function regularEscape(value: any) {
-  if (typeof value === 'string') {
-    return value.replace(/'/g, "\\\\'");
-  }
-  return value;
-}
+  async metadataRequest(url: string, params?: Record<string, string | number>, options?: Partial<BackendSrvRequest>) {
+    if (url.startsWith('/')) {
+      throw new Error(`invalid metadata request url: ${url}`);
+    }
 
-export function specialRegexEscape(value: any) {
-  if (typeof value === 'string') {
-    return regularEscape(value.replace(/\\/g, '\\\\\\\\').replace(/[$^*{}\[\]+?.()|]/g, '\\\\$&'));
+    console.log('metadataRequest', { url, params, options })
+    const res = await this.getResource(url, params, options);
+    return res.data || [];
   }
-  return value;
 }
