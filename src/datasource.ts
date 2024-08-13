@@ -1,5 +1,5 @@
-import { map as lodashMap } from 'lodash';
-import { Observable } from "rxjs";
+import { defaults, map as lodashMap } from 'lodash';
+import { Observable, lastValueFrom } from "rxjs";
 import { map } from 'rxjs/operators';
 
 import {
@@ -7,29 +7,53 @@ import {
   DataQueryRequest,
   DataQueryResponse,
   DataSourceInstanceSettings,
-  ScopedVars
+  ScopedVars,
 } from '@grafana/data';
-import { DataSourceWithBackend, getTemplateSrv, TemplateSrv } from '@grafana/runtime';
+import {
+  BackendSrvRequest,
+  DataSourceWithBackend,
+  FetchResponse,
+  getBackendSrv,
+  getTemplateSrv,
+  TemplateSrv
+} from '@grafana/runtime';
 
 import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
 import { escapeLabelValueInSelector, isRegexSelector } from "./languageUtils";
+import LogsQlLanguageProvider from "./language_provider";
 import { addLabelToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
 import { replaceVariables, returnVariables } from "./parsingUtils";
-import { Query, Options, ToggleFilterAction, QueryFilterOptions, FilterActionType } from './types';
+import { regularEscape, specialRegexEscape } from "./regexUtils";
+import { Query, Options, ToggleFilterAction, QueryFilterOptions, FilterActionType, RequestArguments } from './types';
 
 export class VictoriaLogsDatasource
   extends DataSourceWithBackend<Query, Options> {
+  id: number;
+  url: string;
   maxLines: number;
+  basicAuth?: string;
+  withCredentials?: boolean;
+  httpMethod: string;
+  customQueryParameters: URLSearchParams;
+  languageProvider?: LogsQlLanguageProvider;
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<Options>,
-    private readonly templateSrv: TemplateSrv = getTemplateSrv()
+    private readonly templateSrv: TemplateSrv = getTemplateSrv(),
+    languageProvider?: LogsQlLanguageProvider,
   ) {
     super(instanceSettings);
 
     const settingsData = instanceSettings.jsonData || {};
+    this.id = instanceSettings.id;
+    this.url = instanceSettings.url!;
+    this.basicAuth = instanceSettings.basicAuth;
+    this.withCredentials = instanceSettings.withCredentials;
+    this.httpMethod = instanceSettings.jsonData.httpMethod || 'POST';
     this.maxLines = parseInt(settingsData.maxLines ?? '0', 10) || 1000;
+    this.customQueryParameters = new URLSearchParams(instanceSettings.jsonData.customQueryParameters);
+    this.languageProvider = languageProvider ?? new LogsQlLanguageProvider(this);
     this.annotations = {
       QueryEditor: QueryEditor,
     };
@@ -139,18 +163,48 @@ export class VictoriaLogsDatasource
 
     return lodashMap(value, specialRegexEscape).join('|');
   }
-}
 
-export function regularEscape(value: any) {
-  if (typeof value === 'string') {
-    return value.replace(/'/g, "\\\\'");
+  async metadataRequest({ url, params, options }: RequestArguments) {
+    return await lastValueFrom(
+      this._request({
+        url: `/api/datasources/proxy/${this.id}/${url.replace(/^\//,'')}`,
+        params,
+        options: { method: 'GET', hideFromInspector: true, ...options },
+      })
+    )
   }
-  return value;
-}
 
-export function specialRegexEscape(value: any) {
-  if (typeof value === 'string') {
-    return regularEscape(value.replace(/\\/g, '\\\\\\\\').replace(/[$^*{}\[\]+?.()|]/g, '\\\\$&'));
+  _request<T = any>({ url, params = {}, options: overrides }: RequestArguments): Observable<FetchResponse<T>> {
+    const queryUrl = url.startsWith(`/api/datasources/proxy/${this.id}`) ? url : `${this.url}/${url}`;
+
+    const options: BackendSrvRequest = defaults(overrides, {
+      url: queryUrl,
+      method: this.httpMethod,
+      headers: {},
+      credentials: this.basicAuth || this.withCredentials ? 'include' : 'same-origin',
+    });
+
+    for (const [key, value] of this.customQueryParameters) {
+      if (params[key] == null) {
+        params[key] = value;
+      }
+    }
+
+    if (options.method === 'GET' && Object.keys(params).length) {
+      const searchParams = new URLSearchParams(params);
+      const separator = options.url.search(/\?/) >= 0 ? '&' : '?'
+      options.url += separator + searchParams.toString()
+    }
+
+    if (options.method !== 'GET') {
+      options.headers!['Content-Type'] = 'application/x-www-form-urlencoded';
+      options.data = params;
+    }
+
+    if (this.basicAuth) {
+      options.headers!.Authorization = this.basicAuth;
+    }
+
+    return getBackendSrv().fetch<T>(options);
   }
-  return value;
 }

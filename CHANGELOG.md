@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: add beta version of the query builder. The builder allows selecting `field names` and `field value`. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/48)
+
 ## v0.2.6
 
 * BUGFIX: fix issue with forwarding headers from datasource to the backend or proxy. 
