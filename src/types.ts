@@ -1,10 +1,13 @@
 import { DataFrame, DataSourceJsonData, KeyValue, QueryEditorProps } from '@grafana/data';
+import { BackendSrvRequest } from "@grafana/runtime";
 import { DataQuery } from '@grafana/schema';
 
 import { VictoriaLogsDatasource } from "./datasource";
 
 export interface Options extends DataSourceJsonData {
   maxLines?: string;
+  httpMethod?: string;
+  customQueryParameters?: string;
   // derivedFields?: DerivedFieldConfig[];
   // alertmanager?: string;
   // keepCookies?: string[];
@@ -28,7 +31,13 @@ export enum QueryType {
   Stream = 'stream',
 }
 
+export enum QueryEditorMode {
+  Builder = 'builder',
+  Code = 'code',
+}
+
 export interface QueryFromSchema extends DataQuery {
+  editorMode?: QueryEditorMode;
   expr: string;
   legendFormat?: string;
   maxLines?: number;
@@ -66,3 +75,39 @@ export interface ToggleFilterAction {
   frame?: DataFrame;
 }
 
+export interface FilterVisualQuery {
+  values: (string | FilterVisualQuery)[];
+  operators: string[];
+}
+
+export interface PipeVisualQuery {
+  type: string;
+  args: string[];
+}
+
+export interface VisualQuery {
+  filters: FilterVisualQuery;
+  pipes: string[]//PipeVisualQuery[];
+}
+
+export interface RequestArguments {
+  url: string;
+  params?: Record<string, string>;
+  options?: Partial<BackendSrvRequest>;
+}
+
+export interface FiledHits {
+  value: string;
+  hits: number;
+}
+
+export enum FilterFieldType {
+  Name = 'name',
+  Value = 'value'
+}
+
+export interface VariableQuery extends DataQuery {
+  type: FilterFieldType;
+  query?: string;
+  field?: string;
+}

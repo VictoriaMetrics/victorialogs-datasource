@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: Added support for loading data for variables, including log field names and values. This feature allows querying `/select/logsql/field_names` for field names and `/select/logsql/field_values` for field values. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/40).
+
 ## v0.2.6
 
 * BUGFIX: fix issue with forwarding headers from datasource to the backend or proxy. 
