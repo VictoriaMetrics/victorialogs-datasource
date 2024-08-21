@@ -6,8 +6,11 @@ import {
   AdHocVariableFilter,
   DataQueryRequest,
   DataQueryResponse,
-  DataSourceInstanceSettings, LegacyMetricFindQueryOptions, MetricFindValue,
-  ScopedVars, TimeRange,
+  DataSourceInstanceSettings,
+  LegacyMetricFindQueryOptions,
+  MetricFindValue,
+  ScopedVars,
+  TimeRange,
 } from '@grafana/data';
 import {
   BackendSrvRequest,
