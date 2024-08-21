@@ -106,3 +106,8 @@ export enum FilterFieldType {
   Value = 'value'
 }
 
+export interface VariableQuery extends DataQuery {
+  type: FilterFieldType;
+  query?: string;
+  field?: string;
+}

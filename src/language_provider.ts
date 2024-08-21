@@ -55,7 +55,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     }
 
     const params: FieldsRequestParams = {
-      query: "*",
+      query: options.query || "*",
       ...this.getTimeRangeParams(options.timeRange),
     };
     if (options.type === FilterFieldType.Value) {
@@ -87,4 +87,3 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     }
   }
 }
-

@@ -7,7 +7,10 @@ import {
   DataQueryRequest,
   DataQueryResponse,
   DataSourceInstanceSettings,
+  LegacyMetricFindQueryOptions,
+  MetricFindValue,
   ScopedVars,
+  TimeRange,
 } from '@grafana/data';
 import {
   BackendSrvRequest,
@@ -25,7 +28,16 @@ import LogsQlLanguageProvider from "./language_provider";
 import { addLabelToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
 import { replaceVariables, returnVariables } from "./parsingUtils";
 import { regularEscape, specialRegexEscape } from "./regexUtils";
-import { Query, Options, ToggleFilterAction, QueryFilterOptions, FilterActionType, RequestArguments } from './types';
+import {
+  Query,
+  Options,
+  ToggleFilterAction,
+  QueryFilterOptions,
+  FilterActionType,
+  RequestArguments,
+  VariableQuery,
+} from './types';
+import { VariableSupport } from "./variableSupport/VariableSupport";
 
 export class VictoriaLogsDatasource
   extends DataSourceWithBackend<Query, Options> {
@@ -57,6 +69,7 @@ export class VictoriaLogsDatasource
     this.annotations = {
       QueryEditor: QueryEditor,
     };
+    this.variables = new VariableSupport(this);
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
@@ -167,7 +180,7 @@ export class VictoriaLogsDatasource
   async metadataRequest({ url, params, options }: RequestArguments) {
     return await lastValueFrom(
       this._request({
-        url: `/api/datasources/proxy/${this.id}/${url.replace(/^\//,'')}`,
+        url: `/api/datasources/proxy/${this.id}/${url.replace(/^\//, '')}`,
         params,
         options: { method: 'GET', hideFromInspector: true, ...options },
       })
@@ -206,5 +219,36 @@ export class VictoriaLogsDatasource
     }
 
     return getBackendSrv().fetch<T>(options);
+  }
+
+  async metricFindQuery(
+    query: VariableQuery,
+    options?: LegacyMetricFindQueryOptions
+  ): Promise<MetricFindValue[]> {
+    if (!query) {
+      return Promise.resolve([]);
+    }
+
+    const interpolatedVariableQuery: VariableQuery = {
+      ...query,
+      field: this.interpolateString(query.field || '', options?.scopedVars),
+      query: this.interpolateString(query.query || '', options?.scopedVars),
+    };
+
+    return await this.processMetricFindQuery(interpolatedVariableQuery, options?.range);
+  }
+
+  interpolateString(string: string, scopedVars?: ScopedVars) {
+    return this.templateSrv.replace(string, scopedVars, this.interpolateQueryExpr);
+  }
+
+  private async processMetricFindQuery(query: VariableQuery, timeRange?: TimeRange): Promise<MetricFindValue[]> {
+    const list = await this.languageProvider?.getFieldList({
+      type: query.type,
+      timeRange,
+      field: query.field,
+      query: query.query
+    });
+    return (list ? list.map(({ value }) => ({ text: value })) : [])
   }
 }
