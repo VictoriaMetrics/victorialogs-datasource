@@ -27,7 +27,7 @@ import { escapeLabelValueInSelector, isRegexSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
 import { addLabelToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
 import { replaceVariables, returnVariables } from "./parsingUtils";
-import { regularEscape, specialRegexEscape } from "./regexUtils";
+import { regularEscape } from "./regexUtils";
 import {
   Query,
   Options,
@@ -165,16 +165,20 @@ export class VictoriaLogsDatasource
     return returnVariables(expr);
   }
 
-  interpolateQueryExpr(value: any, variable: any) {
-    if (!variable.multi && !variable.includeAll) {
-      return regularEscape(value);
-    }
+  interpolateQueryExpr(value: any, _variable: any) {
+    const wrapInQuotes = (v: string) => `"${v}"`;
 
     if (typeof value === 'string') {
-      return specialRegexEscape(value);
+      return wrapInQuotes(value);
     }
 
-    return lodashMap(value, specialRegexEscape).join('|');
+    if (Array.isArray(value)) {
+      const escapedAndQuotedValues = lodashMap(value, wrapInQuotes);
+      const combinedValues = escapedAndQuotedValues.join(' OR ');
+      return escapedAndQuotedValues.length > 1 ? `(${combinedValues})` : combinedValues;
+    }
+
+    return value;
   }
 
   async metadataRequest({ url, params, options }: RequestArguments) {

@@ -1,7 +1,8 @@
+import { css } from "@emotion/css";
 import React, { useState } from 'react';
 
-import { TimeRange } from '@grafana/data';
-import { Text } from '@grafana/ui';
+import { GrafanaTheme2, TimeRange } from '@grafana/data';
+import { useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from "../../../datasource";
 import { Query, VisualQuery } from "../../../types";
@@ -20,6 +21,8 @@ export interface Props {
 }
 
 export function QueryBuilderContainer(props: Props) {
+  const styles = useStyles2(getStyles);
+
   const { query, onChange, onRunQuery, datasource, timeRange } = props
 
   const [state, setState] = useState<{expr: string, visQuery: VisualQuery}>({
@@ -44,9 +47,17 @@ export function QueryBuilderContainer(props: Props) {
       />
       <hr/>
 
-      <Text element="p" variant="bodySmall">
+      <p className={styles.previewText}>
         {query.expr !== '' && query.expr}
-      </Text>
+      </p>
     </>
   );
 }
+
+const getStyles = (theme: GrafanaTheme2) => {
+  return {
+    previewText: css`
+      font-size: ${theme.typography.bodySmall.fontSize};
+    `
+  };
+};

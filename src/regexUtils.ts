@@ -7,7 +7,9 @@ export function regularEscape(value: any) {
 
 export function specialRegexEscape(value: any) {
   if (typeof value === 'string') {
-    return regularEscape(value.replace(/\\/g, '\\\\\\\\').replace(/[$^*{}\[\]+?.()|]/g, '\\\\$&'));
+    const escapedBackslashes = value.replace(/\\/g, '\\\\\\\\');
+    const escapedSpecialChars = escapedBackslashes.replace(/[$^*{}\[\]+?.()|]/g, '\\\\$&');
+    return regularEscape(escapedSpecialChars);
   }
   return value;
 }
