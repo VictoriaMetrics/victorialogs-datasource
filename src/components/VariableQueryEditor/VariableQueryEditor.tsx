@@ -16,7 +16,7 @@ const refId = 'VictoriaLogsVariableQueryEditor-VariableQuery'
 
 export type Props = QueryEditorProps<VictoriaLogsDatasource, Query, Options, VariableQuery>;
 
-export const LokiVariableQueryEditor = ({ onChange, query, datasource, range }: Props) => {
+export const VariableQueryEditor = ({ onChange, query, datasource, range }: Props) => {
   const [type, setType] = useState<FilterFieldType>();
   const [queryFilter, setQueryFilter] = useState<string>('');
   const [field, setField] = useState<string>('');
