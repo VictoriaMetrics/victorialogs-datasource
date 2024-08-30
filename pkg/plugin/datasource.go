@@ -3,8 +3,11 @@ package plugin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -104,8 +107,23 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 	}
 	resp, err := d.httpClient.Do(req)
 	if err != nil {
-		err = fmt.Errorf("failed to make http request: %w", err)
-		return newResponseError(err, backend.StatusBadRequest)
+		if !isTrivialError(err) {
+			// Return unexpected error to the caller.
+			return newResponseError(err, backend.StatusBadRequest)
+		}
+
+		// Something in the middle between client and datasource might be closing
+		// the connection. So we do a one more attempt in hope request will succeed.
+		req, err = http.NewRequestWithContext(ctx, settings.HTTPMethod, reqURL, nil)
+		if err != nil {
+			err = fmt.Errorf("failed to create new request with context: %w", err)
+			return newResponseError(err, backend.StatusBadRequest)
+		}
+		resp, err = d.httpClient.Do(req)
+		if err != nil {
+			err = fmt.Errorf("failed to make http request: %w", err)
+			return newResponseError(err, backend.StatusBadRequest)
+		}
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -159,4 +177,17 @@ func newHealthCheckErrorf(format string, args ...interface{}) *backend.CheckHeal
 func newResponseError(err error, httpStatus backend.Status) backend.DataResponse {
 	log.DefaultLogger.Error(err.Error())
 	return backend.DataResponse{Status: httpStatus, Error: err}
+}
+
+// isTrivialError returns true if the err is temporary and can be retried.
+func isTrivialError(err error) bool {
+	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
+	}
+	// Suppress trivial network errors, which could occur at remote side.
+	s := err.Error()
+	if strings.Contains(s, "broken pipe") || strings.Contains(s, "reset by peer") {
+		return true
+	}
+	return false
 }
