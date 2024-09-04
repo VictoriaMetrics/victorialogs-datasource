@@ -10,6 +10,16 @@ import (
 )
 
 const (
+	varInterval = "$__interval"
+)
+
+var (
+	defaultResolution int64 = 1500
+	year                    = time.Hour * 24 * 365
+	day                     = time.Hour * 24
+)
+
+const (
 	// These values prevent from overflow when storing msec-precision time in int64.
 	minTimeMsecs = 0 // use 0 instead of `int64(-1<<63) / 1e6` because the storage engine doesn't actually support negative time
 	maxTimeMsecs = int64(1<<63-1) / 1e6
@@ -171,4 +181,29 @@ func ParseDuration(s string) (time.Duration, error) {
 		return 0, err
 	}
 	return time.Duration(ms) * time.Millisecond, nil
+}
+
+// ReplaceTemplateVariable get query and use it expression to remove grafana template variables with
+func ReplaceTemplateVariable(expr string, interval int) string {
+	expr = strings.ReplaceAll(expr, varInterval, formatDuration(time.Duration(interval)*time.Millisecond))
+	return expr
+}
+
+func formatDuration(inter time.Duration) string {
+	switch {
+	case inter >= year:
+		return fmt.Sprintf("%dy", inter/year)
+	case inter >= day:
+		return fmt.Sprintf("%dd", inter/day)
+	case inter >= time.Hour:
+		return fmt.Sprintf("%dh", inter/time.Hour)
+	case inter >= time.Minute:
+		return fmt.Sprintf("%dm", inter/time.Minute)
+	case inter >= time.Second:
+		return fmt.Sprintf("%ds", inter/time.Second)
+	case inter >= time.Millisecond:
+		return fmt.Sprintf("%dms", inter/time.Millisecond)
+	default:
+		return "1ms"
+	}
 }

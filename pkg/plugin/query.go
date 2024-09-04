@@ -6,6 +6,8 @@ import (
 	"path"
 	"strconv"
 	"time"
+
+	"github.com/VictoriaMetrics/victorialogs-datasource/pkg/utils"
 )
 
 const (
@@ -20,6 +22,7 @@ type Query struct {
 	LegendFormat string `json:"legendFormat"`
 	MaxLines     int    `json:"maxLines"`
 	TimeRange    TimeRange
+	IntervalMs   int `json:"intervalMs"`
 	url          *url.URL
 }
 
@@ -72,6 +75,7 @@ func (q *Query) queryInstantURL(queryParams url.Values) string {
 		q.TimeRange.To = now
 	}
 
+	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs)
 	values.Set("query", q.Expr)
 	values.Set("limit", strconv.Itoa(q.MaxLines))
 	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
