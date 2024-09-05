@@ -177,3 +177,44 @@ func TestGetTime(t *testing.T) {
 		})
 	}
 }
+
+func TestReplaceTemplateVariable(t *testing.T) {
+	tests := []struct {
+		name     string
+		expr     string
+		interval int
+		want     string
+	}{
+		{
+			name:     "empty string",
+			expr:     "",
+			interval: 0,
+			want:     "",
+		},
+		{
+			name:     "no variable",
+			expr:     "test",
+			interval: 0,
+			want:     "test",
+		},
+		{
+			name:     "variable",
+			expr:     "$__interval",
+			interval: 15,
+			want:     "15ms",
+		},
+		{
+			name:     "variable with text",
+			expr:     "host:~'^$host$' and compose_project:~'^$compose_project$' and compose_service:~'^$compose_service$' and $log_query  | stats by (_time:$__interval, host) count() logs",
+			interval: 15,
+			want:     "host:~'^$host$' and compose_project:~'^$compose_project$' and compose_service:~'^$compose_service$' and $log_query  | stats by (_time:15ms, host) count() logs",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ReplaceTemplateVariable(tt.expr, tt.interval); got != tt.want {
+				t.Errorf("ReplaceTemplateVariable() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
