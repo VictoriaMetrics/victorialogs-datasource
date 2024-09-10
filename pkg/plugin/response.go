@@ -98,6 +98,7 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 			return newResponseError(err, backend.StatusInternal)
 		}
 		labelsField.Append(d)
+		labels = data.Labels{}
 	}
 
 	// Grafana expects lineFields to be always non-empty.
