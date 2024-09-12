@@ -353,6 +353,70 @@ func Test_parseStreamResponse(t *testing.T) {
 				return rsp
 			},
 		},
+		{
+			name: "new test",
+			response: `{"_time": "2024-09-10T12:24:38.124811Z","_stream_id": "00000000000000002e3bd2bdc376279a6418761ca20c417c","_stream": "{path=\"/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log\",stream=\"stderr\"}","_msg": "1","path": "/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log","stream": "stderr","time": "2024-09-10T12:24:38.124811792Z"}
+{"_time": "2024-09-10T12:36:10.664553169Z","_stream_id": "0000000000000000356bfe9e3c71128c750d94c15df6b908","_stream": "{stream=\"stream1\"}","_msg": "2","date": "0","stream": "stream1","log.level": "info"}
+{"_time": "2024-09-10T13:06:56.45147Z","_stream_id": "00000000000000002e3bd2bdc376279a6418761ca20c417c","_stream": "{path=\"/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log\",stream=\"stderr\"}","_msg": "3","path": "/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log","stream": "stderr","time": "2024-09-10T13:06:56.451470093Z"}`,
+			want: func() backend.DataResponse {
+				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+				labelsField.Name = gLabelsField
+
+				timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+				timeFd.Name = gTimeField
+
+				lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+				lineField.Name = gLineField
+
+				timeFd.Append(time.Date(2024, 9, 10, 12, 24, 38, 124000000, time.UTC))
+				timeFd.Append(time.Date(2024, 9, 10, 12, 36, 10, 664000000, time.UTC))
+				timeFd.Append(time.Date(2024, 9, 10, 13, 06, 56, 451000000, time.UTC))
+
+				lineField.Append("1")
+
+				labels := data.Labels{
+					"_stream_id": "00000000000000002e3bd2bdc376279a6418761ca20c417c",
+					"path":       "/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log",
+					"stream":     "stderr",
+					"time":       "2024-09-10T12:24:38.124811792Z",
+				}
+
+				b, _ := labelsToJSON(labels)
+				labelsField.Append(b)
+
+				lineField.Append("2")
+
+				labels = data.Labels{
+					"_stream_id": "0000000000000000356bfe9e3c71128c750d94c15df6b908",
+					"date":       "0",
+					"stream":     "stream1",
+					"log.level":  "info",
+				}
+
+				b, _ = labelsToJSON(labels)
+				labelsField.Append(b)
+
+				lineField.Append("3")
+
+				labels = data.Labels{
+					"_stream_id": "00000000000000002e3bd2bdc376279a6418761ca20c417c",
+					"path":       "/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log",
+					"stream":     "stderr",
+					"time":       "2024-09-10T13:06:56.451470093Z",
+				}
+
+				b, _ = labelsToJSON(labels)
+				labelsField.Append(b)
+
+				frame := data.NewFrame("", timeFd, lineField, labelsField)
+
+				rsp := backend.DataResponse{}
+				frame.Meta = &data.FrameMeta{}
+				rsp.Frames = append(rsp.Frames, frame)
+
+				return rsp
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -369,6 +433,7 @@ func Test_parseStreamResponse(t *testing.T) {
 			if len(resp.Frames) != 1 {
 				t.Fatalf("expected for response to always contain 1 Frame; got %d", len(resp.Frames))
 			}
+
 			got := resp.Frames[0]
 			want := w.Frames[0]
 			expFieldsLen := got.Fields[0].Len()
