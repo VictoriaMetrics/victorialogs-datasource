@@ -251,7 +251,8 @@ export class VictoriaLogsDatasource
       type: query.type,
       timeRange,
       field: query.field,
-      query: query.query
+      query: query.query,
+      limit: query.limit,
     });
     return (list ? list.map(({ value }) => ({ text: value })) : [])
   }

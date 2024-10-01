@@ -68,7 +68,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
     const setterValues = type === FilterFieldType.Name ? setFieldNames : setFieldValues
 
     setterLoading(true)
-    const list = await datasource.languageProvider?.getFieldList({ type, timeRange, field, })
+    const list = await datasource.languageProvider?.getFieldList({ type, timeRange, field, limit: 999 })
     const result = list ? list.map(({ value, hits }) => ({
       value,
       label: value || " ",

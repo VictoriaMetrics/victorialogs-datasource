@@ -110,4 +110,5 @@ export interface VariableQuery extends DataQuery {
   type: FilterFieldType;
   query?: string;
   field?: string;
+  limit?: number;
 }
