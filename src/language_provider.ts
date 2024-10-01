@@ -9,12 +9,14 @@ interface FetchFieldsOptions {
   query?: string;
   field?: string;
   timeRange?: TimeRange;
+  limit?: number;
 }
 
 interface FieldsRequestParams {
   query: string;
-  from: number;
-  to: number;
+  start: number;
+  end: number;
+  limit?: number;
   field?: string;
 }
 
@@ -60,6 +62,10 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     };
     if (options.type === FilterFieldType.Value) {
       params.field = options.field;
+    }
+
+    if (options.limit && (options.limit > 0) && (options.type === FilterFieldType.Value)) {
+      params.limit = options.limit;
     }
 
     const url = options.type === FilterFieldType.Name ? 'select/logsql/field_names' : `select/logsql/field_values`;
