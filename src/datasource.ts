@@ -1,4 +1,4 @@
-import { defaults, map as lodashMap } from 'lodash';
+import { defaults } from 'lodash';
 import { Observable, lastValueFrom } from "rxjs";
 import { map } from 'rxjs/operators';
 
@@ -166,16 +166,13 @@ export class VictoriaLogsDatasource
   }
 
   interpolateQueryExpr(value: any, _variable: any) {
-    const wrapInQuotes = (v: string) => `"${v}"`;
-
     if (typeof value === 'string') {
-      return wrapInQuotes(value);
+      return value;
     }
 
     if (Array.isArray(value)) {
-      const escapedAndQuotedValues = lodashMap(value, wrapInQuotes);
-      const combinedValues = escapedAndQuotedValues.join(' OR ');
-      return escapedAndQuotedValues.length > 1 ? `(${combinedValues})` : combinedValues;
+      const combinedValues = value.join(' OR ');
+      return value.length > 1 ? `(${combinedValues})` : combinedValues;
     }
 
     return value;
