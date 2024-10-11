@@ -41,8 +41,6 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 	lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 	lineField.Name = gLineField
 
-	labels := data.Labels{}
-
 	scanner := bufio.NewScanner(reader)
 
 	for scanner.Scan() {
@@ -63,6 +61,8 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 			}
 			timeFd.Append(getTime)
 		}
+
+		labels := data.Labels{}
 		if value.Exists(streamField) {
 			stream := value.GetStringBytes(streamField)
 			expr, err := metricsql.Parse(string(stream))
