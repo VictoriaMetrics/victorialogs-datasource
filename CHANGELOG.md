@@ -3,6 +3,7 @@
 ## tip
 
 * BUGFIX: fix variable substitution in queries. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/77).
+* BUGFIX: fixed health path for case, when url ends with trailing slash.
 
 ## v0.5.0
 
