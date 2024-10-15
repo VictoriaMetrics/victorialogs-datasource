@@ -24,6 +24,6 @@ const filterVisualQueryToString = (query: FilterVisualQuery): string => {
 }
 
 export const parseVisualQueryToString = (query: VisualQuery): string => {
-  // TODO add parse pipes
-  return filterVisualQueryToString(query.filters);
+  const pipesPart = query.pipes?.length ? ` | ${query.pipes.join(' | ')}` : ''
+  return filterVisualQueryToString(query.filters) + pipesPart;
 }
