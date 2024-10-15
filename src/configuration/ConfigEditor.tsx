@@ -8,6 +8,7 @@ import { Options } from '../types';
 
 import { AlertingSettings } from './AlertingSettings';
 import { HelpfulLinks } from "./HelpfulLinks";
+import { LimitsSettings } from "./LimitSettings";
 import { QuerySettings } from './QuerySettings';
 
 export type Props = DataSourcePluginOptionsEditorProps<Options>;
@@ -40,6 +41,7 @@ const ConfigEditor = (props: Props) => {
         maxLines={options.jsonData.maxLines || ''}
         onMaxLinedChange={(value) => onOptionsChange(setMaxLines(options, value))}
       />
+      <LimitsSettings {...props}/>
     </>
   );
 };

@@ -8,8 +8,8 @@ import { VictoriaLogsDatasource } from "../../datasource";
 import { FilterFieldType, Options, Query, VariableQuery } from '../../types';
 
 const variableOptions = [
-  { label: 'Field names', value: FilterFieldType.Name },
-  { label: 'Field values', value: FilterFieldType.Value },
+  { label: 'Field names', value: FilterFieldType.FieldName },
+  { label: 'Field values', value: FilterFieldType.FieldValue },
 ];
 
 const refId = 'VictoriaLogsVariableQueryEditor-VariableQuery'
@@ -69,13 +69,13 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
   }, [query]);
 
   useEffect(() => {
-    if (type !== FilterFieldType.Value || previousType === type) {
+    if (type !== FilterFieldType.FieldValue || previousType === type) {
       return;
     }
 
     const getFiledNames = async () => {
       const list = await datasource.languageProvider?.getFieldList({
-        type: FilterFieldType.Name,
+        type: FilterFieldType.FieldName,
         timeRange: range,
         limit,
       })
@@ -103,7 +103,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
             width={20}
           />
         </InlineField>
-        {type === FilterFieldType.Value && (
+        {type === FilterFieldType.FieldValue && (
             <InlineField label="Field" labelWidth={20}>
               <Select
                 aria-label="Field value"

@@ -52,7 +52,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
   };
 
   async getFieldList(options: FetchFieldsOptions): Promise<FiledHits[]> {
-    if (options.type === FilterFieldType.Value && !options.field) {
+    if (options.type === FilterFieldType.FieldValue && !options.field) {
       return [];
     }
 
@@ -60,15 +60,15 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       query: options.query || "*",
       ...this.getTimeRangeParams(options.timeRange),
     };
-    if (options.type === FilterFieldType.Value) {
+    if (options.type === FilterFieldType.FieldValue) {
       params.field = options.field;
     }
 
-    if (options.limit && (options.limit > 0) && (options.type === FilterFieldType.Value)) {
+    if (options.limit && (options.limit > 0) && (options.type === FilterFieldType.FieldValue)) {
       params.limit = options.limit;
     }
 
-    const url = options.type === FilterFieldType.Name ? 'select/logsql/field_names' : `select/logsql/field_values`;
+    const url = options.type === FilterFieldType.FieldName ? 'select/logsql/field_names' : `select/logsql/field_values`;
     const key = `${url}/${Object.values(params).join('/')}`;
 
     if (this.cacheValues.has(key)) {

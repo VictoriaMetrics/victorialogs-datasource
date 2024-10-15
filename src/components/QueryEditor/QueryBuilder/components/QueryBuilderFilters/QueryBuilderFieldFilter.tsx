@@ -49,7 +49,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
   }
 
   const handleSelect = (type: FilterFieldType) => ({ value: selected }: SelectableValue<string>) => {
-    const fullFilter = type === FilterFieldType.Name
+    const fullFilter = type === FilterFieldType.FieldName
       ? `${selected}: ${fieldValue || ''}`
       : `${field || ''}: ${field === '_stream' ? selected : `"${escapeLabelValueInExactSelector(selected || "")}"`} `
 
@@ -64,11 +64,12 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
   }
 
   const handleOpenMenu = (type: FilterFieldType) => async () => {
-    const setterLoading = type === FilterFieldType.Name ? setIsLoadingFieldNames : setIsLoadingFieldValues
-    const setterValues = type === FilterFieldType.Name ? setFieldNames : setFieldValues
+    const setterLoading = type === FilterFieldType.FieldName ? setIsLoadingFieldNames : setIsLoadingFieldValues
+    const setterValues = type === FilterFieldType.FieldName ? setFieldNames : setFieldValues
 
     setterLoading(true)
-    const list = await datasource.languageProvider?.getFieldList({ type, timeRange, field, limit: 999 })
+    const limit = datasource.getQueryBuilderLimits(type)
+    const list = await datasource.languageProvider?.getFieldList({ type, timeRange, field, limit })
     const result = list ? list.map(({ value, hits }) => ({
       value,
       label: value || " ",
@@ -91,30 +92,30 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
       </div>
       <div className={styles.content}>
         <Select
-          placeholder="Select field"
+          placeholder="Select field name"
           width="auto"
           options={fieldNames.length ? fieldNames : [{ label: field, value: field }]}
           value={field}
           isLoading={isLoadingFieldNames}
           loadingMessage={"Loading fields names..."}
           allowCustomValue
-          onCreateOption={handleCreate(FilterFieldType.Name)}
-          onChange={handleSelect(FilterFieldType.Name)}
-          onOpenMenu={handleOpenMenu(FilterFieldType.Name)}
+          onCreateOption={handleCreate(FilterFieldType.FieldName)}
+          onChange={handleSelect(FilterFieldType.FieldName)}
+          onOpenMenu={handleOpenMenu(FilterFieldType.FieldName)}
         />
         <span>:</span>
         <Select
-          placeholder="Select value"
+          placeholder="Select field value"
           width="auto"
           options={fieldValues.length ? fieldValues : fieldValue ? [{ label: fieldValue, value: fieldValue }] : []}
           value={fieldValue}
           isLoading={isLoadingFieldValues}
           loadingMessage={"Loading fields values..."}
-          noOptionsMessage={field ? "No values found" : "Select field first"}
+          noOptionsMessage={field ? "No values found" : "Select field name first"}
           allowCustomValue
-          onCreateOption={handleCreate(FilterFieldType.Value)}
-          onChange={handleSelect(FilterFieldType.Value)}
-          onOpenMenu={handleOpenMenu(FilterFieldType.Value)}
+          onCreateOption={handleCreate(FilterFieldType.FieldValue)}
+          onChange={handleSelect(FilterFieldType.FieldValue)}
+          onOpenMenu={handleOpenMenu(FilterFieldType.FieldValue)}
         />
       </div>
     </div>

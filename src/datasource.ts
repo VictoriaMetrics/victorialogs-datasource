@@ -36,6 +36,8 @@ import {
   FilterActionType,
   RequestArguments,
   VariableQuery,
+  QueryBuilderLimits,
+  FilterFieldType,
 } from './types';
 import { VariableSupport } from "./variableSupport/VariableSupport";
 
@@ -49,6 +51,7 @@ export class VictoriaLogsDatasource
   httpMethod: string;
   customQueryParameters: URLSearchParams;
   languageProvider?: LogsQlLanguageProvider;
+  queryBuilderLimits?: QueryBuilderLimits;
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<Options>,
@@ -70,6 +73,7 @@ export class VictoriaLogsDatasource
       QueryEditor: QueryEditor,
     };
     this.variables = new VariableSupport(this);
+    this.queryBuilderLimits = instanceSettings.jsonData.queryBuilderLimits;
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
@@ -255,5 +259,9 @@ export class VictoriaLogsDatasource
       limit: query.limit,
     });
     return (list ? list.map(({ value }) => ({ text: value })) : [])
+  }
+
+  getQueryBuilderLimits(key: FilterFieldType): number {
+    return this.queryBuilderLimits?.[key] || 0;
   }
 }
