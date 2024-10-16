@@ -10,7 +10,6 @@ interface Context {
 type ParsedExpression = string | ParsedExpression[];
 
 export const buildVisualQueryFromString = (expr: string): Context => {
-  // This will be modified in the handleExpression
   const visQuery: VisualQuery = {
     filters: { operators: [], values: [] },
     pipes: []
@@ -45,6 +44,10 @@ const handleExpression = (expr: string) => {
   const filters = parseStringToFilterVisualQuery(filterStrPart)
   return { filters, pipes: pipeParts };
 }
+
+export const splitExpression = (expr: string): string[] => {
+  return expr.split('|').map(part => part.trim());
+};
 
 const parseStringToFilterVisualQuery = (expression: string): FilterVisualQuery => {
   const parsedExpressions = parseExpression(expression)

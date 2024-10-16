@@ -2,10 +2,13 @@
 
 ## tip
 
-## v0.5.1
+## v0.6.0
+
+* FEATURE: add `limit` param for the `/field_values` request. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/75).
 
 * BUGFIX: fix variable substitution in queries. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/77).
 * BUGFIX: fixed health path for case, when url ends with trailing slash.
+* BUGFIX: fix the application of filtering in queries. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/81).
 
 ## v0.5.0
 
