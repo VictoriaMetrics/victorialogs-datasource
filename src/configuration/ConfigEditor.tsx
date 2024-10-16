@@ -31,7 +31,7 @@ const ConfigEditor = (props: Props) => {
     <>
       <HelpfulLinks/>
       <DataSourceHttpSettings
-        defaultUrl="http://localhost:8428"
+        defaultUrl="http://localhost:9428"
         dataSourceConfig={options}
         onChange={onOptionsChange}
         sigV4AuthToggleEnabled={config.sigV4AuthEnabled}

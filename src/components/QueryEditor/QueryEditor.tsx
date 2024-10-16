@@ -97,8 +97,8 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
 const getStyles = (theme: GrafanaTheme2) => {
   return {
     wrapper: css`
-      display: grid;
-      align-items: flex-start;
+      display: flex;
+      flex-direction: column;
       gap: ${theme.spacing(0.5)};
     `
   };
