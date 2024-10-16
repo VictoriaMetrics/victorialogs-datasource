@@ -10,7 +10,7 @@ type Props = {
 export const QuerySettings = (props: Props) => {
   const { maxLines, onMaxLinedChange } = props;
   return (
-    <div>
+    <div className="gf-form-group">
       <InlineField
         label="Maximum lines"
         labelWidth={22}

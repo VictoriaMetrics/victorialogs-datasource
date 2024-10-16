@@ -8,6 +8,7 @@ export interface Options extends DataSourceJsonData {
   maxLines?: string;
   httpMethod?: string;
   customQueryParameters?: string;
+  queryBuilderLimits?: QueryBuilderLimits;
   // derivedFields?: DerivedFieldConfig[];
   // alertmanager?: string;
   // keepCookies?: string[];
@@ -102,12 +103,18 @@ export interface FiledHits {
 }
 
 export enum FilterFieldType {
-  Name = 'name',
-  Value = 'value'
+  FieldName = 'fieldName',
+  FieldValue = 'fieldValue'
 }
 
 export interface VariableQuery extends DataQuery {
   type: FilterFieldType;
   query?: string;
   field?: string;
+  limit?: number;
 }
+
+export type QueryBuilderLimits = {
+  [FilterFieldType.FieldValue]?: number;
+  [FilterFieldType.FieldName]?: number;
+};

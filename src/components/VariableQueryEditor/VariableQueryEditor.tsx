@@ -1,15 +1,15 @@
 import React, { FormEvent, useEffect, useState } from 'react';
 import { usePrevious } from 'react-use';
 
-import { QueryEditorProps, SelectableValue } from '@grafana/data';
+import { DEFAULT_FIELD_DISPLAY_VALUES_LIMIT, QueryEditorProps, SelectableValue } from '@grafana/data';
 import { InlineField, InlineFieldRow, Input, Select } from "@grafana/ui";
 
 import { VictoriaLogsDatasource } from "../../datasource";
 import { FilterFieldType, Options, Query, VariableQuery } from '../../types';
 
 const variableOptions = [
-  { label: 'Field names', value: FilterFieldType.Name },
-  { label: 'Field values', value: FilterFieldType.Value },
+  { label: 'Field names', value: FilterFieldType.FieldName },
+  { label: 'Field values', value: FilterFieldType.FieldValue },
 ];
 
 const refId = 'VictoriaLogsVariableQueryEditor-VariableQuery'
@@ -20,6 +20,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
   const [type, setType] = useState<FilterFieldType>();
   const [queryFilter, setQueryFilter] = useState<string>('');
   const [field, setField] = useState<string>('');
+  const [limit, setLimit] = useState<number>(DEFAULT_FIELD_DISPLAY_VALUES_LIMIT);
   const [fieldNames, setFieldNames] = useState<SelectableValue<string>[]>([])
 
   const previousType = usePrevious(type);
@@ -40,11 +41,16 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
     if (!type) {
       return;
     }
-    onChange({ refId, type, field, query: queryFilter });
+    onChange({ refId, type, field, query: queryFilter, limit });
   };
 
   const handleQueryFilterChange = (e: FormEvent<HTMLInputElement>) => {
     setQueryFilter(e.currentTarget.value);
+  };
+
+  const handleLimitChange = (e: FormEvent<HTMLInputElement>) => {
+    const value = Number(e.currentTarget.value)
+    setLimit(isNaN(value) ? DEFAULT_FIELD_DISPLAY_VALUES_LIMIT : value);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -59,15 +65,20 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
     setType(query.type);
     setField(query.field || '');
     setQueryFilter(query.query || '');
+    setLimit(query.limit ?? DEFAULT_FIELD_DISPLAY_VALUES_LIMIT);
   }, [query]);
 
   useEffect(() => {
-    if (type !== FilterFieldType.Value || previousType === type) {
+    if (type !== FilterFieldType.FieldValue || previousType === type) {
       return;
     }
 
     const getFiledNames = async () => {
-      const list = await datasource.languageProvider?.getFieldList({ type: FilterFieldType.Name, timeRange: range })
+      const list = await datasource.languageProvider?.getFieldList({
+        type: FilterFieldType.FieldName,
+        timeRange: range,
+        limit,
+      })
       const result = list ? list.map(({ value, hits }) => ({
         value,
         label: value || " ",
@@ -77,7 +88,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
     }
 
     getFiledNames().catch(console.error)
-  }, [datasource, type, range, previousType]);
+  }, [datasource, type, range, previousType, limit]);
 
   return (
     <div>
@@ -92,7 +103,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
             width={20}
           />
         </InlineField>
-        {type === FilterFieldType.Value && (
+        {type === FilterFieldType.FieldValue && (
             <InlineField label="Field" labelWidth={20}>
               <Select
                 aria-label="Field value"
@@ -104,6 +115,21 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
               />
             </InlineField>
           )}
+        <InlineField
+          label="Limit"
+          labelWidth={20}
+          tooltip={'Maximum number of values to return. Set to 0 to remove the limit.'}
+        >
+          <Input
+            type="number"
+            aria-label="Limit"
+            placeholder="Limit"
+            value={limit}
+            onChange={handleLimitChange}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+          />
+        </InlineField>
       </InlineFieldRow>
       <InlineFieldRow>
         <InlineField
