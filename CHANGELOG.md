@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fixed healthcheck
+
 ## v0.6.0
 
 * FEATURE: add `limit` param for the `/field_values` request. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/75).

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path"
 	"strings"
 	"sync"
 
@@ -145,7 +144,7 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 // datasource configuration page which allows users to verify that
 // a datasource is working as expected.
 func (d *Datasource) CheckHealth(ctx context.Context, _ *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
-	r, err := http.NewRequestWithContext(ctx, http.MethodGet, path.Join(d.settings.URL, health), nil)
+	r, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s%s", strings.TrimRight(d.settings.URL, "/"), health), nil)
 	if err != nil {
 		return newHealthCheckErrorf("could not create request"), nil
 	}
