@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.6.1
+
 * BUGFIX: fixed healthcheck
 
 ## v0.6.0
