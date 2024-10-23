@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,12 +18,12 @@ import (
 func Test_parseStreamResponse(t *testing.T) {
 	tests := []struct {
 		name     string
-		response string
+		filename string
 		want     func() backend.DataResponse
 	}{
 		{
 			name:     "empty response",
-			response: "",
+			filename: "test-data/empty",
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 				labelsField.Name = gLabelsField
@@ -43,28 +45,28 @@ func Test_parseStreamResponse(t *testing.T) {
 		},
 		{
 			name:     "incorrect response",
-			response: "abcd",
+			filename: "test-data/incorrect_response",
 			want: func() backend.DataResponse {
 				return newResponseError(fmt.Errorf("error decode response: cannot parse JSON: cannot parse number: unexpected char: \"a\"; unparsed tail: \"abcd\""), backend.StatusInternal)
 			},
 		},
 		{
 			name:     "incorrect time in the response",
-			response: `{"_time":"acdf"}`,
+			filename: "test-data/incorrect_time",
 			want: func() backend.DataResponse {
 				return newResponseError(fmt.Errorf("error parse time from _time field: cannot parse acdf: cannot parse duration \"acdf\""), backend.StatusInternal)
 			},
 		},
 		{
 			name:     "invalid stream in the response",
-			response: `{"_time":"2024-02-20", "_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=}"}`,
+			filename: "test-data/invalid_stream",
 			want: func() backend.DataResponse {
 				return newResponseError(fmt.Errorf("StringExpr: unexpected token \"}\"; want \"string\"; unparsed data: \"}\""), backend.StatusInternal)
 			},
 		},
 		{
 			name:     "correct response line",
-			response: `{"_msg":"123","_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","_time":"2024-02-20T14:04:27Z"}`,
+			filename: "test-data/correct_response",
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 				labelsField.Name = gLabelsField
@@ -98,7 +100,7 @@ func Test_parseStreamResponse(t *testing.T) {
 		},
 		{
 			name:     "response with different labels",
-			response: `{"_msg":"123","_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","_time":"2024-02-20T14:04:27Z", "job": "vlogs"}`,
+			filename: "test-data/different_labels",
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 				labelsField.Name = gLabelsField
@@ -132,9 +134,8 @@ func Test_parseStreamResponse(t *testing.T) {
 			},
 		},
 		{
-			name: "response with different labels and without standard fields",
-			response: `{"stream":"stderr","count(*)":"394"}
-{"stream":"stdout","count(*)":"21"}`,
+			name:     "response with different labels and without standard fields",
+			filename: "test-data/no_standard_fields",
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 				labelsField.Name = gLabelsField
@@ -173,7 +174,7 @@ func Test_parseStreamResponse(t *testing.T) {
 		},
 		{
 			name:     "response with different labels only one label",
-			response: `{"level":""}`,
+			filename: "test-data/only_one_label",
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 				labelsField.Name = gLabelsField
@@ -203,9 +204,8 @@ func Test_parseStreamResponse(t *testing.T) {
 			},
 		},
 		{
-			name: "response when one stream field is defined and other is free fields",
-			response: `{"_time":"2024-06-26T13:00:00Z","logs":"1400"}
-{"_time":"2024-06-26T14:00:00Z","logs":"374"}`,
+			name:     "response when one stream field is defined and other is free fields",
+			filename: "test-data/stream_and_free_field",
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 				labelsField.Name = gLabelsField
@@ -247,7 +247,7 @@ func Test_parseStreamResponse(t *testing.T) {
 		},
 		{
 			name:     "response has ANSI chars",
-			response: `{"_time":"2024-06-26T13:15:15.000Z","_stream_id":"00000000000000009eaf29866f70976a098adc735393deb1","_stream":"{compose_project=\"app\",compose_service=\"gateway\"}","_msg":"\x1b[2m2024-06-26T13:15:15.004Z\x1b[0;39m \x1b[32mTRACE\x1b[0;39m \x1b[35m1\x1b[0;39m \x1b[2m---\x1b[0;39m \x1b[2m[    parallel-19]\x1b[0;39m \x1b[36mo.s.c.g.f.WeightCalculatorWebFilter     \x1b[0;39m \x1b[2m:\x1b[0;39m Weights attr: {} ","compose_project":"app","compose_service":"gateway"}`,
+			filename: "test-data/ansi_chars",
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 				labelsField.Name = gLabelsField
@@ -282,7 +282,7 @@ func Test_parseStreamResponse(t *testing.T) {
 		},
 		{
 			name:     "response has unicode",
-			response: `{"_time":"2024-06-26T13:20:34.000Z","_stream":"{compose_project=\"app\",compose_service=\"gateway\"}","_msg":"\u001b[2m2024-06-26T13:20:34.608Z\u001b[0;39m \u001b[33m WARN\u001b[0;39m \u001b[35m1\u001b[0;39m \u001b[2m---\u001b[0;39m \u001b[2m[           main]\u001b[0;39m \u001b[36mjakarta.persistence.spi                 \u001b[0;39m \u001b[2m:\u001b[0;39m jakarta.persistence.spi::No valid providers found. ","compose_project":"app","compose_service":"gateway"}`,
+			filename: "test-data/unicode_present",
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 				labelsField.Name = gLabelsField
@@ -324,7 +324,7 @@ func Test_parseStreamResponse(t *testing.T) {
 		},
 		{
 			name:     "response has labels and message, time field is empty",
-			response: `{"count":"507","_msg":"507"}`,
+			filename: "test-data/time_field_empty",
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 				labelsField.Name = gLabelsField
@@ -354,10 +354,8 @@ func Test_parseStreamResponse(t *testing.T) {
 			},
 		},
 		{
-			name: "new test",
-			response: `{"_time": "2024-09-10T12:24:38.124811Z","_stream_id": "00000000000000002e3bd2bdc376279a6418761ca20c417c","_stream": "{path=\"/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log\",stream=\"stderr\"}","_msg": "1","path": "/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log","stream": "stderr","time": "2024-09-10T12:24:38.124811792Z"}
-{"_time": "2024-09-10T12:36:10.664553169Z","_stream_id": "0000000000000000356bfe9e3c71128c750d94c15df6b908","_stream": "{stream=\"stream1\"}","_msg": "2","date": "0","stream": "stream1","log.level": "info"}
-{"_time": "2024-09-10T13:06:56.45147Z","_stream_id": "00000000000000002e3bd2bdc376279a6418761ca20c417c","_stream": "{path=\"/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log\",stream=\"stderr\"}","_msg": "3","path": "/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log","stream": "stderr","time": "2024-09-10T13:06:56.451470093Z"}`,
+			name:     "double labels",
+			filename: "test-data/double_labels",
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 				labelsField.Name = gLabelsField
@@ -417,12 +415,57 @@ func Test_parseStreamResponse(t *testing.T) {
 				return rsp
 			},
 		},
+		{
+			name:     "large response more than 1MB",
+			filename: "test-data/large_msg_response_2MB",
+			want: func() backend.DataResponse {
+				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+				labelsField.Name = gLabelsField
+
+				timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+				timeFd.Name = gTimeField
+
+				lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+				lineField.Name = gLineField
+
+				timeFd.Append(time.Date(2024, 9, 10, 12, 36, 10, 664000000, time.UTC))
+
+				// string with more than 1MB
+				str := strings.Repeat("1", 1024*1024*2)
+
+				lineField.Append(str)
+
+				labels := data.Labels{
+					"_stream_id": "0000000000000000356bfe9e3c71128c750d94c15df6b908",
+					"date":       "0",
+					"stream":     "stream1",
+					"log.level":  "info",
+				}
+
+				b, _ := labelsToJSON(labels)
+				labelsField.Append(b)
+
+				frame := data.NewFrame("", timeFd, lineField, labelsField)
+
+				rsp := backend.DataResponse{}
+				frame.Meta = &data.FrameMeta{}
+				rsp.Frames = append(rsp.Frames, frame)
+
+				return rsp
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := io.NopCloser(bytes.NewBuffer([]byte(tt.response)))
+			file, err := os.ReadFile(tt.filename)
+			if err != nil {
+				t.Fatalf("error reading file: %s", err)
+			}
+
+			r := io.NopCloser(bytes.NewBuffer(file))
 			w := tt.want()
 			resp := parseStreamResponse(r)
+
 			if w.Error != nil {
 				if !reflect.DeepEqual(w, resp) {
 					t.Errorf("parseStreamResponse() = %#v, want %#v", resp, w)

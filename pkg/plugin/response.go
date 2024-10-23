@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -41,10 +42,31 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 	lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 	lineField.Name = gLineField
 
-	scanner := bufio.NewScanner(reader)
+	sc := bufio.NewReader(reader)
 
-	for scanner.Scan() {
-		value, err := fastjson.ParseBytes(scanner.Bytes())
+	finishedReading := false
+	n := -1
+	for !finishedReading {
+		n++
+		b, err := sc.ReadBytes('\n')
+		if err != nil {
+			if !errors.Is(err, io.EOF) && !errors.Is(err, bufio.ErrBufferFull) {
+				return newResponseError(fmt.Errorf("cannot read line in response: %s", err), backend.StatusInternal)
+			}
+			if errors.Is(err, bufio.ErrBufferFull) {
+				// Skip the line if it's too long.
+				backend.Logger.Info("skipping line number #%d: line too long", n)
+				continue
+			}
+			finishedReading = true
+		}
+
+		if len(b) == 0 {
+			continue
+		}
+
+		b = bytes.Trim(b, "\n")
+		value, err := fastjson.ParseBytes(b)
 		if err != nil {
 			return newResponseError(fmt.Errorf("error decode response: %s", err), backend.StatusInternal)
 		}
