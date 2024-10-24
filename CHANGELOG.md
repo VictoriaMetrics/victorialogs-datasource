@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: allow reading strings with arbitrary length when parsing response in stream mode. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/91).
+
 ## v0.6.1
 
 * BUGFIX: fixed healthcheck
