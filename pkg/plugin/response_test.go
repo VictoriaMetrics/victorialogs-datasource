@@ -247,7 +247,7 @@ func Test_parseStreamResponse(t *testing.T) {
 		},
 		{
 			name:     "response has ANSI chars",
-			filename: "test-data/ansi_chars",
+			filename: "test-data/ANSI_chars",
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 				labelsField.Name = gLabelsField
