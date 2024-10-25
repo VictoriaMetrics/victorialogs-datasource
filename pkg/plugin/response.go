@@ -42,13 +42,10 @@ func parseStreamResponse(reader io.Reader) backend.DataResponse {
 	lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 	lineField.Name = gLineField
 
-	// aligns with -insert.maxLineSizeBytes
-	br := bufio.NewReaderSize(reader, 256*1024)
+	br := bufio.NewReaderSize(reader, 64*1024)
 	var parser fastjson.Parser
 	var finishedReading bool
-
 	for n := 0; !finishedReading; n++ {
-		n++
 		b, err := br.ReadBytes('\n')
 		if err != nil {
 			if errors.Is(err, bufio.ErrBufferFull) {
