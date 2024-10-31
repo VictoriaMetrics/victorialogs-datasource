@@ -16,7 +16,6 @@ import {
 } from '@grafana/data';
 import {
   BackendSrvRequest,
-  config,
   DataSourceWithBackend,
   FetchResponse,
   getBackendSrv,
@@ -296,12 +295,3 @@ export class VictoriaLogsDatasource
     return merge(...observables);
   }
 }
-
-export const convertToWebSocketUrl = (url: string) => {
-  const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-  let backend = `${protocol}${window.location.host}${config.appSubUrl}`;
-  if (backend.endsWith('/')) {
-    backend = backend.slice(0, -1);
-  }
-  return `${backend}${url}`;
-};
