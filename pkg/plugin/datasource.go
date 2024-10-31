@@ -56,18 +56,29 @@ type Datasource struct {
 	streamCh   chan *data.Frame
 }
 
+// SubscribeStream called when a user tries to subscribe to a plugin/datasource
+// managed channel path – thus plugin can check subscribe permissions and communicate
+// options with Grafana Core. As soon as first subscriber joins channel RunStream
+// will be called.
 func (d *Datasource) SubscribeStream(ctx context.Context, request *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
 	return &backend.SubscribeStreamResponse{
 		Status: backend.SubscribeStreamStatusOK,
 	}, nil
 }
 
+// PublishStream called when a user tries to publish to a plugin/datasource
+// managed channel path.
 func (d *Datasource) PublishStream(ctx context.Context, request *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
 	return &backend.PublishStreamResponse{
 		Status: backend.PublishStreamStatusPermissionDenied,
 	}, nil
 }
 
+// RunStream will be
+// called once for the first client successfully subscribed to a channel path.
+// When Grafana detects that there are no longer any subscribers inside a channel,
+// the call will be terminated until next active subscriber appears. Call termination
+// can happen with a delay.
 func (d *Datasource) RunStream(ctx context.Context, request *backend.RunStreamRequest, sender *backend.StreamSender) error {
 
 	go func() {

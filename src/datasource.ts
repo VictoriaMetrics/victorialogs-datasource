@@ -92,7 +92,6 @@ export class VictoriaLogsDatasource
     };
 
     if (fixedRequest.liveStreaming) {
-      console.log('Running live query through backend');
       return this.runLiveQueryThroughBackend(fixedRequest);
     }
 
