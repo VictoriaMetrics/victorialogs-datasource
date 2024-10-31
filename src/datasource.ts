@@ -1,6 +1,6 @@
-import {defaults} from 'lodash';
-import {lastValueFrom, merge, Observable} from "rxjs";
-import {map} from 'rxjs/operators';
+import { defaults } from 'lodash';
+import { lastValueFrom, merge, Observable } from "rxjs";
+import { map } from 'rxjs/operators';
 
 import {
   AdHocVariableFilter,
@@ -24,13 +24,14 @@ import {
   getTemplateSrv,
   TemplateSrv,
 } from '@grafana/runtime';
-import {transformBackendResult} from "./backendResultTransformer";
+
+import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
-import {escapeLabelValueInSelector, isRegexSelector} from "./languageUtils";
+import { escapeLabelValueInSelector, isRegexSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
-import {addLabelToQuery, queryHasFilter, removeLabelFromQuery} from "./modifyQuery";
-import {replaceVariables, returnVariables} from "./parsingUtils";
-import {regularEscape} from "./regexUtils";
+import { addLabelToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
+import { replaceVariables, returnVariables } from "./parsingUtils";
+import { regularEscape } from "./regexUtils";
 import {
   FilterActionType,
   FilterFieldType,
@@ -42,7 +43,7 @@ import {
   ToggleFilterAction,
   VariableQuery,
 } from './types';
-import {VariableSupport} from "./variableSupport/VariableSupport";
+import { VariableSupport } from "./variableSupport/VariableSupport";
 
 export class VictoriaLogsDatasource
   extends DataSourceWithBackend<Query, Options> {
@@ -83,7 +84,7 @@ export class VictoriaLogsDatasource
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
     const queries = request.targets.filter(q => q.expr).map((q) => {
-      return {...q, maxLines: q.maxLines ?? this.maxLines}
+      return { ...q, maxLines: q.maxLines ?? this.maxLines }
     });
 
     const fixedRequest: DataQueryRequest<Query> = {
@@ -113,7 +114,7 @@ export class VictoriaLogsDatasource
     let expression = query.expr ?? '';
 
     if (!filter.options?.key || !filter.options?.value) {
-      return {...query, expr: expression};
+      return { ...query, expr: expression };
     }
 
     const isFilterFor = filter.type === FilterActionType.FILTER_FOR;
@@ -130,7 +131,7 @@ export class VictoriaLogsDatasource
       expression = addLabelToQuery(expression, filter.options.key, value, operator);
     }
 
-    return {...query, expr: expression};
+    return { ...query, expr: expression };
   }
 
   queryHasFilter(query: Query, filter: QueryFilterOptions): boolean {
@@ -139,7 +140,7 @@ export class VictoriaLogsDatasource
   }
 
   applyTemplateVariables(target: Query, scopedVars: ScopedVars, adhocFilters?: AdHocVariableFilter[]): Query {
-    const {__auto, __interval, __interval_ms, __range, __range_s, __range_ms, ...rest} = scopedVars || {};
+    const { __auto, __interval, __interval_ms, __range, __range_s, __range_ms, ...rest } = scopedVars || {};
     const exprWithAdHoc = this.addAdHocFilters(target.expr, adhocFilters);
 
     const variables = {
@@ -166,8 +167,8 @@ export class VictoriaLogsDatasource
     let expr = replaceVariables(queryExpr);
 
     expr = adhocFilters.reduce((acc: string, filter: { key: string; operator: string; value: string }) => {
-      const {key, operator} = filter;
-      let {value} = filter;
+      const { key, operator } = filter;
+      let { value } = filter;
       if (isRegexSelector(operator)) {
         value = regularEscape(value);
       } else {
@@ -192,17 +193,17 @@ export class VictoriaLogsDatasource
     return value;
   }
 
-  async metadataRequest({url, params, options}: RequestArguments) {
+  async metadataRequest({ url, params, options }: RequestArguments) {
     return await lastValueFrom(
       this._request({
         url: `/api/datasources/proxy/${this.id}/${url.replace(/^\//, '')}`,
         params,
-        options: {method: 'GET', hideFromInspector: true, ...options},
+        options: { method: 'GET', hideFromInspector: true, ...options },
       })
     )
   }
 
-  _request<T = any>({url, params = {}, options: overrides}: RequestArguments): Observable<FetchResponse<T>> {
+  _request<T = any>({ url, params = {}, options: overrides }: RequestArguments): Observable<FetchResponse<T>> {
     const queryUrl = url.startsWith(`/api/datasources/proxy/${this.id}`) ? url : `${this.url}/${url}`;
 
     const options: BackendSrvRequest = defaults(overrides, {
@@ -265,7 +266,7 @@ export class VictoriaLogsDatasource
       query: query.query,
       limit: query.limit,
     });
-    return (list ? list.map(({value}) => ({text: value})) : [])
+    return (list ? list.map(({ value }) => ({ text: value })) : [])
   }
 
   getQueryBuilderLimits(key: FilterFieldType): number {
@@ -273,9 +274,7 @@ export class VictoriaLogsDatasource
   }
 
   private runLiveQueryThroughBackend(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-
     const observables = request.targets.map((query, index) => {
-
       return getGrafanaLiveSrv().getDataStream({
         addr: {
           scope: LiveChannelScope.DataSource,
@@ -288,7 +287,6 @@ export class VictoriaLogsDatasource
       }).pipe(map((response) => {
         return {
           data: response.data || [],
-          // meta: response.data.meta,
           key: `victorialogs-datasource-${query.refId}`,
           state: LoadingState.Streaming,
         };
