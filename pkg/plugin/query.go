@@ -78,15 +78,8 @@ func (q *Query) queryTailURL(rawURL string, queryParams string) (string, error) 
 		}
 	}
 
-	// if q.MaxLines <= 0 {
-	// 	q.MaxLines = defaultMaxLines
-	// }
-
 	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs)
 	values.Set("query", q.Expr)
-	// values.Set("limit", strconv.Itoa(q.MaxLines))
-	// values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
-	// values.Set("end", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
 
 	q.url.RawQuery = values.Encode()
 	return q.url.String(), nil
