@@ -7,7 +7,7 @@
   "metrics": true,
   "alerting": false,
   "annotations": true,
-  "streaming": false,
+  "streaming": true,
   "backend": true,
   "executable": "victorialogs_backend_plugin",
   "queryOptions": {
