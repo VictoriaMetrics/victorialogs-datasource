@@ -80,14 +80,13 @@ func (d *Datasource) PublishStream(ctx context.Context, request *backend.Publish
 // the call will be terminated until next active subscriber appears. Call termination
 // can happen with a delay.
 func (d *Datasource) RunStream(ctx context.Context, request *backend.RunStreamRequest, sender *backend.StreamSender) error {
-
 	go func() {
 		prev := data.FrameJSONCache{}
 		var err error
 		for frame := range d.streamCh {
 			next, _ := data.FrameToJSONCache(frame)
 			if next.SameSchema(&prev) {
-				err = sender.SendBytes(next.Bytes(data.IncludeDataOnly))
+				err = sender.SendBytes(next.Bytes(data.IncludeAll))
 			} else {
 				err = sender.SendFrame(frame, data.IncludeAll)
 			}
