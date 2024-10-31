@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -420,19 +421,26 @@ func TestDatasourceQueryRequestWithRetry(t *testing.T) {
 }
 
 type mockStreamSender struct {
+	mx      sync.Mutex
 	packets []json.RawMessage
 }
 
 func (m *mockStreamSender) Send(packet *backend.StreamPacket) error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
 	m.packets = append(m.packets, packet.Data)
 	return nil
 }
 
 func (m *mockStreamSender) GetStream() []json.RawMessage {
+	m.mx.Lock()
+	defer m.mx.Unlock()
 	return m.packets
 }
 
 func (m *mockStreamSender) Reset() error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
 	m.packets = make([]json.RawMessage, 0)
 	return nil
 }
@@ -567,7 +575,7 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 
 	expected := dataResponse()
 
-	for len(packetSender.packets) == 0 {
+	for len(packetSender.GetStream()) == 0 {
 		time.Sleep(10 * time.Millisecond)
 	}
 
@@ -618,7 +626,7 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 
 	expected = dataResponse()
 
-	for len(packetSender.packets) == 0 {
+	for len(packetSender.GetStream()) == 0 {
 		time.Sleep(10 * time.Millisecond)
 	}
 
@@ -769,7 +777,7 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 
 	expected := dataResponse()
 
-	for len(packetSender.packets) == 0 {
+	for len(packetSender.GetStream()) == 0 {
 		time.Sleep(10 * time.Millisecond)
 	}
 
@@ -823,7 +831,7 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 
 	expected = dataResponse()
 
-	for len(packetSender.packets) == 0 {
+	for len(packetSender.GetStream()) == 0 {
 		time.Sleep(10 * time.Millisecond)
 	}
 
