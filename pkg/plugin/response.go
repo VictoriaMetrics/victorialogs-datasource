@@ -27,6 +27,8 @@ const (
 	gLabelsField = "labels"
 	gTimeField   = "Time"
 	gLineField   = "Line"
+
+	logsVisualisation = "logs"
 )
 
 // parseStreamResponse reads data from the reader and collects
@@ -148,6 +150,8 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 
 // parseStreamResponse reads data from the reader and collects
 // fields and frame with necessary information
+// it looks like the parseInstantResponse function, but it reads data and continuously
+// parse the lines from the reader and we need to collect only one data.Frame
 func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 
 	br := bufio.NewReaderSize(reader, 64*1024)
@@ -254,15 +258,11 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 		}
 
 		frame := data.NewFrame("", timeFd, lineField, labelsField)
-		frame.Meta = &data.FrameMeta{PreferredVisualization: "logs"}
+		// this is necessary information because the logs visualization is preferred
+		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
 
 		ch <- frame
-
 	}
-
-	// rsp := backend.DataResponse{}
-	// frame.Meta = &data.FrameMeta{}
-	// rsp.Frames = append(rsp.Frames, frame)
 
 	return nil
 }

@@ -18,7 +18,10 @@ import (
 )
 
 var (
-	_ backend.StreamHandler = &Datasource{}
+	_ backend.StreamHandler         = &Datasource{}
+	_ backend.QueryDataHandler      = &Datasource{}
+	_ backend.CheckHealthHandler    = &Datasource{}
+	_ instancemgmt.InstanceDisposer = &Datasource{}
 )
 
 const (
@@ -40,6 +43,7 @@ func NewDatasource(ctx context.Context, settings backend.DataSourceInstanceSetti
 	return &Datasource{
 		settings:   settings,
 		httpClient: cl,
+		streamCh:   make(chan *data.Frame),
 	}, nil
 }
 
@@ -49,6 +53,7 @@ type Datasource struct {
 	settings backend.DataSourceInstanceSettings
 
 	httpClient *http.Client
+	streamCh   chan *data.Frame
 }
 
 func (d *Datasource) SubscribeStream(ctx context.Context, request *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
@@ -64,69 +69,11 @@ func (d *Datasource) PublishStream(ctx context.Context, request *backend.Publish
 }
 
 func (d *Datasource) RunStream(ctx context.Context, request *backend.RunStreamRequest, sender *backend.StreamSender) error {
-	q := Query{}
-	if err := json.Unmarshal(request.Data, &q); err != nil {
-		return fmt.Errorf("failed to parse query json: %w", err)
-	}
-
-	var settings struct {
-		HTTPMethod  string `json:"httpMethod"`
-		QueryParams string `json:"customQueryParameters"`
-	}
-	if err := json.Unmarshal(d.settings.JSONData, &settings); err != nil {
-		return fmt.Errorf("failed to parse datasource settings: %w", err)
-	}
-	if settings.HTTPMethod == "" {
-		settings.HTTPMethod = http.MethodPost
-	}
-
-	q.TimeRange = TimeRange(q.TimeRange)
-	reqURL, err := q.queryTailURL(d.settings.URL, settings.QueryParams)
-	if err != nil {
-		return fmt.Errorf("failed to create request URL: %w", err)
-	}
-	backend.Logger.Info("Request URL: %s", reqURL)
-	req, err := http.NewRequestWithContext(ctx, settings.HTTPMethod, reqURL, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create new request with context: %w", err)
-	}
-	resp, err := d.httpClient.Do(req)
-	if err != nil {
-		if !isTrivialError(err) {
-			// Return unexpected error to the caller.
-			return err
-		}
-
-		// Something in the middle between client and datasource might be closing
-		// the connection. So we do a one more attempt in hope request will succeed.
-		req, err = http.NewRequestWithContext(ctx, settings.HTTPMethod, reqURL, nil)
-		if err != nil {
-			return fmt.Errorf("failed to create new request with context: %w", err)
-		}
-		resp, err = d.httpClient.Do(req)
-		if err != nil {
-			return fmt.Errorf("failed to make http request: %w", err)
-		}
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.DefaultLogger.Error("failed to close response body", "err", err.Error())
-		}
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("got unexpected response status code: %d", resp.StatusCode)
-	}
-
-	rspCh := make(chan *data.Frame)
 
 	go func() {
 		prev := data.FrameJSONCache{}
-		for frame := range rspCh {
-			if err != nil {
-				backend.Logger.Error("Failed to unmarshal frame", "error", err)
-				continue
-			}
+		var err error
+		for frame := range d.streamCh {
 			next, _ := data.FrameToJSONCache(frame)
 			if next.SameSchema(&prev) {
 				err = sender.SendBytes(next.Bytes(data.IncludeDataOnly))
@@ -136,12 +83,18 @@ func (d *Datasource) RunStream(ctx context.Context, request *backend.RunStreamRe
 			prev = next
 
 			if err != nil {
+				// TODO I can't find any of this error in the code
+				// so just check the error message
+				if strings.Contains(err.Error(), "rpc error: code = Canceled desc = context canceled") {
+					backend.Logger.Info("Client has canceled the request")
+					break
+				}
 				backend.Logger.Error("Failed send frame", "error", err)
 			}
 		}
 	}()
 
-	if err := parseStreamResponse(resp.Body, rspCh); err != nil {
+	if err := d.streamQuery(ctx, request); err != nil {
 		return fmt.Errorf("failed to parse stream response: %w", err)
 	}
 
@@ -154,6 +107,7 @@ func (d *Datasource) RunStream(ctx context.Context, request *backend.RunStreamRe
 func (d *Datasource) Dispose() {
 	// Clean up datasource instance resources.
 	d.httpClient.CloseIdleConnections()
+	close(d.streamCh)
 }
 
 // QueryData handles multiple queries and returns multiple responses.
@@ -176,69 +130,104 @@ func (d *Datasource) QueryData(ctx context.Context, req *backend.QueryDataReques
 	return response, nil
 }
 
-func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query backend.DataQuery) backend.DataResponse {
-	var q Query
-	if err := json.Unmarshal(query.JSON, &q); err != nil {
-		err = fmt.Errorf("failed to parse query json: %s", err)
-		return newResponseError(err, backend.StatusBadRequest)
+func (d *Datasource) streamQuery(ctx context.Context, request *backend.RunStreamRequest) error {
+	q, err := d.getQueryFromRaw(request.Data)
+	if err != nil {
+		return err
 	}
+
+	r, err := d.datasourceQuery(ctx, q, true)
+	if err != nil {
+		return err
+	}
+
+	return parseStreamResponse(r, d.streamCh)
+}
+
+// query sends a query to the datasource and returns the result.
+func (d *Datasource) getQueryFromRaw(data json.RawMessage) (*Query, error) {
+	var q Query
+	if err := json.Unmarshal(data, &q); err != nil {
+		return nil, fmt.Errorf("failed to parse query json: %s", err)
+	}
+	return &q, nil
+}
+
+func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream bool) (io.ReadCloser, error) {
 
 	var settings struct {
 		HTTPMethod  string `json:"httpMethod"`
 		QueryParams string `json:"customQueryParameters"`
 	}
 	if err := json.Unmarshal(d.settings.JSONData, &settings); err != nil {
-		err = fmt.Errorf("failed to parse datasource settings: %w", err)
-		return newResponseError(err, backend.StatusBadRequest)
+		return nil, fmt.Errorf("failed to parse datasource settings: %w", err)
 	}
 	if settings.HTTPMethod == "" {
 		settings.HTTPMethod = http.MethodPost
 	}
 
-	q.TimeRange = TimeRange(query.TimeRange)
 	reqURL, err := q.getQueryURL(d.settings.URL, settings.QueryParams)
 	if err != nil {
-		err = fmt.Errorf("failed to create request URL: %w", err)
-		return newResponseError(err, backend.StatusBadRequest)
+		return nil, fmt.Errorf("failed to create request URL: %w", err)
+	}
+
+	if isStream {
+		reqURL, err = q.queryTailURL(d.settings.URL, settings.QueryParams)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request URL: %w", err)
+		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, settings.HTTPMethod, reqURL, nil)
 	if err != nil {
-		err = fmt.Errorf("failed to create new request with context: %w", err)
-		return newResponseError(err, backend.StatusInternal)
+		return nil, fmt.Errorf("failed to create new request with context: %w", err)
 	}
 	resp, err := d.httpClient.Do(req)
 	if err != nil {
 		if !isTrivialError(err) {
 			// Return unexpected error to the caller.
-			return newResponseError(err, backend.StatusBadRequest)
+			return nil, err
 		}
 
 		// Something in the middle between client and datasource might be closing
 		// the connection. So we do a one more attempt in hope request will succeed.
 		req, err = http.NewRequestWithContext(ctx, settings.HTTPMethod, reqURL, nil)
 		if err != nil {
-			err = fmt.Errorf("failed to create new request with context: %w", err)
-			return newResponseError(err, backend.StatusBadRequest)
+			return nil, fmt.Errorf("failed to create new request with context: %w", err)
 		}
 		resp, err = d.httpClient.Do(req)
 		if err != nil {
-			err = fmt.Errorf("failed to make http request: %w", err)
-			return newResponseError(err, backend.StatusBadRequest)
+			return nil, fmt.Errorf("failed to make http request: %w", err)
 		}
 	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("got unexpected response status code: %d", resp.StatusCode)
+	}
+
+	return resp.Body, nil
+}
+
+func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query backend.DataQuery) backend.DataResponse {
+	q, err := d.getQueryFromRaw(query.JSON)
+	if err != nil {
+		return newResponseError(err, backend.StatusBadRequest)
+	}
+
+	q.TimeRange = TimeRange(query.TimeRange)
+
+	r, err := d.datasourceQuery(ctx, q, false)
+	if err != nil {
+		return newResponseError(err, backend.StatusInternal)
+	}
+
 	defer func() {
-		if err := resp.Body.Close(); err != nil {
+		if err := r.Close(); err != nil {
 			log.DefaultLogger.Error("failed to close response body", "err", err.Error())
 		}
 	}()
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("got unexpected response status code: %d", resp.StatusCode)
-		return newResponseError(err, backend.Status(resp.StatusCode))
-	}
-
-	return parseInstantResponse(resp.Body)
+	return parseInstantResponse(r)
 }
 
 // CheckHealth handles health checks sent from Grafana to the plugin.
