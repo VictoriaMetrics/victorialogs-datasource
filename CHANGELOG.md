@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: add support to display live logs by querying the tail endpoint in the datasource. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/83)
+
 ## v0.6.2
 
 * BUGFIX: allow reading strings with arbitrary length when parsing response in stream mode. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/91).
