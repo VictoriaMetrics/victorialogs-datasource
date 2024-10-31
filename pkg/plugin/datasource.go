@@ -141,6 +141,7 @@ func (d *Datasource) QueryData(ctx context.Context, req *backend.QueryDataReques
 	return response, nil
 }
 
+// streamQuery sends a query to the datasource and parse the tail results.
 func (d *Datasource) streamQuery(ctx context.Context, request *backend.RunStreamRequest) error {
 	q, err := d.getQueryFromRaw(request.Data)
 	if err != nil {
@@ -155,7 +156,7 @@ func (d *Datasource) streamQuery(ctx context.Context, request *backend.RunStream
 	return parseStreamResponse(r, d.streamCh)
 }
 
-// query sends a query to the datasource and returns the result.
+// getQueryFromRaw parses the query json from the raw message.
 func (d *Datasource) getQueryFromRaw(data json.RawMessage) (*Query, error) {
 	var q Query
 	if err := json.Unmarshal(data, &q); err != nil {
@@ -164,6 +165,7 @@ func (d *Datasource) getQueryFromRaw(data json.RawMessage) (*Query, error) {
 	return &q, nil
 }
 
+// datasourceQuery process the query to the datasource and returns the result.
 func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream bool) (io.ReadCloser, error) {
 
 	var settings struct {
@@ -219,6 +221,7 @@ func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream boo
 	return resp.Body, nil
 }
 
+// query sends a query to the datasource and returns the result.
 func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query backend.DataQuery) backend.DataResponse {
 	q, err := d.getQueryFromRaw(query.JSON)
 	if err != nil {
