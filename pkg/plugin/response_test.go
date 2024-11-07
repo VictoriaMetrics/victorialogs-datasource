@@ -464,7 +464,7 @@ func Test_parseStreamResponse(t *testing.T) {
 
 			r := io.NopCloser(bytes.NewBuffer(file))
 			w := tt.want()
-			resp := parseStreamResponse(r)
+			resp := parseInstantResponse(r)
 
 			if w.Error != nil {
 				if !reflect.DeepEqual(w, resp) {

@@ -1,5 +1,5 @@
 import { defaults } from 'lodash';
-import { Observable, lastValueFrom } from "rxjs";
+import { lastValueFrom, merge, Observable } from "rxjs";
 import { map } from 'rxjs/operators';
 
 import {
@@ -8,6 +8,8 @@ import {
   DataQueryResponse,
   DataSourceInstanceSettings,
   LegacyMetricFindQueryOptions,
+  LiveChannelScope,
+  LoadingState,
   MetricFindValue,
   ScopedVars,
   TimeRange,
@@ -17,8 +19,9 @@ import {
   DataSourceWithBackend,
   FetchResponse,
   getBackendSrv,
+  getGrafanaLiveSrv,
   getTemplateSrv,
-  TemplateSrv
+  TemplateSrv,
 } from '@grafana/runtime';
 
 import { transformBackendResult } from "./backendResultTransformer";
@@ -29,21 +32,22 @@ import { addLabelToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQ
 import { replaceVariables, returnVariables } from "./parsingUtils";
 import { regularEscape } from "./regexUtils";
 import {
-  Query,
-  Options,
-  ToggleFilterAction,
-  QueryFilterOptions,
   FilterActionType,
-  RequestArguments,
-  VariableQuery,
-  QueryBuilderLimits,
   FilterFieldType,
+  Options,
+  Query,
+  QueryBuilderLimits,
+  QueryFilterOptions,
+  RequestArguments,
+  ToggleFilterAction,
+  VariableQuery,
 } from './types';
 import { VariableSupport } from "./variableSupport/VariableSupport";
 
 export class VictoriaLogsDatasource
   extends DataSourceWithBackend<Query, Options> {
   id: number;
+  uid: string;
   url: string;
   maxLines: number;
   basicAuth?: string;
@@ -62,6 +66,7 @@ export class VictoriaLogsDatasource
 
     const settingsData = instanceSettings.jsonData || {};
     this.id = instanceSettings.id;
+    this.uid = instanceSettings.uid;
     this.url = instanceSettings.url!;
     this.basicAuth = instanceSettings.basicAuth;
     this.withCredentials = instanceSettings.withCredentials;
@@ -85,6 +90,10 @@ export class VictoriaLogsDatasource
       ...request,
       targets: queries,
     };
+
+    if (fixedRequest.liveStreaming) {
+      return this.runLiveQueryThroughBackend(fixedRequest);
+    }
 
     return this.runQuery(fixedRequest);
   }
@@ -260,5 +269,28 @@ export class VictoriaLogsDatasource
 
   getQueryBuilderLimits(key: FilterFieldType): number {
     return this.queryBuilderLimits?.[key] || 0;
+  }
+
+  private runLiveQueryThroughBackend(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
+    const observables = request.targets.map((query, index) => {
+      return getGrafanaLiveSrv().getDataStream({
+        addr: {
+          scope: LiveChannelScope.DataSource,
+          namespace: this.uid,
+          path: `vl/${query.refId}`, // this will allow each new query to create a new connection
+          data: {
+            ...query,
+          },
+        },
+      }).pipe(map((response) => {
+        return {
+          data: response.data || [],
+          key: `victorialogs-datasource-${query.refId}`,
+          state: LoadingState.Streaming,
+        };
+      }));
+    });
+
+    return merge(...observables);
   }
 }

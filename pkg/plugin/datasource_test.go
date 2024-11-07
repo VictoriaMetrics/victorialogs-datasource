@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -416,4 +418,501 @@ func TestDatasourceQueryRequestWithRetry(t *testing.T) {
 	expValue("123") // 0
 	expValue("123") // 1 - fail, 2 - retry
 	expErr("EOF")   // 3, 4 - retries
+}
+
+type mockStreamSender struct {
+	mx      sync.Mutex
+	packets []json.RawMessage
+}
+
+func (m *mockStreamSender) Send(packet *backend.StreamPacket) error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+	m.packets = append(m.packets, packet.Data)
+	return nil
+}
+
+func (m *mockStreamSender) GetStream() []json.RawMessage {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+	return m.packets
+}
+
+func (m *mockStreamSender) Reset() error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+	m.packets = make([]json.RawMessage, 0)
+	return nil
+}
+
+func TestDatasourceStreamQueryRequest(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(_ http.ResponseWriter, _ *http.Request) {
+		t.Fatalf("should not be called")
+	})
+	c := -1
+	mux.HandleFunc("/select/logsql/tail", func(w http.ResponseWriter, r *http.Request) {
+		c++
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST method got %s", r.Method)
+		}
+
+		switch c {
+		case 0:
+			w.WriteHeader(500)
+		case 1:
+			_, err := w.Write([]byte("123"))
+			if err != nil {
+				t.Fatalf("error write reposne: %s", err)
+			}
+		case 2:
+			_, err := w.Write([]byte(`{"_time":"acdf"}`))
+			if err != nil {
+				t.Fatalf("error write reposne: %s", err)
+			}
+		case 3:
+			_, err := w.Write([]byte(`cannot parse query []: missing query; context: []`))
+			if err != nil {
+				t.Fatalf("error write reposne: %s", err)
+			}
+		case 4:
+			_, err := w.Write([]byte(`{"_time":"2024-02-20", "_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=}"}`))
+			if err != nil {
+				t.Fatalf("error write reposne: %s", err)
+			}
+		case 5:
+			_, err := w.Write([]byte(`{"_msg":"123","_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","_time":"2024-02-20T14:04:27Z"}`))
+			if err != nil {
+				t.Fatalf("error write reposne: %s", err)
+			}
+		case 6:
+			_, err := w.Write([]byte(`{"_msg":"123","_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","_time":"2024-02-20T14:04:27Z", "job": "vlogs"}`))
+			if err != nil {
+				t.Fatalf("error write reposne: %s", err)
+			}
+		}
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	ctx := context.Background()
+	settings := backend.DataSourceInstanceSettings{
+		URL:      srv.URL,
+		JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+	}
+
+	instance, err := NewDatasource(ctx, settings)
+	if err != nil {
+		t.Fatalf("unexpected %s", err)
+	}
+
+	datasource := instance.(*Datasource)
+	packetSender := &mockStreamSender{packets: []json.RawMessage{}}
+	sender := backend.NewStreamSender(packetSender)
+	datasource.streamCh = make(chan *data.Frame)
+	expErr := func(ctx context.Context, e string) {
+		_ = packetSender.Reset()
+		err := datasource.RunStream(ctx, &backend.RunStreamRequest{
+			Data: json.RawMessage(`
+{
+  "datasource": {
+    "type": "victorialogs-datasource",
+    "uid": "a1c68f07-1354-4dd1-97bd-3bc49e06f03e"
+  },
+  "editorMode": "code",
+  "expr": "*",
+  "maxLines": 1000,
+  "queryType": "range",
+  "refId":"A"
+}`),
+		}, sender)
+		if e != "" {
+			// we expect an error
+			if err == nil {
+				t.Fatalf("expected %v got nil", err)
+			}
+			if !strings.Contains(err.Error(), e) {
+				t.Fatalf("expected err %q; got %q", e, err.Error())
+			}
+		}
+	}
+
+	expErr(ctx, "got unexpected response status code: 500")                                                                                                                    // 0
+	expErr(ctx, "error get object from decoded response: value doesn't contain object; it contains number")                                                                    // 1
+	expErr(ctx, "error parse time from _time field: cannot parse acdf: cannot parse duration \"acdf\"")                                                                        // 2
+	expErr(ctx, "error decode response: cannot parse JSON: cannot parse number: unexpected char: \"c\"; unparsed tail: \"cannot parse query []: missing query; context: []\"") // 3
+	expErr(ctx, "StringExpr: unexpected token \"}\"; want \"string\"; unparsed data: \"}")                                                                                     // 4
+
+	expErr(ctx, "") // 5
+	dataResponse := func() *data.Frame {
+		labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+		labelsField.Name = gLabelsField
+
+		timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+		timeFd.Name = gTimeField
+
+		lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+		lineField.Name = gLineField
+
+		timeFd.Append(time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC))
+
+		lineField.Append("123")
+
+		labels := data.Labels{
+			"application": "logs-benchmark-Apache.log-1708437847",
+			"hostname":    "e28a622d7792",
+		}
+
+		b, _ := labelsToJSON(labels)
+
+		labelsField.Append(b)
+		frame := data.NewFrame("", timeFd, lineField, labelsField)
+		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
+
+		return frame
+	}
+
+	expected := dataResponse()
+
+	for len(packetSender.GetStream()) == 0 {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	stream := packetSender.GetStream()
+
+	for _, message := range stream {
+		got, err := message.MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal response frames %s", err)
+		}
+		exp, err := expected.MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal expected frames %s", err)
+		}
+		if !bytes.Equal(got, exp) {
+			t.Fatalf("unexpected metric %s want %s", got, exp)
+		}
+	}
+
+	expErr(ctx, "") // 6
+	dataResponse = func() *data.Frame {
+		labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+		labelsField.Name = gLabelsField
+
+		timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+		timeFd.Name = gTimeField
+
+		lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+		lineField.Name = gLineField
+
+		timeFd.Append(time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC))
+
+		lineField.Append("123")
+
+		labels := data.Labels{
+			"application": "logs-benchmark-Apache.log-1708437847",
+			"hostname":    "e28a622d7792",
+			"job":         "vlogs",
+		}
+
+		b, _ := labelsToJSON(labels)
+
+		labelsField.Append(b)
+		frame := data.NewFrame("", timeFd, lineField, labelsField)
+		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
+		return frame
+	}
+
+	expected = dataResponse()
+
+	for len(packetSender.GetStream()) == 0 {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	stream = packetSender.GetStream()
+
+	for _, message := range stream {
+		got, err := message.MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal response frames %s", err)
+		}
+		exp, err := expected.MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal expected frames %s", err)
+		}
+		if !bytes.Equal(got, exp) {
+			t.Fatalf("unexpected metric %s want %s", got, exp)
+		}
+	}
+
+}
+
+func TestDatasourceStreamRequestWithRetry(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(_ http.ResponseWriter, _ *http.Request) {
+		t.Fatalf("should not be called")
+	})
+	c := -1
+	mux.HandleFunc("/select/logsql/tail", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST method got %s", r.Method)
+		}
+		c++
+		switch c {
+		case 0:
+			_, err := w.Write([]byte(`{"_msg":"123","_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","_time":"2024-02-20T14:04:27Z"}`))
+			if err != nil {
+				t.Fatalf("error write reposne: %s", err)
+			}
+		case 1:
+			conn, _, _ := w.(http.Hijacker).Hijack()
+			_ = conn.Close()
+		case 2:
+			_, err := w.Write([]byte(`{"_msg":"123","_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","_time":"2024-02-20T14:04:27Z", "job": "vlogs"}`))
+			if err != nil {
+				t.Fatalf("error write reposne: %s", err)
+			}
+		case 3:
+			conn, _, _ := w.(http.Hijacker).Hijack()
+			_ = conn.Close()
+		case 4:
+			conn, _, _ := w.(http.Hijacker).Hijack()
+			_ = conn.Close()
+		}
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	ctx := context.Background()
+	settings := backend.DataSourceInstanceSettings{
+		URL:      srv.URL,
+		JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+	}
+
+	instance, err := NewDatasource(ctx, settings)
+	if err != nil {
+		t.Fatalf("unexpected %s", err)
+	}
+
+	datasource := instance.(*Datasource)
+	packetSender := &mockStreamSender{packets: []json.RawMessage{}}
+	sender := backend.NewStreamSender(packetSender)
+	datasource.streamCh = make(chan *data.Frame)
+
+	expErr := func(e string) {
+		err := datasource.RunStream(ctx, &backend.RunStreamRequest{
+			Data: json.RawMessage(`
+	{
+	  "datasource": {
+	    "type": "victorialogs-datasource",
+	    "uid": "a1c68f07-1354-4dd1-97bd-3bc49e06f03e"
+	  },
+	  "editorMode": "code",
+	  "expr": "*",
+	  "maxLines": 1000,
+	  "queryType": "range",
+	  "refId":"A"
+	}`),
+		}, sender)
+		if err == nil {
+			t.Fatalf("expected %v got nil", e)
+		}
+
+		if !strings.Contains(err.Error(), e) {
+			t.Fatalf("expected err %q; got %q", e, err)
+		}
+	}
+
+	expValue := func() {
+		_ = packetSender.Reset()
+		err := datasource.RunStream(ctx, &backend.RunStreamRequest{
+			Data: json.RawMessage(`
+{
+  "datasource": {
+    "type": "victorialogs-datasource",
+    "uid": "a1c68f07-1354-4dd1-97bd-3bc49e06f03e"
+  },
+  "editorMode": "code",
+  "expr": "*",
+  "maxLines": 1000,
+  "queryType": "range",
+  "refId":"A"
+}`),
+		}, sender)
+		if err != nil {
+			t.Fatalf("unexpected %s", err)
+		}
+	}
+
+	expValue() // 0
+	dataResponse := func() *data.Frame {
+		labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+		labelsField.Name = gLabelsField
+
+		timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+		timeFd.Name = gTimeField
+
+		lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+		lineField.Name = gLineField
+
+		timeFd.Append(time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC))
+
+		lineField.Append("123")
+
+		labels := data.Labels{
+			"application": "logs-benchmark-Apache.log-1708437847",
+			"hostname":    "e28a622d7792",
+		}
+
+		b, _ := labelsToJSON(labels)
+
+		labelsField.Append(b)
+		frame := data.NewFrame("", timeFd, lineField, labelsField)
+		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
+
+		return frame
+	}
+
+	expected := dataResponse()
+
+	for len(packetSender.GetStream()) == 0 {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	stream := packetSender.GetStream()
+
+	for _, message := range stream {
+		got, err := message.MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal response frames %s", err)
+		}
+		exp, err := expected.MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal expected frames %s", err)
+		}
+		log.Printf("got: %s", got)
+		log.Printf("exp: %s", exp)
+		log.Printf("FIRST ===========")
+		if !bytes.Equal(got, exp) {
+			t.Fatalf("unexpected metric %s want %s", got, exp)
+		}
+	}
+
+	expValue() // 1 - fail, 2 - retry
+	dataResponse = func() *data.Frame {
+		labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+		labelsField.Name = gLabelsField
+
+		timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+		timeFd.Name = gTimeField
+
+		lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+		lineField.Name = gLineField
+
+		timeFd.Append(time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC))
+
+		lineField.Append("123")
+
+		labels := data.Labels{
+			"application": "logs-benchmark-Apache.log-1708437847",
+			"hostname":    "e28a622d7792",
+			"job":         "vlogs",
+		}
+
+		b, _ := labelsToJSON(labels)
+
+		labelsField.Append(b)
+		frame := data.NewFrame("", timeFd, lineField, labelsField)
+		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
+		return frame
+	}
+
+	expected = dataResponse()
+
+	for len(packetSender.GetStream()) == 0 {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	stream = packetSender.GetStream()
+
+	for _, message := range stream {
+		got, err := message.MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal response frames %s", err)
+		}
+		exp, err := expected.MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal expected frames %s", err)
+		}
+		if !bytes.Equal(got, exp) {
+			t.Fatalf("unexpected metric %s want %s", got, exp)
+		}
+	}
+
+	expErr("EOF") // 3, 4 - retries
+}
+
+func TestDatasourceStreamTailProcess(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(_ http.ResponseWriter, _ *http.Request) {
+		t.Fatalf("should not be called")
+	})
+
+	mux.HandleFunc("/select/logsql/tail", func(w http.ResponseWriter, r *http.Request) {
+		// we send 3 messages with 20ms delay
+		// simulate tail stream response
+		for i := 0; i < 3; i++ {
+			_, err := w.Write([]byte(`{"_msg":"123","_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","_time":"2024-02-20T14:04:27Z"}` + "\n"))
+			if err != nil {
+				t.Fatalf("error write reposne: %s", err)
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	ctx := context.Background()
+	settings := backend.DataSourceInstanceSettings{
+		URL:      srv.URL,
+		JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+	}
+
+	instance, err := NewDatasource(ctx, settings)
+	if err != nil {
+		t.Fatalf("unexpected %s", err)
+	}
+
+	datasource := instance.(*Datasource)
+	packetSender := &mockStreamSender{packets: []json.RawMessage{}}
+	sender := backend.NewStreamSender(packetSender)
+	datasource.streamCh = make(chan *data.Frame)
+	if err := datasource.RunStream(ctx, &backend.RunStreamRequest{
+		Data: json.RawMessage(`
+{
+  "datasource": {
+    "type": "victorialogs-datasource",
+    "uid": "a1c68f07-1354-4dd1-97bd-3bc49e06f03e"
+  },
+  "editorMode": "code",
+  "expr": "*",
+  "maxLines": 1000,
+  "queryType": "range",
+  "refId":"A"
+}`),
+	}, sender); err != nil {
+		t.Fatalf("unexpected %s", err)
+	}
+
+	// we send 3 messages with 20ms delay
+	// we should wait for 100ms to get all messages
+	time.Sleep(100 * time.Millisecond)
+	got := packetSender.GetStream()
+
+	if len(got) != 3 {
+		t.Fatalf("expected 2 got %d", len(got))
+	}
 }

@@ -14,6 +14,14 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+	"github.com/grafana/grafana-plugin-sdk-go/data"
+)
+
+var (
+	_ backend.StreamHandler         = &Datasource{}
+	_ backend.QueryDataHandler      = &Datasource{}
+	_ backend.CheckHealthHandler    = &Datasource{}
+	_ instancemgmt.InstanceDisposer = &Datasource{}
 )
 
 const (
@@ -35,6 +43,7 @@ func NewDatasource(ctx context.Context, settings backend.DataSourceInstanceSetti
 	return &Datasource{
 		settings:   settings,
 		httpClient: cl,
+		streamCh:   make(chan *data.Frame),
 	}, nil
 }
 
@@ -44,6 +53,62 @@ type Datasource struct {
 	settings backend.DataSourceInstanceSettings
 
 	httpClient *http.Client
+	streamCh   chan *data.Frame
+}
+
+// SubscribeStream called when a user tries to subscribe to a plugin/datasource
+// managed channel path – thus plugin can check subscribe permissions and communicate
+// options with Grafana Core. As soon as first subscriber joins channel RunStream
+// will be called.
+func (d *Datasource) SubscribeStream(ctx context.Context, request *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
+	return &backend.SubscribeStreamResponse{
+		Status: backend.SubscribeStreamStatusOK,
+	}, nil
+}
+
+// PublishStream called when a user tries to publish to a plugin/datasource
+// managed channel path.
+func (d *Datasource) PublishStream(ctx context.Context, request *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
+	return &backend.PublishStreamResponse{
+		Status: backend.PublishStreamStatusPermissionDenied,
+	}, nil
+}
+
+// RunStream will be
+// called once for the first client successfully subscribed to a channel path.
+// When Grafana detects that there are no longer any subscribers inside a channel,
+// the call will be terminated until next active subscriber appears. Call termination
+// can happen with a delay.
+func (d *Datasource) RunStream(ctx context.Context, request *backend.RunStreamRequest, sender *backend.StreamSender) error {
+	go func() {
+		prev := data.FrameJSONCache{}
+		var err error
+		for frame := range d.streamCh {
+			next, _ := data.FrameToJSONCache(frame)
+			if next.SameSchema(&prev) {
+				err = sender.SendBytes(next.Bytes(data.IncludeAll))
+			} else {
+				err = sender.SendFrame(frame, data.IncludeAll)
+			}
+			prev = next
+
+			if err != nil {
+				// TODO I can't find any of this error in the code
+				// so just check the error message
+				if strings.Contains(err.Error(), "rpc error: code = Canceled desc = context canceled") {
+					backend.Logger.Info("Client has canceled the request")
+					break
+				}
+				backend.Logger.Error("Failed send frame", "error", err)
+			}
+		}
+	}()
+
+	if err := d.streamQuery(ctx, request); err != nil {
+		return fmt.Errorf("failed to parse stream response: %w", err)
+	}
+
+	return nil
 }
 
 // Dispose here tells plugin SDK that plugin wants to clean up resources when a new instance
@@ -52,6 +117,7 @@ type Datasource struct {
 func (d *Datasource) Dispose() {
 	// Clean up datasource instance resources.
 	d.httpClient.CloseIdleConnections()
+	close(d.streamCh)
 }
 
 // QueryData handles multiple queries and returns multiple responses.
@@ -74,69 +140,107 @@ func (d *Datasource) QueryData(ctx context.Context, req *backend.QueryDataReques
 	return response, nil
 }
 
-func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query backend.DataQuery) backend.DataResponse {
-	var q Query
-	if err := json.Unmarshal(query.JSON, &q); err != nil {
-		err = fmt.Errorf("failed to parse query json: %s", err)
-		return newResponseError(err, backend.StatusBadRequest)
+// streamQuery sends a query to the datasource and parse the tail results.
+func (d *Datasource) streamQuery(ctx context.Context, request *backend.RunStreamRequest) error {
+	q, err := d.getQueryFromRaw(request.Data)
+	if err != nil {
+		return err
 	}
+
+	r, err := d.datasourceQuery(ctx, q, true)
+	if err != nil {
+		return err
+	}
+
+	return parseStreamResponse(r, d.streamCh)
+}
+
+// getQueryFromRaw parses the query json from the raw message.
+func (d *Datasource) getQueryFromRaw(data json.RawMessage) (*Query, error) {
+	var q Query
+	if err := json.Unmarshal(data, &q); err != nil {
+		return nil, fmt.Errorf("failed to parse query json: %s", err)
+	}
+	return &q, nil
+}
+
+// datasourceQuery process the query to the datasource and returns the result.
+func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream bool) (io.ReadCloser, error) {
 
 	var settings struct {
 		HTTPMethod  string `json:"httpMethod"`
 		QueryParams string `json:"customQueryParameters"`
 	}
 	if err := json.Unmarshal(d.settings.JSONData, &settings); err != nil {
-		err = fmt.Errorf("failed to parse datasource settings: %w", err)
-		return newResponseError(err, backend.StatusBadRequest)
+		return nil, fmt.Errorf("failed to parse datasource settings: %w", err)
 	}
 	if settings.HTTPMethod == "" {
 		settings.HTTPMethod = http.MethodPost
 	}
 
-	q.TimeRange = TimeRange(query.TimeRange)
 	reqURL, err := q.getQueryURL(d.settings.URL, settings.QueryParams)
 	if err != nil {
-		err = fmt.Errorf("failed to create request URL: %w", err)
-		return newResponseError(err, backend.StatusBadRequest)
+		return nil, fmt.Errorf("failed to create request URL: %w", err)
+	}
+
+	if isStream {
+		reqURL, err = q.queryTailURL(d.settings.URL, settings.QueryParams)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request URL: %w", err)
+		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, settings.HTTPMethod, reqURL, nil)
 	if err != nil {
-		err = fmt.Errorf("failed to create new request with context: %w", err)
-		return newResponseError(err, backend.StatusInternal)
+		return nil, fmt.Errorf("failed to create new request with context: %w", err)
 	}
 	resp, err := d.httpClient.Do(req)
 	if err != nil {
 		if !isTrivialError(err) {
 			// Return unexpected error to the caller.
-			return newResponseError(err, backend.StatusBadRequest)
+			return nil, err
 		}
 
 		// Something in the middle between client and datasource might be closing
 		// the connection. So we do a one more attempt in hope request will succeed.
 		req, err = http.NewRequestWithContext(ctx, settings.HTTPMethod, reqURL, nil)
 		if err != nil {
-			err = fmt.Errorf("failed to create new request with context: %w", err)
-			return newResponseError(err, backend.StatusBadRequest)
+			return nil, fmt.Errorf("failed to create new request with context: %w", err)
 		}
 		resp, err = d.httpClient.Do(req)
 		if err != nil {
-			err = fmt.Errorf("failed to make http request: %w", err)
-			return newResponseError(err, backend.StatusBadRequest)
+			return nil, fmt.Errorf("failed to make http request: %w", err)
 		}
 	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("got unexpected response status code: %d", resp.StatusCode)
+	}
+
+	return resp.Body, nil
+}
+
+// query sends a query to the datasource and returns the result.
+func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query backend.DataQuery) backend.DataResponse {
+	q, err := d.getQueryFromRaw(query.JSON)
+	if err != nil {
+		return newResponseError(err, backend.StatusBadRequest)
+	}
+
+	q.TimeRange = TimeRange(query.TimeRange)
+
+	r, err := d.datasourceQuery(ctx, q, false)
+	if err != nil {
+		return newResponseError(err, backend.StatusInternal)
+	}
+
 	defer func() {
-		if err := resp.Body.Close(); err != nil {
+		if err := r.Close(); err != nil {
 			log.DefaultLogger.Error("failed to close response body", "err", err.Error())
 		}
 	}()
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("got unexpected response status code: %d", resp.StatusCode)
-		return newResponseError(err, backend.Status(resp.StatusCode))
-	}
-
-	return parseStreamResponse(resp.Body)
+	return parseInstantResponse(r)
 }
 
 // CheckHealth handles health checks sent from Grafana to the plugin.

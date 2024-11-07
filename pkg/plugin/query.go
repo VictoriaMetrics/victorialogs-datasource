@@ -12,6 +12,7 @@ import (
 
 const (
 	instantQueryPath = "/select/logsql/query"
+	tailQueryPath    = "/select/logsql/tail"
 	defaultMaxLines  = 1000
 )
 
@@ -50,6 +51,38 @@ func (q *Query) getQueryURL(rawURL string, queryParams string) (string, error) {
 	q.url = u
 
 	return q.queryInstantURL(params), nil
+}
+
+// queryInstantURL prepare query url for instant query
+func (q *Query) queryTailURL(rawURL string, queryParams string) (string, error) {
+	if rawURL == "" {
+		return "", fmt.Errorf("url can't be blank")
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse datasource url: %s", err)
+	}
+	params, err := url.ParseQuery(queryParams)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse query params: %s", err.Error())
+	}
+
+	q.url = u
+
+	q.url.Path = path.Join(q.url.Path, tailQueryPath)
+	values := q.url.Query()
+
+	for k, vl := range params {
+		for _, v := range vl {
+			values.Add(k, v)
+		}
+	}
+
+	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs)
+	values.Set("query", q.Expr)
+
+	q.url.RawQuery = values.Encode()
+	return q.url.String(), nil
 }
 
 // queryInstantURL prepare query url for instant query
