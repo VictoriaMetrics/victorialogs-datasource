@@ -1,2 +1,2 @@
 export const SOURCE_DIR = 'src';
-export const DIST_DIR = 'victorialogs-datasource';
+export const DIST_DIR = 'plugins/victorialogs-datasource';

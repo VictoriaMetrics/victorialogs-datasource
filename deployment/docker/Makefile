@@ -41,7 +41,7 @@ app-via-docker: package-builder
 		go build $(RACE) -trimpath -buildvcs=false \
 			-ldflags "-extldflags '-static' $(GO_BUILDINFO)" \
 			-tags 'netgo osusergo nethttpomithttp2 musl' \
-			-o ./victorialogs-datasource/$(APP_NAME)$(APP_SUFFIX) ./pkg/
+			-o ./plugins/victorialogs-datasource/$(APP_NAME)$(APP_SUFFIX) ./pkg/
 
 app-via-docker-windows: package-builder
 	mkdir -p gocache-for-docker
@@ -55,7 +55,7 @@ app-via-docker-windows: package-builder
 		go build $(RACE) -trimpath -buildvcs=false \
 			-ldflags "-s -w -extldflags '-static' $(GO_BUILDINFO)" \
 			-tags 'netgo osusergo nethttpomithttp2' \
-			-o ./victorialogs-datasource/$(APP_NAME)$(APP_SUFFIX).exe ./pkg/
+			-o ./plugins/victorialogs-datasource/$(APP_NAME)$(APP_SUFFIX).exe ./pkg/
 
 frontend-package-base-image:
 	docker build -t frontent-builder-image -f deployment/docker/web/Dockerfile ./deployment/docker/web
