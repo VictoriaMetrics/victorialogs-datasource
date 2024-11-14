@@ -228,7 +228,7 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 	}
 
 	q.TimeRange = TimeRange(query.TimeRange)
-
+	q.MaxDataPoints = query.MaxDataPoints
 	r, err := d.datasourceQuery(ctx, q, false)
 	if err != nil {
 		return newResponseError(err, backend.StatusInternal)
@@ -239,6 +239,10 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 			log.DefaultLogger.Error("failed to close response body", "err", err.Error())
 		}
 	}()
+
+	if q.StatsQuery || q.StatsQueryRange {
+		return parseStatsResponse(r, q)
+	}
 
 	return parseInstantResponse(r)
 }

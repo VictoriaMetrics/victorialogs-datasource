@@ -184,7 +184,7 @@ func ParseDuration(s string) (time.Duration, error) {
 }
 
 // ReplaceTemplateVariable get query and use it expression to remove grafana template variables with
-func ReplaceTemplateVariable(expr string, interval int) string {
+func ReplaceTemplateVariable(expr string, interval int64) string {
 	expr = strings.ReplaceAll(expr, varInterval, formatDuration(time.Duration(interval)*time.Millisecond))
 	return expr
 }

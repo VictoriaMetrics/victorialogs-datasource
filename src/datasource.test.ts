@@ -51,14 +51,14 @@ describe('VictoriaLogsDatasource', () => {
       const expr = '_stream:{app!~"$name"}';
       const variables = { name: 'bar' };
       replaceMock.mockImplementation(() => `_stream:{app!~"${variables.name}"}`);
-      const interpolatedQuery = ds.applyTemplateVariables({ expr, refId: 'A' }, {});
+      const interpolatedQuery = ds.applyTemplateVariables({statsQuery: false, statsQueryRange: false, expr, refId: 'A' }, {});
       expect(interpolatedQuery.expr).toBe(`_stream:{app!~"bar"}`);
     });
 
     it('should retain the original query when no variables are present', () => {
       const expr = 'error';
       replaceMock.mockImplementation((input) => input);
-      const interpolatedQuery = ds.applyTemplateVariables({ expr, refId: 'A' }, {});
+      const interpolatedQuery = ds.applyTemplateVariables({statsQuery: false, statsQueryRange: false, expr, refId: 'A' }, {});
       expect(interpolatedQuery.expr).toBe('error');
     });
 
@@ -66,7 +66,7 @@ describe('VictoriaLogsDatasource', () => {
       const expr = '$severity AND _time:$time';
       const variables = { severity: 'error', time: '5m' };
       replaceMock.mockImplementation(() => `${variables.severity} AND _time:${variables.time}`);
-      const interpolatedQuery = ds.applyTemplateVariables({ expr, refId: 'A' }, {});
+      const interpolatedQuery = ds.applyTemplateVariables({statsQuery: false, statsQueryRange: false, expr, refId: 'A' }, {});
       expect(interpolatedQuery.expr).toBe('error AND _time:5m');
     });
 
@@ -74,14 +74,14 @@ describe('VictoriaLogsDatasource', () => {
       const expr = 'log.level:exact("$level")';
       const variables = { level: 'error' };
       replaceMock.mockImplementation(() => `log.level:exact("${variables.level}")`);
-      const interpolatedQuery = ds.applyTemplateVariables({ expr, refId: 'A' }, {});
+      const interpolatedQuery = ds.applyTemplateVariables({statsQuery: false, statsQueryRange: false, expr, refId: 'A' }, {});
       expect(interpolatedQuery.expr).toBe('log.level:exact("error")');
     });
 
     it('should not substitute undeclared variables', () => {
       const expr = '_stream:{app!~"$undeclaredVariable"}';
       replaceMock.mockImplementation((input) => input);
-      const interpolatedQuery = ds.applyTemplateVariables({ expr, refId: 'A' }, {});
+      const interpolatedQuery = ds.applyTemplateVariables({statsQuery: false, statsQueryRange: false, expr, refId: 'A' }, {});
       expect(interpolatedQuery.expr).toBe(expr);
     });
 
@@ -92,7 +92,7 @@ describe('VictoriaLogsDatasource', () => {
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'foo: $var', refId: 'A' },
+        {statsQuery: false, statsQueryRange: false, expr: 'foo: $var', refId: 'A' },
         scopedVars
       );
       expect(replacedQuery.expr).toBe('foo: $var');
@@ -107,7 +107,7 @@ describe('VictoriaLogsDatasource', () => {
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'foo: $var', refId: 'A' },
+        {statsQuery: false, statsQueryRange: false, expr: 'foo: $var', refId: 'A' },
         scopedVars
       );
       expect(replacedQuery.expr).toBe('foo: "bar"');
@@ -122,7 +122,7 @@ describe('VictoriaLogsDatasource', () => {
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'foo: $var', refId: 'A' },
+        {statsQuery: false, statsQueryRange: false, expr: 'foo: $var', refId: 'A' },
         scopedVars
       );
       expect(replacedQuery.expr).toBe('foo: ("foo" OR "bar")');
@@ -137,7 +137,7 @@ describe('VictoriaLogsDatasource', () => {
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'foo: $var', refId: 'A' },
+        {statsQuery: false, statsQueryRange: false, expr: 'foo: $var', refId: 'A' },
         scopedVars
       );
       expect(replacedQuery.expr).toBe('foo: "0.0.0.0:3000"');
@@ -152,7 +152,7 @@ describe('VictoriaLogsDatasource', () => {
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'foo: $var', refId: 'A' },
+        {statsQuery: false, statsQueryRange: false, expr: 'foo: $var', refId: 'A' },
         scopedVars
       );
       expect(replacedQuery.expr).toBe('foo: ("http://localhost:3001/" OR "http://192.168.50.60:3000/foo")');
@@ -167,7 +167,7 @@ describe('VictoriaLogsDatasource', () => {
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'foo: $var', refId: 'A' },
+        {statsQuery: false, statsQueryRange: false, expr: 'foo: $var', refId: 'A' },
         scopedVars
       );
       expect(replacedQuery.expr).toBe('foo: ');
@@ -183,7 +183,7 @@ describe('VictoriaLogsDatasource', () => {
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'baz: $var1 AND qux: $var2', refId: 'A' },
+        {statsQuery: false, statsQueryRange: false, expr: 'baz: $var1 AND qux: $var2', refId: 'A' },
         scopedVars
       );
       expect(replacedQuery.expr).toBe('baz: "foo" AND qux: "bar"');

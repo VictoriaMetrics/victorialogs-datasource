@@ -182,7 +182,7 @@ func TestReplaceTemplateVariable(t *testing.T) {
 	tests := []struct {
 		name     string
 		expr     string
-		interval int
+		interval int64
 		want     string
 	}{
 		{
