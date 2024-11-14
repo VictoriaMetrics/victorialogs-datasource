@@ -72,23 +72,33 @@ victorialogs-datasource-plugin-build: \
 	victorialogs-frontend-plugin-build \
 	victorialogs-backend-plugin-build
 
-victorialogs-datasource-plugin-pack:
-	tar -czf victorialogs-datasource-$(PKG_TAG).tar.gz victorialogs-datasource \
+victorialogs-datasource-plugin-pack-tar:
+	tar -czf victorialogs-datasource-$(PKG_TAG).tar.gz ./plugins/victorialogs-datasource \
 	&& sha256sum victorialogs-datasource-$(PKG_TAG).tar.gz \
-	> victorialogs-datasource-$(PKG_TAG)_checksums.txt \
-	&& rm -rf ./victorialogs-datasource
+	> victorialogs-datasource-$(PKG_TAG)_checksums_tar.txt
+
+victorialogs-datasource-plugin-pack-zip:
+	zip -r victorialogs-datasource-$(PKG_TAG).zip ./plugins/victorialogs-datasource \
+	&& sha256sum victorialogs-datasource-$(PKG_TAG).zip \
+	> victorialogs-datasource-$(PKG_TAG)_checksums_zip.txt
 
 victorialogs-datasource-frontend-plugin-pack: \
 	frontend-pack
 
 victorialogs-datasource-frontend-plugin-release: \
 	victorialogs-frontend-plugin-build \
-	victorialogs-datasource-frontend-plugin-pack
+	victorialogs-datasource-plugin-pack-tar \
+	victorialogs-datasource-plugin-pack-zip
 
 victorialogs-datasource-plugin-release: \
 	victorialogs-frontend-plugin-build \
 	victorialogs-backend-plugin-build \
-	victorialogs-datasource-plugin-pack
+	victorialogs-datasource-plugin-pack-tar \
+	victorialogs-datasource-plugin-pack-zip \
+	victorialogs-datasource-plugin-remove
+
+victorialogs-datasource-plugin-remove:
+	rm -rf ./plugins/victorialogs-datasource
 
 build-release:
 	git checkout $(TAG) && $(MAKE) victorialogs-datasource-plugin-release
