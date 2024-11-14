@@ -195,7 +195,7 @@ func (q *Query) statsQueryRangeURL(queryParams url.Values, minInterval time.Dura
 	}
 
 	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs)
-	step := calculateStep(minInterval, from, to, q.MaxDataPoints)
+	step := utils.CalculateStep(minInterval, from, to, q.MaxDataPoints)
 
 	values.Set("query", q.Expr)
 	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
@@ -282,13 +282,8 @@ func labelsToString(labels data.Labels) string {
 // calculateMinInterval tries to calculate interval from requested params
 // in duration representation or return error if
 func (q *Query) calculateMinInterval() (time.Duration, error) {
-	if q.withIntervalVariable() {
+	if utils.WithIntervalVariable(q.Interval) {
 		q.Interval = ""
 	}
-	return getIntervalFrom(q.TimeInterval, q.Interval, q.IntervalMs, defaultInterval)
-}
-
-// withIntervalVariable checks does query has interval variable
-func (q *Query) withIntervalVariable() bool {
-	return q.Interval == varInterval
+	return utils.GetIntervalFrom(q.TimeInterval, q.Interval, q.IntervalMs, defaultInterval)
 }
