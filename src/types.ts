@@ -49,6 +49,8 @@ export interface Query extends QueryFromSchema {
   direction?: QueryDirection;
   supportingQueryType?: SupportingQueryType;
   queryType?: QueryType;
+  statsQueryRange: boolean;
+  statsQuery: boolean;
 }
 
 export type VictoriaLogsQueryEditorProps = QueryEditorProps<VictoriaLogsDatasource, Query, Options>;

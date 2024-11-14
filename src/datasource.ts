@@ -82,8 +82,15 @@ export class VictoriaLogsDatasource
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
+    const isStatsQuery = request.panelPluginId && !['logs', 'table', 'timeseries'].includes(request.panelPluginId);
+    const isStatsQueryRange = request.panelPluginId === "timeseries"
     const queries = request.targets.filter(q => q.expr).map((q) => {
-      return { ...q, maxLines: q.maxLines ?? this.maxLines }
+      return {
+        ...q,
+        maxLines: q.maxLines ?? this.maxLines,
+        statsQueryRange: isStatsQueryRange,
+        statsQuery: Boolean(isStatsQuery),
+      }
     });
 
     const fixedRequest: DataQueryRequest<Query> = {
