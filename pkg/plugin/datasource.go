@@ -241,8 +241,6 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 		}
 	}()
 
-	backend.Logger.Info("QueryTYpe => %#v", query.QueryType)
-
 	switch q.QueryType {
 	case QueryTypeStats:
 		return parseStatsResponse(r, q)
