@@ -229,6 +229,7 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 
 	q.TimeRange = TimeRange(query.TimeRange)
 	q.MaxDataPoints = query.MaxDataPoints
+	q.QueryType = QueryType(query.QueryType)
 	r, err := d.datasourceQuery(ctx, q, false)
 	if err != nil {
 		return newResponseError(err, backend.StatusInternal)
@@ -240,11 +241,16 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 		}
 	}()
 
-	if q.StatsQuery || q.StatsQueryRange {
-		return parseStatsResponse(r, q)
-	}
+	backend.Logger.Info("QueryTYpe => %#v", query.QueryType)
 
-	return parseInstantResponse(r)
+	switch q.QueryType {
+	case QueryTypeStats:
+		return parseStatsResponse(r, q)
+	case QueryTypeStatsRange:
+		return parseStatsResponse(r, q)
+	default:
+		return parseInstantResponse(r)
+	}
 }
 
 // CheckHealth handles health checks sent from Grafana to the plugin.

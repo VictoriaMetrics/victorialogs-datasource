@@ -26,6 +26,15 @@ const (
 	defaultInterval     = 15 * time.Second
 )
 
+// QueryType represents query type
+type QueryType string
+
+const (
+	QueryTypeInstant    QueryType = "instant"
+	QueryTypeStats      QueryType = "stats"
+	QueryTypeStatsRange QueryType = "statsRange"
+)
+
 // Query represents backend query object
 type Query struct {
 	RefID           string `json:"refId"`
@@ -38,6 +47,7 @@ type Query struct {
 	TimeInterval    string `json:"timeInterval"`
 	StatsQueryRange bool   `json:"statsQueryRange"`
 	StatsQuery      bool   `json:"statsQuery"`
+	QueryType       QueryType
 	MaxDataPoints   int64
 	url             *url.URL
 }
@@ -65,18 +75,18 @@ func (q *Query) getQueryURL(rawURL string, queryParams string) (string, error) {
 
 	q.url = u
 
-	if q.StatsQuery {
+	switch q.QueryType {
+	case QueryTypeStats:
 		return q.statsQueryURL(params), nil
-	}
-	if q.StatsQueryRange {
+	case QueryTypeStatsRange:
 		minInterval, err := q.calculateMinInterval()
 		if err != nil {
 			return "", fmt.Errorf("failed to calculate minimal interval: %w", err)
 		}
 		return q.statsQueryRangeURL(params, minInterval), nil
+	default:
+		return q.queryInstantURL(params), nil
 	}
-
-	return q.queryInstantURL(params), nil
 }
 
 // queryInstantURL prepare query url for instant query
