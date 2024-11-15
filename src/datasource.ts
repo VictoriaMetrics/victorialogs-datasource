@@ -38,6 +38,7 @@ import {
   Query,
   QueryBuilderLimits,
   QueryFilterOptions,
+  QueryType,
   RequestArguments,
   ToggleFilterAction,
   VariableQuery,
@@ -82,14 +83,11 @@ export class VictoriaLogsDatasource
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-    const isStatsQuery = request.panelPluginId && !['logs', 'table', 'timeseries'].includes(request.panelPluginId);
-    const isStatsQueryRange = request.panelPluginId === "timeseries"
     const queries = request.targets.filter(q => q.expr).map((q) => {
       return {
         ...q,
+        queryType: determineQueryType(request.panelPluginId),
         maxLines: q.maxLines ?? this.maxLines,
-        statsQueryRange: isStatsQueryRange,
-        statsQuery: Boolean(isStatsQuery),
       }
     });
 
@@ -300,4 +298,14 @@ export class VictoriaLogsDatasource
 
     return merge(...observables);
   }
+}
+
+function determineQueryType(panelPluginId?: string) {
+  if (panelPluginId && !['logs', 'table', 'timeseries'].includes(panelPluginId)) {
+    return QueryType.Stats;
+  }
+  if (panelPluginId === 'timeseries') {
+    return QueryType.StatsRange;
+  }
+  return QueryType.Instant;
 }
