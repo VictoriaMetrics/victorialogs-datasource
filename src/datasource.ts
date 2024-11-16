@@ -301,11 +301,14 @@ export class VictoriaLogsDatasource
 }
 
 function determineQueryType(panelPluginId?: string) {
-  if (panelPluginId && !['logs', 'table', 'timeseries'].includes(panelPluginId)) {
-    return QueryType.Stats;
+  switch (panelPluginId) {
+    case 'logs':
+    case 'table':
+    case undefined:
+      return QueryType.Instant;
+    case 'timeseries':
+      return QueryType.StatsRange;
+    default:
+      return QueryType.Stats;
   }
-  if (panelPluginId === 'timeseries') {
-    return QueryType.StatsRange;
-  }
-  return QueryType.Instant;
 }
