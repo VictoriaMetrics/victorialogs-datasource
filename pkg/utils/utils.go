@@ -258,6 +258,7 @@ func CalculateStep(minInterval time.Duration, from, to time.Time, maxDataPoints 
 	return roundInterval(calculatedInterval)
 }
 
+// WithIntervalVariable checks if the expression contains interval variable
 func WithIntervalVariable(expr string) bool {
 	return expr == varInterval
 }

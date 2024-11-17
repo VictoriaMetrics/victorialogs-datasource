@@ -31,8 +31,11 @@ const (
 type QueryType string
 
 const (
-	QueryTypeInstant    QueryType = "instant"
-	QueryTypeStats      QueryType = "stats"
+	// QueryTypeInstant represents instant query type
+	QueryTypeInstant QueryType = "instant"
+	// QueryTypeStats represents stats query type
+	QueryTypeStats QueryType = "stats"
+	// QueryTypeStatsRange represents stats range query type
 	QueryTypeStatsRange QueryType = "statsRange"
 )
 
@@ -66,7 +69,6 @@ func (q *Query) getQueryURL(rawURL string, queryParams string) (string, error) {
 
 	q.url = u
 
-	backend.Logger.Info("QueryType: %s", q.QueryType)
 	switch QueryType(q.QueryType) {
 	case QueryTypeStats:
 		return q.statsQueryURL(params), nil

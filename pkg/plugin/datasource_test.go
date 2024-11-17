@@ -860,7 +860,7 @@ func TestDatasourceStreamTailProcess(t *testing.T) {
 		t.Fatalf("should not be called")
 	})
 
-	mux.HandleFunc("/select/logsql/tail", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/select/logsql/tail", func(w http.ResponseWriter, _ *http.Request) {
 		// we send 3 messages with 20ms delay
 		// simulate tail stream response
 		for i := 0; i < 3; i++ {

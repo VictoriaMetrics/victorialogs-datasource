@@ -60,7 +60,7 @@ type Datasource struct {
 // managed channel path – thus plugin can check subscribe permissions and communicate
 // options with Grafana Core. As soon as first subscriber joins channel RunStream
 // will be called.
-func (d *Datasource) SubscribeStream(ctx context.Context, request *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
+func (d *Datasource) SubscribeStream(_ context.Context, _ *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
 	return &backend.SubscribeStreamResponse{
 		Status: backend.SubscribeStreamStatusOK,
 	}, nil
@@ -68,7 +68,7 @@ func (d *Datasource) SubscribeStream(ctx context.Context, request *backend.Subsc
 
 // PublishStream called when a user tries to publish to a plugin/datasource
 // managed channel path.
-func (d *Datasource) PublishStream(ctx context.Context, request *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
+func (d *Datasource) PublishStream(_ context.Context, _ *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
 	return &backend.PublishStreamResponse{
 		Status: backend.PublishStreamStatusPermissionDenied,
 	}, nil
