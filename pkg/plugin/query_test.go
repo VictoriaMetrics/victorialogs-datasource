@@ -3,6 +3,8 @@ package plugin
 import (
 	"testing"
 	"time"
+
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
 )
 
 func TestQuery_getQueryURL(t *testing.T) {
@@ -10,7 +12,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 		RefID     string
 		Expr      string
 		MaxLines  int
-		TimeRange TimeRange
+		TimeRange backend.TimeRange
 		QueryType QueryType
 	}
 	type args struct {
@@ -30,7 +32,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				RefID:     "1",
 				Expr:      "",
 				MaxLines:  0,
-				TimeRange: TimeRange{},
+				TimeRange: backend.TimeRange{},
 				QueryType: QueryTypeInstant,
 			},
 			args: args{
@@ -46,7 +48,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				RefID:     "1",
 				Expr:      "",
 				MaxLines:  0,
-				TimeRange: TimeRange{},
+				TimeRange: backend.TimeRange{},
 				QueryType: QueryTypeStats,
 			},
 			args: args{
@@ -62,7 +64,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				RefID:     "1",
 				Expr:      "",
 				MaxLines:  0,
-				TimeRange: TimeRange{},
+				TimeRange: backend.TimeRange{},
 				QueryType: QueryTypeStatsRange,
 			},
 			args: args{
@@ -78,7 +80,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				RefID:    "1",
 				Expr:     "",
 				MaxLines: 0,
-				TimeRange: TimeRange{
+				TimeRange: backend.TimeRange{
 					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				},
@@ -97,7 +99,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				RefID:    "1",
 				Expr:     "",
 				MaxLines: 0,
-				TimeRange: TimeRange{
+				TimeRange: backend.TimeRange{
 					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				},
@@ -116,7 +118,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				RefID:    "1",
 				Expr:     "",
 				MaxLines: 0,
-				TimeRange: TimeRange{
+				TimeRange: backend.TimeRange{
 					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				},
@@ -135,7 +137,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				RefID:    "1",
 				Expr:     "_time:1s",
 				MaxLines: 10,
-				TimeRange: TimeRange{
+				TimeRange: backend.TimeRange{
 					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				},
@@ -154,7 +156,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				RefID:    "1",
 				Expr:     "_time:1s | stats by(type) count()",
 				MaxLines: 10,
-				TimeRange: TimeRange{
+				TimeRange: backend.TimeRange{
 					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				},
@@ -173,7 +175,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				RefID:    "1",
 				Expr:     "_time:1s | stats by(type) count()",
 				MaxLines: 10,
-				TimeRange: TimeRange{
+				TimeRange: backend.TimeRange{
 					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				},
@@ -192,7 +194,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				RefID:    "1",
 				Expr:     "_time:1s and syslog",
 				MaxLines: 10,
-				TimeRange: TimeRange{
+				TimeRange: backend.TimeRange{
 					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				},
@@ -211,7 +213,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				RefID:    "1",
 				Expr:     "_time:1s and syslog | stats by(type) count()",
 				MaxLines: 10,
-				TimeRange: TimeRange{
+				TimeRange: backend.TimeRange{
 					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				},
@@ -230,7 +232,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				RefID:    "1",
 				Expr:     "_time:1s and syslog | stats by(type) count()",
 				MaxLines: 10,
-				TimeRange: TimeRange{
+				TimeRange: backend.TimeRange{
 					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				},
@@ -247,11 +249,16 @@ func TestQuery_getQueryURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			q := &Query{
-				RefID:     tt.fields.RefID,
-				Expr:      tt.fields.Expr,
-				MaxLines:  tt.fields.MaxLines,
-				TimeRange: tt.fields.TimeRange,
-				QueryType: tt.fields.QueryType,
+				DataQuery: backend.DataQuery{
+					RefID:     tt.fields.RefID,
+					QueryType: string(tt.fields.QueryType),
+					TimeRange: tt.fields.TimeRange,
+				},
+				// RefID:     tt.fields.RefID,
+				Expr:     tt.fields.Expr,
+				MaxLines: tt.fields.MaxLines,
+
+				// QueryType: tt.fields.QueryType,
 			}
 			got, err := q.getQueryURL(tt.args.rawURL, tt.args.queryParams)
 			if (err != nil) != tt.wantErr {
@@ -270,7 +277,7 @@ func TestQuery_queryTailURL(t *testing.T) {
 		RefID     string
 		Expr      string
 		MaxLines  int
-		TimeRange TimeRange
+		TimeRange backend.TimeRange
 		QueryType QueryType
 	}
 	type args struct {
@@ -290,7 +297,7 @@ func TestQuery_queryTailURL(t *testing.T) {
 				RefID:     "1",
 				Expr:      "",
 				MaxLines:  0,
-				TimeRange: TimeRange{},
+				TimeRange: backend.TimeRange{},
 				QueryType: QueryTypeInstant,
 			},
 			args: args{
@@ -306,7 +313,7 @@ func TestQuery_queryTailURL(t *testing.T) {
 				RefID:    "1",
 				Expr:     "",
 				MaxLines: 0,
-				TimeRange: TimeRange{
+				TimeRange: backend.TimeRange{
 					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				},
@@ -325,7 +332,7 @@ func TestQuery_queryTailURL(t *testing.T) {
 				RefID:    "1",
 				Expr:     "_time:1s",
 				MaxLines: 10,
-				TimeRange: TimeRange{
+				TimeRange: backend.TimeRange{
 					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				},
@@ -344,7 +351,7 @@ func TestQuery_queryTailURL(t *testing.T) {
 				RefID:    "1",
 				Expr:     "_time:1s and syslog",
 				MaxLines: 10,
-				TimeRange: TimeRange{
+				TimeRange: backend.TimeRange{
 					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				},
@@ -361,11 +368,13 @@ func TestQuery_queryTailURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			q := &Query{
-				RefID:     tt.fields.RefID,
-				Expr:      tt.fields.Expr,
-				MaxLines:  tt.fields.MaxLines,
-				TimeRange: tt.fields.TimeRange,
-				QueryType: tt.fields.QueryType,
+				DataQuery: backend.DataQuery{
+					RefID:     tt.fields.RefID,
+					QueryType: string(tt.fields.QueryType),
+					TimeRange: tt.fields.TimeRange,
+				},
+				Expr:     tt.fields.Expr,
+				MaxLines: tt.fields.MaxLines,
 			}
 			got, err := q.queryTailURL(tt.args.rawURL, tt.args.queryParams)
 			if (err != nil) != tt.wantErr {

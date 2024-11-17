@@ -129,11 +129,17 @@ func (d *Datasource) QueryData(ctx context.Context, req *backend.QueryDataReques
 
 	var wg sync.WaitGroup
 	for _, q := range req.Queries {
+		rawQuery, err := d.getQueryFromRaw(q.JSON)
+		if err != nil {
+			return nil, err
+		}
+		rawQuery.DataQuery = q
+
 		wg.Add(1)
-		go func(q backend.DataQuery) {
+		go func(rawQuery *Query) {
 			defer wg.Done()
-			response.Responses[q.RefID] = d.query(ctx, req.PluginContext, q)
-		}(q)
+			response.Responses[rawQuery.RefID] = d.query(ctx, req.PluginContext, rawQuery)
+		}(rawQuery)
 	}
 	wg.Wait()
 
@@ -221,15 +227,7 @@ func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream boo
 }
 
 // query sends a query to the datasource and returns the result.
-func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query backend.DataQuery) backend.DataResponse {
-	q, err := d.getQueryFromRaw(query.JSON)
-	if err != nil {
-		return newResponseError(err, backend.StatusBadRequest)
-	}
-
-	q.TimeRange = TimeRange(query.TimeRange)
-	q.MaxDataPoints = query.MaxDataPoints
-	q.QueryType = QueryType(query.QueryType)
+func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, q *Query) backend.DataResponse {
 	r, err := d.datasourceQuery(ctx, q, false)
 	if err != nil {
 		return newResponseError(err, backend.StatusInternal)
@@ -241,7 +239,7 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 		}
 	}()
 
-	switch q.QueryType {
+	switch QueryType(q.QueryType) {
 	case QueryTypeStats:
 		return parseStatsResponse(r, q)
 	case QueryTypeStatsRange:

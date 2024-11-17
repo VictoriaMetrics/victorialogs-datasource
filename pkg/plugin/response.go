@@ -300,7 +300,7 @@ func labelsToJSON(labels data.Labels) (json.RawMessage, error) {
 }
 
 const (
-	vector, matrix, scalar = "vector", "matrix", "scalar"
+	vector, matrix = "vector", "matrix"
 )
 
 // Result represents timeseries from query
@@ -330,13 +330,15 @@ type Response struct {
 	Data   Data   `json:"data"`
 }
 
-type promInstant struct {
+// logStats represents response result from the
+// stats endpoints of the VictoriaLogs
+type logStats struct {
 	Result []Result `json:"result"`
 }
 
-func (pi promInstant) dataframes() (data.Frames, error) {
-	frames := make(data.Frames, len(pi.Result))
-	for i, res := range pi.Result {
+func (ls logStats) vectorDataFrames() (data.Frames, error) {
+	frames := make(data.Frames, len(ls.Result))
+	for i, res := range ls.Result {
 		f, err := strconv.ParseFloat(res.Value[1].(string), 64)
 		if err != nil {
 			return nil, fmt.Errorf("metric %v, unable to parse float64 from %s: %w", res, res.Value[1], err)
@@ -351,13 +353,9 @@ func (pi promInstant) dataframes() (data.Frames, error) {
 	return frames, nil
 }
 
-type promRange struct {
-	Result []Result `json:"result"`
-}
-
-func (pr promRange) dataframes() (data.Frames, error) {
-	frames := make(data.Frames, len(pr.Result))
-	for i, res := range pr.Result {
+func (ls logStats) matrixDataFrames() (data.Frames, error) {
+	frames := make(data.Frames, len(ls.Result))
+	for i, res := range ls.Result {
 		timestamps := make([]time.Time, len(res.Values))
 		values := make([]float64, len(res.Values))
 		for j, value := range res.Values {
@@ -386,43 +384,17 @@ func (pr promRange) dataframes() (data.Frames, error) {
 	return frames, nil
 }
 
-type promScalar Value
-
-func (ps promScalar) dataframes() (data.Frames, error) {
-	var frames data.Frames
-	f, err := strconv.ParseFloat(ps[1].(string), 64)
-	if err != nil {
-		return nil, fmt.Errorf("metric %v, unable to parse float64 from %s: %w", ps, ps[1], err)
+func (r *Response) getDataFrames() (data.Frames, error) {
+	var ls logStats
+	if err := json.Unmarshal(r.Data.Result, &ls.Result); err != nil {
+		return nil, fmt.Errorf("unmarshal err %s; \n %#v", err, string(r.Data.Result))
 	}
 
-	frames = append(frames,
-		data.NewFrame("",
-			data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(int64(ps[0].(float64)), 0)}),
-			data.NewField(data.TimeSeriesValueFieldName, nil, []float64{f})))
-
-	return frames, nil
-}
-
-func (r *Response) getDataFrames() (data.Frames, error) {
 	switch r.Data.ResultType {
 	case vector:
-		var pi promInstant
-		if err := json.Unmarshal(r.Data.Result, &pi.Result); err != nil {
-			return nil, fmt.Errorf("unmarshal err %s; \n %#v", err, string(r.Data.Result))
-		}
-		return pi.dataframes()
+		return ls.vectorDataFrames()
 	case matrix:
-		var pr promRange
-		if err := json.Unmarshal(r.Data.Result, &pr.Result); err != nil {
-			return nil, fmt.Errorf("unmarshal err %s; \n %#v", err, string(r.Data.Result))
-		}
-		return pr.dataframes()
-	case scalar:
-		var ps promScalar
-		if err := json.Unmarshal(r.Data.Result, &ps); err != nil {
-			return nil, fmt.Errorf("unmarshal err %s; \n %#v", err, string(r.Data.Result))
-		}
-		return ps.dataframes()
+		return ls.matrixDataFrames()
 	default:
 		return nil, fmt.Errorf("unknown result type %q", r.Data.ResultType)
 	}

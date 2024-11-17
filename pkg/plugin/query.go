@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 
 	"github.com/VictoriaMetrics/victorialogs-datasource/pkg/utils"
@@ -37,25 +38,15 @@ const (
 
 // Query represents backend query object
 type Query struct {
-	RefID           string `json:"refId"`
-	Expr            string `json:"expr"`
-	LegendFormat    string `json:"legendFormat"`
-	MaxLines        int    `json:"maxLines"`
-	TimeRange       TimeRange
-	IntervalMs      int64  `json:"intervalMs"`
-	Interval        string `json:"interval"`
-	TimeInterval    string `json:"timeInterval"`
-	StatsQueryRange bool   `json:"statsQueryRange"`
-	StatsQuery      bool   `json:"statsQuery"`
-	QueryType       QueryType
-	MaxDataPoints   int64
-	url             *url.URL
-}
+	backend.DataQuery `json:"inline"`
 
-// TimeRange represents time range backend object
-type TimeRange struct {
-	From time.Time
-	To   time.Time
+	Expr         string `json:"expr"`
+	LegendFormat string `json:"legendFormat"`
+	TimeInterval string `json:"timeInterval"`
+	Interval     string `json:"interval"`
+	IntervalMs   int64  `json:"intervalMs"`
+	MaxLines     int    `json:"maxLines"`
+	url          *url.URL
 }
 
 // GetQueryURL calculates step and clear expression from template variables,
@@ -75,7 +66,8 @@ func (q *Query) getQueryURL(rawURL string, queryParams string) (string, error) {
 
 	q.url = u
 
-	switch q.QueryType {
+	backend.Logger.Info("QueryType: %s", q.QueryType)
+	switch QueryType(q.QueryType) {
 	case QueryTypeStats:
 		return q.statsQueryURL(params), nil
 	case QueryTypeStatsRange:

@@ -538,7 +538,9 @@ func Test_getStatsResponse(t *testing.T) {
 			name:     "correct stats response",
 			filename: "test-data/stats_response",
 			q: &Query{
-				RefID:        "A",
+				DataQuery: backend.DataQuery{
+					RefID: "A",
+				},
 				LegendFormat: "legend {{app}}",
 			},
 			want: func() backend.DataResponse {
@@ -562,7 +564,9 @@ func Test_getStatsResponse(t *testing.T) {
 			name:     "correct range response",
 			filename: "test-data/stats_range_response",
 			q: &Query{
-				RefID:        "A",
+				DataQuery: backend.DataQuery{
+					RefID: "A",
+				},
 				LegendFormat: "legend {{app}}",
 			},
 			want: func() backend.DataResponse {
