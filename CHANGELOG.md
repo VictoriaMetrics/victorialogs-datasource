@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: implemented sorting for variables in Grafana to correct numerical data ordering. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/97).
+
 ## v0.7.0
 
 * FEATURE: add support to display live logs by querying the tail endpoint in the datasource. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/83)

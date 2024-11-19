@@ -97,7 +97,7 @@ export interface RequestArguments {
   options?: Partial<BackendSrvRequest>;
 }
 
-export interface FiledHits {
+export interface FieldHits {
   value: string;
   hits: number;
 }
