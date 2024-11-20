@@ -2,7 +2,7 @@ import { getDefaultTimeRange, LanguageProvider, TimeRange, } from '@grafana/data
 import { BackendSrvRequest } from '@grafana/runtime';
 
 import { VictoriaLogsDatasource } from './datasource';
-import { FiledHits, FilterFieldType } from "./types";
+import { FieldHits, FilterFieldType } from "./types";
 
 interface FetchFieldsOptions {
   type: FilterFieldType;
@@ -20,18 +20,24 @@ interface FieldsRequestParams {
   field?: string;
 }
 
+enum HitsValueType {
+  NUMBER = 'number',
+  DATE = 'date',
+  STRING = 'string'
+}
+
 export default class LogsQlLanguageProvider extends LanguageProvider {
   declare startTask: Promise<any>;
   datasource: VictoriaLogsDatasource;
   cacheSize: number;
-  cacheValues: Map<string, FiledHits[]>
+  cacheValues: Map<string, FieldHits[]>
 
   constructor(datasource: VictoriaLogsDatasource, initialValues?: Partial<LogsQlLanguageProvider>) {
     super();
 
     this.datasource = datasource;
     this.cacheSize = 100;
-    this.cacheValues = new Map<string, FiledHits[]>();
+    this.cacheValues = new Map<string, FieldHits[]>();
 
     Object.assign(this, initialValues);
   }
@@ -51,7 +57,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     return Promise.all([]);
   };
 
-  async getFieldList(options: FetchFieldsOptions): Promise<FiledHits[]> {
+  async getFieldList(options: FetchFieldsOptions): Promise<FieldHits[]> {
     if (options.type === FilterFieldType.FieldValue && !options.field) {
       return [];
     }
@@ -80,9 +86,10 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       this.cacheValues.delete(firstKey);
     }
 
-    const result = await this.request(url, [], params, { method: 'POST' });
-    this.cacheValues.set(key, result);
-    return result;
+    const result = await this.request(url, [], params, { method: 'POST' }) as FieldHits[];
+    const sortedResult = sortFieldHits(result);
+    this.cacheValues.set(key, sortedResult);
+    return sortedResult;
   }
 
   getTimeRangeParams(timeRange?: TimeRange) {
@@ -92,4 +99,35 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       end: range.to.endOf('day').valueOf()
     }
   }
+}
+
+function determineType(value: string): HitsValueType {
+  if (!isNaN(Number(value))) {
+    return HitsValueType.NUMBER;
+  }
+  if (!isNaN(Date.parse(value))) {
+    return HitsValueType.DATE;
+  }
+  return HitsValueType.STRING;
+}
+
+function getArrayType(data: FieldHits[]): HitsValueType {
+  const types = new Set(data.map(item => determineType(item.value)));
+  return types.size === 1 ? Array.from(types)[0] : HitsValueType.STRING;
+}
+
+function sortFieldHits(data: FieldHits[]): FieldHits[] {
+  const arrayType = getArrayType(data);
+
+  return data.sort((a, b) => {
+    switch (arrayType) {
+      case HitsValueType.NUMBER:
+        return Number(a.value) - Number(b.value);
+      case HitsValueType.DATE:
+        return new Date(a.value).getTime() - new Date(b.value).getTime();
+      case HitsValueType.STRING:
+      default:
+        return a.value.localeCompare(b.value);
+    }
+  });
 }
