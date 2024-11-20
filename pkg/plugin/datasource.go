@@ -60,7 +60,7 @@ type Datasource struct {
 // managed channel path – thus plugin can check subscribe permissions and communicate
 // options with Grafana Core. As soon as first subscriber joins channel RunStream
 // will be called.
-func (d *Datasource) SubscribeStream(ctx context.Context, request *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
+func (d *Datasource) SubscribeStream(_ context.Context, _ *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
 	return &backend.SubscribeStreamResponse{
 		Status: backend.SubscribeStreamStatusOK,
 	}, nil
@@ -68,7 +68,7 @@ func (d *Datasource) SubscribeStream(ctx context.Context, request *backend.Subsc
 
 // PublishStream called when a user tries to publish to a plugin/datasource
 // managed channel path.
-func (d *Datasource) PublishStream(ctx context.Context, request *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
+func (d *Datasource) PublishStream(_ context.Context, _ *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
 	return &backend.PublishStreamResponse{
 		Status: backend.PublishStreamStatusPermissionDenied,
 	}, nil
@@ -129,11 +129,17 @@ func (d *Datasource) QueryData(ctx context.Context, req *backend.QueryDataReques
 
 	var wg sync.WaitGroup
 	for _, q := range req.Queries {
+		rawQuery, err := d.getQueryFromRaw(q.JSON)
+		if err != nil {
+			return nil, err
+		}
+		rawQuery.DataQuery = q
+
 		wg.Add(1)
-		go func(q backend.DataQuery) {
+		go func(rawQuery *Query) {
 			defer wg.Done()
-			response.Responses[q.RefID] = d.query(ctx, req.PluginContext, q)
-		}(q)
+			response.Responses[rawQuery.RefID] = d.query(ctx, req.PluginContext, rawQuery)
+		}(rawQuery)
 	}
 	wg.Wait()
 
@@ -221,14 +227,7 @@ func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream boo
 }
 
 // query sends a query to the datasource and returns the result.
-func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query backend.DataQuery) backend.DataResponse {
-	q, err := d.getQueryFromRaw(query.JSON)
-	if err != nil {
-		return newResponseError(err, backend.StatusBadRequest)
-	}
-
-	q.TimeRange = TimeRange(query.TimeRange)
-
+func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, q *Query) backend.DataResponse {
 	r, err := d.datasourceQuery(ctx, q, false)
 	if err != nil {
 		return newResponseError(err, backend.StatusInternal)
@@ -240,7 +239,14 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, query b
 		}
 	}()
 
-	return parseInstantResponse(r)
+	switch QueryType(q.QueryType) {
+	case QueryTypeStats:
+		return parseStatsResponse(r, q)
+	case QueryTypeStatsRange:
+		return parseStatsResponse(r, q)
+	default:
+		return parseInstantResponse(r)
+	}
 }
 
 // CheckHealth handles health checks sent from Grafana to the plugin.

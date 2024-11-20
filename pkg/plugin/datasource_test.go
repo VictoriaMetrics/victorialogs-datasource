@@ -23,7 +23,7 @@ func TestQueryData(t *testing.T) {
 		context.Background(),
 		&backend.QueryDataRequest{
 			Queries: []backend.DataQuery{
-				{RefID: "A"},
+				{RefID: "A", JSON: []byte(`{"expr":"*", "intervalMs":5000, "maxDataPoints":984, "maxLines":1000, "queryType":"instant", "refId":"A"}`)},
 			},
 		},
 	)
@@ -104,7 +104,8 @@ func TestDatasourceQueryRequest(t *testing.T) {
 		rsp, gotErr := datasource.QueryData(ctx, &backend.QueryDataRequest{
 			Queries: []backend.DataQuery{
 				{
-					RefID: "A",
+					RefID:     "A",
+					QueryType: "instant",
 					JSON: []byte(`{
     "datasourceId":27,
 	"expr":".*",
@@ -113,7 +114,6 @@ func TestDatasourceQueryRequest(t *testing.T) {
 	"legendFormat":"",
 	"maxDataPoints":984,
 	"maxLines":1000,
-	"queryType":"range",
 	"refId":"A"
 }`),
 				},
@@ -860,7 +860,7 @@ func TestDatasourceStreamTailProcess(t *testing.T) {
 		t.Fatalf("should not be called")
 	})
 
-	mux.HandleFunc("/select/logsql/tail", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/select/logsql/tail", func(w http.ResponseWriter, _ *http.Request) {
 		// we send 3 messages with 20ms delay
 		// simulate tail stream response
 		for i := 0; i < 3; i++ {

@@ -27,9 +27,9 @@ export enum SupportingQueryType {
 }
 
 export enum QueryType {
-  Instant = 'instant',
-  Range = 'range',
-  Stream = 'stream',
+  Instant = 'instant', // /select/logsql/query
+  Stats = 'stats', // /select/logsql/stats_query
+  StatsRange = 'statsRange', // /select/logsql/stats_query_range
 }
 
 export enum QueryEditorMode {

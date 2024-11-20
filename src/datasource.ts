@@ -38,6 +38,7 @@ import {
   Query,
   QueryBuilderLimits,
   QueryFilterOptions,
+  QueryType,
   RequestArguments,
   ToggleFilterAction,
   VariableQuery,
@@ -83,7 +84,11 @@ export class VictoriaLogsDatasource
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
     const queries = request.targets.filter(q => q.expr).map((q) => {
-      return { ...q, maxLines: q.maxLines ?? this.maxLines }
+      return {
+        ...q,
+        queryType: determineQueryType(request.panelPluginId),
+        maxLines: q.maxLines ?? this.maxLines,
+      }
     });
 
     const fixedRequest: DataQueryRequest<Query> = {
@@ -292,5 +297,18 @@ export class VictoriaLogsDatasource
     });
 
     return merge(...observables);
+  }
+}
+
+function determineQueryType(panelPluginId?: string) {
+  switch (panelPluginId) {
+    case 'logs':
+    case 'table':
+    case undefined:
+      return QueryType.Instant;
+    case 'timeseries':
+      return QueryType.StatsRange;
+    default:
+      return QueryType.Stats;
   }
 }

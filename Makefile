@@ -116,7 +116,7 @@ golang-ci-lint: install-golang-ci-lint
 	golangci-lint run ./pkg/...
 
 install-golang-ci-lint:
-	which golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.51.2
+	which golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.60.3
 
 fmt:
 	gofmt -l -w -s ./pkg

@@ -14,7 +14,7 @@ export function getQueryWithDefaults(query: Query): Query {
   }
 
   if (!query.queryType) {
-    result.queryType = QueryType.Range;
+    result.queryType = QueryType.Instant;
   }
 
   return result;
