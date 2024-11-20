@@ -4,7 +4,7 @@
 
 * FEATURE: add support for the `/select/logsql/stats_query` and `/select/logsql/stats_query_range` API calls. This feature helps to build different panels with statistic data. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/61).
 
-* BUGFIX: implemented sorting for variables in Grafana to correct numerical data ordering. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/97).
+* BUGFIX: fix options sorting in variables for numerical data type. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/97).
 
 ## v0.7.0
 
