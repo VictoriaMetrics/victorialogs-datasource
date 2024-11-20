@@ -505,3 +505,115 @@ func Test_parseStreamResponse(t *testing.T) {
 		})
 	}
 }
+
+func Test_getStatsResponse(t *testing.T) {
+	tests := []struct {
+		name     string
+		filename string
+		q        *Query
+		want     func() backend.DataResponse
+	}{
+		{
+			name:     "empty response",
+			filename: "test-data/stats_empty",
+			want: func() backend.DataResponse {
+
+				frame := data.NewFrame("", nil)
+
+				rsp := backend.DataResponse{}
+				frame.Meta = &data.FrameMeta{}
+				rsp.Frames = append(rsp.Frames, frame)
+
+				return rsp
+			},
+		},
+		{
+			name:     "incorrect response",
+			filename: "test-data/stats_incorrect_response",
+			want: func() backend.DataResponse {
+				return newResponseError(fmt.Errorf("failed to prepare data from response: unmarshal err json: cannot unmarshal string into Go value of type []plugin.Result; \n \"\\\"abc\\\"\""), backend.StatusInternal)
+			},
+		},
+		{
+			name:     "correct stats response",
+			filename: "test-data/stats_response",
+			q: &Query{
+				DataQuery: backend.DataQuery{
+					RefID: "A",
+				},
+				LegendFormat: "legend {{app}}",
+			},
+			want: func() backend.DataResponse {
+				frames := []*data.Frame{
+					data.NewFrame("legend ",
+						data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1730937600, 0)}),
+						data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": "message"}, []float64{13377}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+					),
+					data.NewFrame("legend ",
+						data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1730937600, 0)}),
+						data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": ""}, []float64{2078793288}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+					),
+				}
+
+				rsp := backend.DataResponse{}
+				rsp.Frames = append(rsp.Frames, frames...)
+				return rsp
+			},
+		},
+		{
+			name:     "correct range response",
+			filename: "test-data/stats_range_response",
+			q: &Query{
+				DataQuery: backend.DataQuery{
+					RefID: "A",
+				},
+				LegendFormat: "legend {{app}}",
+			},
+			want: func() backend.DataResponse {
+				frames := []*data.Frame{
+					data.NewFrame("legend ",
+						data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1704067200, 0), time.Unix(1704088800, 0), time.Unix(1704110400, 0), time.Unix(1704132000, 0)}),
+						data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": ""}, []float64{1311461, 1311601, 1310266, 1310875}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+					),
+				}
+
+				rsp := backend.DataResponse{}
+				rsp.Frames = append(rsp.Frames, frames...)
+				return rsp
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file, err := os.ReadFile(tt.filename)
+			if err != nil {
+				t.Fatalf("error reading file: %s", err)
+			}
+
+			r := io.NopCloser(bytes.NewBuffer(file))
+			w := tt.want()
+			resp := parseStatsResponse(r, tt.q)
+
+			if w.Error != nil {
+				if w.Error.Error() != resp.Error.Error() {
+					t.Errorf("parseStreamResponse() = %#v, want %#v", resp, w)
+				}
+				return
+			}
+
+			if len(resp.Frames) != 0 && len(w.Frames) != 0 {
+				got, err := resp.MarshalJSON()
+				if err != nil {
+					t.Fatalf("error marshal response: %s", err)
+				}
+				want, err := w.MarshalJSON()
+				if err != nil {
+					t.Fatalf("error marshal want response: %s", err)
+				}
+				if !bytes.Equal(got, want) {
+					t.Fatalf("got value: %s, want value: %s", got, want)
+				}
+			}
+		})
+	}
+}

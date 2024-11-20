@@ -1,0 +1,1 @@
+{"status":"success","data":{"resultType":"vector","result":[{"metric":{"__name__":"count(*)","type":"message"},"value":[1730937600,"13377"]},{"metric":{"__name__":"count(*)","type":""},"value":[1730937600,"2078793288"]}]}}
