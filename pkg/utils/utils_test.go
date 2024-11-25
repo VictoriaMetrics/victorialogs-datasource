@@ -182,39 +182,76 @@ func TestGetTime(t *testing.T) {
 
 func TestReplaceTemplateVariable(t *testing.T) {
 	tests := []struct {
-		name     string
-		expr     string
-		interval int64
-		want     string
+		name      string
+		expr      string
+		interval  int64
+		timeRange backend.TimeRange
+		want      string
 	}{
 		{
 			name:     "empty string",
 			expr:     "",
 			interval: 0,
-			want:     "",
+			timeRange: backend.TimeRange{
+				From: time.Time{},
+				To:   time.Time{},
+			},
+			want: "",
 		},
 		{
 			name:     "no variable",
 			expr:     "test",
 			interval: 0,
-			want:     "test",
+			timeRange: backend.TimeRange{
+				From: time.Time{},
+				To:   time.Time{},
+			},
+			want: "test",
 		},
 		{
 			name:     "variable",
 			expr:     "$__interval",
 			interval: 15,
-			want:     "15ms",
+			timeRange: backend.TimeRange{
+				From: time.Time{},
+				To:   time.Time{},
+			},
+			want: "15ms",
 		},
 		{
 			name:     "variable with text",
 			expr:     "host:~'^$host$' and compose_project:~'^$compose_project$' and compose_service:~'^$compose_service$' and $log_query  | stats by (_time:$__interval, host) count() logs",
 			interval: 15,
-			want:     "host:~'^$host$' and compose_project:~'^$compose_project$' and compose_service:~'^$compose_service$' and $log_query  | stats by (_time:15ms, host) count() logs",
+			timeRange: backend.TimeRange{
+				From: time.Time{},
+				To:   time.Time{},
+			},
+			want: "host:~'^$host$' and compose_project:~'^$compose_project$' and compose_service:~'^$compose_service$' and $log_query  | stats by (_time:15ms, host) count() logs",
+		},
+		{
+			name:     "variable with text and range",
+			expr:     "host:~'^$host$' and compose_project:~'^$compose_project$' and compose_service:~'^$compose_service$' and $log_query  | stats by (_time:$__range, host) count() logs",
+			interval: 15,
+			timeRange: backend.TimeRange{
+				From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+			},
+			want: "host:~'^$host$' and compose_project:~'^$compose_project$' and compose_service:~'^$compose_service$' and $log_query  | stats by (_time:[1732320000, 1732492800], host) count() logs",
+		},
+		{
+			name:     "simple range with stats request",
+			expr:     "_time:$__range | stats count()",
+			interval: 15,
+			timeRange: backend.TimeRange{
+				From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+			},
+			want: "_time:[1732320000, 1732492800] | stats count()",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ReplaceTemplateVariable(tt.expr, tt.interval); got != tt.want {
+			if got := ReplaceTemplateVariable(tt.expr, tt.interval, tt.timeRange); got != tt.want {
 				t.Errorf("ReplaceTemplateVariable() = %v, want %v", got, tt.want)
 			}
 		})
@@ -302,7 +339,7 @@ func Test_calculateStep(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CalculateStep(tt.baseInterval, tt.timeRange.From, tt.timeRange.To, tt.resolution); got.String() != tt.want {
+			if got := CalculateStep(tt.baseInterval, tt.timeRange, tt.resolution); got.String() != tt.want {
 				t.Errorf("calculateStep() = %v, want %v", got, tt.want)
 			}
 		})

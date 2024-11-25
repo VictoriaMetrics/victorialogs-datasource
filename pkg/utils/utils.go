@@ -8,11 +8,14 @@ import (
 	"time"
 
 	"github.com/VictoriaMetrics/metricsql"
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/gtime"
 )
 
 const (
-	varInterval = "$__interval"
+	varInterval   = "$__interval"
+	varIntervalMs = "$__interval_ms"
+	varRange      = "$__range"
 )
 
 var (
@@ -186,7 +189,9 @@ func ParseDuration(s string) (time.Duration, error) {
 }
 
 // ReplaceTemplateVariable get query and use it expression to remove grafana template variables with
-func ReplaceTemplateVariable(expr string, interval int64) string {
+func ReplaceTemplateVariable(expr string, interval int64, timeRange backend.TimeRange) string {
+	expr = strings.ReplaceAll(expr, varRange, fmt.Sprintf("[%s, %s]", strconv.FormatInt(timeRange.From.Unix(), 10), strconv.FormatInt(timeRange.To.Unix(), 10)))
+	expr = strings.ReplaceAll(expr, varIntervalMs, strconv.FormatInt(interval, 10))
 	expr = strings.ReplaceAll(expr, varInterval, formatDuration(time.Duration(interval)*time.Millisecond))
 	return expr
 }
@@ -241,13 +246,13 @@ func GetIntervalFrom(dsInterval, queryInterval string, queryIntervalMS int64, de
 }
 
 // CalculateStep calculates step by provided max datapoints and timerange
-func CalculateStep(minInterval time.Duration, from, to time.Time, maxDataPoints int64) time.Duration {
+func CalculateStep(minInterval time.Duration, timeRange backend.TimeRange, maxDataPoints int64) time.Duration {
 	resolution := maxDataPoints
 	if resolution == 0 {
 		resolution = defaultResolution
 	}
 
-	rangeValue := to.UnixNano() - from.UnixNano()
+	rangeValue := timeRange.To.UnixNano() - timeRange.From.UnixNano()
 
 	calculatedInterval := time.Duration(rangeValue / resolution)
 
