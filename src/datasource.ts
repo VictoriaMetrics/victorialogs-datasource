@@ -156,7 +156,7 @@ export class VictoriaLogsDatasource
     return {
       ...target,
       legendFormat: this.templateSrv.replace(target.legendFormat, rest),
-      expr: this.templateSrv.replace(exprWithAdHoc, variables, this.interpolateQueryExpr),
+      expr: this.interpolateString(exprWithAdHoc, variables),
     };
   }
 
