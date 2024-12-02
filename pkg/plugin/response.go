@@ -288,6 +288,25 @@ func parseStatsResponse(reader io.Reader, q *Query) backend.DataResponse {
 	return backend.DataResponse{Frames: frames}
 }
 
+// parseErrorResponse reads data from the reader and returns error
+func parseErrorResponse(reader io.Reader) error {
+	var rs Response
+	if err := json.NewDecoder(reader).Decode(&rs); err != nil {
+		err = fmt.Errorf("failed to decode body response: %w", err)
+		return err
+	}
+
+	if rs.Status == "error" {
+		return fmt.Errorf("error: %s", rs.Error)
+	}
+
+	if rs.Error == "" {
+		return fmt.Errorf("got unexpected error from the datasource")
+	}
+
+	return nil
+}
+
 // labelsToJSON converts labels to json representation
 // data.Labels when converted to JSON keep the fields sorted
 func labelsToJSON(labels data.Labels) (json.RawMessage, error) {
@@ -328,6 +347,7 @@ type Data struct {
 type Response struct {
 	Status string `json:"status"`
 	Data   Data   `json:"data"`
+	Error  string `json:"error"`
 }
 
 // logStats represents response result from the

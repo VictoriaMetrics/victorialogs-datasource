@@ -4,6 +4,8 @@
 
 * FEATURE: Add support for the `$__range` variable in queries.  It will be transformed to the `[time_from, time_to]` in the Unix format. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/112).
 
+* BUGFIX: show to the user original error message from the VictoriaLogs. It helps to understand the real problem with query or syntax. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/126).
+
 ## v0.8.0
 
 * FEATURE: add support for the `/select/logsql/stats_query` and `/select/logsql/stats_query_range` API calls. This feature helps to build different panels with statistic data. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/61).
