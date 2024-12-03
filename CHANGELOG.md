@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.9.0
+
 * FEATURE: Add support for the `$__range` variable in queries.  It will be transformed to the `[time_from, time_to]` in the Unix format. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/112).
 
 * BUGFIX: show the original error message returned from the VictoriaLogs backend. It should help to troubleshoot problems with query or syntax. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/126).
