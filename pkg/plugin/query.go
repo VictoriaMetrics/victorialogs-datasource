@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"path"
 	"regexp"
@@ -43,12 +44,13 @@ const (
 type Query struct {
 	backend.DataQuery `json:"inline"`
 
-	Expr         string `json:"expr"`
-	LegendFormat string `json:"legendFormat"`
-	TimeInterval string `json:"timeInterval"`
-	Interval     string `json:"interval"`
-	IntervalMs   int64  `json:"intervalMs"`
-	MaxLines     int    `json:"maxLines"`
+	Expr         string    `json:"expr"`
+	LegendFormat string    `json:"legendFormat"`
+	TimeInterval string    `json:"timeInterval"`
+	Interval     string    `json:"interval"`
+	IntervalMs   int64     `json:"intervalMs"`
+	MaxLines     int       `json:"maxLines"`
+	QueryType    QueryType `json:"queryType"`
 	url          *url.URL
 }
 
@@ -69,7 +71,8 @@ func (q *Query) getQueryURL(rawURL string, queryParams string) (string, error) {
 
 	q.url = u
 
-	switch QueryType(q.QueryType) {
+	log.Printf("QueryType: %s", q.QueryType)
+	switch q.QueryType {
 	case QueryTypeStats:
 		return q.statsQueryURL(params), nil
 	case QueryTypeStatsRange:
