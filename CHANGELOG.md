@@ -2,6 +2,9 @@
 
 ## tip
 
+* FEATURE: add alerting support. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/98).
+* FEATURE: implement a toggle to switch between instant and range requests. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/111).
+
 ## v0.9.0
 
 * FEATURE: Add support for the `$__range` variable in queries.  It will be transformed to the `[time_from, time_to]` in the Unix format. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/112).
