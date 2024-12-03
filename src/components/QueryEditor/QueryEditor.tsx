@@ -12,16 +12,17 @@ import { QueryBuilderContainer } from "./QueryBuilder/QueryBuilderContainer";
 import { QueryEditorModeToggle } from "./QueryBuilder/QueryEditorModeToggle";
 import { buildVisualQueryFromString } from "./QueryBuilder/utils/parseFromString";
 import QueryCodeEditor from "./QueryCodeEditor";
+import { QueryEditorOptions } from "./QueryEditorOptions";
 import { changeEditorMode, getQueryWithDefaults } from "./state";
 
 const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const styles = useStyles2(getStyles);
 
-  const { onChange, onRunQuery, data, app, queries, range: timeRange } = props;
+  const { onChange, onRunQuery, data, app, queries, datasource, range: timeRange } = props;
   const [dataIsStale, setDataIsStale] = useState(false);
   const [parseModalOpen, setParseModalOpen] = useState(false);
 
-  const query = getQueryWithDefaults(props.query);
+  const query = getQueryWithDefaults(props.query, app, data?.request?.panelPluginId);
   const editorMode = query.editorMode!;
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
@@ -88,6 +89,13 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
           ) : (
             <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true}/>
           )}
+          <QueryEditorOptions
+            query={query}
+            onChange={onChange}
+            onRunQuery={onRunQuery}
+            app={app}
+            maxLines={datasource.maxLines}
+          />
         </div>
       </div>
     </>

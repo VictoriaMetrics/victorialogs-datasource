@@ -5,7 +5,7 @@
   "category": "logging",
   "logs": true,
   "metrics": true,
-  "alerting": false,
+  "alerting": true,
   "annotations": true,
   "streaming": true,
   "backend": true,
