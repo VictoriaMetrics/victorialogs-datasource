@@ -253,7 +253,6 @@ func TestQuery_getQueryURL(t *testing.T) {
 					RefID:     tt.fields.RefID,
 					TimeRange: tt.fields.TimeRange,
 				},
-				// RefID:     tt.fields.RefID,
 				Expr:     tt.fields.Expr,
 				MaxLines: tt.fields.MaxLines,
 

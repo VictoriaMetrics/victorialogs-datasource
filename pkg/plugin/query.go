@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"path"
 	"regexp"
@@ -71,7 +70,6 @@ func (q *Query) getQueryURL(rawURL string, queryParams string) (string, error) {
 
 	q.url = u
 
-	log.Printf("QueryType: %s", q.QueryType)
 	switch q.QueryType {
 	case QueryTypeStats:
 		return q.statsQueryURL(params), nil
