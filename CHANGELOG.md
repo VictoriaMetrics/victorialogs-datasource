@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.10.0
+
 * FEATURE: add alerting support. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/98).
 * FEATURE: implement a toggle to switch between instant and range requests. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/111).
 * FEATURE: add options to configure the legend template, limit for number of log lines, and step. See [this](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/114) and [this](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/124) issues.
