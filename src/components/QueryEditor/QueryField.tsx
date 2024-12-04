@@ -11,30 +11,18 @@ export interface QueryFieldProps extends QueryEditorProps<VictoriaLogsDatasource
   'data-testid'?: string;
 }
 
-const QueryField: React.FC<QueryFieldProps> = (props) => {
-  const {
+const QueryField: React.FC<QueryFieldProps> = (
+  {
     ExtraFieldElement,
     query,
-    // datasource,
     history,
     onRunQuery,
-    // range,
     onChange,
     'data-testid': dataTestId
-  } = props;
-  // const [labelsLoaded, setLabelsLoaded] = useState(false);
-
-  // Replace componentDidUpdate logic if needed
+  }) => {
 
   const onChangeQuery = (value: string) => {
-    if (onChange) {
-      const nextQuery = { ...query, expr: value };
-      onChange(nextQuery);
-
-      // if (override && onRunQuery) {
-      //   onRunQuery();
-      // }
-    }
+    onChange && onChange({ ...query, expr: value });
   };
 
   return (

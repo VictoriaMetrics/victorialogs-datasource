@@ -38,7 +38,6 @@ import {
   Query,
   QueryBuilderLimits,
   QueryFilterOptions,
-  QueryType,
   RequestArguments,
   ToggleFilterAction,
   VariableQuery,
@@ -86,7 +85,6 @@ export class VictoriaLogsDatasource
     const queries = request.targets.filter(q => q.expr).map((q) => {
       return {
         ...q,
-        queryType: determineQueryType(request.panelPluginId),
         maxLines: q.maxLines ?? this.maxLines,
       }
     });
@@ -277,7 +275,7 @@ export class VictoriaLogsDatasource
   }
 
   private runLiveQueryThroughBackend(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-    const observables = request.targets.map((query, index) => {
+    const observables = request.targets.map((query) => {
       return getGrafanaLiveSrv().getDataStream({
         addr: {
           scope: LiveChannelScope.DataSource,
@@ -297,18 +295,5 @@ export class VictoriaLogsDatasource
     });
 
     return merge(...observables);
-  }
-}
-
-function determineQueryType(panelPluginId?: string) {
-  switch (panelPluginId) {
-    case 'logs':
-    case 'table':
-    case undefined:
-      return QueryType.Instant;
-    case 'timeseries':
-      return QueryType.StatsRange;
-    default:
-      return QueryType.Stats;
   }
 }
