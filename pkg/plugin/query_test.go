@@ -251,14 +251,12 @@ func TestQuery_getQueryURL(t *testing.T) {
 			q := &Query{
 				DataQuery: backend.DataQuery{
 					RefID:     tt.fields.RefID,
-					QueryType: string(tt.fields.QueryType),
 					TimeRange: tt.fields.TimeRange,
 				},
-				// RefID:     tt.fields.RefID,
 				Expr:     tt.fields.Expr,
 				MaxLines: tt.fields.MaxLines,
 
-				// QueryType: tt.fields.QueryType,
+				QueryType: tt.fields.QueryType,
 			}
 			got, err := q.getQueryURL(tt.args.rawURL, tt.args.queryParams)
 			if (err != nil) != tt.wantErr {

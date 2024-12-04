@@ -43,12 +43,14 @@ const (
 type Query struct {
 	backend.DataQuery `json:"inline"`
 
-	Expr         string `json:"expr"`
-	LegendFormat string `json:"legendFormat"`
-	TimeInterval string `json:"timeInterval"`
-	Interval     string `json:"interval"`
-	IntervalMs   int64  `json:"intervalMs"`
-	MaxLines     int    `json:"maxLines"`
+	Expr         string    `json:"expr"`
+	LegendFormat string    `json:"legendFormat"`
+	TimeInterval string    `json:"timeInterval"`
+	Interval     string    `json:"interval"`
+	IntervalMs   int64     `json:"intervalMs"`
+	MaxLines     int       `json:"maxLines"`
+	Step         string    `json:"step"`
+	QueryType    QueryType `json:"queryType"`
 	url          *url.URL
 }
 
@@ -69,7 +71,7 @@ func (q *Query) getQueryURL(rawURL string, queryParams string) (string, error) {
 
 	q.url = u
 
-	switch QueryType(q.QueryType) {
+	switch q.QueryType {
 	case QueryTypeStats:
 		return q.statsQueryURL(params), nil
 	case QueryTypeStatsRange:
@@ -108,7 +110,7 @@ func (q *Query) queryTailURL(rawURL string, queryParams string) (string, error) 
 		}
 	}
 
-	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs)
+	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, q.TimeRange)
 	values.Set("query", q.Expr)
 
 	q.url.RawQuery = values.Encode()
@@ -138,7 +140,7 @@ func (q *Query) queryInstantURL(queryParams url.Values) string {
 		q.TimeRange.To = now
 	}
 
-	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs)
+	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, q.TimeRange)
 	values.Set("query", q.Expr)
 	values.Set("limit", strconv.Itoa(q.MaxLines))
 	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
@@ -164,7 +166,7 @@ func (q *Query) statsQueryURL(queryParams url.Values) string {
 		q.TimeRange.From = now.Add(-time.Minute * 5)
 	}
 
-	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs)
+	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, q.TimeRange)
 	values.Set("query", q.Expr)
 	values.Set("time", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
 
@@ -187,9 +189,6 @@ func (q *Query) statsQueryRangeURL(queryParams url.Values, minInterval time.Dura
 		q.MaxLines = defaultMaxLines
 	}
 
-	from := q.TimeRange.From
-	to := q.TimeRange.To
-
 	now := time.Now()
 	if q.TimeRange.From.IsZero() {
 		q.TimeRange.From = now.Add(-time.Minute * 5)
@@ -198,13 +197,17 @@ func (q *Query) statsQueryRangeURL(queryParams url.Values, minInterval time.Dura
 		q.TimeRange.To = now
 	}
 
-	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs)
-	step := utils.CalculateStep(minInterval, from, to, q.MaxDataPoints)
+	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, q.TimeRange)
+
+	step := q.Step
+	if step == "" {
+		step = utils.CalculateStep(minInterval, q.TimeRange, q.MaxDataPoints).String()
+	}
 
 	values.Set("query", q.Expr)
 	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
 	values.Set("end", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
-	values.Set("step", step.String())
+	values.Set("step", step)
 
 	q.url.RawQuery = values.Encode()
 	return q.url.String()

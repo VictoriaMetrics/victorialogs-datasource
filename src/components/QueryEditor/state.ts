@@ -1,20 +1,25 @@
+import { CoreApp } from "@grafana/data";
+
 import { Query, QueryEditorMode, QueryType } from "../../types";
 
 const queryEditorModeDefaultLocalStorageKey = 'VictoriaLogsQueryEditorModeDefault';
 
-export function getQueryWithDefaults(query: Query): Query {
+export function getQueryWithDefaults(query: Query, app?: CoreApp, panelPluginId?: string): Query {
   let result = query;
 
   if (!query.editorMode) {
-    result.editorMode = getDefaultEditorMode(query.expr);
+    result = { ...query, editorMode: getDefaultEditorMode(query.expr) };
   }
 
   if (!query.expr) {
-    result.expr = ''
+    result = { ...result, expr: '' };
   }
 
   if (!query.queryType) {
-    result.queryType = QueryType.Instant;
+    result = {
+      ...result,
+      queryType: getDefaultQueryTypeByPanel(panelPluginId) ?? getDefaultQueryTypeByApp(app),
+    }
   }
 
   return result;
@@ -35,4 +40,25 @@ export function getDefaultEditorMode(expr: string) {
 
   const value = window.localStorage.getItem(queryEditorModeDefaultLocalStorageKey);
   return value === QueryEditorMode.Builder ? QueryEditorMode.Builder : QueryEditorMode.Code;
+}
+
+function getDefaultQueryTypeByPanel(panelPluginId?: string) {
+  switch (panelPluginId) {
+    case 'logs':
+    case 'table':
+      return QueryType.Instant;
+    case 'timeseries':
+      return QueryType.StatsRange;
+    default:
+      return null;
+  }
+}
+
+function getDefaultQueryTypeByApp(app?: CoreApp) {
+  switch (app) {
+    case CoreApp.Explore:
+      return QueryType.Instant;
+    default:
+      return QueryType.StatsRange;
+  }
 }

@@ -220,6 +220,9 @@ func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream boo
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusUnprocessableEntity {
+			return nil, parseErrorResponse(resp.Body)
+		}
 		return nil, fmt.Errorf("got unexpected response status code: %d", resp.StatusCode)
 	}
 
@@ -239,7 +242,7 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, q *Quer
 		}
 	}()
 
-	switch QueryType(q.QueryType) {
+	switch q.QueryType {
 	case QueryTypeStats:
 		return parseStatsResponse(r, q)
 	case QueryTypeStatsRange:
