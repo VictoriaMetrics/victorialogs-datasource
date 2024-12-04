@@ -6,6 +6,8 @@
 * FEATURE: implement a toggle to switch between instant and range requests. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/111).
 * FEATURE: add options to configure the legend template, limit for number of log lines, and step. See [this](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/114) and [this](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/124) issues.
 
+* BUGFIX: fix support mulit options with label values of stream-fields. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/109).
+
 ## v0.9.0
 
 * FEATURE: Add support for the `$__range` variable in queries.  It will be transformed to the `[time_from, time_to]` in the Unix format. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/112).
@@ -44,8 +46,7 @@
   Thanks to @yincongcyincong for [the pull request](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/69).
 
 * BUGFIX: correctly pass time range filter when querying variable values. Before, time filter wasn't applied for `/field_values` and `/field_names` API calls. See [this](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/71) and [this](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/72) issues.
-* BUGFIX: fix the issue with displaying incorrect subfields when requesting logs with different set of fields. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/60). 
-* BUGFIX: fix support mulit options with label values of stream-fields. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/109).
+* BUGFIX: fix the issue with displaying incorrect subfields when requesting logs with different set of fields. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/60).
 
 ## v0.4.0
 
