@@ -156,7 +156,7 @@ export class VictoriaLogsDatasource
     return {
       ...target,
       legendFormat: this.templateSrv.replace(target.legendFormat, rest),
-      expr: this.templateSrv.replace(exprWithAdHoc, variables, this.interpolateQueryExpr),
+      expr: this.interpolateString(exprWithAdHoc, variables),
     };
   }
 
@@ -256,7 +256,21 @@ export class VictoriaLogsDatasource
   }
 
   interpolateString(string: string, scopedVars?: ScopedVars) {
-    return this.templateSrv.replace(string, scopedVars, this.interpolateQueryExpr);
+    let expr: string = this.templateSrv.replace(string, scopedVars, this.interpolateQueryExpr);
+    if (expr) {
+      // Replace "OR" with "|" inside parentheses
+      // The stream field filter, uses "|" as the operator for multiple values.
+      // expr => {k="v", k2=~"(v2 OR v3 OR v4)"} Test
+      // newExpr => {k="v", k2=~"(v2|v3|v4)"} Test
+      expr = expr.replace(/\{([^}]+)\}/g, (outerMatch, outerContent) => {
+        const replacedContent = outerContent.replace(/\(([^)]+)\)/g, (match: string, content: string) => {
+          const replaced = content.replace(/\s*OR\s*/g, '|');
+          return `(${replaced})`;
+        });
+        return `{${replacedContent}}`;
+      });
+    }
+    return expr;
   }
 
   private async processMetricFindQuery(query: VariableQuery, timeRange?: TimeRange): Promise<MetricFindValue[]> {
