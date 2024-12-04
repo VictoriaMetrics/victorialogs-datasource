@@ -199,10 +199,10 @@ func (q *Query) statsQueryRangeURL(queryParams url.Values, minInterval time.Dura
 
 	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, q.TimeRange)
 
-    step := q.Step
-    if step == "" {
-        step = utils.CalculateStep(minInterval, q.TimeRange, q.MaxDataPoints).String()
-    }
+	step := q.Step
+	if step == "" {
+		step = utils.CalculateStep(minInterval, q.TimeRange, q.MaxDataPoints).String()
+	}
 
 	values.Set("query", q.Expr)
 	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
