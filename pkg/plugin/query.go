@@ -49,6 +49,7 @@ type Query struct {
 	Interval     string    `json:"interval"`
 	IntervalMs   int64     `json:"intervalMs"`
 	MaxLines     int       `json:"maxLines"`
+	Step         string    `json:"step"`
 	QueryType    QueryType `json:"queryType"`
 	url          *url.URL
 }
@@ -197,12 +198,16 @@ func (q *Query) statsQueryRangeURL(queryParams url.Values, minInterval time.Dura
 	}
 
 	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, q.TimeRange)
-	step := utils.CalculateStep(minInterval, q.TimeRange, q.MaxDataPoints)
+
+    step := q.Step
+    if step == "" {
+        step = utils.CalculateStep(minInterval, q.TimeRange, q.MaxDataPoints).String()
+    }
 
 	values.Set("query", q.Expr)
 	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
 	values.Set("end", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
-	values.Set("step", step.String())
+	values.Set("step", step)
 
 	q.url.RawQuery = values.Encode()
 	return q.url.String()
