@@ -264,9 +264,12 @@ export class VictoriaLogsDatasource
       // The stream field filter, uses "|" as the operator for multiple values.
       // expr => {k="v", k2=~"(v2 OR v3 OR v4)"} Test
       // newExpr => {k="v", k2=~"(v2|v3|v4)"} Test
-      expr = expr.replace(/\(([^)]+)\)/g, (match, content) => {
-        const replaced = content.replace(/\s*OR\s*/g, '|'); // delete OR and Spaces
-        return `(${replaced})`;
+      expr = expr.replace(/\{([^}]+)\}/g, (outerMatch, outerContent) => {
+        const replacedContent = outerContent.replace(/\(([^)]+)\)/g, (match: string, content: string) => {
+          const replaced = content.replace(/\s*OR\s*/g, '|');
+          return `(${replaced})`;
+        });
+        return `{${replacedContent}}`;
       });
     }
     return expr;

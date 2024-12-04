@@ -113,6 +113,21 @@ describe('VictoriaLogsDatasource', () => {
       expect(replacedQuery.expr).toBe('foo: "bar"');
     });
 
+    it('should replace $var with an | expression for stream field when given an array of values', () => {
+      const scopedVars = {
+        var: { text: 'foo,bar', value: ['foo', 'bar'] },
+      };
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a?.replace('$var', '("foo" OR "bar")')),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_stream{val=~"$var"}', refId: 'A' },
+        scopedVars
+      );
+      expect(replacedQuery.expr).toBe('_stream{val=~"("foo"|"bar")"}');
+    });
+
     it('should replace $var with an OR expression when given an array of values', () => {
       const scopedVars = {
         var: { text: 'foo,bar', value: ['foo', 'bar'] },
