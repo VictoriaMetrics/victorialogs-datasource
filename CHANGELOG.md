@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: add tooltips for query types and a warning to include `| stats` pipe.
+
 ## v0.10.0
 
 * FEATURE: add alerting support. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/98).
