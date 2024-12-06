@@ -390,7 +390,6 @@ func AddTimeFieldWithRange(expr string, timeRange backend.TimeRange) string {
 	}
 
 	if hasTimeField(expr) {
-		backend.Logger.Info("Time field already exists in the query")
 		return expr
 	}
 
