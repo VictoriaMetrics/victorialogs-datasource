@@ -1,33 +1,48 @@
+import { scopeFilterOperatorMap } from "@grafana/data";
+
 import { buildVisualQueryFromString, splitExpression } from "./components/QueryEditor/QueryBuilder/utils/parseFromString";
 import { parseVisualQueryToString } from "./components/QueryEditor/QueryBuilder/utils/parseToString";
 import { FilterVisualQuery } from "./types";
 
-const getKeyValue = (key: string, value: string): string => {
-  return `${key}:"${value}"`
+const operators = Object.keys(scopeFilterOperatorMap);
+
+export function queryHasFilter(query: string, key: string, value: string, operator?: string): boolean {
+  const applicableOperators = operator ? [operator] : operators;
+  return applicableOperators.some(op => query.includes(getFilterInsertValue(key, value, op)));
 }
 
-export function queryHasFilter(query: string, key: string, value: string): boolean {
-  return query.includes(getKeyValue(key, value))
+const getFilterInsertValue = (key: string, value: string, operator: string): string => {
+  switch (operator) {
+    case "=~":
+      return `${key}:~"${value}"`
+    default:
+      return `${key}:${operator}"${value}"`
+  }
 }
 
 export const addLabelToQuery = (query: string, key: string, value: string, operator: string): string => {
   const [filters, ...pipes] = splitExpression(query)
-  const insertPart = `${operator} ${getKeyValue(key, value)}`
+  const insertPart = getFilterInsertValue(key, value, operator)
   const pipesPart = pipes?.length ? `| ${pipes.join(' | ')}` : ''
-  return (`${filters} ${insertPart} ${pipesPart}`).trim()
+  return (`${filters} AND ${insertPart} ${pipesPart}`).trim()
 }
 
-export const removeLabelFromQuery = (query: string, key: string, value: string): string => {
+export const removeLabelFromQuery = (query: string, key: string, value: string, operator?: string): string => {
   const { query: { filters, pipes }, errors } = buildVisualQueryFromString(query);
+
   if (errors.length) {
     console.error(errors.join('\n'));
     return query;
   }
 
-  const keyValue = getKeyValue(key, value);
-  recursiveRemove(filters, keyValue)
-  return parseVisualQueryToString({ filters, pipes })
-}
+  const keyValues = operator
+    ? [getFilterInsertValue(key, value, operator)]
+    : operators.map(op => getFilterInsertValue(key, value, op));
+
+  keyValues.forEach(keyValue => recursiveRemove(filters, keyValue));
+
+  return parseVisualQueryToString({ filters, pipes });
+};
 
 const recursiveRemove = (filters: FilterVisualQuery, keyValue: string): boolean => {
   const { values, operators } = filters;

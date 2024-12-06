@@ -118,17 +118,18 @@ export class VictoriaLogsDatasource
       return { ...query, expr: expression };
     }
 
-    const isFilterFor = filter.type === FilterActionType.FILTER_FOR;
-    const isFilterOut = filter.type === FilterActionType.FILTER_OUT;
     const value = escapeLabelValueInSelector(filter.options.value);
     const hasFilter = queryHasFilter(expression, filter.options.key, value)
-    const operator = filter.type === FilterActionType.FILTER_FOR ? 'AND' : 'NOT';
 
     if (hasFilter) {
       expression = removeLabelFromQuery(expression, filter.options.key, value);
     }
 
+    const isFilterFor = filter.type === FilterActionType.FILTER_FOR;
+    const isFilterOut = filter.type === FilterActionType.FILTER_OUT;
+
     if ((isFilterFor && !hasFilter) || isFilterOut) {
+      const operator = isFilterFor ? '=' : '!=';
       expression = addLabelToQuery(expression, filter.options.key, value, operator);
     }
 
@@ -137,7 +138,7 @@ export class VictoriaLogsDatasource
 
   queryHasFilter(query: Query, filter: QueryFilterOptions): boolean {
     let expression = query.expr ?? '';
-    return queryHasFilter(expression, filter.key, filter.value);
+    return queryHasFilter(expression, filter.key, filter.value, "=");
   }
 
   applyTemplateVariables(target: Query, scopedVars: ScopedVars, adhocFilters?: AdHocVariableFilter[]): Query {
@@ -175,7 +176,7 @@ export class VictoriaLogsDatasource
       } else {
         value = escapeLabelValueInSelector(value, operator);
       }
-      return addLabelToQuery(acc, key, operator, value);
+      return addLabelToQuery(acc, key, value, operator);
     }, expr);
 
     return returnVariables(expr);
