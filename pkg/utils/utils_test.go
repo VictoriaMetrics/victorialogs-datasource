@@ -494,3 +494,98 @@ func Test_getIntervalFrom(t *testing.T) {
 		})
 	}
 }
+
+func TestAddTimeFieldWithRange(t *testing.T) {
+	type args struct {
+	}
+	tests := []struct {
+		name      string
+		expr      string
+		timeRange backend.TimeRange
+		want      string
+	}{
+		{
+			name: "empty string",
+			expr: "",
+			timeRange: backend.TimeRange{
+				From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+			},
+			want: "",
+		},
+		{
+			name: "simple expression",
+			expr: "*",
+			timeRange: backend.TimeRange{
+				From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+			},
+			want: "_time:[1732320000, 1732492800] *",
+		},
+		{
+			name: "simple range",
+			expr: "_time:[1732320000, 1732492800]",
+			timeRange: backend.TimeRange{
+				From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+			},
+			want: "_time:[1732320000, 1732492800]",
+		},
+		{
+			name: "simple stats request no time field",
+			expr: "* | stats count()",
+			timeRange: backend.TimeRange{
+				From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+			},
+			want: "_time:[1732320000, 1732492800] * | stats count()",
+		},
+		{
+			name: "simple stats request with time field",
+			expr: "_time:1s | stats count()",
+			timeRange: backend.TimeRange{
+				From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+			},
+			want: "_time:1s | stats count()",
+		},
+		{
+			name: "time field after the first pipe",
+			expr: "host:~'^$host$' and compose_project:~'^$compose_project$' and compose_service:~'^$compose_service$' and $log_query  | stats by (_time:1s, host) count() logs",
+			timeRange: backend.TimeRange{
+				From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+			},
+			want: "_time:[1732320000, 1732492800] host:~'^$host$' and compose_project:~'^$compose_project$' and compose_service:~'^$compose_service$' and $log_query  | stats by (_time:1s, host) count() logs",
+		},
+		{
+			name: "time field present in the first part of the expression",
+			expr: "_time:5s host:~'^$host$' and compose_project:~'^$compose_project$' and compose_service:~'^$compose_service$' and $log_query  | stats by (_time:$__range, host) count() logs",
+			timeRange: backend.TimeRange{
+				From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+			},
+			want: "_time:5s host:~'^$host$' and compose_project:~'^$compose_project$' and compose_service:~'^$compose_service$' and $log_query  | stats by (_time:$__range, host) count() logs",
+		},
+		{
+			name: "complex query with pipes and time field in stats",
+			expr: `kubernetes.pod_namespace:~"vm-operator" kubernetes.pod_name:~".*" kubernetes.container_name:~".*" 
+| format if (log.level:"") "other" as log.level
+| stats by (_time:1s) count()`,
+			timeRange: backend.TimeRange{
+				From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+			},
+			want: `_time:[1732320000, 1732492800] kubernetes.pod_namespace:~"vm-operator" kubernetes.pod_name:~".*" kubernetes.container_name:~".*" 
+| format if (log.level:"") "other" as log.level
+| stats by (_time:1s) count()`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := AddTimeFieldWithRange(tt.expr, tt.timeRange); got != tt.want {
+				t.Errorf("AddTimeFieldWithRange() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

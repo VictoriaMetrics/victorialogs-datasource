@@ -167,6 +167,8 @@ func (q *Query) statsQueryURL(queryParams url.Values) string {
 	}
 
 	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, q.TimeRange)
+	q.Expr = utils.AddTimeFieldWithRange(q.Expr, q.TimeRange)
+
 	values.Set("query", q.Expr)
 	values.Set("time", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
 

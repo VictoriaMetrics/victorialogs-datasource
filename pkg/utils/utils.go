@@ -16,6 +16,8 @@ const (
 	varInterval   = "$__interval"
 	varIntervalMs = "$__interval_ms"
 	varRange      = "$__range"
+
+	timeField = "_time"
 )
 
 var (
@@ -190,7 +192,7 @@ func ParseDuration(s string) (time.Duration, error) {
 
 // ReplaceTemplateVariable get query and use it expression to remove grafana template variables with
 func ReplaceTemplateVariable(expr string, interval int64, timeRange backend.TimeRange) string {
-	expr = strings.ReplaceAll(expr, varRange, fmt.Sprintf("[%s, %s]", strconv.FormatInt(timeRange.From.Unix(), 10), strconv.FormatInt(timeRange.To.Unix(), 10)))
+	expr = strings.ReplaceAll(expr, varRange, timeRangeToString(timeRange))
 	expr = strings.ReplaceAll(expr, varIntervalMs, strconv.FormatInt(interval, 10))
 	expr = strings.ReplaceAll(expr, varInterval, formatDuration(time.Duration(interval)*time.Millisecond))
 	return expr
@@ -379,4 +381,33 @@ func roundInterval(interval time.Duration) time.Duration {
 	default:
 		return time.Millisecond * 31536000000 // 1y
 	}
+}
+
+// AddTimeFieldWithRange adds time field with range to the query
+func AddTimeFieldWithRange(expr string, timeRange backend.TimeRange) string {
+	if expr == "" {
+		return expr
+	}
+
+	if hasTimeField(expr) {
+		backend.Logger.Info("Time field already exists in the query")
+		return expr
+	}
+
+	timeRangeStr := timeRangeToString(timeRange)
+	return fmt.Sprintf("%s:%s %s", timeField, timeRangeStr, expr)
+}
+
+func timeRangeToString(timeRange backend.TimeRange) string {
+	return fmt.Sprintf("[%s, %s]", strconv.FormatInt(timeRange.From.Unix(), 10), strconv.FormatInt(timeRange.To.Unix(), 10))
+}
+
+func hasTimeField(expr string) bool {
+	parts := strings.Split(expr, "|")
+	if len(parts) > 1 {
+		expr = parts[0]
+		return strings.Contains(expr, timeField)
+	}
+
+	return strings.Contains(expr, timeField)
 }
