@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix an issue where charts, including timeseries, might not be fully displayed.
+
 ## v0.10.0
 
 * FEATURE: add alerting support. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/98).
