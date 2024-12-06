@@ -1,13 +1,13 @@
-name: Update docs
+name: update docs
 
 on:
   push:
     branches:
       - main
     paths:
-      - ".github/workflows/docs.yaml"
-      - "README.md"
-      - "docs/**"
+      - .github/workflows/docs.yaml
+      - README.md
+      - docs/**
 
 jobs:
   update-docs:
@@ -22,7 +22,7 @@ jobs:
           repository: VictoriaMetrics/victorialogs-datasource
           ref: main
           token: ${{ secrets.VM_BOT_GH_TOKEN }}
-          path: "__vm-datasource-repo"
+          path: "__vl-datasource-repo"
 
       - name: Check out VM code
         uses: actions/checkout@v4
@@ -63,7 +63,7 @@ jobs:
           sed -i 's|docs/assets/||g' ../__vm-docs-repo/docs/VictoriaLogs/victorialogs-datasource.md
           
           cp docs/assets/* ../__vm-docs-repo/docs/VictoriaLogs/
-        working-directory: "__vm-datasource-repo"
+        working-directory: "__vl-datasource-repo"
 
       - name: Commit and push changes
         run: |
