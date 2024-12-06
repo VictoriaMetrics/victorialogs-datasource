@@ -245,6 +245,25 @@ func TestQuery_getQueryURL(t *testing.T) {
 			want:    "http://127.0.0.1:9428/select/logsql/stats_query_range?a=1&b=2&end=1609462800&query=_time%3A1s+and+syslog+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
 			wantErr: false,
 		},
+		{
+			name: "stats query without time field",
+			fields: fields{
+				RefID:    "1",
+				Expr:     "* and syslog | stats by(type) count()",
+				MaxLines: 10,
+				TimeRange: backend.TimeRange{
+					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+				},
+				QueryType: QueryTypeStats,
+			},
+			args: args{
+				rawURL:      "http://127.0.0.1:9428",
+				queryParams: "a=1&b=2",
+			},
+			want:    "http://127.0.0.1:9428/select/logsql/stats_query?a=1&b=2&query=_time%3A%5B1609459200%2C+1609462800%5D+%2A+and+syslog+%7C+stats+by%28type%29+count%28%29&time=1609462800",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
