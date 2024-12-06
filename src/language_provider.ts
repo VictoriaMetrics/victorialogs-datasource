@@ -94,9 +94,16 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
 
   getTimeRangeParams(timeRange?: TimeRange) {
     const range = timeRange ?? getDefaultTimeRange();
+
+    const start = new Date(range.from.valueOf());
+    start.setHours(0, 0, 0, 0); // set start of day
+
+    const end = new Date(range.to.valueOf());
+    end.setHours(23, 59, 59, 999); // set end of day
+
     return {
-      start: range.from.startOf('day').valueOf(),
-      end: range.to.endOf('day').valueOf()
+      start: start.valueOf(),
+      end: end.valueOf()
     }
   }
 }
