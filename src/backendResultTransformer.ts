@@ -128,7 +128,6 @@ export function transformBackendResult(
   response: DataQueryResponse,
   queries: Query[],
   derivedFieldConfigs: DerivedFieldConfig[],
-  maxLines: number
 ): DataQueryResponse {
   const { data, errors, ...rest } = response;
 
@@ -138,16 +137,6 @@ export function transformBackendResult(
   const dataFrames = data.map((d) => {
     if (!isDataFrame(d)) {
       throw new Error('transformation only supports dataframe responses');
-    }
-
-    // for VictoriaLogs < v0.5.0, no "limit" for `/select/logsql/query`.
-    const limitExceeded = d.fields.some(f => f.values.length > maxLines)
-    if (limitExceeded) {
-      return {
-        ...d,
-        length: maxLines,
-        fields: d.fields.map(f => ({ ...f, values:  f.values.slice(0, maxLines) }))
-      }
     }
 
     return d;
