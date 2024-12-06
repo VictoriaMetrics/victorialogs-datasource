@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: add tooltips and info messages for query types. Now, plugin will warn about correct usage of `stats` panels and will provide more info about different query types.
+
 * BUGFIX: fix bug with incomplete rendering of time series panels when selecting bigger time intervals.
 
 ## v0.10.0

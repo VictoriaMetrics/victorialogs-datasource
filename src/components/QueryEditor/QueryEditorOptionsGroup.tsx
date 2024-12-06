@@ -72,6 +72,7 @@ const getStyles = (theme: GrafanaTheme2) => {
     body: css({
       display: 'flex',
       paddingTop: theme.spacing(2),
+      paddingLeft: theme.spacing(1),
       gap: theme.spacing(2),
       flexWrap: 'wrap',
     }),

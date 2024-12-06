@@ -49,12 +49,12 @@ export default EditorField;
 const getStyles = (theme: GrafanaTheme2, width?: number | string) => {
   return {
     root: css({
-      paddingLeft: theme.spacing(1),
       minWidth: theme.spacing(width ?? 0),
     }),
     label: css({
       fontSize: 12,
       fontWeight: theme.typography.fontWeightMedium,
+      paddingBottom: theme.spacing(0.5),
     }),
     optional: css({
       fontStyle: 'italic',

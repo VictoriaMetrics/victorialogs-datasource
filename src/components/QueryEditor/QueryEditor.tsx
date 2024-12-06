@@ -5,7 +5,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { CoreApp, GrafanaTheme2, LoadingState } from '@grafana/data';
 import { Button, ConfirmModal, useStyles2 } from '@grafana/ui';
 
-import { Query, QueryEditorMode, VictoriaLogsQueryEditorProps } from "../../types";
+import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from "../../types";
+import QueryEditorStatsWarn from "../QueryEditorStatsWarn";
 
 import { EditorHeader } from "./EditorHeader";
 import { QueryBuilderContainer } from "./QueryBuilder/QueryBuilderContainer";
@@ -24,6 +25,8 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
 
   const query = getQueryWithDefaults(props.query, app, data?.request?.panelPluginId);
   const editorMode = query.editorMode!;
+  const isStatsQuery = query.queryType === QueryType.Stats || query.queryType === QueryType.StatsRange;
+  const showStatsWarn = isStatsQuery && !query.expr.includes('stats');
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
       if (newEditorMode === QueryEditorMode.Builder) {
@@ -64,6 +67,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       />
       <div className={styles.wrapper}>
         <EditorHeader>
+          {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType}/>)}
           <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange}/>
           {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
             <Button

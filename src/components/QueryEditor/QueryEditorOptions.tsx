@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 
 import { CoreApp, isValidGrafanaDuration, SelectableValue } from '@grafana/data';
-import { AutoSizeInput, RadioButtonGroup } from '@grafana/ui';
+import { AutoSizeInput, RadioButtonGroup, TextLink } from '@grafana/ui';
 
 import { Query, QueryType } from "../../types";
 
@@ -20,16 +20,19 @@ export interface Props {
 export const queryTypeOptions: Array<SelectableValue<QueryType>> = [
   {
     value: QueryType.Instant,
-    label: 'Raw',
+    label: 'Raw Logs',
     filter: ({ app }: Props) => app !== CoreApp.UnifiedAlerting && app !== CoreApp.CloudAlerting,
+    description: "Use `/select/logsql/query` for querying logs.",
   },
   {
     value: QueryType.StatsRange,
     label: 'Range',
+    description: "Use `/select/logsql/stats_query_range` for querying log stats over the given time range."
   },
   {
     value: QueryType.Stats,
     label: 'Instant',
+    description: "Use `/select/logsql/stats_query` for querying log stats at the given time."
   },
 ];
 
@@ -91,9 +94,19 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
               onCommitChange={onLegendFormatChanged}
             />
           </EditorField>
-          <EditorField label="Type">
-            <RadioButtonGroup options={filteredOptions} value={queryType} onChange={onQueryTypeChange}/>
-          </EditorField>
+          <div>
+            <EditorField label="Type">
+              <RadioButtonGroup options={filteredOptions} value={queryType} onChange={onQueryTypeChange}/>
+            </EditorField>
+            <TextLink
+              href="https://docs.victoriametrics.com/victorialogs/querying/"
+              icon="external-link-alt"
+              variant={"bodySmall"}
+              external
+            >
+              Learn more about querying logs
+            </TextLink>
+          </div>
           {queryType === QueryType.Instant && (
             <EditorField label="Line limit" tooltip="Upper limit for number of log lines returned by query.">
               <AutoSizeInput
@@ -109,7 +122,7 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
           {queryType === QueryType.StatsRange && (
             <EditorField
               label="Step"
-              tooltip="Use the step parameter when making metric queries to Loki. If not filled, Grafana's calculated interval will be used. Example valid values: 1s, 5m, 10h, 1d."
+              tooltip="Use the `step` parameter when making metric queries. If not specified, Grafana will use a calculated interval. Example values: 1s, 5m, 10h, 1d."
               invalid={!isValidStep}
               error={'Invalid step. Example valid values: 1s, 5m, 10h, 1d.'}
             >
