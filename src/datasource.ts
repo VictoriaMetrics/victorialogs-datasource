@@ -106,7 +106,7 @@ export class VictoriaLogsDatasource
       .query(fixedRequest)
       .pipe(
         map((response) =>
-          transformBackendResult(response, fixedRequest.targets, [], this.maxLines)
+          transformBackendResult(response, fixedRequest.targets, [])
         )
       );
   }
