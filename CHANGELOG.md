@@ -7,7 +7,6 @@
 
 * BUGFIX: fix bug with incomplete rendering of time series panels when selecting bigger time intervals.
 
-
 ## v0.10.0
 
 * FEATURE: add alerting support. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/98).
