@@ -2,7 +2,11 @@
 
 ## tip
 
+
 * FEATURE: add tooltips for query types and a warning to include `| stats` pipe.
+
+* BUGFIX: fix bug with incomplete rendering of time series panels when selecting bigger time intervals.
+
 
 ## v0.10.0
 
