@@ -496,8 +496,6 @@ func Test_getIntervalFrom(t *testing.T) {
 }
 
 func TestAddTimeFieldWithRange(t *testing.T) {
-	type args struct {
-	}
 	tests := []struct {
 		name      string
 		expr      string
