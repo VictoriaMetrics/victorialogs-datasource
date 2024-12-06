@@ -2,7 +2,7 @@
 
 ## tip
 
-* BUGFIX: fix an issue where charts, including timeseries, might not be fully displayed.
+* BUGFIX: fix bug with incomplete rendering of time series panels when selecting bigger time intervals.
 
 ## v0.10.0
 
