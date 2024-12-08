@@ -8,6 +8,7 @@
 * BUGFIX: fix bug with incomplete rendering of time series panels when selecting bigger time intervals.
 * BUGFIX: fix a bug where the time range was reset when using query variables. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/118).
 * BUGFIX: fix incorrect application of ad-hoc filters in panels. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/135).
+* BUGFIX: fix replacement of multi-variables in expressions. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/109).
 
 ## v0.10.0
 
