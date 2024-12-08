@@ -117,15 +117,16 @@ describe('VictoriaLogsDatasource', () => {
       const scopedVars = {
         var: { text: 'foo,bar', value: ['foo', 'bar'] },
       };
+      const replaceValue = `$_StartMultiVariable_${scopedVars.var.value.join("_separator_")}_EndMultiVariable`
       const templateSrvMock = {
-        replace: jest.fn((a: string) => a?.replace('$var', '("foo" OR "bar")')),
+        replace: jest.fn((a: string) => a?.replace('$var', replaceValue)),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
         { expr: '_stream{val=~"$var"}', refId: 'A' },
         scopedVars
       );
-      expect(replacedQuery.expr).toBe('_stream{val=~"("foo"|"bar")"}');
+      expect(replacedQuery.expr).toBe('_stream{val=~"(foo|bar)"}');
     });
 
     it('should replace $var with an OR expression when given an array of values', () => {
