@@ -21,6 +21,7 @@ const (
 	tailQueryPath       = "/select/logsql/tail"
 	statsQueryPath      = "/select/logsql/stats_query"
 	statsQueryRangePath = "/select/logsql/stats_query_range"
+	hitsQueryPath       = "/select/logsql/hits"
 	defaultMaxLines     = 1000
 	legendFormatAuto    = "__auto"
 	metricsName         = "__name__"
@@ -37,6 +38,8 @@ const (
 	QueryTypeStats QueryType = "stats"
 	// QueryTypeStatsRange represents stats range query type
 	QueryTypeStatsRange QueryType = "statsRange"
+	// QueryTypeHits represents hits query type
+	QueryTypeHits QueryType = "hits"
 )
 
 // Query represents backend query object
@@ -80,6 +83,12 @@ func (q *Query) getQueryURL(rawURL string, queryParams string) (string, error) {
 			return "", fmt.Errorf("failed to calculate minimal interval: %w", err)
 		}
 		return q.statsQueryRangeURL(params, minInterval), nil
+	case QueryTypeHits:
+		minInterval, err := q.calculateMinInterval()
+		if err != nil {
+			return "", fmt.Errorf("failed to calculate minimal interval: %w", err)
+		}
+		return q.histQueryURL(params, minInterval), nil
 	default:
 		return q.queryInstantURL(params), nil
 	}
@@ -189,6 +198,41 @@ func (q *Query) statsQueryRangeURL(queryParams url.Values, minInterval time.Dura
 
 	if q.MaxLines <= 0 {
 		q.MaxLines = defaultMaxLines
+	}
+
+	now := time.Now()
+	if q.TimeRange.From.IsZero() {
+		q.TimeRange.From = now.Add(-time.Minute * 5)
+	}
+	if q.TimeRange.To.IsZero() {
+		q.TimeRange.To = now
+	}
+
+	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, q.TimeRange)
+
+	step := q.Step
+	if step == "" {
+		step = utils.CalculateStep(minInterval, q.TimeRange, q.MaxDataPoints).String()
+	}
+
+	values.Set("query", q.Expr)
+	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
+	values.Set("end", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
+	values.Set("step", step)
+
+	q.url.RawQuery = values.Encode()
+	return q.url.String()
+}
+
+// histQueryURL prepare query url for querying log hits
+func (q *Query) histQueryURL(queryParams url.Values, minInterval time.Duration) string {
+	q.url.Path = path.Join(q.url.Path, hitsQueryPath)
+	values := q.url.Query()
+
+	for k, vl := range queryParams {
+		for _, v := range vl {
+			values.Add(k, v)
+		}
 	}
 
 	now := time.Now()

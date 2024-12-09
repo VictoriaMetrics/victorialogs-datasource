@@ -288,6 +288,22 @@ func parseStatsResponse(reader io.Reader, q *Query) backend.DataResponse {
 	return backend.DataResponse{Frames: frames}
 }
 
+func parseHitsResponse(reader io.Reader) backend.DataResponse {
+	var hr HitsResponse
+	if err := json.NewDecoder(reader).Decode(&hr); err != nil {
+		err = fmt.Errorf("failed to decode body response: %w", err)
+		return newResponseError(err, backend.StatusInternal)
+	}
+
+	frames, err := hr.getDataFrames()
+	if err != nil {
+		err = fmt.Errorf("failed to prepare data from response: %w", err)
+		return newResponseError(err, backend.StatusInternal)
+	}
+
+	return backend.DataResponse{Frames: frames}
+}
+
 // parseErrorResponse reads data from the reader and returns error
 func parseErrorResponse(reader io.Reader) error {
 	var rs Response
@@ -418,4 +434,44 @@ func (r *Response) getDataFrames() (data.Frames, error) {
 	default:
 		return nil, fmt.Errorf("unknown result type %q", r.Data.ResultType)
 	}
+}
+
+type Hit struct {
+	// Fields
+	Timestamps []string  `json:"timestamps"`
+	Values     []float64 `json:"values"`
+	Total      int       `json:"total"`
+}
+
+type HitsResponse struct {
+	Hits []Hit `json:"hits"`
+}
+
+func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
+	frames := make(data.Frames, len(hr.Hits))
+	for i, hit := range hr.Hits {
+		if len(hit.Timestamps) != len(hit.Values) {
+			return nil, fmt.Errorf("timestamps and values length mismatch: %d != %d", len(hit.Timestamps), len(hit.Values))
+		}
+
+		timestamps := make([]float64, len(hit.Timestamps))
+		for j, ts := range hit.Timestamps {
+			t, err := utils.ParseTime(ts)
+			if err != nil {
+				return nil, fmt.Errorf("cannot parse timestamp %q: %w", ts, err)
+			}
+			timestamps[j] = t
+		}
+
+		values := make([]float64, len(hit.Values))
+		for j, v := range hit.Values {
+			values[j] = v
+		}
+
+		frames[i] = data.NewFrame("",
+			data.NewField(data.TimeSeriesTimeFieldName, nil, timestamps),
+			data.NewField(data.TimeSeriesValueFieldName, nil, values))
+	}
+
+	return frames, nil
 }

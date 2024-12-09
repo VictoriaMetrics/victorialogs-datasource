@@ -247,6 +247,8 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, q *Quer
 		return parseStatsResponse(r, q)
 	case QueryTypeStatsRange:
 		return parseStatsResponse(r, q)
+	case QueryTypeHits:
+		return parseHitsResponse(r)
 	default:
 		return parseInstantResponse(r)
 	}
