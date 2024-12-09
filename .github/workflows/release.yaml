@@ -1,47 +1,42 @@
-name: Release
+name: release
 on:
-  release:
-    types:
-      - created
+  push:
+    tags:
+      - 'v*'
 env:
-  NAME: victorialogs-datasource
-  TAG: ${{ github.event.release.tag_name }}
+  PKG_TAG: ${{ github.ref_name }}
 jobs:
   release:
     name: Release on GitHub
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: write
+      pages: write
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
-      - name: Build Project
+        uses: actions/checkout@v4
+      - name: Setup golang caches
+        with:
+          path: |
+            ${{ github.workspace }}/gocache-for-docker
+          key: ${{ runner.os }}-golang-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-golang-
+      - name: Setup node caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Build plugin
         run: |
-          yarn install
-          npm run build
-      - name: Build ZIP
+          yq -iP '.version="${{ env.PKG_TAG }}"' package.json -o json
+          make vl-plugin-release
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp -r ./dist ./${{ env.NAME }} && zip ${{ env.NAME }}-${{ env.TAG }}.zip ${{ env.NAME }} -r && rm -rf ${{ env.NAME }}
-          sha1sum ./${{ env.NAME }}-${{ env.TAG }}.zip >${{ env.NAME }}-${{ env.TAG }}.zip.sha1
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./${{ env.NAME }}-${{ env.TAG }}.zip
-          asset_name: ${{ env.NAME }}-${{ env.TAG }}.zip
-          asset_content_type: application/zip
-      - name: Upload Release SHA
-        id: upload-release-sha
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./${{ env.NAME }}-${{ env.TAG }}.zip.sha1
-          asset_name: ${{ env.NAME }}-${{ env.TAG }}.zip.sha1
-          asset_content_type: application/zip
-      - name: Update version package.json
-        uses: pocket-apps/action-update-version@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          gh release create ${{ env.PKG_TAG }} ./dist/*
