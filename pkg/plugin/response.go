@@ -454,6 +454,7 @@ func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
 
 	valueFd := data.NewFieldFromFieldType(data.FieldTypeFloat64, 0)
 	valueFd.Name = gValueField
+	valueFd.Labels = make(data.Labels)
 
 	frames := make(data.Frames, len(hr.Hits))
 	for i, hit := range hr.Hits {
