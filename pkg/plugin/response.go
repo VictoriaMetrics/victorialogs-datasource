@@ -438,10 +438,10 @@ func (r *Response) getDataFrames() (data.Frames, error) {
 }
 
 type Hit struct {
-	// Fields
-	Timestamps []string  `json:"timestamps"`
-	Values     []float64 `json:"values"`
-	Total      int       `json:"total"`
+	Fields     map[string]string `json:"fields"`
+	Timestamps []string          `json:"timestamps"`
+	Values     []float64         `json:"values"`
+	Total      int               `json:"total"`
 }
 
 type HitsResponse struct {
@@ -454,6 +454,9 @@ func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
 
 	valueFd := data.NewFieldFromFieldType(data.FieldTypeFloat64, 0)
 	valueFd.Name = gValueField
+
+	labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+	labelsField.Name = gLabelsField
 
 	frames := make(data.Frames, len(hr.Hits))
 	for i, hit := range hr.Hits {
@@ -472,6 +475,12 @@ func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
 		for _, v := range hit.Values {
 			valueFd.Append(v)
 		}
+
+		d, err := labelsToJSON(hit.Fields)
+		if err != nil {
+			return nil, fmt.Errorf("error convert labels to json: %s", err)
+		}
+		labelsField.Append(d)
 
 		frames[i] = data.NewFrame("", timeFd, valueFd)
 	}
