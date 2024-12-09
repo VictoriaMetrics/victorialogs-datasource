@@ -476,6 +476,7 @@ func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
 
 		for key, value := range hit.Fields {
 			valueFd.Labels[key] = value
+			valueFd.Config = &data.FieldConfig{DisplayNameFromDS: value}
 		}
 
 		frames[i] = data.NewFrame("", timeFd, valueFd)
