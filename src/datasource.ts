@@ -2,8 +2,6 @@ import { cloneDeep, defaults } from 'lodash';
 import { lastValueFrom, merge, Observable } from "rxjs";
 import { map } from 'rxjs/operators';
 
-const HITS_BY_FIELD = '_stream'
-
 import {
   AdHocVariableFilter,
   DataQueryRequest,
@@ -329,7 +327,7 @@ export class VictoriaLogsDatasource
     const logsVolumeOption = { ...options, type }
     const logsVolumeRequest = cloneDeep(request);
     const targets = logsVolumeRequest.targets
-      .map((query) => this.getSupplementaryQuery(logsVolumeOption, query))
+      .map((query) => this.getSupplementaryQuery(logsVolumeOption, query, logsVolumeRequest))
       .filter((query): query is Query => !!query);
 
     if (!targets.length) {
@@ -343,11 +341,16 @@ export class VictoriaLogsDatasource
     return [SupplementaryQueryType.LogsVolume, SupplementaryQueryType.LogsSample];
   }
 
-  getSupplementaryQuery(options: SupplementaryQueryOptions, query: Query): Query | undefined {
+  getSupplementaryQuery(options: SupplementaryQueryOptions, query: Query, request: DataQueryRequest<Query>): Query | undefined {
     switch (options.type) {
       case SupplementaryQueryType.LogsVolume:
+        const HITS_BY_FIELD = '_stream'
+        const totalSeconds = request.range.to.diff(request.range.from, "second");
+        const step = Math.ceil(totalSeconds / 100) || "";
+
         return {
           ...query,
+          step: `${step}s`,
           field: HITS_BY_FIELD,
           queryType: QueryType.Hits,
           refId: `${'logs-volume-'}${query.refId}`,
