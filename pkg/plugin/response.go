@@ -455,9 +455,6 @@ func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
 	valueFd := data.NewFieldFromFieldType(data.FieldTypeFloat64, 0)
 	valueFd.Name = gValueField
 
-	labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
-	labelsField.Name = gLabelsField
-
 	frames := make(data.Frames, len(hr.Hits))
 	for i, hit := range hr.Hits {
 		if len(hit.Timestamps) != len(hit.Values) {
@@ -476,13 +473,11 @@ func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
 			valueFd.Append(v)
 		}
 
-		d, err := labelsToJSON(hit.Fields)
-		if err != nil {
-			return nil, fmt.Errorf("error convert labels to json: %s", err)
+		for key, value := range hit.Fields {
+			valueFd.Labels[key] = value
 		}
-		labelsField.Append(d)
 
-		frames[i] = data.NewFrame("", timeFd, valueFd, labelsField)
+		frames[i] = data.NewFrame("", timeFd, valueFd)
 	}
 
 	return frames, nil
