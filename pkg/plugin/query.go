@@ -53,6 +53,7 @@ type Query struct {
 	IntervalMs   int64     `json:"intervalMs"`
 	MaxLines     int       `json:"maxLines"`
 	Step         string    `json:"step"`
+	Field        string    `json:"field"`
 	QueryType    QueryType `json:"queryType"`
 	url          *url.URL
 }
@@ -254,6 +255,7 @@ func (q *Query) histQueryURL(queryParams url.Values, minInterval time.Duration) 
 	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
 	values.Set("end", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
 	values.Set("step", step)
+	values.Set("field", q.Field)
 
 	q.url.RawQuery = values.Encode()
 	return q.url.String()
