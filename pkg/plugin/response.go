@@ -28,6 +28,7 @@ const (
 	gLabelsField = "labels"
 	gTimeField   = "Time"
 	gLineField   = "Line"
+	gValueField  = "Value"
 
 	logsVisualisation = "logs"
 )
@@ -448,29 +449,31 @@ type HitsResponse struct {
 }
 
 func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
+	timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+	timeFd.Name = gTimeField
+
+	valueFd := data.NewFieldFromFieldType(data.FieldTypeFloat64, 0)
+	valueFd.Name = gValueField
+
 	frames := make(data.Frames, len(hr.Hits))
 	for i, hit := range hr.Hits {
 		if len(hit.Timestamps) != len(hit.Values) {
 			return nil, fmt.Errorf("timestamps and values length mismatch: %d != %d", len(hit.Timestamps), len(hit.Values))
 		}
 
-		timestamps := make([]float64, len(hit.Timestamps))
-		for j, ts := range hit.Timestamps {
-			t, err := utils.ParseTime(ts)
+		for _, ts := range hit.Timestamps {
+			getTime, err := utils.GetTime(ts)
 			if err != nil {
-				return nil, fmt.Errorf("cannot parse timestamp %q: %w", ts, err)
+				return nil, fmt.Errorf("error parse time from _time field: %s", err)
 			}
-			timestamps[j] = t
+			timeFd.Append(getTime)
 		}
 
-		values := make([]float64, len(hit.Values))
-		for j, v := range hit.Values {
-			values[j] = v
+		for _, v := range hit.Values {
+			valueFd.Append(v)
 		}
 
-		frames[i] = data.NewFrame("",
-			data.NewField(data.TimeSeriesTimeFieldName, nil, timestamps),
-			data.NewField(data.TimeSeriesValueFieldName, nil, values))
+		frames[i] = data.NewFrame("", timeFd, valueFd)
 	}
 
 	return frames, nil
