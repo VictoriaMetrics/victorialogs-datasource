@@ -482,7 +482,7 @@ func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
 		}
 		labelsField.Append(d)
 
-		frames[i] = data.NewFrame("", timeFd, valueFd)
+		frames[i] = data.NewFrame("", timeFd, valueFd, labelsField)
 	}
 
 	return frames, nil
