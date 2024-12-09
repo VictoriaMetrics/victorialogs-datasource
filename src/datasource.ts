@@ -187,9 +187,8 @@ export class VictoriaLogsDatasource
       return value;
     }
 
-    if (Array.isArray(value)) {
-      const combinedValues = value.join(' OR ');
-      return value.length > 1 ? `(${combinedValues})` : combinedValues;
+    if (Array.isArray(value) && value.length > 1) {
+      return value.length > 1 ? `$_StartMultiVariable_${value.join("_separator_")}_EndMultiVariable` : value[0] || "";
     }
 
     return value;
@@ -257,21 +256,25 @@ export class VictoriaLogsDatasource
   }
 
   interpolateString(string: string, scopedVars?: ScopedVars) {
-    let expr: string = this.templateSrv.replace(string, scopedVars, this.interpolateQueryExpr);
-    if (expr) {
-      // Replace "OR" with "|" inside parentheses
-      // The stream field filter, uses "|" as the operator for multiple values.
-      // expr => {k="v", k2=~"(v2 OR v3 OR v4)"} Test
-      // newExpr => {k="v", k2=~"(v2|v3|v4)"} Test
-      expr = expr.replace(/\{([^}]+)\}/g, (outerMatch, outerContent) => {
-        const replacedContent = outerContent.replace(/\(([^)]+)\)/g, (match: string, content: string) => {
-          const replaced = content.replace(/\s*OR\s*/g, '|');
-          return `(${replaced})`;
-        });
-        return `{${replacedContent}}`;
-      });
-    }
-    return expr;
+    const expr = this.templateSrv.replace(string, scopedVars, this.interpolateQueryExpr);
+    return this.replaceMultiVariables(expr)
+  }
+
+  private replaceMultiVariables(input: string): string {
+    const multiVariablePattern = /["']?\$_StartMultiVariable_(.+?)_EndMultiVariable["']?/g;
+
+    return input.replace(multiVariablePattern, (match, valueList, offset) => {
+      const values = valueList.split('_separator_');
+
+      const precedingChars = input.slice(0, offset).replace(/\s+/g, '').slice(-3);
+
+      if (precedingChars.includes("~")) {
+        return `"(${values.join("|")})"`;
+      } else if (precedingChars.includes("in(")) {
+        return values.join(",");
+      }
+      return values.join(" OR ");
+    });
   }
 
   private async processMetricFindQuery(query: VariableQuery, timeRange?: TimeRange): Promise<MetricFindValue[]> {
