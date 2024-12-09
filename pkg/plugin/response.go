@@ -437,6 +437,7 @@ func (r *Response) getDataFrames() (data.Frames, error) {
 	}
 }
 
+// Hit represents a single hit from the query
 type Hit struct {
 	Fields     map[string]string `json:"fields"`
 	Timestamps []string          `json:"timestamps"`
@@ -444,20 +445,21 @@ type Hit struct {
 	Total      int               `json:"total"`
 }
 
+// HitsResponse represents response from the hits query
 type HitsResponse struct {
 	Hits []Hit `json:"hits"`
 }
 
 func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
-	timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
-	timeFd.Name = gTimeField
-
-	valueFd := data.NewFieldFromFieldType(data.FieldTypeFloat64, 0)
-	valueFd.Name = gValueField
-	valueFd.Labels = make(data.Labels)
-
 	frames := make(data.Frames, len(hr.Hits))
 	for i, hit := range hr.Hits {
+		timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+		timeFd.Name = gTimeField
+
+		valueFd := data.NewFieldFromFieldType(data.FieldTypeFloat64, 0)
+		valueFd.Name = gValueField
+		valueFd.Labels = make(data.Labels)
+
 		if len(hit.Timestamps) != len(hit.Values) {
 			return nil, fmt.Errorf("timestamps and values length mismatch: %d != %d", len(hit.Timestamps), len(hit.Values))
 		}
