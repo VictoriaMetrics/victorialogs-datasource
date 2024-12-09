@@ -476,7 +476,11 @@ func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
 
 		for key, value := range hit.Fields {
 			valueFd.Labels[key] = value
-			valueFd.Config = &data.FieldConfig{DisplayNameFromDS: value}
+			d, err := labelsToJSON(valueFd.Labels)
+			if err != nil {
+				return nil, fmt.Errorf("error convert labels to json: %s", err)
+			}
+			valueFd.Config = &data.FieldConfig{DisplayNameFromDS: string(d)}
 		}
 
 		frames[i] = data.NewFrame("", timeFd, valueFd)
