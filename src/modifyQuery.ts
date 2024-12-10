@@ -1,10 +1,8 @@
-import { scopeFilterOperatorMap } from "@grafana/data";
-
 import { buildVisualQueryFromString, splitExpression } from "./components/QueryEditor/QueryBuilder/utils/parseFromString";
 import { parseVisualQueryToString } from "./components/QueryEditor/QueryBuilder/utils/parseToString";
 import { FilterVisualQuery } from "./types";
 
-const operators = Object.keys(scopeFilterOperatorMap);
+const operators = ["=", "!=", "=~", "!~", "<", ">"]
 
 export function queryHasFilter(query: string, key: string, value: string, operator?: string): boolean {
   const applicableOperators = operator ? [operator] : operators;
