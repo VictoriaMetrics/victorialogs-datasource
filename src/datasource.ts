@@ -1,4 +1,4 @@
-import { defaults } from 'lodash';
+import { cloneDeep, defaults } from 'lodash';
 import { lastValueFrom, merge, Observable } from "rxjs";
 import { map } from 'rxjs/operators';
 
@@ -12,6 +12,8 @@ import {
   LoadingState,
   MetricFindValue,
   ScopedVars,
+  SupplementaryQueryOptions,
+  SupplementaryQueryType,
   TimeRange,
 } from '@grafana/data';
 import {
@@ -38,7 +40,9 @@ import {
   Query,
   QueryBuilderLimits,
   QueryFilterOptions,
+  QueryType,
   RequestArguments,
+  SupportingQueryType,
   ToggleFilterAction,
   VariableQuery,
 } from './types';
@@ -313,5 +317,57 @@ export class VictoriaLogsDatasource
     });
 
     return merge(...observables);
+  }
+
+  getSupplementaryRequest(
+    type: SupplementaryQueryType,
+    request: DataQueryRequest<Query>,
+    options?: SupplementaryQueryOptions
+  ): DataQueryRequest<Query> | undefined {
+    const logsVolumeOption = { ...options, type }
+    const logsVolumeRequest = cloneDeep(request);
+    const targets = logsVolumeRequest.targets
+      .map((query) => this.getSupplementaryQuery(logsVolumeOption, query, logsVolumeRequest))
+      .filter((query): query is Query => !!query);
+
+    if (!targets.length) {
+      return undefined;
+    }
+
+    return { ...logsVolumeRequest, targets };
+  }
+
+  getSupportedSupplementaryQueryTypes(): SupplementaryQueryType[] {
+    return [SupplementaryQueryType.LogsVolume, SupplementaryQueryType.LogsSample];
+  }
+
+  getSupplementaryQuery(options: SupplementaryQueryOptions, query: Query, request: DataQueryRequest<Query>): Query | undefined {
+    switch (options.type) {
+      case SupplementaryQueryType.LogsVolume:
+        const HITS_BY_FIELD = '_stream'
+        const totalSeconds = request.range.to.diff(request.range.from, "second");
+        const step = Math.ceil(totalSeconds / 100) || "";
+
+        return {
+          ...query,
+          step: `${step}s`,
+          field: HITS_BY_FIELD,
+          queryType: QueryType.Hits,
+          refId: `${'logs-volume-'}${query.refId}`,
+          supportingQueryType: SupportingQueryType.LogsVolume,
+        };
+
+      case SupplementaryQueryType.LogsSample:
+        return {
+          ...query,
+          queryType: QueryType.Instant,
+          refId: `logs-sample-${query.refId}`,
+          supportingQueryType: SupportingQueryType.LogsSample,
+          maxLines: this.maxLines
+        };
+
+      default:
+        return undefined;
+    }
   }
 }
