@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix plugin loading issue in Grafana `v10.x.x`. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/149).
+
 ## v0.11.0
 
 * FEATURE: add tooltips and info messages for query types. Now, plugin will warn about correct usage of `stats` panels and will provide more info about different query types.
