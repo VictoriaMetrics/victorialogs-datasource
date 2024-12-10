@@ -453,16 +453,16 @@ type HitsResponse struct {
 func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
 	frames := make(data.Frames, len(hr.Hits))
 	for i, hit := range hr.Hits {
-		timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
-		timeFd.Name = gTimeField
-
-		valueFd := data.NewFieldFromFieldType(data.FieldTypeFloat64, 0)
-		valueFd.Name = gValueField
-		valueFd.Labels = make(data.Labels)
-
 		if len(hit.Timestamps) != len(hit.Values) {
 			return nil, fmt.Errorf("timestamps and values length mismatch: %d != %d", len(hit.Timestamps), len(hit.Values))
 		}
+
+		timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, len(hit.Timestamps))
+		timeFd.Name = gTimeField
+
+		valueFd := data.NewFieldFromFieldType(data.FieldTypeFloat64, len(hit.Values))
+		valueFd.Name = gValueField
+		valueFd.Labels = make(data.Labels)
 
 		for _, ts := range hit.Timestamps {
 			getTime, err := utils.GetTime(ts)
