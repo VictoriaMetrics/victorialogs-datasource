@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix the check for the stats pipe functions in expressions.
+
 ## v0.11.0
 
 * FEATURE: add tooltips and info messages for query types. Now, plugin will warn about correct usage of `stats` panels and will provide more info about different query types.
