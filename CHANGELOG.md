@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.11.1
+
 * BUGFIX: fix the check for the stats pipe functions in expressions.
 * BUGFIX: fix plugin loading issue in Grafana `v10.x.x`. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/149).
 
