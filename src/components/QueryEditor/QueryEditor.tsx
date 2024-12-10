@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { CoreApp, GrafanaTheme2, LoadingState } from '@grafana/data';
 import { Button, ConfirmModal, useStyles2 } from '@grafana/ui';
 
+import { isExprHasStatsPipeFunctions } from "../../LogsQL/statsPipeFunctions";
 import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from "../../types";
 import QueryEditorStatsWarn from "../QueryEditorStatsWarn";
 
@@ -26,7 +27,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const query = getQueryWithDefaults(props.query, app, data?.request?.panelPluginId);
   const editorMode = query.editorMode!;
   const isStatsQuery = query.queryType === QueryType.Stats || query.queryType === QueryType.StatsRange;
-  const showStatsWarn = isStatsQuery && !query.expr.includes('stats');
+  const showStatsWarn = isStatsQuery && !isExprHasStatsPipeFunctions(query.expr || '');
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
       if (newEditorMode === QueryEditorMode.Builder) {
