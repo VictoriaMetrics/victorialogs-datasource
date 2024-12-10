@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.11.0
+
 * FEATURE: add tooltips and info messages for query types. Now, plugin will warn about correct usage of `stats` panels and will provide more info about different query types.
 * FEATURE: automatically add `_time` field if it s not present in the query for the `stats` [API call](https://docs.victoriametrics.com/victorialogs/querying/#querying-log-stats). See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/142).
 * FEATURE: add support for `/select/logs/hits` to display precise logs volume on the Explore page. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/15).
