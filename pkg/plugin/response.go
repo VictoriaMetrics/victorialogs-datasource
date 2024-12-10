@@ -464,16 +464,16 @@ func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
 		valueFd.Name = gValueField
 		valueFd.Labels = make(data.Labels)
 
-		for _, ts := range hit.Timestamps {
+		for j, ts := range hit.Timestamps {
 			getTime, err := utils.GetTime(ts)
 			if err != nil {
 				return nil, fmt.Errorf("error parse time from _time field: %s", err)
 			}
-			timeFd.Append(getTime)
+			timeFd.Set(j, getTime)
 		}
 
-		for _, v := range hit.Values {
-			valueFd.Append(v)
+		for k, v := range hit.Values {
+			valueFd.Set(k, v)
 		}
 
 		for key, value := range hit.Fields {
