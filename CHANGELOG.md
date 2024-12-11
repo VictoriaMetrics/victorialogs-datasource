@@ -2,7 +2,7 @@
 
 ## tip
 
-* BUGFIX: fix rounding of the timestamp if response from datasource contains milliseconds. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/147).
+* BUGFIX: fix rounding of the timestamp if response from datasource contains nanoseconds. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/147).
 
 ## v0.11.1
 
