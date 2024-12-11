@@ -30,6 +30,7 @@ import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
 import { escapeLabelValueInSelector, isRegexSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
+import { queryLogsVolume } from "./logsVolumeLegacy";
 import { addLabelToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
 import { replaceVariables, returnVariables } from "./parsingUtils";
 import { regularEscape } from "./regexUtils";
@@ -47,6 +48,9 @@ import {
   VariableQuery,
 } from './types';
 import { VariableSupport } from "./variableSupport/VariableSupport";
+
+export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
+export const REF_ID_STARTER_LOG_SAMPLE = 'log-sample-';
 
 export class VictoriaLogsDatasource
   extends DataSourceWithBackend<Query, Options> {
@@ -353,7 +357,7 @@ export class VictoriaLogsDatasource
           step: `${step}s`,
           field: HITS_BY_FIELD,
           queryType: QueryType.Hits,
-          refId: `${'logs-volume-'}${query.refId}`,
+          refId: `${REF_ID_STARTER_LOG_VOLUME}${query.refId}`,
           supportingQueryType: SupportingQueryType.LogsVolume,
         };
 
@@ -361,13 +365,34 @@ export class VictoriaLogsDatasource
         return {
           ...query,
           queryType: QueryType.Instant,
-          refId: `logs-sample-${query.refId}`,
+          refId: `${REF_ID_STARTER_LOG_SAMPLE}${query.refId}`,
           supportingQueryType: SupportingQueryType.LogsSample,
           maxLines: this.maxLines
         };
 
       default:
         return undefined;
+    }
+  }
+
+  getDataProvider(
+    type: SupplementaryQueryType,
+    request: DataQueryRequest<Query>
+  ): Observable<DataQueryResponse> | undefined {
+    if (!this.getSupportedSupplementaryQueryTypes().includes(type)) {
+      return undefined;
+    }
+
+    const newRequest = this.getSupplementaryRequest(type, request)
+    if (!newRequest) {
+      return
+    }
+
+    switch (type) {
+      case SupplementaryQueryType.LogsVolume:
+        return queryLogsVolume(this, newRequest);
+      default:
+        return undefined
     }
   }
 }
