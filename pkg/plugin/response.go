@@ -381,7 +381,14 @@ func (ls logStats) vectorDataFrames() (data.Frames, error) {
 			return nil, fmt.Errorf("metric %v, unable to parse float64 from %s: %w", res, res.Value[1], err)
 		}
 
-		ts := time.Unix(int64(res.Value[0].(float64)), 0)
+		v, ok := res.Value[0].(float64)
+		if !ok {
+			return nil, fmt.Errorf("error get time from dataframes")
+		}
+
+		seconds := int64(v)                                // get only seconds
+		nanoseconds := int64((v - float64(seconds)) * 1e9) // get only nanoseconds
+		ts := time.Unix(seconds, nanoseconds)
 		frames[i] = data.NewFrame("",
 			data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{ts}),
 			data.NewField(data.TimeSeriesValueFieldName, data.Labels(res.Labels), []float64{f}))
@@ -400,7 +407,9 @@ func (ls logStats) matrixDataFrames() (data.Frames, error) {
 			if !ok {
 				return nil, fmt.Errorf("error get time from dataframes")
 			}
-			timestamps[j] = time.Unix(int64(v), 0)
+			seconds := int64(v)                                // get only seconds
+			nanoseconds := int64((v - float64(seconds)) * 1e9) // get only nanoseconds
+			timestamps[j] = time.Unix(seconds, nanoseconds)
 
 			f, err := strconv.ParseFloat(value[1].(string), 64)
 			if err != nil {

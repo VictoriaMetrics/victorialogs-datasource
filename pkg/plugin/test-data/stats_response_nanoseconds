@@ -1,0 +1,1 @@
+{"status":"success","data":{"resultType":"matrix","result":[{"metric":{"__name__":"count(*)"},"values":[[1733187134,"58"],[1733187134.4499998,"1"]]}]}}
