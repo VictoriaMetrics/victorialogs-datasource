@@ -582,6 +582,31 @@ func Test_getStatsResponse(t *testing.T) {
 				return rsp
 			},
 		},
+		{
+			name:     "response with milliseconds in timestamps",
+			filename: "test-data/stats_response_milliseconds",
+			q: &Query{
+				DataQuery: backend.DataQuery{
+					RefID: "A",
+				},
+				LegendFormat: "legend {{app}}",
+				Step:         "10ms",
+			},
+			want: func() backend.DataResponse {
+				frames := []*data.Frame{
+					data.NewFrame("legend ",
+						data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{
+							time.Unix(1733187134, 0),
+							time.Unix(1733187134, 449999809),
+						}),
+						data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)"}, []float64{58, 1}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+					),
+				}
+				rsp := backend.DataResponse{}
+				rsp.Frames = append(rsp.Frames, frames...)
+				return rsp
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -611,7 +636,7 @@ func Test_getStatsResponse(t *testing.T) {
 					t.Fatalf("error marshal want response: %s", err)
 				}
 				if !bytes.Equal(got, want) {
-					t.Fatalf("got value: %s, want value: %s", got, want)
+					t.Fatalf("\n got value: %s, \n want value: %s", got, want)
 				}
 			}
 		})
