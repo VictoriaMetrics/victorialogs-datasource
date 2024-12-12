@@ -383,7 +383,7 @@ func (ls logStats) vectorDataFrames() (data.Frames, error) {
 
 		v, ok := res.Value[0].(float64)
 		if !ok {
-			return nil, fmt.Errorf("metric %v, unable to covert metrics value to float64 from %s", res, res.Value[0])
+			return nil, fmt.Errorf("metric %v, unable to convert metrics value to float64 from %s", res, res.Value[0])
 		}
 
 		seconds := int64(v)                                // get only seconds
@@ -413,7 +413,7 @@ func (ls logStats) matrixDataFrames() (data.Frames, error) {
 
 			f, err := strconv.ParseFloat(value[1].(string), 64)
 			if err != nil {
-				return nil, fmt.Errorf("metric %v, value: %v unable to covert metrics value to float64 from %s", res, value, value[1])
+				return nil, fmt.Errorf("metric %v, value: %v unable to convert metrics value to float64 from %s", res, value, value[1])
 			}
 			values[j] = f
 		}
