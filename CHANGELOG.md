@@ -4,6 +4,8 @@
 
 * FEATURE: add compatibility for Grafana `v10.x.x` to ensure `/select/logs/hits` displays precise logs volume on the Explore page. See [this comment](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/146#issuecomment-2533419498).
 
+* BUGFIX: fix rounding of the timestamp if response from datasource contains milliseconds. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/147).
+
 ## v0.11.1
 
 * BUGFIX: fix the check for the stats pipe functions in expressions.
