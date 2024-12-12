@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.12.0
+
 * FEATURE: add compatibility for Grafana `v10.x.x` to ensure `/select/logs/hits` displays precise logs volume on the Explore page. See [this comment](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/146#issuecomment-2533419498).
 
 * BUGFIX: properly parse timestamps with milliseconds precision in datasource response. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/147).
