@@ -583,8 +583,8 @@ func Test_getStatsResponse(t *testing.T) {
 			},
 		},
 		{
-			name:     "response with nanoseconds in timestamps",
-			filename: "test-data/stats_response_nanoseconds",
+			name:     "response with milliseconds in timestamps",
+			filename: "test-data/stats_response_milliseconds",
 			q: &Query{
 				DataQuery: backend.DataQuery{
 					RefID: "A",

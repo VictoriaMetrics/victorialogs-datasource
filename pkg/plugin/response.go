@@ -378,12 +378,12 @@ func (ls logStats) vectorDataFrames() (data.Frames, error) {
 	for i, res := range ls.Result {
 		f, err := strconv.ParseFloat(res.Value[1].(string), 64)
 		if err != nil {
-			return nil, fmt.Errorf("metric %v, unable to parse float64 from %s: %w", res, res.Value[1], err)
+			return nil, fmt.Errorf("metric %v, unable to parse timestamp to float64 from %s: %w", res, res.Value[1], err)
 		}
 
 		v, ok := res.Value[0].(float64)
 		if !ok {
-			return nil, fmt.Errorf("error get time from dataframes")
+			return nil, fmt.Errorf("metric %v, unable to covert metrics value to float64 from %s", res, res.Value[0])
 		}
 
 		seconds := int64(v)                                // get only seconds
@@ -405,7 +405,7 @@ func (ls logStats) matrixDataFrames() (data.Frames, error) {
 		for j, value := range res.Values {
 			v, ok := value[0].(float64)
 			if !ok {
-				return nil, fmt.Errorf("error get time from dataframes")
+				return nil, fmt.Errorf("metric %v, value: %v unable to parse timestamp to float64 from %s", res, value, value[0])
 			}
 			seconds := int64(v)                                // get only seconds
 			nanoseconds := int64((v - float64(seconds)) * 1e9) // get only nanoseconds
@@ -413,7 +413,7 @@ func (ls logStats) matrixDataFrames() (data.Frames, error) {
 
 			f, err := strconv.ParseFloat(value[1].(string), 64)
 			if err != nil {
-				return nil, fmt.Errorf("erro get value from dataframes: %s", err)
+				return nil, fmt.Errorf("metric %v, value: %v unable to covert metrics value to float64 from %s", res, value, value[1])
 			}
 			values[j] = f
 		}
