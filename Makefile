@@ -74,7 +74,7 @@ vl-plugin-pack: vl-plugin-build
 	sha256sum dist/$(PACKAGE_NAME).tar.gz > dist/$(PACKAGE_NAME)_checksums_tar.gz.txt
 
 vl-plugin-cleanup:
-	rm -rf ./victoriametrics-logs-datasource plugins
+	rm -rf ./victoriametrics-datasource plugins
 
 vl-plugin-release: \
 	vl-plugin-pack \
