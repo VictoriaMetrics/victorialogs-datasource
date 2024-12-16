@@ -9,8 +9,8 @@ ifeq ($(PKG_TAG),)
 PKG_TAG := $(BUILDINFO_TAG)
 endif
 
-PLUGIN_ID=victorialogs-datasource
-APP_NAME=victorialogs_backend_plugin
+PLUGIN_ID=victoriametrics-logs-datasource
+APP_NAME=victoriametrics_logs_backend_plugin
 
 GO_BUILDINFO = -X 'github.com/grafana/grafana-plugin-sdk-go/build.buildInfoJSON={\"time\":${DATEINFO_TAG},\"id\":\"${PLUGIN_ID}\",\"version\":\"${BUILDINFO_TAG}\",\"branch\":\"${PKG_TAG}\"}'
 
@@ -74,7 +74,7 @@ vl-plugin-pack: vl-plugin-build
 	sha256sum dist/$(PACKAGE_NAME).tar.gz > dist/$(PACKAGE_NAME)_checksums_tar.gz.txt
 
 vl-plugin-cleanup:
-	rm -rf ./victorialogs-datasource plugins
+	rm -rf ./victoriametrics-logs-datasource plugins
 
 vl-plugin-release: \
 	vl-plugin-pack \

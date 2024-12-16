@@ -1,7 +1,7 @@
 {
   "type": "datasource",
   "name": "VictoriaLogs",
-  "id": "victorialogs-datasource",
+  "id": "victoriametrics-logs-datasource",
   "category": "logging",
   "logs": true,
   "metrics": true,
@@ -9,7 +9,7 @@
   "annotations": true,
   "streaming": true,
   "backend": true,
-  "executable": "victorialogs_backend_plugin",
+  "executable": "victoriametrics_logs_backend_plugin",
   "queryOptions": {
     "maxDataPoints": true
   },
@@ -19,12 +19,25 @@
       "name": "VictoriaLogs",
       "url": "https://victoriametrics.com/"
     },
-    "keywords": ["datasource"],
+    "keywords": ["logs", "log analytics", "observability", "victoriametrics", "victorialogs", "datasource"],
     "logos": {
       "small": "img/logo.svg",
       "large": "img/logo.svg"
     },
-    "links": [],
+    "links": [
+      {
+        "name": "Learn more",
+        "url": "https://docs.victoriametrics.com/victorialogs/"
+      },
+      {
+        "name": "LogsQL",
+        "url": "https://docs.victoriametrics.com/victorialogs/logsql/"
+      },
+      {
+        "name": "GitHub Project",
+        "url": "https://github.com/VictoriaMetrics/victorialogs-datasource"
+      }
+    ],
     "screenshots": [],
     "version": "%VERSION%",
     "updated": "%TODAY%"
