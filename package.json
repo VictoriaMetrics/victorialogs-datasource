@@ -1,5 +1,5 @@
 {
-  "name": "victorialogs-datasource",
+  "name": "victoriametrics-logs-datasource",
   "version": "0.12.0",
   "description": "VictoriaLogs datasource plugin for grafana",
   "scripts": {
