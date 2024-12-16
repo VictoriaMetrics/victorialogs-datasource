@@ -1,0 +1,54 @@
+name: codeql / backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/pr-checks-backend.yml
+      - go.*
+      - vendor/**
+      - pkg/**
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [main]
+    paths:
+      - .github/workflows/pr-checks-backend.yml
+      - go.*
+      - vendor/**
+      - pkg/**
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.21.6
+          check-latest: true
+          cache: true
+        if: ${{ matrix.language == 'go' }}
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: go
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
