@@ -9,6 +9,8 @@ on:
       - '**/*.tsx'
       - '**/yarn.lock'
       - '**/package.json'
+      - '**/Makefile'
+      - '**/Dockerfile'
   pull_request:
     branches: [main]
     paths:
@@ -17,6 +19,8 @@ on:
       - '**/*.tsx'
       - '**/yarn.lock'
       - '**/package.json'
+      - '**/Makefile'
+      - '**/Dockerfile'
 
 jobs:
   run-check:
