@@ -2,6 +2,13 @@
 
 ## tip
 
+**Update note 1: in the new version of the plugin was updated plugin id name. The new plugin id name is `victoriametrics-logs-datasource`.
+Those changes require updating the field `allow_loading_unsigned_plugins` in the `grafana.ini`or `defaults.ini` configuration file. 
+Example `allow_loading_unsigned_plugins = victoriametrics-logs-datasource`. In case of usage provision it is required to change `type` 
+field to `victoriametrics-logs-datasource`. After updating this field it needed to restart the Grafana server.**
+
+* FEATURE: update plugin id name to `victoriametrics-logs-datasource` to prepare the plugin for the sign procedure. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/156).
+
 ## v0.12.0
 
 * FEATURE: add compatibility for Grafana `v10.x.x` to ensure `/select/logs/hits` displays precise logs volume on the Explore page. See [this comment](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/146#issuecomment-2533419498).
