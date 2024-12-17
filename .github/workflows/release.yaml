@@ -36,8 +36,22 @@ jobs:
         run: |
           yq -iP '.version="${{ env.PKG_TAG }}"' package.json -o json
           make vl-plugin-release
+      - name: Prepare release notes
+        run: |
+          if grep -q "^## tip$" CHANGELOG.md; then
+            echo "Processing CHANGELOG"
+          else
+            echo "ERROR: Not found 'tip' section in CHANGELOG. Please add relavant entries and recreate git tag"
+            exit 1
+          fi
+          export NOTES="$(sed -n '/# tip/,/## /p' CHANGELOG.md | sed -e '$d' -e '1d')"
+          sed -i 's/## tip/&\n\n## ${{ env.PKG_TAG }}/' CHANGELOG.md
+          cat <<EOT > NOTES.md
+          ## ${{ env.PKG_TAG }}
+          $NOTES
+          EOT
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create ${{ env.PKG_TAG }} ./dist/*
+          gh release create ${{ env.PKG_TAG }} --notes-file=NOTES.md ./dist/*
