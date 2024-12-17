@@ -4,18 +4,22 @@ on:
     branches:
       - main
     paths:
-      - .github/workflows/pr-checks-backend.yml
-      - go.*
-      - vendor/**
-      - pkg/**
+      - '.github/workflows/pr-checks-backend.yml'
+      - 'go.*'
+      - 'vendor/**'
+      - 'pkg/**'
+      - '**/Makefile'
+      - '**/Dockerfile'
   pull_request:
     branches:
       - main
     paths:
-      - .github/workflows/pr-checks-backend.yml
-      - go.*
-      - vendor/**
-      - pkg/**
+      - '.github/workflows/pr-checks-backend.yml'
+      - 'go.*'
+      - 'vendor/**'
+      - 'pkg/**'
+      - '**/Makefile'
+      - '**/Dockerfile'
 
 permissions:
   contents: read
