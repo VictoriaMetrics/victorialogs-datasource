@@ -67,7 +67,7 @@ Please find the example of provisioning Grafana instance with VictoriaLogs datas
        grafana:
          image: grafana/grafana:11.0.0
          environment:
-         - GF_INSTALL_PLUGINS=https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/v0.12.0/victoriametrics-logs-datasource-v0.12.0.zip;victoriametrics-logs-datasource
+         - GF_INSTALL_PLUGINS=https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/v0.12.0/victorialogs-datasource-v0.12.0.zip;victoriametrics-logs-datasource
          - GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=victoriametrics-logs-datasource
          ports:
          - 3000:3000/tcp
@@ -95,7 +95,7 @@ Option 1. Using Grafana provisioning:
 
 ``` yaml
 env:
-  GF_INSTALL_PLUGINS: "https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/v0.12.0/victoriametrics-logs-datasource-v0.12.0.zip;victoriametrics-logs-datasource"
+  GF_INSTALL_PLUGINS: "https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/v0.12.0/victorialogs-datasource-v0.12.0.zip;victoriametrics-logs-datasource"
   GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: "victoriametrics-logs-datasource"
 ```
 
@@ -103,7 +103,7 @@ Option 2. Using Grafana plugins section in `values.yaml`:
 
 ``` yaml
 plugins:
-  - https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/v0.12.0/victoriametrics-logs-datasource-v0.12.0.zip;victoriametrics-logs-datasource
+  - https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/v0.12.0/victorialogs-datasource-v0.12.0.zip;victoriametrics-logs-datasource
 ```
 
 Option 3. Using init container:
@@ -124,7 +124,7 @@ extraInitContainers:
        set -ex
        mkdir -p /var/lib/grafana/plugins/
        ver=$(curl -s -L https://api.github.com/repos/VictoriaMetrics/victorialogs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-       curl -L https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/$ver/victoriametrics-logs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/vl-plugin.tar.gz
+       curl -L https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/vl-plugin.tar.gz
        tar -xf /var/lib/grafana/plugins/vl-plugin.tar.gz -C /var/lib/grafana/plugins/
        rm /var/lib/grafana/plugins/vl-plugin.tar.gz
     volumeMounts:
@@ -184,7 +184,7 @@ spec:
                   set -ex
                   mkdir -p /var/lib/grafana/plugins/
                   ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/victorialogs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-                  curl -L https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/$ver/victoriametrics-logs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/vl-plugin.tar.gz
+                  curl -L https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/vl-plugin.tar.gz
                   tar -xf /var/lib/grafana/plugins/vl-plugin.tar.gz -C /var/lib/grafana/plugins/
                   rm /var/lib/grafana/plugins/vl-plugin.tar.gz
               volumeMounts:
@@ -204,7 +204,7 @@ This example uses init container to download and install plugin.
 
    ``` bash
    ver=$(curl -s https://api.github.com/repos/VictoriaMetrics/victorialogs-datasource/releases/latest | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-   curl -L https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/$ver/victoriametrics-logs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/vl-plugin.tar.gz
+   curl -L https://github.com/VictoriaMetrics/victorialogs-datasource/releases/download/$ver/victorialogs-datasource-$ver.tar.gz -o /var/lib/grafana/plugins/vl-plugin.tar.gz
    tar -xf /var/lib/grafana/plugins/vl-plugin.tar.gz -C /var/lib/grafana/plugins/
    rm /var/lib/grafana/plugins/vl-plugin.tar.gz
    ```
