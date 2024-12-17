@@ -44,7 +44,7 @@ jobs:
             echo "ERROR: Not found 'tip' section in CHANGELOG. Please add relavant entries and recreate git tag"
             exit 1
           fi
-          export NOTES="$(sed -n '/# tip/,/## /p' CHANGELOG.md | sed -e '$d' -e '1d')"
+          export NOTES="$(sed -n '/## tip/,/## /p' CHANGELOG.md | sed -e '$d' -e '1d')"
           sed -i 's/## tip/&\n\n## ${{ env.PKG_TAG }}/' CHANGELOG.md
           cat <<EOT > NOTES.md
           ## ${{ env.PKG_TAG }}
@@ -55,3 +55,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create ${{ env.PKG_TAG }} --notes-file=NOTES.md ./dist/*
+      - name: Automatic update changelog
+        if: ${{ hashFiles('NOTES.md') != '' }}
+        run: |
+          rm -rf NOTES.md
+          export CL_BRANCH="changelog-update-$(date +%s)"
+          git checkout -b "${CL_BRANCH}"
+          git add CHANGELOG.md
+          git commit -S -m "Automatic update CHANGELOG"
+          git push origin ${CL_BRANCH}
+          gh pr create -f
+        env:
+          GH_TOKEN: "${{ secrets.VM_BOT_GH_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.VM_BOT_GH_TOKEN }}"
