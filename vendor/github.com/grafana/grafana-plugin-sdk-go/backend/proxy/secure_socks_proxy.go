@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+	"github.com/grafana/grafana-plugin-sdk-go/experimental/status"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/net/proxy"
@@ -290,12 +291,12 @@ func (d *instrumentedSocksDialer) DialContext(ctx context.Context, n, addr strin
 	c, err := dialer.DialContext(ctx, n, addr)
 
 	var code string
-	var oppErr *net.OpError
+	var opErr *net.OpError
 
 	switch {
 	case err == nil:
 		code = "0"
-	case errors.As(err, &oppErr):
+	case errors.As(err, &opErr):
 		unknownCode := socksUnknownError.FindStringSubmatch(err.Error())
 
 		// Socks errors defined here: https://cs.opensource.google/go/x/net/+/refs/tags/v0.15.0:internal/socks/socks.go;l=40-63
@@ -322,15 +323,20 @@ func (d *instrumentedSocksDialer) DialContext(ctx context.Context, n, addr strin
 			code = "io_timeout_error"
 		case strings.HasSuffix(err.Error(), "context canceled"):
 			code = "context_canceled_error"
+		case strings.HasSuffix(err.Error(), "operation was canceled"):
+			code = "context_canceled_error"
 		case len(unknownCode) > 1:
 			code = unknownCode[1]
 		default:
 			code = "socks_unknown_error"
 		}
-		log.DefaultLogger.Error("received oppErr from dialer", "network", n, "addr", addr, "oppErr", oppErr, "code", code)
+		log.DefaultLogger.Error("received opErr from dialer", "network", n, "addr", addr, "opErr", opErr, "code", code)
 	default:
 		log.DefaultLogger.Error("received err from dialer", "network", n, "addr", addr, "err", err)
 		code = "dial_error"
+	}
+	if err != nil {
+		err = status.DownstreamError(err)
 	}
 
 	secureSocksRequestsDuration.WithLabelValues(code, d.datasourceName, d.datasourceType).Observe(time.Since(start).Seconds())

@@ -66,7 +66,7 @@ func (t TimeSeriesType) String() string {
 func (f *Frame) TimeSeriesSchema() TimeSeriesSchema {
 	var tsSchema TimeSeriesSchema
 	tsSchema.Type = TimeSeriesTypeNot
-	if f.Fields == nil || len(f.Fields) == 0 {
+	if len(f.Fields) == 0 {
 		return tsSchema
 	}
 
@@ -263,6 +263,11 @@ func LongToWide(longFrame *Frame, fillMissing *FillMissing) (*Frame, error) {
 		wideFrame.Meta = &FrameMeta{}
 	}
 	wideFrame.Meta.Type = FrameTypeTimeSeriesWide
+
+	// Setting the TypeVersion to greater than [0, 0] (along with Meta.Type being set) indicates that the produced
+	// frame follows the dataplane contract (see https://grafana.com/developers/dataplane/ and https://github.com/grafana/dataplane).
+	// https://grafana.com/developers/dataplane/timeseries#time-series-wide-format-timeserieswide defines TimeSeriesWide in dataplane.
+	wideFrame.Meta.TypeVersion = FrameTypeVersion{0, 1}
 	return wideFrame, nil
 }
 
@@ -303,7 +308,7 @@ func (p *longRowProcessor) process(longRowIdx int) error {
 	}
 
 	if currentTime.Before(p.lastTime) {
-		return fmt.Errorf("long series must be sorted ascending by time to be converted")
+		return ErrorSeriesUnsorted
 	}
 
 	sliceKey := make(tupleLabels, len(p.tsSchema.FactorIndices)) // factor columns idx:value tuples (used for lookup)
@@ -381,7 +386,7 @@ func (p *longRowProcessor) process(longRowIdx int) error {
 func timeAt(idx int, longFrame *Frame, tsSchema TimeSeriesSchema) (time.Time, error) { // get time.Time regardless if pointer
 	val, ok := longFrame.ConcreteAt(tsSchema.TimeIndex, idx)
 	if !ok {
-		return time.Time{}, fmt.Errorf("can not convert to wide series, input has null time values")
+		return time.Time{}, ErrorNullTimeValues
 	}
 	return val.(time.Time), nil
 }
@@ -415,7 +420,7 @@ func WideToLong(wideFrame *Frame) (*Frame, error) {
 	if err != nil {
 		return nil, err
 	} else if wideLen == 0 {
-		return nil, fmt.Errorf("can not convert to long series, input fields have no rows")
+		return nil, ErrorInputFieldsWithoutRows
 	}
 
 	var uniqueValueNames []string                        // unique names of Fields that are value types

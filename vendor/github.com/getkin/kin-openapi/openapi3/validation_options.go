@@ -12,6 +12,8 @@ type ValidationOptions struct {
 	schemaDefaultsValidationDisabled                 bool
 	schemaFormatValidationEnabled                    bool
 	schemaPatternValidationDisabled                  bool
+	schemaExtensionsInRefProhibited                  bool
+	regexCompilerFunc                                RegexCompilerFunc
 	extraSiblingFieldsAllowed                        map[string]struct{}
 }
 
@@ -89,6 +91,34 @@ func EnableExamplesValidation() ValidationOption {
 func DisableExamplesValidation() ValidationOption {
 	return func(options *ValidationOptions) {
 		options.examplesValidationDisabled = true
+	}
+}
+
+// AllowExtensionsWithRef allows extensions (fields starting with 'x-')
+// as siblings for $ref fields. This is the default.
+// Non-extension fields are prohibited unless allowed explicitly with the
+// AllowExtraSiblingFields option.
+func AllowExtensionsWithRef() ValidationOption {
+	return func(options *ValidationOptions) {
+		options.schemaExtensionsInRefProhibited = false
+	}
+}
+
+// ProhibitExtensionsWithRef causes the validation to return an
+// error if extensions (fields starting with 'x-') are found as
+// siblings for $ref fields. Non-extension fields are prohibited
+// unless allowed explicitly with the AllowExtraSiblingFields option.
+func ProhibitExtensionsWithRef() ValidationOption {
+	return func(options *ValidationOptions) {
+		options.schemaExtensionsInRefProhibited = true
+	}
+}
+
+// SetRegexCompiler allows to override the regex implementation used to validate
+// field "pattern".
+func SetRegexCompiler(c RegexCompilerFunc) ValidationOption {
+	return func(options *ValidationOptions) {
+		options.regexCompilerFunc = c
 	}
 }
 

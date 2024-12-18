@@ -3,7 +3,7 @@ PKG_PREFIX := github.com/VictoriaMetrics/victorialogs-datasource
 
 ROOT_IMAGE ?= alpine:3.20.0
 CERTS_IMAGE := alpine:3.20.0
-GO_BUILDER_IMAGE := golang:1.21.6-alpine
+GO_BUILDER_IMAGE := golang:1.23.1-alpine
 BUILDER_IMAGE := local/builder:2.0.0-$(shell echo $(GO_BUILDER_IMAGE) | tr :/ __)-1
 BASE_IMAGE := local/base:1.1.3-$(shell echo $(ROOT_IMAGE) | tr :/ __)-$(shell echo $(CERTS_IMAGE) | tr :/ __)
 
