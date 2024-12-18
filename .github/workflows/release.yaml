@@ -47,7 +47,6 @@ jobs:
           export NOTES="$(sed -n '/## tip/,/## /p' CHANGELOG.md | sed -e '$d' -e '1d')"
           sed -i 's/## tip/&\n\n## ${{ env.PKG_TAG }}/' CHANGELOG.md
           cat <<EOT > NOTES.md
-          ## ${{ env.PKG_TAG }}
           $NOTES
           EOT
       - name: Upload release assets
@@ -55,7 +54,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create ${{ env.PKG_TAG }} --notes-file=NOTES.md ./dist/*
-      - name: Automatic update changelog
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.VM_BOT_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.VM_BOT_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+      - name: Automatic changelog update
         if: ${{ hashFiles('NOTES.md') != '' }}
         run: |
           rm -rf NOTES.md
