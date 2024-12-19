@@ -16,8 +16,6 @@ GO_BUILDINFO = -X 'github.com/grafana/grafana-plugin-sdk-go/build.buildInfoJSON=
 
 .PHONY: $(MAKECMDGOALS)
 
-include deployment/*/Makefile
-
 frontend-package-base-image:
 	docker build -t frontent-builder-image -f Dockerfile $(shell pwd)
 
