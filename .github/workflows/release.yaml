@@ -34,8 +34,8 @@ jobs:
             ${{ runner.os }}-yarn-
       - name: Build plugin
         run: |
-          export PKG_TAG="${PKG_TAG#v}"
-          yq -iP '.version=env(PKG_TAG)' package.json -o json
+          export PLUGIN_TAG="${PKG_TAG#v}"
+          yq -iP '.version=env(PLUGIN_TAG)' package.json -o json
           make vl-plugin-check
       - name: Prepare release notes
         run: |
