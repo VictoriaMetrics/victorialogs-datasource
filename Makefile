@@ -86,3 +86,10 @@ vet:
 	go vet ./pkg/...
 
 check-all: fmt vet golang-ci-lint
+
+vl-plugin-check-install:
+	which plugincheck2 || go install github.com/grafana/plugin-validator/pkg/cmd/plugincheck2@v0.20.3
+
+vl-plugin-check: vl-plugin-release vl-plugin-check-install
+	$(eval PACKAGE_NAME := $(PLUGIN_ID)-$(PKG_TAG)) \
+	plugincheck2 -sourceCodeUri file://$(shell pwd)/ "$(shell pwd)/dist/${PACKAGE_NAME}.zip"

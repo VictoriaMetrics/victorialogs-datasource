@@ -1,25 +1,35 @@
-name: check / backend
+name: check / plugin
 on:
   push:
     branches:
       - main
     paths:
-      - '.github/workflows/pr-checks-backend.yml'
+      - '.github/workflows/pr-checks-plugin.yml'
       - 'go.*'
       - 'vendor/**'
       - 'pkg/**'
       - '**/Makefile'
       - '**/Magefile.go'
+      - '**/Dockerfile'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/yarn.lock'
+      - '**/package.json'
   pull_request:
     branches:
       - main
     paths:
-      - '.github/workflows/pr-checks-backend.yml'
+      - '.github/workflows/pr-checks-plugin.yml'
       - 'go.*'
       - 'vendor/**'
       - 'pkg/**'
       - '**/Makefile'
       - '**/Magefile.go'
+      - '**/Dockerfile'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/yarn.lock'
+      - '**/package.json'
 
 permissions:
   contents: read
@@ -29,8 +39,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: lint
+  build:
+    name: build and validate
     runs-on: ubuntu-latest
     steps:
       - name: Code checkout
@@ -42,30 +52,15 @@ jobs:
           go-version-file: 'go.mod'
           check-latest: true
           cache: true
-
-      - name: Dependencies
-        run: |
-          make check-all
-          git diff --exit-code
-
-  test:
-    needs: lint
-    strategy:
-      matrix:
-        scenario: ["golang-test", "golang-test-race"]
-    name: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Code checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Setup node caches
+        uses: actions/cache@v4
         with:
-          go-version-file: 'go.mod'
-          check-latest: true
-          cache: true
+          path: |
+            ${{ github.workspace }}/.cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
 
-      - name: run tests
+      - name: Build
         run: |
-          make ${{ matrix.scenario }}
+          make vl-plugin-check
