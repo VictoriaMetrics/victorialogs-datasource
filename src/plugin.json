@@ -38,7 +38,24 @@
         "url": "https://github.com/VictoriaMetrics/victorialogs-datasource"
       }
     ],
-    "screenshots": [],
+    "screenshots": [
+      {
+        "name": "Connection properties",
+        "path": "img/datasource.png"
+      },
+      {
+        "name": "Dashboard",
+        "path": "img/dashboard.png"
+      },
+      {
+        "name": "Explore",
+        "path": "img/explore.png"
+      },
+      {
+        "name": "Alerting",
+        "path": "img/alerting.png"
+      }
+    ],
     "version": "%VERSION%",
     "updated": "%TODAY%"
   },
