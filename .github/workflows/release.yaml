@@ -16,14 +16,12 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
-      - name: Setup golang caches
-        uses: actions/cache@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          path: |
-            ${{ github.workspace }}/gocache-for-docker
-          key: ${{ runner.os }}-golang-${{ hashFiles('go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-golang-
+          go-version-file: 'go.mod'
+          check-latest: true
+          cache: true
       - name: Setup node caches
         uses: actions/cache@v4
         with:
