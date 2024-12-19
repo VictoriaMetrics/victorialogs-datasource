@@ -3,7 +3,7 @@
 ## tip
 
 
-* FEATURE: update plugin dependencies and add a check process for all releases the integrity of plugin.
+* FEATURE: update plugin dependencies to satisfy Grafana marketplace requirements.
 
 * BUGFIX: filter out empty variable values in queries. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/159).
 
