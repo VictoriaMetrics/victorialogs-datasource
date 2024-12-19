@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: update plugin dependencies and add a check process for all releases the integrity of plugin.
+
 ## v0.13.0
 
 ⚠️ **Breaking Change: Plugin ID Updated**  
