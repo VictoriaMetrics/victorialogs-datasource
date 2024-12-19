@@ -124,9 +124,10 @@ function getArrayType(data: FieldHits[]): HitsValueType {
 }
 
 function sortFieldHits(data: FieldHits[]): FieldHits[] {
-  const arrayType = getArrayType(data);
+  const filteredData = data.filter(item => item.value !== "");
+  const arrayType = getArrayType(filteredData);
 
-  return data.sort((a, b) => {
+  return filteredData.sort((a, b) => {
     switch (arrayType) {
       case HitsValueType.NUMBER:
         return Number(a.value) - Number(b.value);

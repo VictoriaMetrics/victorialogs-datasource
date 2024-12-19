@@ -2,7 +2,11 @@
 
 ## tip
 
+
 * FEATURE: update plugin dependencies and add a check process for all releases the integrity of plugin.
+
+* BUGFIX: filter out empty variable values in queries. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/159).
+
 
 ## v0.13.0
 
