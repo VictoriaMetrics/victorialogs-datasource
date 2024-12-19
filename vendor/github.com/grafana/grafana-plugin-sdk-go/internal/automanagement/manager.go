@@ -2,6 +2,7 @@ package automanagement
 
 import (
 	"context"
+	"errors"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
@@ -27,7 +28,21 @@ func NewManager(instanceManager instancemgmt.InstanceManager) *Manager {
 func (m *Manager) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
 	h, err := m.Get(ctx, req.PluginContext)
 	if err != nil {
-		return nil, err
+		if len(req.Queries) == 0 {
+			// shouldn't be possible, but just in case
+			return nil, err
+		}
+		var esErr backend.ErrorWithSource
+		ok := errors.As(err, &esErr)
+		if !ok { // not an errorsource error, return opaquely
+			return nil, err
+		}
+		resp := backend.NewQueryDataResponse()
+		resp.Responses[req.Queries[0].RefID] = backend.DataResponse{
+			Error:       err,
+			ErrorSource: esErr.ErrorSource(),
+		}
+		return resp, nil
 	}
 	if ds, ok := h.(backend.QueryDataHandler); ok {
 		return ds.QueryData(ctx, req)

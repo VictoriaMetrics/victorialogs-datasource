@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
@@ -60,7 +61,7 @@ func getExecutableName(os string, arch string, pluginJSONPath string) (string, e
 		exname = exename
 	}
 
-	return asExecutableName(os, arch, pluginJSONPath), nil
+	return asExecutableName(os, arch, exname), nil
 }
 
 // execNameCache is a cache for the executable name, so we don't have to read the plugin.json file multiple times.
@@ -152,7 +153,9 @@ func getBuildBackendCmdInfo(cfg Config) (Config, []string, error) {
 		"build", "-o", filepath.Join(outputPath, exePath),
 	}
 
-	info := getBuildInfoFromEnvironment()
+	info := Info{
+		Time: now().UnixNano() / int64(time.Millisecond),
+	}
 	pluginID, err := internal.GetStringValueFromJSON(filepath.Join(pluginJSONPath, "plugin.json"), "id")
 	if err == nil && len(pluginID) > 0 {
 		info.PluginID = pluginID
@@ -161,6 +164,8 @@ func getBuildBackendCmdInfo(cfg Config) (Config, []string, error) {
 	if err == nil && len(version) > 0 {
 		info.Version = version
 	}
+
+	args = append(args, "-tags", "arrow_json_stdlib")
 
 	flags := make(map[string]string, 10)
 	info.appendFlags(flags)

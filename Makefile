@@ -16,46 +16,30 @@ GO_BUILDINFO = -X 'github.com/grafana/grafana-plugin-sdk-go/build.buildInfoJSON=
 
 .PHONY: $(MAKECMDGOALS)
 
-include deployment/*/Makefile
+frontend-package-base-image:
+	docker build -t frontent-builder-image -f Dockerfile $(shell pwd)
 
-app-via-docker-linux-amd64:
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(MAKE) app-via-docker
-
-app-via-docker-linux-arm:
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm $(MAKE) app-via-docker
-
-app-via-docker-linux-386:
-	CGO_ENABLED=0 GOOS=linux GOARCH=386 $(MAKE) app-via-docker
-
-app-via-docker-linux-arm64:
-	DOCKER_OPTS='--env CC=/opt/cross-builder/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc' CGO_ENABLED=1 GOOS=linux GOARCH=arm64 $(MAKE) app-via-docker
-
-app-via-docker-darwin-amd64:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(MAKE) app-via-docker
-
-app-via-docker-darwin-arm64:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 $(MAKE) app-via-docker
-
-app-via-docker-windows-arm64:
-	CGO_ENABLED=0 GOOS=windows GOARCH=arm64 $(MAKE) app-via-docker
-
-app-via-docker-windows-amd64:
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(MAKE) app-via-docker
+frontend-build: frontend-package-base-image
+	mkdir -p .npm .cache && \
+	chown -R $(shell id -u):$(shell id -g) .npm .cache && \
+	docker run --rm \
+		-v "$(shell pwd):/victorialogs-datasource" \
+		-v "$(shell pwd)/.yarn:/.yarn" \
+		-v "$(shell pwd)/.npm:/.npm" \
+		-v "$(shell pwd)/.cache:/.cache" \
+		-w /victorialogs-datasource \
+		--user $(shell id -u):$(shell id -g) \
+		--env YARN_CACHE_FOLDER="/victorialogs-datasource/.cache" \
+		--entrypoint=/bin/bash \
+		frontent-builder-image -c "yarn install --omit=dev && yarn build"
 
 app-via-docker-local:
 	$(eval OS := $(shell docker run $(GO_BUILDER_IMAGE) go env GOOS))
 	$(eval ARCH := $(shell docker run $(GO_BUILDER_IMAGE) go env GOARCH))
 	$(MAKE) app-via-docker-$(OS)-$(ARCH)
 
-vl-backend-plugin-build: \
-	app-via-docker-linux-amd64 \
-	app-via-docker-linux-arm \
-	app-via-docker-linux-arm64 \
-	app-via-docker-linux-386 \
-	app-via-docker-darwin-amd64 \
-	app-via-docker-darwin-arm64 \
-	app-via-docker-windows-amd64 \
-	app-via-docker-windows-arm64
+vl-backend-plugin-build:
+	which mage || go install github.com/magefile/mage@v1.15.0 && mage -v
 
 vl-frontend-plugin-build: frontend-build
 
@@ -102,3 +86,10 @@ vet:
 	go vet ./pkg/...
 
 check-all: fmt vet golang-ci-lint
+
+vl-plugin-check-install:
+	which plugincheck2 || go install github.com/grafana/plugin-validator/pkg/cmd/plugincheck2@v0.20.3
+
+vl-plugin-check: vl-plugin-release vl-plugin-check-install
+	$(eval PACKAGE_NAME := $(PLUGIN_ID)-$(PKG_TAG)) \
+	plugincheck2 -sourceCodeUri file://$(shell pwd)/ "$(shell pwd)/dist/${PACKAGE_NAME}.zip"

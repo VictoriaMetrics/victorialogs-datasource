@@ -1,10 +1,13 @@
 package tracing
 
 import (
+	"context"
+	"fmt"
 	"sync"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -39,4 +42,26 @@ func DefaultTracer() trace.Tracer {
 // This method should only be called once during the plugin's initialization, and it's not safe for concurrent use.
 func InitDefaultTracer(tracer trace.Tracer) {
 	defaultTracer = &contextualTracer{tracer: tracer}
+}
+
+func TraceIDFromContext(ctx context.Context, requireSampled bool) string {
+	spanCtx := trace.SpanContextFromContext(ctx)
+	if !spanCtx.HasTraceID() || !spanCtx.IsValid() || (requireSampled && !spanCtx.IsSampled()) {
+		return ""
+	}
+
+	return spanCtx.TraceID().String()
+}
+
+// Error sets the status to error and record the error as an exception in the provided span.
+func Error(span trace.Span, err error) error {
+	span.SetStatus(codes.Error, err.Error())
+	span.RecordError(err)
+	return err
+}
+
+// Errorf wraps fmt.Errorf and also sets the status to error and record the error as an exception in the provided span.
+func Errorf(span trace.Span, format string, args ...any) error {
+	err := fmt.Errorf(format, args...)
+	return Error(span, err)
 }

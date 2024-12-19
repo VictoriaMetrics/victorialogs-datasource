@@ -9,7 +9,7 @@ on:
       - 'vendor/**'
       - 'pkg/**'
       - '**/Makefile'
-      - '**/Dockerfile'
+      - '**/Magefile.go'
   pull_request:
     branches:
       - main
@@ -19,7 +19,7 @@ on:
       - 'vendor/**'
       - 'pkg/**'
       - '**/Makefile'
-      - '**/Dockerfile'
+      - '**/Magefile.go'
 
 permissions:
   contents: read
@@ -39,7 +39,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.21.6
+          go-version-file: 'go.mod'
           check-latest: true
           cache: true
 
@@ -62,27 +62,10 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.21.6
+          go-version-file: 'go.mod'
           check-latest: true
           cache: true
 
       - name: run tests
         run: |
           make ${{ matrix.scenario }}
-
-  build:
-    needs: test
-    name: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Code checkout
-        uses: actions/checkout@v4
-
-      - uses: actions/cache@v4
-        with:
-          path: gocache-for-docker
-          key:  gocache-docker-${{ runner.os }}-${{ steps.go.outputs.go-version }}-${{ hashFiles('go.mod') }}
-
-      - name: Build
-        run: |
-          make vl-backend-plugin-build

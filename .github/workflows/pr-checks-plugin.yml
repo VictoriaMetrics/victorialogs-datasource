@@ -1,0 +1,66 @@
+name: check / plugin
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/pr-checks-plugin.yml'
+      - 'go.*'
+      - 'vendor/**'
+      - 'pkg/**'
+      - '**/Makefile'
+      - '**/Magefile.go'
+      - '**/Dockerfile'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/yarn.lock'
+      - '**/package.json'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/pr-checks-plugin.yml'
+      - 'go.*'
+      - 'vendor/**'
+      - 'pkg/**'
+      - '**/Makefile'
+      - '**/Magefile.go'
+      - '**/Dockerfile'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/yarn.lock'
+      - '**/package.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build and validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          check-latest: true
+          cache: true
+      - name: Setup node caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Build
+        run: |
+          make vl-plugin-check
