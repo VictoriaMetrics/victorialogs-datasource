@@ -6,6 +6,8 @@
 
 * SECURITY: bump golang.org/x/net to 0.33.0. See https://github.com/advisories/GHSA-w32m-9786-jp63
 
+* FEATURE: enable to set headers for every request to the datasource. It helps to use custom headers in the Grafana to define AccountID and ProjectID if it is needed. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/85).
+
 ## v0.13.1
 
 * FEATURE: update plugin dependencies to satisfy Grafana marketplace requirements.
