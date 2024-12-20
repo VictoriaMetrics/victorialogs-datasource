@@ -55,9 +55,8 @@ jobs:
               echo "ERROR: Not found 'tip' section in CHANGELOG. Please add relavant entries and recreate git tag"
               exit 1
             fi
-            export NOTES="$(sed -n '/## tip/,/## /p' CHANGELOG.md | sed -e '$d' -e '1d')"
-            sed -i 's/## tip/&\n\n## ${{ env.PKG_TAG }}/' CHANGELOG.md
-            echo $NOTES > NOTES.md
+            sed -n '/## tip/,/## /p' CHANGELOG.md | sed -e '$d' -e '1d' > NOTES.md
+            sed -i 's/## tip/&\n\n## '${PKG_TAG}'/' CHANGELOG.md
             make vl-plugin-check
             git tag ${TAG}
             git push origin ${TAG}
