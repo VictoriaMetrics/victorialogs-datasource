@@ -283,7 +283,8 @@ This command will build frontend part and backend part or the plugin and locate 
 ## How to make new release
 
 1. Make sure there are no open security issues.
-1. Change version in package.json in a `main` branch, this should trigger creation of a new release.
+1. Change version in package.json in a `main` branch
+1. Trigger [release pipeline](https://github.com/VictoriaMetrics/victorialogs-datasource/actions/workflows/release.yaml).
 1. Go to [releases page](https://github.com/VictoriaMetrics/victorialogs-datasource/releases) once pipeline is finished and verify release with the name `TAG` has been created and has all the needed binaries and checksums attached.
 
 ## Notes
