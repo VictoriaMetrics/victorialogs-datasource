@@ -1,10 +1,14 @@
 name: release
+
 on:
-  push:
-    tags:
-      - 'v*'
-env:
-  PKG_TAG: ${{ github.ref_name }}
+  workflow_dispatch:
+    ref: main
+    branches:
+      - main
+    permissions:
+      teams:
+        - development
+
 jobs:
   release:
     name: Release on GitHub
@@ -35,24 +39,6 @@ jobs:
       - name: Build plugin
         run: |
           make vl-plugin-check
-      - name: Prepare release notes
-        run: |
-          if grep -q "^## tip$" CHANGELOG.md; then
-            echo "Processing CHANGELOG"
-          else
-            echo "ERROR: Not found 'tip' section in CHANGELOG. Please add relavant entries and recreate git tag"
-            exit 1
-          fi
-          export NOTES="$(sed -n '/## tip/,/## /p' CHANGELOG.md | sed -e '$d' -e '1d')"
-          sed -i 's/## tip/&\n\n## ${{ env.PKG_TAG }}/' CHANGELOG.md
-          cat <<EOT > NOTES.md
-          $NOTES
-          EOT
-      - name: Upload release assets
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create ${{ env.PKG_TAG }} --notes-file=NOTES.md ./dist/*
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
         with:
@@ -60,6 +46,32 @@ jobs:
           passphrase: ${{ secrets.VM_BOT_PASSPHRASE }}
           git_user_signingkey: true
           git_commit_gpgsign: true
+      - name: Prepare release notes if tag not exists
+        run: |
+          TAG="v$(yq -r '.version' package.json)"
+          if git show-ref --tags --verify --quiet "refs/tags/${TAG}"; then
+            echo "Tag ${TAG} exists, skipping release"
+          else
+            echo "PKG_TAG=$TAG" >> $GITHUB_ENV
+            echo "Tag ${TAG} does not exist, pushing a new one"
+            git tag ${TAG}
+            git push origin ${TAG}
+            if grep -q "^## tip$" CHANGELOG.md; then
+              echo "Processing CHANGELOG"
+            else
+              echo "ERROR: Not found 'tip' section in CHANGELOG. Please add relavant entries and recreate git tag"
+              exit 1
+            fi
+            export NOTES="$(sed -n '/## tip/,/## /p' CHANGELOG.md | sed -e '$d' -e '1d')"
+            sed -i 's/## tip/&\n\n## ${{ env.PKG_TAG }}/' CHANGELOG.md
+            echo $NOTES > NOTES.md
+          fi
+      - name: Upload release assets
+        if: ${{ hashFiles('NOTES.md') != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ env.PKG_TAG }} --notes-file=NOTES.md ./dist/*
       - name: Automatic changelog update
         if: ${{ hashFiles('NOTES.md') != '' }}
         run: |
