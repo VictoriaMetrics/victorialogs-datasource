@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.13.2
+
 * SECURITY: bump golang.org/x/net to 0.33.0. See https://github.com/advisories/GHSA-w32m-9786-jp63
 
 ## v0.13.1
