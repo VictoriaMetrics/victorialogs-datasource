@@ -1,0 +1,42 @@
+name: issue release
+
+on:
+  workflow_run:
+    workflows:
+      - check / frontend
+      - check / backend
+      - codeql / frontend
+      - codeql / backend
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  issue:
+    name: Push tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.VM_BOT_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.VM_BOT_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+      - name: Push a tag if it doesn't exist
+        run: |
+          TAG="v$(yq '.version' package.json)"
+          if git show-ref --tags --verify --quiet "refs/tags/${TAG}"; then
+            echo "Tag ${TAG} exists"
+          else
+            echo "Tag ${TAG} does not exist, pushing a new one"
+            git tag ${TAG}
+            git push origin ${TAG}
+          fi
