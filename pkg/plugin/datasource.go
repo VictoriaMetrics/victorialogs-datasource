@@ -26,7 +26,7 @@ var (
 
 const (
 	health                        = "/health"
-	settingsHttpMethod            = "httpMethod"
+	settingsHTTPMethod            = "httpMethod"
 	settingsCustomQueryParameters = "customQueryParameters"
 	httpHeaderName                = "httpHeaderName"
 	httpHeaderValue               = "httpHeaderValue"
@@ -186,7 +186,7 @@ func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream boo
 		return nil, fmt.Errorf("failed to parse datasource settings: %w", err)
 	}
 
-	httpMethod := settings[settingsHttpMethod]
+	httpMethod := settings[settingsHTTPMethod]
 	if httpMethod == "" {
 		httpMethod = http.MethodPost
 	}
