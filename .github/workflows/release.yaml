@@ -51,15 +51,16 @@ jobs:
           else
             echo "PKG_TAG=$PKG_TAG" >> $GITHUB_ENV
             echo "Tag ${PKG_TAG} does not exist, pushing a new one"
-            if grep -q "^## tip$" CHANGELOG.md; then
-              echo "Processing CHANGELOG"
-            else
+            if ! grep -q "^## tip$" CHANGELOG.md; then
               echo "ERROR: Not found 'tip' section in CHANGELOG. Please add relavant entries and recreate git tag"
               exit 1
             fi
             export NOTES="$(sed -n '/## tip/,/## /p' CHANGELOG.md | sed -e '$d' -e '1d')"
             sed -i 's/## tip/&\n\n## ${{ env.PKG_TAG }}/' CHANGELOG.md
             echo $NOTES > NOTES.md
+            make vl-plugin-check
+            git tag ${TAG}
+            git push origin ${TAG}
           fi
       - name: Upload release assets
         if: ${{ hashFiles('NOTES.md') != '' }}
