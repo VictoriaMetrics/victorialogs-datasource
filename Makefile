@@ -54,8 +54,8 @@ vl-plugin-pack: vl-plugin-build
 	tar -czf ../dist/$(PACKAGE_NAME).tar.gz ./$(PLUGIN_ID) && \
 	zip -q -r ../dist/$(PACKAGE_NAME).zip ./$(PLUGIN_ID) && \
 	cd - && \
-	sha256sum dist/$(PACKAGE_NAME).zip > dist/$(PACKAGE_NAME)_checksums_zip.txt && \
-	sha256sum dist/$(PACKAGE_NAME).tar.gz > dist/$(PACKAGE_NAME)_checksums_tar.gz.txt
+	sha1sum dist/$(PACKAGE_NAME).zip > dist/$(PACKAGE_NAME)_checksums_zip.txt && \
+	sha1sum dist/$(PACKAGE_NAME).tar.gz > dist/$(PACKAGE_NAME)_checksums_tar.gz.txt
 
 vl-plugin-cleanup:
 	rm -rf ./victorialogs-datasource plugins
