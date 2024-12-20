@@ -25,7 +25,11 @@ var (
 )
 
 const (
-	health = "/health"
+	health                        = "/health"
+	settingsHTTPMethod            = "httpMethod"
+	settingsCustomQueryParameters = "customQueryParameters"
+	httpHeaderName                = "httpHeaderName"
+	httpHeaderValue               = "httpHeaderValue"
 )
 
 // NewDatasource creates a new datasource instance.
@@ -46,6 +50,10 @@ func NewDatasource(ctx context.Context, settings backend.DataSourceInstanceSetti
 		streamCh:   make(chan *data.Frame),
 	}, nil
 }
+
+// Settings contains the raw DataSourceConfig as JSON as stored by Grafana server.
+// It repeats the properties in this object and includes custom properties.
+type Settings map[string]string
 
 // Datasource is an example datasource which can respond to data queries, reports
 // its health and has streaming skills.
@@ -173,33 +181,45 @@ func (d *Datasource) getQueryFromRaw(data json.RawMessage) (*Query, error) {
 // datasourceQuery process the query to the datasource and returns the result.
 func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream bool) (io.ReadCloser, error) {
 
-	var settings struct {
-		HTTPMethod  string `json:"httpMethod"`
-		QueryParams string `json:"customQueryParameters"`
-	}
+	settings := make(Settings)
 	if err := json.Unmarshal(d.settings.JSONData, &settings); err != nil {
 		return nil, fmt.Errorf("failed to parse datasource settings: %w", err)
 	}
-	if settings.HTTPMethod == "" {
-		settings.HTTPMethod = http.MethodPost
+
+	httpMethod := settings[settingsHTTPMethod]
+	if httpMethod == "" {
+		httpMethod = http.MethodPost
 	}
 
-	reqURL, err := q.getQueryURL(d.settings.URL, settings.QueryParams)
+	customQueryParameters := settings[settingsCustomQueryParameters]
+
+	reqURL, err := q.getQueryURL(d.settings.URL, customQueryParameters)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request URL: %w", err)
 	}
 
 	if isStream {
-		reqURL, err = q.queryTailURL(d.settings.URL, settings.QueryParams)
+		reqURL, err = q.queryTailURL(d.settings.URL, customQueryParameters)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request URL: %w", err)
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, settings.HTTPMethod, reqURL, nil)
+	req, err := http.NewRequestWithContext(ctx, httpMethod, reqURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new request with context: %w", err)
 	}
+
+	for k, v := range settings {
+		if strings.HasPrefix(k, httpHeaderName) {
+			headerName := v
+			headerValueName := strings.Replace(k, httpHeaderName, httpHeaderValue, 1)
+			if headerValue, ok := d.settings.DecryptedSecureJSONData[headerValueName]; ok {
+				req.Header.Add(headerName, headerValue)
+			}
+		}
+	}
+
 	resp, err := d.httpClient.Do(req)
 	if err != nil {
 		if !isTrivialError(err) {
@@ -209,7 +229,7 @@ func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream boo
 
 		// Something in the middle between client and datasource might be closing
 		// the connection. So we do a one more attempt in hope request will succeed.
-		req, err = http.NewRequestWithContext(ctx, settings.HTTPMethod, reqURL, nil)
+		req, err = http.NewRequestWithContext(ctx, httpMethod, reqURL, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create new request with context: %w", err)
 		}
