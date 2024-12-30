@@ -38,8 +38,8 @@ app-via-docker-local:
 	$(eval ARCH := $(shell docker run $(GO_BUILDER_IMAGE) go env GOARCH))
 	$(MAKE) app-via-docker-$(OS)-$(ARCH)
 
-vl-backend-plugin-build:
-	which mage || go install github.com/magefile/mage@v1.15.0 && mage -v
+vl-backend-plugin-build: mage
+	$(MAGE) -v
 
 vl-frontend-plugin-build: frontend-build
 
@@ -73,11 +73,8 @@ golang-test:
 golang-test-race:
 	go test -race ./pkg/...
 
-golang-ci-lint: install-golang-ci-lint
-	golangci-lint run ./pkg/...
-
-install-golang-ci-lint:
-	which golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.62.2
+lint: golangci-lint
+	$(GOLANGCI_LINT) run ./pkg/...
 
 fmt:
 	gofmt -l -w -s ./pkg
@@ -85,11 +82,49 @@ fmt:
 vet:
 	go vet ./pkg/...
 
-check-all: fmt vet golang-ci-lint
+check-all: fmt vet golangci-lint
 
-vl-plugin-check-install:
-	which plugincheck2 || go install github.com/grafana/plugin-validator/pkg/cmd/plugincheck2@v0.20.3
-
-vl-plugin-check: vl-plugin-release vl-plugin-check-install
+vl-plugin-check: vl-plugin-release plugincheck2
 	$(eval PACKAGE_NAME := $(PLUGIN_ID)-$(PKG_TAG)) \
-	plugincheck2 -sourceCodeUri file://$(shell pwd)/ "$(shell pwd)/dist/${PACKAGE_NAME}.zip"
+	$(PLUGINCHECK2) -sourceCodeUri file://$(shell pwd)/ "$(shell pwd)/dist/${PACKAGE_NAME}.zip"
+
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+
+PLUGINCHECK2 = $(LOCALBIN)/plugincheck2-$(PLUGINCHECK2_VERSION)
+MAGE = $(LOCALBIN)/mage-$(MAGE_VERSION)
+GOLANGCI_LINT = $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
+
+PLUGINCHECK2_VERSION = v0.20.3
+MAGE_VERSION = v1.15.0
+GOLANGCI_LINT_VERSION = v1.62.2
+
+.PHONY: plugincheck2
+plugincheck2: $(PLUGINCHECK2)
+$(PLUGINCHECK2): $(LOCALBIN)
+	$(call go-install-tool,$(PLUGINCHECK2),github.com/grafana/plugin-validator/pkg/cmd/plugincheck2,$(PLUGINCHECK2_VERSION))
+
+.PHONY: mage
+mage: $(MAGE)
+$(MAGE): $(LOCALBIN)
+	$(call go-install-tool,$(MAGE),github.com/magefile/mage,$(MAGE_VERSION))
+
+.PHONY: golangci-lint
+golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
+$(GOLANGCI_LINT): $(LOCALBIN)
+	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+
+# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
+# $1 - target path with name of binary (ideally with version)
+# $2 - package url which can be installed
+# $3 - specific version of package
+define go-install-tool
+@[ -f $(1) ] || { \
+set -e; \
+package=$(2)@$(3) ;\
+echo "Downloading $${package}" ;\
+GOBIN=$(LOCALBIN) go install $${package} ;\
+mv "$$(echo "$(1)" | sed "s/-$(3)$$//")" $(1) || echo "move not needed" ;\
+}
+endef
