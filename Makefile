@@ -82,7 +82,7 @@ fmt:
 vet:
 	go vet ./pkg/...
 
-check-all: fmt vet golang-ci-lint
+check-all: fmt vet golangci-lint
 
 vl-plugin-check: vl-plugin-release plugincheck2
 	$(eval PACKAGE_NAME := $(PLUGIN_ID)-$(PKG_TAG)) \
