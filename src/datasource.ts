@@ -395,4 +395,8 @@ export class VictoriaLogsDatasource
         return undefined
     }
   }
+
+  getQueryDisplayText(query: Query): string {
+    return (query.expr || '');
+  }
 }
