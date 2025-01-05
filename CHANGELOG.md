@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix query display text in query history to show the actual expression instead of the full query object.
+
 ## v0.13.2
 
 * SECURITY: bump Go version to 1.23.4. See the list of issues addressed in [Go1.23.4](https://github.com/golang/go/issues?q=milestone%3AGo1.23.4+label%3ACherryPickApproved).
