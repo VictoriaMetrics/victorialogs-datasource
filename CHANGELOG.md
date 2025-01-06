@@ -2,7 +2,7 @@
 
 ## tip
 
-* BUGFIX: fix query display text in query history to show the actual expression instead of the full query object.
+* BUGFIX: fix query display text in query history to show the actual expression instead of the full query object. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/194).
 
 ## v0.13.2
 
