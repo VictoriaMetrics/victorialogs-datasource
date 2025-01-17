@@ -275,6 +275,7 @@ func parseStatsResponse(reader io.Reader, q *Query) backend.DataResponse {
 		err = fmt.Errorf("failed to decode body response: %w", err)
 		return newResponseError(err, backend.StatusInternal)
 	}
+	rs.ForAlerting = q.ForAlerting
 
 	frames, err := rs.getDataFrames()
 	if err != nil {
@@ -362,9 +363,10 @@ type Data struct {
 
 // Response contains fields from query response
 type Response struct {
-	Status string `json:"status"`
-	Data   Data   `json:"data"`
-	Error  string `json:"error"`
+	Status      string `json:"status"`
+	Data        Data   `json:"data"`
+	Error       string `json:"error"`
+	ForAlerting bool   `json:"-"`
 }
 
 // logStats represents response result from the
@@ -391,6 +393,21 @@ func (ls logStats) vectorDataFrames() (data.Frames, error) {
 		ts := time.Unix(seconds, nanoseconds)
 		frames[i] = data.NewFrame("",
 			data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{ts}),
+			data.NewField(data.TimeSeriesValueFieldName, data.Labels(res.Labels), []float64{f}))
+	}
+
+	return frames, nil
+}
+
+func (ls logStats) alertingDataFrames() (data.Frames, error) {
+	frames := make(data.Frames, len(ls.Result))
+	for i, res := range ls.Result {
+		f, err := strconv.ParseFloat(res.Value[1].(string), 64)
+		if err != nil {
+			return nil, fmt.Errorf("metric %v, unable to parse timestamp to float64 from %s: %w", res, res.Value[1], err)
+		}
+
+		frames[i] = data.NewFrame("",
 			data.NewField(data.TimeSeriesValueFieldName, data.Labels(res.Labels), []float64{f}))
 	}
 
@@ -438,6 +455,9 @@ func (r *Response) getDataFrames() (data.Frames, error) {
 
 	switch r.Data.ResultType {
 	case vector:
+		if r.ForAlerting {
+			return ls.alertingDataFrames()
+		}
 		return ls.vectorDataFrames()
 	case matrix:
 		return ls.matrixDataFrames()

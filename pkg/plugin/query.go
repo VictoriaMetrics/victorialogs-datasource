@@ -56,6 +56,7 @@ type Query struct {
 	Field        string    `json:"field"`
 	QueryType    QueryType `json:"queryType"`
 	url          *url.URL
+	ForAlerting  bool `json:"-"`
 }
 
 // GetQueryURL calculates step and clear expression from template variables,
