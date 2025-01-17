@@ -526,6 +526,7 @@ func Test_getStatsResponse(t *testing.T) {
 
 				return rsp
 			},
+			q: &Query{},
 		},
 		{
 			name:     "incorrect response",
@@ -533,6 +534,7 @@ func Test_getStatsResponse(t *testing.T) {
 			want: func() backend.DataResponse {
 				return newResponseError(fmt.Errorf("failed to prepare data from response: unmarshal err json: cannot unmarshal string into Go value of type []plugin.Result; \n \"\\\"abc\\\"\""), backend.StatusInternal)
 			},
+			q: &Query{},
 		},
 		{
 			name:     "correct stats response",
