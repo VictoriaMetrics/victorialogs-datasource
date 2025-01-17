@@ -3,6 +3,7 @@
 ## tip
 
 * BUGFIX: fix query display text in query history to show the actual expression instead of the full query object. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/194).
+* BUGFIX: fix query type switching when creating alerts in Grafana. See [this issue](https://github.com/VictoriaMetrics/victoriametrics-datasource/issues/237)
 
 ## v0.13.2
 
