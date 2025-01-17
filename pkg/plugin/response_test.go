@@ -526,6 +526,7 @@ func Test_getStatsResponse(t *testing.T) {
 
 				return rsp
 			},
+			q: &Query{},
 		},
 		{
 			name:     "incorrect response",
@@ -533,6 +534,7 @@ func Test_getStatsResponse(t *testing.T) {
 			want: func() backend.DataResponse {
 				return newResponseError(fmt.Errorf("failed to prepare data from response: unmarshal err json: cannot unmarshal string into Go value of type []plugin.Result; \n \"\\\"abc\\\"\""), backend.StatusInternal)
 			},
+			q: &Query{},
 		},
 		{
 			name:     "correct stats response",
@@ -602,6 +604,31 @@ func Test_getStatsResponse(t *testing.T) {
 						data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)"}, []float64{58, 1}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
 					),
 				}
+				rsp := backend.DataResponse{}
+				rsp.Frames = append(rsp.Frames, frames...)
+				return rsp
+			},
+		},
+		{
+			name:     "correct stats response for alerting",
+			filename: "test-data/stats_response",
+			q: &Query{
+				DataQuery: backend.DataQuery{
+					RefID: "A",
+				},
+				LegendFormat: "legend {{app}}",
+				ForAlerting:  true,
+			},
+			want: func() backend.DataResponse {
+				frames := []*data.Frame{
+					data.NewFrame("",
+						data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": "message"}, []float64{13377}),
+					),
+					data.NewFrame("",
+						data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": ""}, []float64{2078793288}),
+					),
+				}
+
 				rsp := backend.DataResponse{}
 				rsp.Frames = append(rsp.Frames, frames...)
 				return rsp

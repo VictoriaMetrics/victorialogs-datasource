@@ -916,3 +916,56 @@ func TestDatasourceStreamTailProcess(t *testing.T) {
 		t.Fatalf("expected 2 got %d", len(got))
 	}
 }
+
+func TestDatasource_checkAlertingRequest(t *testing.T) {
+	tests := []struct {
+		name    string
+		headers map[string]string
+		want    bool
+		wantErr bool
+	}{
+		{
+			name:    "no alerting header",
+			headers: map[string]string{},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "alerting header",
+			headers: map[string]string{"FromAlert": "true"},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "invalid alerting header",
+			headers: map[string]string{"FromAlert": "invalid"},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name:    "false alerting header",
+			headers: map[string]string{"FromAlert": "false"},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "irrelevant header",
+			headers: map[string]string{"SomeOtherHeader": "true"},
+			want:    false,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := &Datasource{}
+			got, err := d.checkAlertingRequest(tt.headers)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("checkAlertingRequest() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("checkAlertingRequest() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

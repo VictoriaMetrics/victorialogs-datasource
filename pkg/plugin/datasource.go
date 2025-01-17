@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -30,6 +31,10 @@ const (
 	settingsCustomQueryParameters = "customQueryParameters"
 	httpHeaderName                = "httpHeaderName"
 	httpHeaderValue               = "httpHeaderValue"
+
+	// it is weird logic to pass an identifier for an alert request in the headers
+	// but Grafana decided to do so, so we need to follow this
+	requestFromAlert = "FromAlert"
 )
 
 // NewDatasource creates a new datasource instance.
@@ -134,10 +139,16 @@ func (d *Datasource) Dispose() {
 // contains Frames ([]*Frame).
 func (d *Datasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
 	response := backend.NewQueryDataResponse()
+	headers := req.Headers
+
+	forAlerting, err := d.checkAlertingRequest(headers)
+	if err != nil {
+		return nil, err
+	}
 
 	var wg sync.WaitGroup
 	for _, q := range req.Queries {
-		rawQuery, err := d.getQueryFromRaw(q.JSON)
+		rawQuery, err := d.getQueryFromRaw(q.JSON, forAlerting)
 		if err != nil {
 			return nil, err
 		}
@@ -156,7 +167,7 @@ func (d *Datasource) QueryData(ctx context.Context, req *backend.QueryDataReques
 
 // streamQuery sends a query to the datasource and parse the tail results.
 func (d *Datasource) streamQuery(ctx context.Context, request *backend.RunStreamRequest) error {
-	q, err := d.getQueryFromRaw(request.Data)
+	q, err := d.getQueryFromRaw(request.Data, false)
 	if err != nil {
 		return err
 	}
@@ -170,11 +181,12 @@ func (d *Datasource) streamQuery(ctx context.Context, request *backend.RunStream
 }
 
 // getQueryFromRaw parses the query json from the raw message.
-func (d *Datasource) getQueryFromRaw(data json.RawMessage) (*Query, error) {
+func (d *Datasource) getQueryFromRaw(data json.RawMessage, forAlerting bool) (*Query, error) {
 	var q Query
 	if err := json.Unmarshal(data, &q); err != nil {
 		return nil, fmt.Errorf("failed to parse query json: %s", err)
 	}
+	q.ForAlerting = forAlerting
 	return &q, nil
 }
 
@@ -272,6 +284,23 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, q *Quer
 	default:
 		return parseInstantResponse(r)
 	}
+}
+
+func (d *Datasource) checkAlertingRequest(headers map[string]string) (bool, error) {
+	var forAlerting bool
+	if val, ok := headers[requestFromAlert]; ok {
+		if val == "" {
+			return false, nil
+		}
+
+		boolValue, err := strconv.ParseBool(val)
+		if err != nil {
+			return false, fmt.Errorf("failed to parse %s header value: %s", requestFromAlert, val)
+		}
+
+		forAlerting = boolValue
+	}
+	return forAlerting, nil
 }
 
 // CheckHealth handles health checks sent from Grafana to the plugin.
