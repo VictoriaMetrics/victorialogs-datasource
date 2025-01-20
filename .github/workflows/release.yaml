@@ -87,9 +87,12 @@ jobs:
           export CL_BRANCH="changelog-update-$(date +%s)"
           git checkout -b "${CL_BRANCH}"
           git add CHANGELOG.md
-          git commit -S -m "Automatic update CHANGELOG"
+          git commit -S -m "Automatic CHANGELOG update"
           git push origin ${CL_BRANCH}
-          gh pr create -f
+          gh pr create \
+            -H $(git branch --show-current) \
+            -t "Automatic CHANGELOG update" \
+            -b "Automatic CHANGELOG update"
         env:
           GH_TOKEN: "${{ secrets.VM_BOT_GH_TOKEN }}"
           GITHUB_TOKEN: "${{ secrets.VM_BOT_GH_TOKEN }}"
