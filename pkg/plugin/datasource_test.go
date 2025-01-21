@@ -17,7 +17,13 @@ import (
 )
 
 func TestQueryData(t *testing.T) {
-	ds := Datasource{}
+	ds := Datasource{
+		grafanaSettings: &GrafanaSettings{
+			HTTPMethod:    "",
+			QueryParams:   "",
+			CustomHeaders: nil,
+		},
+	}
 
 	resp, err := ds.QueryData(
 		context.Background(),
