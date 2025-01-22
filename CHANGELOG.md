@@ -2,9 +2,7 @@
 
 ## tip
 
-* BUGFIX: Resolved an issue with header settings for the HTTP client. All headers, such as X-Grafana-User and X-Grafana-Org, 
-  are now properly passed to the backend in instant and range queries (note: this does not apply to stream logs). 
-  Additionally, updated the backend plugin ID and revised the README.md file. 
+* BUGFIX: updated the backend plugin ID and revised the README.md file after the plugin verification procedure. See [this PR](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/208). 
 
 ## v0.13.3
 

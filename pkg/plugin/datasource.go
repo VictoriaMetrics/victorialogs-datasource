@@ -26,7 +26,9 @@ var (
 )
 
 const (
-	health = "/health"
+	health          = "/health"
+	httpHeaderName  = "httpHeaderName"
+	httpHeaderValue = "httpHeaderValue"
 	// it is weird logic to pass an identifier for an alert request in the headers
 	// but Grafana decided to do so, so we need to follow this
 	requestFromAlert = "FromAlert"
@@ -48,8 +50,7 @@ func NewDatasource(ctx context.Context, settings backend.DataSourceInstanceSetti
 		}
 	}
 
-	provider := httpclient.NewProvider()
-	cl, err := provider.New(opts)
+	cl, err := httpclient.New(opts)
 	if err != nil {
 		return nil, fmt.Errorf("error create a new http.Client: %w", err)
 	}
@@ -70,15 +71,23 @@ func NewDatasource(ctx context.Context, settings backend.DataSourceInstanceSetti
 // GrafanaSettings contains the raw DataSourceConfig as JSON as stored by Grafana server.
 // It repeats the properties in this object and includes custom properties.
 type GrafanaSettings struct {
-	HTTPMethod  string `json:"httpMethod"`
-	QueryParams string `json:"customQueryParameters"`
+	HTTPMethod    string      `json:"httpMethod"`
+	QueryParams   string      `json:"customQueryParameters"`
+	CustomHeaders http.Header `json:"-"`
 }
 
 func NewGrafanaSettings(settings backend.DataSourceInstanceSettings) (*GrafanaSettings, error) {
+	customHttpHeaders, err := parseCustomHeaders(settings.JSONData, settings.DecryptedSecureJSONData)
+	if err != nil {
+		return nil, fmt.Errorf("error parse custom headers: %w", err)
+	}
+
 	var grafanaSettings GrafanaSettings
 	if err := json.Unmarshal(settings.JSONData, &grafanaSettings); err != nil {
 		return nil, fmt.Errorf("failed to parse datasource settings: %w", err)
 	}
+
+	grafanaSettings.CustomHeaders = customHttpHeaders
 
 	if grafanaSettings.HTTPMethod == "" {
 		grafanaSettings.HTTPMethod = http.MethodPost
@@ -100,7 +109,7 @@ type Datasource struct {
 // managed channel path – thus plugin can check subscribe permissions and communicate
 // options with Grafana Core. As soon as first subscriber joins channel RunStream
 // will be called.
-func (d *Datasource) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
+func (d *Datasource) SubscribeStream(_ context.Context, _ *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
 	return &backend.SubscribeStreamResponse{
 		Status: backend.SubscribeStreamStatusOK,
 	}, nil
@@ -235,6 +244,7 @@ func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream boo
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new request with context: %w", err)
 	}
+	req.Header = d.grafanaSettings.CustomHeaders.Clone()
 
 	resp, err := d.httpClient.Do(req)
 	if err != nil {
@@ -250,6 +260,7 @@ func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream boo
 			return nil, fmt.Errorf("failed to create new request with context: %w", err)
 		}
 
+		req.Header = d.grafanaSettings.CustomHeaders.Clone()
 		resp, err = d.httpClient.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make http request: %w", err)
@@ -359,4 +370,30 @@ func isTrivialError(err error) bool {
 		return true
 	}
 	return false
+}
+
+func parseCustomHeaders(jsonData json.RawMessage, decryptedSecureJSONData map[string]string) (http.Header, error) {
+	var headersSettings map[string]json.RawMessage
+	if err := json.Unmarshal(jsonData, &headersSettings); err != nil {
+		return nil, fmt.Errorf("failed to parse datasource settings: %w", err)
+	}
+
+	headers := http.Header{}
+	for k, v := range headersSettings {
+		if !strings.HasPrefix(k, httpHeaderName) {
+			continue
+		}
+		var headerName string
+		if err := json.Unmarshal(v, &headerName); err != nil {
+			return nil, fmt.Errorf("failed to parse header value: %w", err)
+		}
+		if len(headerName) == 0 {
+			continue
+		}
+		headerValueName := strings.Replace(k, httpHeaderName, httpHeaderValue, 1)
+		if headerValue, ok := decryptedSecureJSONData[headerValueName]; ok {
+			headers.Add(headerName, headerValue)
+		}
+	}
+	return headers, nil
 }

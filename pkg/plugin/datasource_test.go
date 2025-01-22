@@ -19,8 +19,9 @@ import (
 func TestQueryData(t *testing.T) {
 	ds := Datasource{
 		grafanaSettings: &GrafanaSettings{
-			HTTPMethod:  "",
-			QueryParams: "",
+			HTTPMethod:    "",
+			QueryParams:   "",
+			CustomHeaders: nil,
 		},
 	}
 
