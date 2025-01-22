@@ -84,7 +84,7 @@ docker-compose -f docker-compose.yaml up
 
 After Grafana starts successfully, datasource should be available in the datasources tab
 
-![Configuration](docs/assets/provision_datasources.webp)
+![Configuration](../docs/assets/provision_datasources.webp)
 
 ### Install in Kubernetes
 
@@ -196,7 +196,7 @@ spec:
       allow_loading_unsigned_plugins: victoriametrics-logs-datasource
 ```
 
-See [Grafana operator reference](https://grafana-operator.github.io/grafana-operator/docs/grafana/) to find more about Grafana operator.
+See [Grafana operator reference](https://grafana-operator.github.io/grafana-operator/docs/grafana) to find more about Grafana operator.
 This example uses init container to download and install plugin.
 
 ### Dev release installation
