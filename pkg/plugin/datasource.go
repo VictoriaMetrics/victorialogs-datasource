@@ -29,7 +29,6 @@ const (
 	health          = "/health"
 	httpHeaderName  = "httpHeaderName"
 	httpHeaderValue = "httpHeaderValue"
-
 	// it is weird logic to pass an identifier for an alert request in the headers
 	// but Grafana decided to do so, so we need to follow this
 	requestFromAlert = "FromAlert"
@@ -37,12 +36,12 @@ const (
 
 // NewDatasource creates a new datasource instance.
 func NewDatasource(ctx context.Context, settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+
 	opts, err := settings.HTTPClientOptions(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error create httpclient.Options based on settings: %w", err)
 	}
 	opts.ForwardHTTPHeaders = true
-
 	for key := range opts.Header {
 		if key == "" {
 			opts.Header.Del(key)
@@ -227,7 +226,6 @@ func (d *Datasource) getQueryFromRaw(data json.RawMessage, forAlerting bool) (*Q
 
 // datasourceQuery process the query to the datasource and returns the result.
 func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream bool) (io.ReadCloser, error) {
-
 	reqURL, err := q.getQueryURL(d.settings.URL, d.grafanaSettings.QueryParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request URL: %w", err)
@@ -261,7 +259,6 @@ func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream boo
 		}
 
 		req.Header = d.grafanaSettings.CustomHeaders.Clone()
-
 		resp, err = d.httpClient.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make http request: %w", err)

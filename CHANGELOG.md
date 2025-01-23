@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: updated the backend plugin ID and revised the README.md file after the plugin verification procedure. See [this PR](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/208). 
+
 ## v0.13.3
 
 * BUGFIX: fix query display text in query history to show the actual expression instead of the full query object. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/194).
