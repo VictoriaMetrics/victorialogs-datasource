@@ -42,8 +42,6 @@ func NewDatasource(ctx context.Context, settings backend.DataSourceInstanceSetti
 		return nil, fmt.Errorf("error create httpclient.Options based on settings: %w", err)
 	}
 	opts.ForwardHTTPHeaders = true
-	// this case isn't handled by middleware
-	// so we need to remove it manually
 	for key := range opts.Header {
 		if key == "" {
 			opts.Header.Del(key)
