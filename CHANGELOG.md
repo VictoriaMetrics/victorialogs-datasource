@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: clean up the plugin codebase after the plugin verification procedure. See [this PR](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/213) and [this PR](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/214).
+
 ## v0.13.4
 
 * BUGFIX: updated the backend plugin ID and revised the README.md file after the plugin verification procedure. See [this PR](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/208). 
