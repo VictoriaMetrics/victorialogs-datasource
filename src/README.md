@@ -4,7 +4,7 @@ The VictoriaLogs Grafana plugin allows Grafana to query, visualize,
 and interact with [VictoriaLogs](https://docs.victoriametrics.com/victorialogs),
 a high-performance log storage and processing system.
 
-![dashboard.png](img/dashboard.png)
+![dashboard.png](https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/dashboard.png)
 
 ## Capabilities
 
@@ -62,21 +62,21 @@ and LogsQL examples [here](https://docs.victoriametrics.com/victorialogs/logsql-
 For using [Logs panel](https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/logs/)
 switch to `Raw Logs` query type:
 
-![panel_logs.png](img/panel_logs.png)
+![panel_logs.png](https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/panel_logs.png)
 
 ### Time series panel
 
 For using [Time series panel](https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/time-series/)
 switch to `Range` query type:
 
-![panel_time_series.png](img/panel_time_series.png)
+![panel_time_series.png](https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/panel_time_series.png)
 
 ### Stats panel
 
 For using [Stats panel](https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/stat/)
 switch to `Instant` query type:
 
-![panel_stat.png](img/panel_stat.png)
+![panel_stat.png](https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/panel_stat.png)
 
 For enabling background visualization switch to `Range` query type.
 
@@ -85,11 +85,11 @@ For enabling background visualization switch to `Range` query type.
 For using [Table panel](https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/table/)
 switch to `Raw Logs` query type:
 
-![panel_table.png](img/panel_table.png)
+![panel_table.png](https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/panel_table.png)
 
 And apply `Transformations` by labels:
 
-![panel_table_transformation.png](img/panel_table_transformation.png)
+![panel_table_transformation.png](https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/panel_table_transformation.png)
 
 ## License
 
