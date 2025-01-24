@@ -143,7 +143,7 @@ func (d *Datasource) RunStream(ctx context.Context, request *backend.RunStreamRe
 				// TODO I can't find any of this error in the code
 				// so just check the error message
 				if strings.Contains(err.Error(), "rpc error: code = Canceled desc = context canceled") {
-					backend.Logger.Info("Client has canceled the request")
+					backend.Logger.Debug("Client has canceled the request")
 					break
 				}
 				backend.Logger.Error("Failed send frame", "error", err)

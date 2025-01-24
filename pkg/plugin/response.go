@@ -53,7 +53,7 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 		b, err := br.ReadBytes('\n')
 		if err != nil {
 			if errors.Is(err, bufio.ErrBufferFull) {
-				backend.Logger.Info("skipping line number #%d: line too long", n)
+				backend.Logger.Debug("skipping line number #%d: line too long", n)
 				continue
 			}
 			if errors.Is(err, io.EOF) {
@@ -172,7 +172,7 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 		b, err := br.ReadBytes('\n')
 		if err != nil {
 			if errors.Is(err, bufio.ErrBufferFull) {
-				backend.Logger.Info("skipping line number #%d: line too long", n)
+				backend.Logger.Debug("skipping line number #%d: line too long", n)
 				continue
 			}
 			if errors.Is(err, io.EOF) {
