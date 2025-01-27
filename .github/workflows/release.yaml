@@ -49,6 +49,8 @@ jobs:
           git_user_signingkey: true
           git_commit_gpgsign: true
       - name: Prepare release notes if tag not exists
+        env:
+          GRAFANA_ACCESS_POLICY_TOKEN: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
         run: |
           export PKG_TAG="v$(yq -r '.version' package.json)"
           if git show-ref --tags --verify --quiet "refs/tags/${TAG}"; then
