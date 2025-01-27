@@ -30,8 +30,9 @@ frontend-build: frontend-package-base-image
 		-w /victorialogs-datasource \
 		--user $(shell id -u):$(shell id -g) \
 		--env YARN_CACHE_FOLDER="/victorialogs-datasource/.cache" \
+		--env GRAFANA_ACCESS_POLICY_TOKEN=$$GRAFANA_ACCESS_POLICY_TOKEN \
 		--entrypoint=/bin/bash \
-		frontent-builder-image -c "yarn install --omit=dev && yarn build"
+		frontent-builder-image -c "yarn install --omit=dev && yarn build && yarn sign --distDir plugins/$(PLUGIN_ID)"
 
 app-via-docker-local:
 	$(eval OS := $(shell docker run $(GO_BUILDER_IMAGE) go env GOOS))
@@ -45,7 +46,7 @@ vl-frontend-plugin-build: frontend-build
 
 vl-plugin-build-local: vl-frontend-plugin-build app-via-docker-local
 
-vl-plugin-build: vl-frontend-plugin-build vl-backend-plugin-build
+vl-plugin-build: vl-backend-plugin-build vl-frontend-plugin-build
 
 vl-plugin-pack: vl-plugin-build
 	mkdir -p dist && \
