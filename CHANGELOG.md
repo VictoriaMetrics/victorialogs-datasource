@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.14.1
+
 * BUGFIX: fix the sign plugin procedure for the new release. See [this PR](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/220) and See [this PR](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/221).
 
 ## v0.14.0
