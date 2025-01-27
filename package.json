@@ -15,7 +15,7 @@
     "e2e": "yarn cypress install && yarn grafana-e2e run",
     "e2e:update": "yarn cypress install && yarn grafana-e2e run --update-screenshots",
     "server": "docker compose up",
-    "sign": "npx --yes @grafana/sign-plugin@latest"
+    "sign": "[ -z $GRAFANA_ACCESS_POLICY_TOKEN ] || npx --yes @grafana/sign-plugin@latest"
   },
   "author": "VictoriaMetrics",
   "license": "Apache-2.0",
