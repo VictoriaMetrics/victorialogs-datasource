@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.14.2
+
 * BUGFIX: fix issue with plugin signature.
 
 ## v0.14.1
