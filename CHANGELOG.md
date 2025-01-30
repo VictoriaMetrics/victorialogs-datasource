@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.14.3
+
 * BUGFIX: fix image links in public readme.
 
 ## v0.14.2
