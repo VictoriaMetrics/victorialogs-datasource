@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix image links in public readme.
+
 ## v0.14.2
 
 * BUGFIX: fix issue with plugin signature.
