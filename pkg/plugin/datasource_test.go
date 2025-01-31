@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -516,10 +515,12 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 	datasource := instance.(*Datasource)
 	packetSender := &mockStreamSender{packets: []json.RawMessage{}}
 	sender := backend.NewStreamSender(packetSender)
-	datasource.streamCh = make(chan *data.Frame)
+	ch := make(chan *data.Frame)
+	datasource.liveModeResponses.Store("request_id/ref_id", ch)
 	expErr := func(ctx context.Context, e string) {
 		_ = packetSender.Reset()
 		err := datasource.RunStream(ctx, &backend.RunStreamRequest{
+			Path: "request_id/ref_id",
 			Data: json.RawMessage(`
 {
   "datasource": {
@@ -705,10 +706,12 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 	datasource := instance.(*Datasource)
 	packetSender := &mockStreamSender{packets: []json.RawMessage{}}
 	sender := backend.NewStreamSender(packetSender)
-	datasource.streamCh = make(chan *data.Frame)
+	ch := make(chan *data.Frame)
+	datasource.liveModeResponses.Store("request_id/ref_id", ch)
 
 	expErr := func(e string) {
 		err := datasource.RunStream(ctx, &backend.RunStreamRequest{
+			Path: "request_id/ref_id",
 			Data: json.RawMessage(`
 	{
 	  "datasource": {
@@ -734,6 +737,7 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 	expValue := func() {
 		_ = packetSender.Reset()
 		err := datasource.RunStream(ctx, &backend.RunStreamRequest{
+			Path: "request_id/ref_id",
 			Data: json.RawMessage(`
 {
   "datasource": {
@@ -798,9 +802,6 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error marshal expected frames %s", err)
 		}
-		log.Printf("got: %s", got)
-		log.Printf("exp: %s", exp)
-		log.Printf("FIRST ===========")
 		if !bytes.Equal(got, exp) {
 			t.Fatalf("unexpected metric %s want %s", got, exp)
 		}
@@ -895,8 +896,10 @@ func TestDatasourceStreamTailProcess(t *testing.T) {
 	datasource := instance.(*Datasource)
 	packetSender := &mockStreamSender{packets: []json.RawMessage{}}
 	sender := backend.NewStreamSender(packetSender)
-	datasource.streamCh = make(chan *data.Frame)
+	ch := make(chan *data.Frame)
+	datasource.liveModeResponses.Store("request_id/ref_id", ch)
 	if err := datasource.RunStream(ctx, &backend.RunStreamRequest{
+		Path: "request_id/ref_id",
 		Data: json.RawMessage(`
 {
   "datasource": {

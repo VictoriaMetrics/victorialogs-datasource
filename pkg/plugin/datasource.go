@@ -59,10 +59,10 @@ func NewDatasource(ctx context.Context, settings backend.DataSourceInstanceSetti
 	}
 
 	return &Datasource{
-		settings:        settings,
-		httpClient:      cl,
-		streamCh:        make(chan *data.Frame),
-		grafanaSettings: grafanaSettings,
+		settings:          settings,
+		httpClient:        cl,
+		liveModeResponses: sync.Map{},
+		grafanaSettings:   grafanaSettings,
 	}, nil
 }
 
@@ -98,16 +98,19 @@ func NewGrafanaSettings(settings backend.DataSourceInstanceSettings) (*GrafanaSe
 type Datasource struct {
 	settings backend.DataSourceInstanceSettings
 
-	httpClient      *http.Client
-	streamCh        chan *data.Frame
-	grafanaSettings *GrafanaSettings
+	httpClient        *http.Client
+	liveModeResponses sync.Map
+	grafanaSettings   *GrafanaSettings
 }
 
 // SubscribeStream called when a user tries to subscribe to a plugin/datasource
 // managed channel path – thus plugin can check subscribe permissions and communicate
 // options with Grafana Core. As soon as first subscriber joins channel RunStream
 // will be called.
-func (d *Datasource) SubscribeStream(_ context.Context, _ *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
+func (d *Datasource) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
+	ch := make(chan *data.Frame, 1)
+	d.liveModeResponses.Store(req.Path, ch)
+
 	return &backend.SubscribeStreamResponse{
 		Status: backend.SubscribeStreamStatusOK,
 	}, nil
@@ -127,10 +130,17 @@ func (d *Datasource) PublishStream(_ context.Context, _ *backend.PublishStreamRe
 // the call will be terminated until next active subscriber appears. Call termination
 // can happen with a delay.
 func (d *Datasource) RunStream(ctx context.Context, request *backend.RunStreamRequest, sender *backend.StreamSender) error {
+	ch, ok := d.liveModeResponses.Load(request.Path)
+	if !ok {
+		return fmt.Errorf("failed to find the channel for the query: %s", request.Path)
+	}
+
+	livestream := ch.(chan *data.Frame)
+
 	go func() {
 		prev := data.FrameJSONCache{}
 		var err error
-		for frame := range d.streamCh {
+		for frame := range livestream {
 			next, _ := data.FrameToJSONCache(frame)
 			if next.SameSchema(&prev) {
 				err = sender.SendBytes(next.Bytes(data.IncludeAll))
@@ -164,7 +174,7 @@ func (d *Datasource) RunStream(ctx context.Context, request *backend.RunStreamRe
 func (d *Datasource) Dispose() {
 	// Clean up datasource instance resources.
 	d.httpClient.CloseIdleConnections()
-	close(d.streamCh)
+	d.liveModeResponses.Clear()
 }
 
 // QueryData handles multiple queries and returns multiple responses.
@@ -211,7 +221,13 @@ func (d *Datasource) streamQuery(ctx context.Context, request *backend.RunStream
 		return err
 	}
 
-	return parseStreamResponse(r, d.streamCh)
+	ch, ok := d.liveModeResponses.Load(request.Path)
+	if !ok {
+		return fmt.Errorf("failed to find the channel for the query: %s", request.Path)
+	}
+
+	livestream := ch.(chan *data.Frame)
+	return parseStreamResponse(r, livestream)
 }
 
 // getQueryFromRaw parses the query json from the raw message.

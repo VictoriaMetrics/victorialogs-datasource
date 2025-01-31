@@ -3,6 +3,7 @@
 ## tip
 
 * BUGFIX: fix image links in public readme.
+* BUGFIX: fix live mode shows the first query result instead of separately requested two different results. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/229).
 
 ## v0.14.2
 
