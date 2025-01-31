@@ -130,6 +130,9 @@ func (d *Datasource) PublishStream(_ context.Context, _ *backend.PublishStreamRe
 // the call will be terminated until next active subscriber appears. Call termination
 // can happen with a delay.
 func (d *Datasource) RunStream(ctx context.Context, request *backend.RunStreamRequest, sender *backend.StreamSender) error {
+	// request.Path is created in the frontend. Please check this function in the frontend
+	// runLiveQueryThroughBackend where the path is created.
+	// path: `${request.requestId}/${query.refId}`
 	ch, ok := d.liveModeResponses.Load(request.Path)
 	if !ok {
 		return fmt.Errorf("failed to find the channel for the query: %s", request.Path)
@@ -174,6 +177,13 @@ func (d *Datasource) RunStream(ctx context.Context, request *backend.RunStreamRe
 func (d *Datasource) Dispose() {
 	// Clean up datasource instance resources.
 	d.httpClient.CloseIdleConnections()
+	// close all channels before clear the map
+	d.liveModeResponses.Range(func(key, value interface{}) bool {
+		ch := value.(chan *data.Frame)
+		close(ch)
+		return true
+	})
+	// clear the map
 	d.liveModeResponses.Clear()
 }
 
