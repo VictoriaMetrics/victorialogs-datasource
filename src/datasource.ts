@@ -306,7 +306,7 @@ export class VictoriaLogsDatasource
         addr: {
           scope: LiveChannelScope.DataSource,
           namespace: this.uid,
-          path: `vl/${query.refId}`, // this will allow each new query to create a new connection
+          path: `${request.requestId}/${query.refId}`, // this will allow each new query to create a new connection
           data: {
             ...query,
           },
@@ -314,7 +314,7 @@ export class VictoriaLogsDatasource
       }).pipe(map((response) => {
         return {
           data: response.data || [],
-          key: `victorialogs-datasource-${query.refId}`,
+          key: `victorialogs-datasource-${request.requestId}-${query.refId}`,
           state: LoadingState.Streaming,
         };
       }));
