@@ -64,6 +64,7 @@
     "@emotion/eslint-plugin": "^11.11.0",
     "@grafana/data": "11.1.0",
     "@grafana/lezer-logql": "^0.2.5",
+    "@grafana/plugin-ui": "^0.10.1",
     "@grafana/runtime": "11.1.0",
     "@grafana/schema": "^9.5.20",
     "@grafana/ui": "11.1.0",
