@@ -14,9 +14,9 @@
     "maxDataPoints": true
   },
   "info": {
-    "description": "VictoriaLogs datasource plugin for grafana",
+    "description": "VictoriaLogs datasource plugin for Grafana",
     "author": {
-      "name": "VictoriaLogs",
+      "name": "VictoriaMetrics",
       "url": "https://victoriametrics.com/"
     },
     "keywords": ["logs", "log analytics", "observability", "victoriametrics", "victorialogs", "datasource"],
