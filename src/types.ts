@@ -9,7 +9,7 @@ export interface Options extends DataSourceJsonData {
   httpMethod?: string;
   customQueryParameters?: string;
   queryBuilderLimits?: QueryBuilderLimits;
-  // derivedFields?: DerivedFieldConfig[];
+  derivedFields?: DerivedFieldConfig[];
   // alertmanager?: string;
   // keepCookies?: string[];
   // predefinedOperations?: string;

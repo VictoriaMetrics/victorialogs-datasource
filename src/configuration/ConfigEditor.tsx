@@ -10,6 +10,7 @@ import { AlertingSettings } from './AlertingSettings';
 import { HelpfulLinks } from "./HelpfulLinks";
 import { LimitsSettings } from "./LimitSettings";
 import { QuerySettings } from './QuerySettings';
+import { DerivedFields } from "./DerivedFields";
 
 export type Props = DataSourcePluginOptionsEditorProps<Options>;
 
@@ -23,6 +24,7 @@ const makeJsonUpdater = <T extends any>(field: keyof Options) =>
   })
 
 const setMaxLines = makeJsonUpdater('maxLines');
+const setDerivedFields = makeJsonUpdater('derivedFields');
 
 const ConfigEditor = (props: Props) => {
   const { options, onOptionsChange } = props;
@@ -40,6 +42,10 @@ const ConfigEditor = (props: Props) => {
       <QuerySettings
         maxLines={options.jsonData.maxLines || ''}
         onMaxLinedChange={(value) => onOptionsChange(setMaxLines(options, value))}
+      />
+      <DerivedFields
+        fields={options.jsonData.derivedFields}
+        onChange={(value) => onOptionsChange(setDerivedFields(options, value))}
       />
       <LimitsSettings {...props}/>
     </>
