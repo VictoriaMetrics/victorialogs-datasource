@@ -87,7 +87,10 @@ check-all: fmt vet golangci-lint
 
 vl-plugin-check: vl-plugin-release plugincheck2
 	$(eval PACKAGE_NAME := $(PLUGIN_ID)-$(PKG_TAG)) \
-	$(PLUGINCHECK2) -sourceCodeUri file://$(shell pwd)/ "$(shell pwd)/dist/${PACKAGE_NAME}.zip"
+	$(PLUGINCHECK2) \
+		-config $(shell pwd)/plugincheck.yaml \
+		-sourceCodeUri file://$(shell pwd)/ \
+		"$(shell pwd)/dist/${PACKAGE_NAME}.zip"
 
 LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):

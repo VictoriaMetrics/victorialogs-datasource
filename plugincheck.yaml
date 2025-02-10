@@ -1,0 +1,8 @@
+global:
+  enabled: true
+  jsonOutput: false
+  reportAll: false
+
+analyzers:
+  version:
+    enabled: false
