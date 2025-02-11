@@ -19,18 +19,15 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
         with:
-          repository: VictoriaMetrics/victorialogs-datasource
-          ref: main
-          token: ${{ secrets.VM_BOT_GH_TOKEN }}
-          path: "__vl-datasource-repo"
+          path: __vl-datasource
 
       - name: Check out VM code
         uses: actions/checkout@v4
         with:
-          repository: VictoriaMetrics/VictoriaMetrics
-          ref: master
+          repository: VictoriaMetrics/vmdocs
+          ref: main
           token: ${{ secrets.VM_BOT_GH_TOKEN }}
-          path: "__vm-docs-repo"
+          path: __vm-docs
 
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
@@ -39,41 +36,31 @@ jobs:
           passphrase: ${{ secrets.VM_BOT_PASSPHRASE }}
           git_user_signingkey: true
           git_commit_gpgsign: true
-          workdir: "__vm-docs-repo"
+          git_config_global: true
 
       # Copies README.md and assets from docs/assets
       - name: Update ds docs in VM repo
+        id: update
         run: |
+          TARGET="../__vm-docs/content/victorialogs-grafana-datasource"
+          rm -rf ${TARGET}
+          cp -r docs ${TARGET}
           sed -i '/VictoriaLogs datasource for Grafana/g' README.md
-          echo '---
-          weight: 9
-          title: Grafana datasource
-          editLink: https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/README.md
-          menu:
-            docs:
-              identifier: victorialogs-grafana-datasource
-              parent: 'victorialogs'
-              weight: 9
-          aliases:
-          - /victorialogs/victorialogs-datasource.html
-          ---
-          ' > ../__vm-docs-repo/docs/VictoriaLogs/victorialogs-datasource.md
+          cp README.md ${TARGET}/
+          sed -i 's|docs/assets/|victorialogs-grafana-datasource/assets/|g' ${TARGET}/README.md
+          echo "SHORT_SHA=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_OUTPUT
+        working-directory: __vl-datasource
 
-          cat ./README.md >>  ../__vm-docs-repo/docs/VictoriaLogs/victorialogs-datasource.md
-          sed -i 's|docs/assets/||g' ../__vm-docs-repo/docs/VictoriaLogs/victorialogs-datasource.md
-          
-          cp docs/assets/* ../__vm-docs-repo/docs/VictoriaLogs/
-        working-directory: "__vl-datasource-repo"
-
-      - name: Commit and push changes
+      - name: Push to vmdocs
         run: |
-          export VM_GIT_BRANCH_NAME="ds-docs-update-$(date +%s)"
-          export VM_GIT_COMMIT_SHA="$(git rev-parse --short $GITHUB_SHA)"
-          git checkout -b "${VM_GIT_BRANCH_NAME}"
-          git add docs/
-          git commit -S -m "Automatic update Grafana datasource docs from ${GITHUB_REPOSITORY}@${VM_GIT_COMMIT_SHA}"
-          git push origin ${VM_GIT_BRANCH_NAME}
-          gh pr create -f
-        working-directory: "__vm-docs-repo"
+          git config --global user.name "${{ steps.import-gpg.outputs.email }}"
+          git config --global user.email "${{ steps.import-gpg.outputs.email }}"
+          if [[ -n $(git status --porcelain --untracked-files=no) ]]; then
+            git add content/victorialogs-grafana-datasource
+            git commit -S -m "sync docs with VictoriaMetrics/victorialogs-datasource commit: ${{ steps.update.outputs.SHORT_SHA }}"
+            git push
+          fi
+        working-directory: __vm-docs
         env:
-          GITHUB_TOKEN: ${{ secrets.VM_BOT_GH_TOKEN }}
+          GH_TOKEN: "${{ secrets.VM_BOT_GH_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.VM_BOT_GH_TOKEN }}"
