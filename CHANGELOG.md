@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.15.0
+
 * FEATURE: add configuration screen for derived fields. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/202).
   Thanks to @090809 for [the pull request](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/231). 
 * BUGFIX: fix live mode shows the first query result instead of separately requested two different results. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/229).
