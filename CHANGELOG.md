@@ -2,6 +2,10 @@
 
 ## tip
 
+## v0.15.0
+
+* FEAT: add configuration screen for derived fields
+
 ## v0.14.3
 
 * BUGFIX: fix image links in public readme.

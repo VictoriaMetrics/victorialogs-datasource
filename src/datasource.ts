@@ -35,6 +35,7 @@ import { addLabelToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQ
 import { replaceVariables, returnVariables } from "./parsingUtils";
 import { regularEscape } from "./regexUtils";
 import {
+  DerivedFieldConfig,
   FilterActionType,
   FilterFieldType,
   Options,
@@ -58,6 +59,7 @@ export class VictoriaLogsDatasource
   uid: string;
   url: string;
   maxLines: number;
+  derivedFields: DerivedFieldConfig[];
   basicAuth?: string;
   withCredentials?: boolean;
   httpMethod: string;
@@ -80,6 +82,7 @@ export class VictoriaLogsDatasource
     this.withCredentials = instanceSettings.withCredentials;
     this.httpMethod = instanceSettings.jsonData.httpMethod || 'POST';
     this.maxLines = parseInt(settingsData.maxLines ?? '0', 10) || 1000;
+    this.derivedFields = settingsData.derivedFields || [];
     this.customQueryParameters = new URLSearchParams(instanceSettings.jsonData.customQueryParameters);
     this.languageProvider = languageProvider ?? new LogsQlLanguageProvider(this);
     this.annotations = {
@@ -114,7 +117,7 @@ export class VictoriaLogsDatasource
       .query(fixedRequest)
       .pipe(
         map((response) =>
-          transformBackendResult(response, fixedRequest.targets, [])
+          transformBackendResult(response, fixedRequest.targets, this.derivedFields ?? [])
         )
       );
   }
