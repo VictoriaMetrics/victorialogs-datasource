@@ -14,14 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: docs
-      url: https://docs.victoriametrics.com/
+      url: https://docs.victoriametrics.com/victorialogs/victorialogs-datasource/
     steps:
-      - name: Check out code
+      - name: Checkout datasource repo
         uses: actions/checkout@v4
         with:
           path: __vl-datasource
 
-      - name: Check out VM code
+      - name: Checkout docs code
         uses: actions/checkout@v4
         with:
           repository: VictoriaMetrics/vmdocs
@@ -39,24 +39,23 @@ jobs:
           git_commit_gpgsign: true
           git_config_global: true
 
-      # Copies README.md and assets from docs/assets
-      - name: Update ds docs in VM repo
+      - name: Update datasource docs in docs repo
         id: update
         run: |
-          TARGET="../__vm-docs/content/victorialogs-grafana-datasource"
+          export TARGET="../__vm-docs/content/victorialogs-grafana-datasource"
           rm -rf ${TARGET}
           cp -r docs ${TARGET}
-          sed -i '/VictoriaLogs datasource for Grafana/g' README.md
           cp README.md ${TARGET}/
+          sed -i '/VictoriaLogs datasource for Grafana/g' ${TARGET}/README.md
           sed -i 's|docs/assets/|victorialogs-grafana-datasource/assets/|g' ${TARGET}/README.md
           echo "SHORT_SHA=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_OUTPUT
         working-directory: __vl-datasource
 
-      - name: Push to vmdocs
+      - name: Push to docs repo
         run: |
           git config --global user.name "${{ steps.import-gpg.outputs.email }}"
           git config --global user.email "${{ steps.import-gpg.outputs.email }}"
-          if [[ -n $(git status --porcelain --untracked-files=no) ]]; then
+          if [[ -n $(git status --porcelain) ]]; then
             git add content/victorialogs-grafana-datasource
             git commit -S -m "sync docs with VictoriaMetrics/victorialogs-datasource commit: ${{ steps.update.outputs.SHORT_SHA }}"
             git push
