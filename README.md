@@ -64,7 +64,7 @@ docker-compose -f docker-compose.yaml up
 
 After Grafana starts successfully, datasource should be available in the datasources tab
 
-![Configuration](docs/assets/provision_datasources.webp)
+![Configuration](https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/docs/assets/provision_datasources.webp?raw=true)
 
 ### Install in Kubernetes
 
