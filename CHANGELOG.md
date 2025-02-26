@@ -2,6 +2,10 @@
 
 ## tip
 
+## v0.16.0
+
+* FEATURE: implements the getLogRowContext method. See [this PR](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/247).
+
 ## v0.15.0
 
 * FEATURE: add configuration screen for derived fields. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/202).
