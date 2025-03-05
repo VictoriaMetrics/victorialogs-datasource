@@ -22,7 +22,7 @@ export const addLabelToQuery = (query: string, key: string, value: string, opera
   const [filters, ...pipes] = splitExpression(query)
   const insertPart = getFilterInsertValue(key, value, operator)
   const pipesPart = pipes?.length ? `| ${pipes.join(' | ')}` : ''
-  return (`${filters} AND ${insertPart} ${pipesPart}`).trim()
+  return filters.length ? (`${filters} AND ${insertPart} ${pipesPart}`).trim() : (`${insertPart} ${pipesPart}`).trim()
 }
 
 export const removeLabelFromQuery = (query: string, key: string, value: string, operator?: string): string => {

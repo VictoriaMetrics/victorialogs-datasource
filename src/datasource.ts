@@ -4,17 +4,26 @@ import { map } from 'rxjs/operators';
 
 import {
   AdHocVariableFilter,
+  CoreApp,
+  DataFrame,
   DataQueryRequest,
   DataQueryResponse,
   DataSourceInstanceSettings,
+  DataSourceWithLogsContextSupport,
+  dateTime,
   LegacyMetricFindQueryOptions,
   LiveChannelScope,
   LoadingState,
+  LogRowContextOptions,
+  LogRowContextQueryDirection,
+  LogRowModel,
   MetricFindValue,
+  rangeUtil,
   ScopedVars,
   SupplementaryQueryOptions,
   SupplementaryQueryType,
   TimeRange,
+  toUtc,
 } from '@grafana/data';
 import {
   BackendSrvRequest,
@@ -52,9 +61,13 @@ import { VariableSupport } from "./variableSupport/VariableSupport";
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 export const REF_ID_STARTER_LOG_SAMPLE = 'log-sample-';
+export const REF_ID_STARTER_LOG_CONTEXT_REQUEST= 'log-context-request-';
+export const REF_ID_STARTER_LOG_CONTEXT_QUERY = 'log-context-query-';
+export const LABEL_STREAM_ID  = '_stream_id';
 
 export class VictoriaLogsDatasource
-  extends DataSourceWithBackend<Query, Options> {
+  extends DataSourceWithBackend<Query, Options>
+  implements DataSourceWithLogsContextSupport {
   id: number;
   uid: string;
   url: string;
@@ -401,5 +414,70 @@ export class VictoriaLogsDatasource
 
   getQueryDisplayText(query: Query): string {
     return (query.expr || '');
+  }
+
+  getLogRowContext = async (
+      row: LogRowModel,
+      options?: LogRowContextOptions,
+      query?: Query
+  ): Promise<{ data: DataFrame[] }> => {
+    const contextRequest = this.makeLogContextDataRequest(row, options);
+    return lastValueFrom(this.runQuery(contextRequest));
+  };
+
+  private prepareLogContextQueryExpr = (row: LogRowModel): string => {
+    let expression = '';
+    expression = addLabelToQuery(expression, LABEL_STREAM_ID, row.labels[LABEL_STREAM_ID],'');
+    return expression;
+  };
+
+  private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions): DataQueryRequest<Query> => {
+    const direction = options?.direction || LogRowContextQueryDirection.Backward;
+
+    const query: Query = {
+      expr: this.prepareLogContextQueryExpr(row),
+      refId: `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${options?.direction}`
+    };
+
+    const timeRange = this.createContextTimeRange(row.timeEpochMs, direction);
+    const range = {
+      from: timeRange.from,
+      to: timeRange.to,
+      raw: timeRange,
+    };
+
+    const interval = rangeUtil.calculateInterval(range, 1);
+
+    const contextRequest: DataQueryRequest<Query> = {
+      app: CoreApp,
+      interval: interval.interval,
+      intervalMs: interval.intervalMs,
+      range: range,
+      requestId: `${REF_ID_STARTER_LOG_CONTEXT_REQUEST}${row.dataFrame.refId}-${options?.direction}`,
+      scopedVars: {},
+      startTime: Date.now(),
+      targets: [query],
+      timezone: 'UTC'
+    };
+
+    return contextRequest;
+  };
+
+  private createContextTimeRange = (rowTimeEpochMs: number, direction?: LogRowContextQueryDirection): TimeRange => {
+    const offset = 2 * 60 * 60 * 1000;  // 2h
+    const overlap = 1000;
+
+    const timeRange =
+      direction === LogRowContextQueryDirection.Backward
+        ?  {
+            from: toUtc(rowTimeEpochMs - offset),
+            to: toUtc(rowTimeEpochMs + overlap)
+          }
+        : {
+            from: toUtc(rowTimeEpochMs),
+            to: toUtc(rowTimeEpochMs + offset) // Add 1 second to avoid missing results
+          };
+
+    return { ...timeRange, raw: timeRange };
   }
 }
