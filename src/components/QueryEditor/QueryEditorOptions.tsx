@@ -19,6 +19,12 @@ export interface Props {
 
 export const queryTypeOptions: Array<SelectableValue<QueryType>> = [
   {
+    value: QueryType.Hits,
+    label: 'Hits',
+    filter: ({ app }: Props) => app !== CoreApp.UnifiedAlerting && app !== CoreApp.CloudAlerting,
+    description: "Use `/select/logsql/hits` for querying logs.",
+  },
+  {
     value: QueryType.Instant,
     label: 'Raw Logs',
     filter: ({ app }: Props) => app !== CoreApp.UnifiedAlerting && app !== CoreApp.CloudAlerting,

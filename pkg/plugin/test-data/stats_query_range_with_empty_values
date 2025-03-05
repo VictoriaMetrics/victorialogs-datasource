@@ -1,0 +1,1 @@
+{"status":"success","data":{"resultType":"matrix","result":[{"metric":{"__name__":"quantile(0.95, level)","level":""},"values":[[1741254760,""],[1741261900,""],[1741262000,""]]}]}}

@@ -420,15 +420,25 @@ func (ls logStats) matrixDataFrames() (data.Frames, error) {
 		timestamps := make([]time.Time, len(res.Values))
 		values := make([]float64, len(res.Values))
 		for j, value := range res.Values {
-			v, ok := value[0].(float64)
+			t, ok := value[0].(float64)
 			if !ok {
 				return nil, fmt.Errorf("metric %v, value: %v unable to parse timestamp to float64 from %s", res, value, value[0])
 			}
-			seconds := int64(v)                                // get only seconds
-			nanoseconds := int64((v - float64(seconds)) * 1e9) // get only nanoseconds
+			seconds := int64(t)                                // get only seconds
+			nanoseconds := int64((t - float64(seconds)) * 1e9) // get only nanoseconds
 			timestamps[j] = time.Unix(seconds, nanoseconds)
 
-			f, err := strconv.ParseFloat(value[1].(string), 64)
+			v, ok := value[1].(string)
+			if !ok {
+				return nil, fmt.Errorf("metric %v, value: %v unable to convert metrics value to string from %s", res, value, value[1])
+			}
+
+			if v == "" {
+				values[j] = 0
+				continue
+			}
+
+			f, err := strconv.ParseFloat(v, 64)
 			if err != nil {
 				return nil, fmt.Errorf("metric %v, value: %v unable to convert metrics value to float64 from %s", res, value, value[1])
 			}

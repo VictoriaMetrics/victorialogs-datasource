@@ -634,6 +634,28 @@ func Test_getStatsResponse(t *testing.T) {
 				return rsp
 			},
 		},
+		{
+			name:     "stats query range response with empty values",
+			filename: "test-data/stats_query_range_with_empty_values",
+			q: &Query{
+				DataQuery: backend.DataQuery{
+					RefID: "A",
+				},
+				LegendFormat: "legend {{app}}",
+			},
+			want: func() backend.DataResponse {
+				frames := []*data.Frame{
+					data.NewFrame("legend ",
+						data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1741254760, 0), time.Unix(1741261900, 0), time.Unix(1741262000, 0)}),
+						data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "quantile(0.95, level)", "level": ""}, []float64{0, 0, 0}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+					),
+				}
+
+				rsp := backend.DataResponse{}
+				rsp.Frames = append(rsp.Frames, frames...)
+				return rsp
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
