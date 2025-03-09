@@ -1,4 +1,13 @@
-import { DataQueryResponse, DataFrame, isDataFrame, FieldType, QueryResultMeta, DataQueryError } from '@grafana/data';
+import {
+  CoreApp,
+  DataFrame,
+  DataQueryError,
+  DataQueryRequest,
+  DataQueryResponse,
+  FieldType,
+  isDataFrame,
+  QueryResultMeta,
+} from '@grafana/data';
 
 import { getDerivedFields } from './getDerivedFields';
 import { makeTableFrames } from './makeTableFrames';
@@ -19,6 +28,19 @@ function setFrameMeta(frame: DataFrame, meta: QueryResultMeta): DataFrame {
     ...rest,
     meta: newMeta,
   };
+}
+
+function processStreamsFrames(
+  frames: DataFrame[],
+  queryMap: Map<string, Query>,
+  derivedFieldConfigs: DerivedFieldConfig[],
+  app: string
+): DataFrame[] {
+  return frames.map((frame) => {
+    const query = frame.refId !== undefined ? queryMap.get(frame.refId) : undefined;
+    if (app === CoreApp.Dashboard) return processDashboardStreamFrame(frame, query, derivedFieldConfigs);
+    return processStreamFrame(frame, query, derivedFieldConfigs);
+  });
 }
 
 function processStreamFrame(
@@ -49,15 +71,48 @@ function processStreamFrame(
   };
 }
 
-function processStreamsFrames(
-  frames: DataFrame[],
-  queryMap: Map<string, Query>,
+function processDashboardStreamFrame(
+  frame: DataFrame,
+  query: Query | undefined,
   derivedFieldConfigs: DerivedFieldConfig[]
-): DataFrame[] {
-  return frames.map((frame) => {
-    const query = frame.refId !== undefined ? queryMap.get(frame.refId) : undefined;
-    return processStreamFrame(frame, query, derivedFieldConfigs);
-  });
+): DataFrame {
+  const custom: Record<string, string> = {
+    ...frame.meta?.custom, // keep the original meta.custom
+  };
+
+  if (dataFrameHasError(frame)) {
+    custom.error = 'Error when parsing some of the logs';
+  }
+
+  const meta: QueryResultMeta = {
+    preferredVisualisationType: 'logs',
+    limit: query?.maxLines,
+    searchWords: query !== undefined ? getHighlighterExpressionsFromQuery(query.expr) : undefined,
+    custom,
+  };
+
+  const newFrame = setFrameMeta(frame, meta);
+  const derivedFields = getDerivedFields(newFrame, derivedFieldConfigs);
+
+  return {
+    ...newFrame,
+    fields: [
+      ...newFrame.fields.map((field) => {
+        if (field.name === 'labels') {
+          return {
+            ...field,
+            values: field.values.map((value) => {
+              return Object.entries(value).map(([key, value]) => {
+                return `${key}: ${JSON.stringify(value)}`;
+              });
+            }),
+          };
+        }
+        return field;
+      }),
+      ...derivedFields,
+    ],
+  };
 }
 
 function processMetricInstantFrames(frames: DataFrame[]): DataFrame[] {
@@ -126,10 +181,12 @@ function improveError(error: DataQueryError | undefined, queryMap: Map<string, Q
 
 export function transformBackendResult(
   response: DataQueryResponse,
-  queries: Query[],
-  derivedFieldConfigs: DerivedFieldConfig[],
+  request: DataQueryRequest,
+  derivedFieldConfigs: DerivedFieldConfig[]
 ): DataQueryResponse {
   const { data, errors, ...rest } = response;
+  const queries = request.targets;
+  const { app } = request;
 
   // in the typescript type, data is an array of basically anything.
   // we do know that they have to be dataframes, so we make a quick check,
@@ -142,7 +199,7 @@ export function transformBackendResult(
     return d;
   });
 
-  const queryMap = new Map(queries.map((query) => [query.refId, query]));
+  const queryMap = new Map(queries.map((query) => [query.refId, query])) as Map<string, Query>;
 
   const { streamsFrames, metricInstantFrames, metricRangeFrames } = groupFrames(dataFrames, queryMap);
 
@@ -154,7 +211,7 @@ export function transformBackendResult(
     data: [
       ...processMetricRangeFrames(metricRangeFrames),
       ...processMetricInstantFrames(metricInstantFrames),
-      ...processStreamsFrames(streamsFrames, queryMap, derivedFieldConfigs),
+      ...processStreamsFrames(streamsFrames, queryMap, derivedFieldConfigs, app),
     ],
   };
 }

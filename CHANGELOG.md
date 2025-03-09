@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix build annotation from the label field. All labels transforms to the string representation. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/188).
+
 ## v0.15.0
 
 * FEATURE: add configuration screen for derived fields. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/202).
