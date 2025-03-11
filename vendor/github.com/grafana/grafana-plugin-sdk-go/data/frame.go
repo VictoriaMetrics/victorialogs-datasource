@@ -211,13 +211,6 @@ func (f *Frame) TypeIndices(fTypes ...FieldType) []int {
 	return indices
 }
 
-// SetConfig modifies the Field's Config property to
-// be set to conf and returns the Field.
-func (f *Field) SetConfig(conf *FieldConfig) *Field {
-	f.Config = conf
-	return f
-}
-
 // NewFrame returns a new Frame.
 func NewFrame(name string, fields ...*Field) *Frame {
 	return &Frame{
@@ -232,12 +225,24 @@ func (f *Frame) SetMeta(m *FrameMeta) *Frame {
 	return f
 }
 
+// SetRefID sets the Frame's RefID attribute to r and returns the Frame.
+func (f *Frame) SetRefID(r string) *Frame {
+	f.RefID = r
+	return f
+}
+
 // Rows returns the number of rows in the frame.
 func (f *Frame) Rows() int {
 	if len(f.Fields) > 0 {
 		return f.Fields[0].Len()
 	}
 	return 0
+}
+
+// NilAt returns true if the element at fieldIdx and rowIdx is nil.
+// It will panic if either fieldIdx or rowIdx are out of range.
+func (f *Frame) NilAt(fieldIdx int, rowIdx int) bool {
+	return f.Fields[fieldIdx].vector.NilAt(rowIdx)
 }
 
 // At returns the value of the specified fieldIdx and rowIdx.

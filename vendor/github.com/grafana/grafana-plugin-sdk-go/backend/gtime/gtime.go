@@ -1,10 +1,10 @@
 package gtime
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -75,18 +75,47 @@ func ParseDuration(inp string) (time.Duration, error) {
 }
 
 func parse(inp string) (time.Duration, string, error) {
-	result := dateUnitPattern.FindSubmatch([]byte(inp))
+	if inp == "" {
+		return 0, "", backend.DownstreamError(errors.New("empty input"))
+	}
+
+	// Fast path for simple duration formats (no date units)
+	lastChar := inp[len(inp)-1]
+	if lastChar != 'd' && lastChar != 'w' && lastChar != 'M' && lastChar != 'y' {
+		dur, err := time.ParseDuration(inp)
+		return dur, "", err
+	}
+
+	// Check if the rest is a number for date units
+	numPart := inp[:len(inp)-1]
+	isNum := true
+	for _, c := range numPart {
+		if c < '0' || c > '9' {
+			isNum = false
+			break
+		}
+	}
+	if isNum {
+		num, err := strconv.Atoi(numPart)
+		if err != nil {
+			return 0, "", err
+		}
+		return time.Duration(num), string(lastChar), nil
+	}
+
+	// Fallback to regex for complex cases
+	result := dateUnitPattern.FindStringSubmatch(inp)
 	if len(result) != 3 {
 		dur, err := time.ParseDuration(inp)
 		return dur, "", err
 	}
 
-	num, err := strconv.Atoi(string(result[1]))
+	num, err := strconv.Atoi(result[1])
 	if err != nil {
 		return 0, "", err
 	}
 
-	return time.Duration(num), string(result[2]), nil
+	return time.Duration(num), result[2], nil
 }
 
 // FormatInterval converts a duration into the units that Grafana uses
@@ -154,15 +183,37 @@ func GetIntervalFrom(dsInterval, queryInterval string, queryIntervalMS int64, de
 // ParseIntervalStringToTimeDuration converts a string representation of a expected (i.e. 1m30s) to time.Duration
 // this method copied from grafana/grafana/pkg/tsdb/intervalv2.go
 func ParseIntervalStringToTimeDuration(interval string) (time.Duration, error) {
-	formattedInterval := strings.Replace(strings.Replace(interval, "<", "", 1), ">", "", 1)
-	isPureNum, err := regexp.MatchString(`^\d+$`, formattedInterval)
-	if err != nil {
-		return time.Duration(0), err
+	if len(interval) == 0 {
+		return 0, backend.DownstreamError(fmt.Errorf("invalid interval"))
 	}
+
+	// extract the interval if it is inside brackets i.e. <10m>
+	if interval[0] == '<' {
+		interval = interval[1:]
+	}
+	if len(interval) > 0 && interval[len(interval)-1] == '>' {
+		interval = interval[:len(interval)-1]
+	}
+
+	// Check if string contains only digits
+	isPureNum := true
+	for _, c := range interval {
+		if c < '0' || c > '9' {
+			isPureNum = false
+			break
+		}
+	}
+
+	// if it is number than return it immediately
 	if isPureNum {
-		formattedInterval += "s"
+		num, err := strconv.ParseInt(interval, 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		return time.Duration(num) * time.Second, nil
 	}
-	parsedInterval, err := ParseDuration(formattedInterval)
+
+	parsedInterval, err := ParseDuration(interval)
 	if err != nil {
 		return time.Duration(0), err
 	}
