@@ -426,9 +426,7 @@ export class VictoriaLogsDatasource
   };
 
   private prepareLogContextQueryExpr = (row: LogRowModel): string => {
-    let expression = '';
-    expression = addLabelToQuery(expression, LABEL_STREAM_ID, row.labels[LABEL_STREAM_ID],'');
-    return expression;
+    return addLabelToQuery('', LABEL_STREAM_ID, row.labels[LABEL_STREAM_ID],'');
   };
 
   private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions): DataQueryRequest<Query> => {
@@ -439,12 +437,7 @@ export class VictoriaLogsDatasource
       refId: `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${options?.direction}`
     };
 
-    const timeRange = this.createContextTimeRange(row.timeEpochMs, direction);
-    const range = {
-      from: timeRange.from,
-      to: timeRange.to,
-      raw: timeRange,
-    };
+    const range = this.createContextTimeRange(row.timeEpochMs, direction);
 
     const interval = rangeUtil.calculateInterval(range, 1);
 
