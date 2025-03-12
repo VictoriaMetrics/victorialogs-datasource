@@ -11,6 +11,7 @@ import { HelpfulLinks } from "./HelpfulLinks";
 import { LimitsSettings } from "./LimitSettings";
 import { QuerySettings } from './QuerySettings';
 import { DerivedFields } from "./DerivedFields";
+import { LogsSettings } from './LogsSettings';
 
 export type Props = DataSourcePluginOptionsEditorProps<Options>;
 
@@ -47,6 +48,9 @@ const ConfigEditor = (props: Props) => {
         fields={options.jsonData.derivedFields}
         onChange={(value) => onOptionsChange(setDerivedFields(options, value))}
       />
+
+      <LogsSettings {...props}/>
+
       <LimitsSettings {...props}/>
     </>
   );

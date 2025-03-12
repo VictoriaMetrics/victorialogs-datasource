@@ -3,6 +3,7 @@
 ## tip
 
 * BUGFIX: fix build annotation from the label field. All labels transforms to the string representation. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/188).
+* FEATURE: add configuration screen for Custom query parameters. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/252).
 
 ## v0.15.0
 
