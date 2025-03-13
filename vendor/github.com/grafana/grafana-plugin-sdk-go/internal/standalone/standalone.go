@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"net"
 	"os"
@@ -20,6 +21,8 @@ import (
 
 var (
 	standaloneEnabled = flag.Bool("standalone", false, "should this run standalone")
+
+	errStandaloneFileNotFound = errors.New("standalone.txt file not found")
 )
 
 func NewServerSettings(address, dir string) ServerSettings {
@@ -58,7 +61,10 @@ func ServerModeEnabled(pluginID string) (ServerSettings, bool) {
 func ClientModeEnabled(pluginID string) (ClientSettings, bool) {
 	s, err := clientSettings(pluginID)
 	if err != nil {
-		log.Printf("Error: %s", err.Error())
+		if !errors.Is(err, errStandaloneFileNotFound) {
+			log.Printf("Error: %s", err.Error())
+		}
+
 		return ClientSettings{}, false
 	}
 
@@ -76,14 +82,24 @@ func RunDummyPluginLocator(address string) {
 }
 
 func serverSettings(pluginID string) (ServerSettings, error) {
-	curProcPath, err := currentProcPath()
+	cwd, err := currentWd()
 	if err != nil {
 		return ServerSettings{}, err
 	}
 
-	dir := filepath.Dir(curProcPath) // Default to current directory
-	if pluginDir, found := findPluginRootDir(curProcPath); found {
-		dir = pluginDir
+	// if we are in the pkg directory, go up one level
+	if filepath.Base(cwd) == "pkg" {
+		cwd = filepath.Dir(cwd)
+	}
+
+	// if dist directory exists, use that as the base directory
+	if finfo, err := os.Stat(filepath.Join(cwd, "dist")); err == nil && finfo.IsDir() {
+		cwd = filepath.Join(cwd, "dist")
+	}
+
+	dir, found := findPluginDir(cwd, pluginID)
+	if !found {
+		return ServerSettings{}, fmt.Errorf("plugin directory not found for plugin ID: %s", pluginID)
 	}
 
 	address, err := createStandaloneAddress(pluginID)
@@ -95,6 +111,10 @@ func serverSettings(pluginID string) (ServerSettings, error) {
 		Dir:     dir,
 	}, nil
 }
+
+// currentWd returns the current working directory.
+// This is a variable so that it can be mocked in tests.
+var currentWd = os.Getwd
 
 // clientSettings will attempt to find a standalone server's address and PID.
 func clientSettings(pluginID string) (ClientSettings, error) {
@@ -134,29 +154,39 @@ func currentProcPath() (string, error) {
 	return curProcPath, nil
 }
 
-// findPluginRootDir will attempt to find a plugin directory based on the executing process's file-system path.
-func findPluginRootDir(curProcPath string) (string, bool) {
-	cwd, _ := os.Getwd()
-	if filepath.Base(cwd) == "pkg" {
-		cwd = filepath.Join(cwd, "..")
-	}
-
-	check := []string{
-		filepath.Join(curProcPath, "plugin.json"),
-		filepath.Join(curProcPath, "dist", "plugin.json"),
-		filepath.Join(filepath.Dir(curProcPath), "plugin.json"),
-		filepath.Join(filepath.Dir(curProcPath), "dist", "plugin.json"),
-		filepath.Join(cwd, "dist", "plugin.json"),
-		filepath.Join(cwd, "plugin.json"),
-	}
-
-	for _, path := range check {
-		if _, err := os.Stat(path); err == nil {
-			return filepath.Dir(path), true
+// findPluginDir will attempt to find a plugin directory based on the provided plugin ID.
+// This function will traverse the filesystem from the provided directory until it finds a directory that contains
+// a plugin.json file containing an id matching the provided plugin ID.
+func findPluginDir(dir, pluginID string) (string, bool) {
+	var pluginDir string
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
 		}
+
+		if d.Name() != "plugin.json" || d.IsDir() {
+			return nil
+		}
+
+		id, err := internal.GetStringValueFromJSON(path, "id")
+		if err != nil {
+			return nil
+		}
+
+		if pluginID == id {
+			pluginDir = filepath.Dir(path)
+			return fs.SkipAll
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Printf("findPluginDir error: %s", err.Error())
+		return "", false
 	}
 
-	return "", false
+	return pluginDir, pluginDir != ""
 }
 
 func getStandaloneAddress(pluginID string, dir string) (string, error) {
@@ -172,7 +202,7 @@ func getStandaloneAddress(pluginID string, dir string) (string, error) {
 		return "", fmt.Errorf("read standalone file: %w", err)
 	case os.IsNotExist(err) || len(addressFileContent) == 0:
 		// No standalone file, do not treat as standalone
-		return "", nil
+		return "", errStandaloneFileNotFound
 	}
 	return addressFileContent, nil
 }
