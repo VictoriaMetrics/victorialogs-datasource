@@ -17,6 +17,8 @@ jobs:
       packages: write
       contents: write
       pages: write
+      attestations: write
+      id-token: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -68,6 +70,12 @@ jobs:
             git tag ${TAG}
             git push origin ${TAG}
           fi
+      - name: Generate artifact attestation
+        if: ${{ hashFiles('NOTES.md') != '' }}
+        id: attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/victoriametrics-logs-datasource-${{ env.PKG_TAG }}.zip
       - name: Prapare binary cache
         if: ${{ hashFiles('NOTES.md') != '' }}
         uses: actions/cache@v4
@@ -79,6 +87,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "Check attestation details at: ${{ steps.attestation.outputs.attestation-url }}"
           gh release create ${{ env.PKG_TAG }} \
             --title=${{ env.PKG_TAG }} \
             --notes-file=NOTES.md ./dist/*

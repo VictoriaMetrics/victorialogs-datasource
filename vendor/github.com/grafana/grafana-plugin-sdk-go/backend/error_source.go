@@ -32,6 +32,10 @@ func ErrorSourceFromHTTPStatus(statusCode int) ErrorSource {
 	return status.SourceFromHTTPStatus(statusCode)
 }
 
+func IsPluginError(err error) bool {
+	return status.IsPluginError(err)
+}
+
 // IsDownstreamError return true if provided error is an error with downstream source or
 // a timeout error or a cancelled error.
 func IsDownstreamError(err error) bool {
@@ -58,6 +62,12 @@ func PluginError(err error) error {
 // according to a format specifier and returns the string as a value that satisfies error.
 func DownstreamErrorf(format string, a ...any) error {
 	return DownstreamError(fmt.Errorf(format, a...))
+}
+
+// PluginErrorf creates a new error with status [ErrorSourcePlugin] and formats
+// according to a format specifier and returns the string as a value that satisfies error.
+func PluginErrorf(format string, a ...any) error {
+	return PluginError(fmt.Errorf(format, a...))
 }
 
 // ErrorSourceFromContext returns the error source stored in the context.

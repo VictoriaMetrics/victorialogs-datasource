@@ -98,8 +98,12 @@ func buildBackend(cfg Config) error {
 		return err
 	}
 
-	// TODO: Change to sh.RunWithV once available.
-	return sh.RunWith(cfg.Env, "go", args...)
+	err = sh.RunWithV(cfg.Env, "go", args...)
+	if err != nil {
+		return err
+	}
+	b := Build{}
+	return b.GenerateManifestFile()
 }
 
 func getBuildBackendCmdInfo(cfg Config) (Config, []string, error) {
@@ -247,6 +251,13 @@ func (Build) DarwinARM64() error {
 	return buildBackend(newBuildConfig("darwin", "arm64"))
 }
 
+// Custom allows customizable back-end plugin builds for the provided os and arch.
+// Note: Cutomized builds are not officially supported by Grafana, so this option is intended for developers who need
+// to create their own custom build targets.
+func (Build) Custom(os, arch string) error {
+	return buildBackend(newBuildConfig(os, arch))
+}
+
 // GenerateManifestFile generates a manifest file for plugin submissions
 func (Build) GenerateManifestFile() error {
 	config := Config{}
@@ -335,7 +346,7 @@ func (Build) Backend() error {
 // BuildAll builds production executables for all supported platforms.
 func BuildAll() { //revive:disable-line
 	b := Build{}
-	mg.Deps(b.Linux, b.Windows, b.Darwin, b.DarwinARM64, b.LinuxARM64, b.LinuxARM, b.GenerateManifestFile)
+	mg.Deps(b.Linux, b.Windows, b.Darwin, b.DarwinARM64, b.LinuxARM64, b.LinuxARM)
 }
 
 //go:embed tmpl/*
