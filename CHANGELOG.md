@@ -8,7 +8,7 @@
 * FEATURE: add configuration screen for Custom query parameters. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/252).
   Thanks to @tommysitehost for [this pull request](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/256).
 * BUGFIX: fix build annotation from the label field. All labels transforms to the string representation. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/188).
-
+* BUGFIX: fix the bug with incorrect bar display on the Logs Volume chart. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/249).
 
 ## v0.15.0
 
