@@ -17,6 +17,8 @@ import { BarAlignment, GraphDrawStyle, StackingMode } from "@grafana/schema";
 import { VictoriaLogsDatasource } from "./datasource";
 import { Query } from "./types";
 
+export const LOGS_VOLUME_BARS = 100;
+
 export const queryLogsVolume = (datasource: VictoriaLogsDatasource, request: DataQueryRequest<Query>): Observable<DataQueryResponse> | undefined => {
   return new Observable((observer) => {
     let rawLogsVolume: DataFrame[] = [];
@@ -31,7 +33,7 @@ export const queryLogsVolume = (datasource: VictoriaLogsDatasource, request: Dat
 
     const subscription = queryObservable.subscribe({
       complete: () => {
-        const aggregatedLogsVolume = aggregateRawLogsVolume(rawLogsVolume, () => LogLevel.unknown);
+        const aggregatedLogsVolume = aggregateRawLogsVolume(rawLogsVolume, () => LogLevel.unknown, request);
         if (aggregatedLogsVolume[0]) {
           aggregatedLogsVolume[0].meta = {
             custom: {
@@ -81,7 +83,8 @@ export const queryLogsVolume = (datasource: VictoriaLogsDatasource, request: Dat
  */
 export function aggregateRawLogsVolume(
   rawLogsVolume: DataFrame[],
-  extractLevel: (dataFrame: DataFrame) => LogLevel
+  extractLevel: (dataFrame: DataFrame) => LogLevel,
+  request: DataQueryRequest<Query>
 ): DataFrame[] {
   const logsVolumeByLevelMap: Partial<Record<LogLevel, DataFrame[]>> = {};
 
@@ -96,7 +99,8 @@ export function aggregateRawLogsVolume(
   return Object.keys(logsVolumeByLevelMap).map((level: string) => {
     return aggregateFields(
       logsVolumeByLevelMap[level as LogLevel]!,
-      getLogVolumeFieldConfig(level as LogLevel)
+      getLogVolumeFieldConfig(level as LogLevel),
+      request
     );
   });
 }
@@ -106,14 +110,22 @@ export function aggregateRawLogsVolume(
  * Multiple data frames for the same level are passed here to get a single
  * data frame for a given level. Aggregation by level happens in aggregateRawLogsVolume()
  */
-function aggregateFields(dataFrames: DataFrame[], config: FieldConfig): DataFrame {
+function aggregateFields(
+  dataFrames: DataFrame[],
+  config: FieldConfig,
+  request: DataQueryRequest<Query>
+): DataFrame {
   const aggregatedDataFrame = new MutableDataFrame();
   if (!dataFrames.length) {
     return aggregatedDataFrame;
   }
 
-  const times = dataFrames.map((dataFrame) => dataFrame.fields[0].values).flat();
-  const uniqTimes = Array.from(new Set(times.filter(Boolean))).sort((a, b) => a - b);
+  const totalSeconds = request.range.to.diff(request.range.from, "second");
+  const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || 1;
+  const uniqTimes = Array.from(
+    { length: LOGS_VOLUME_BARS },
+    (_, i) => request.range.from.valueOf() + i * step * 1000
+  );
   const totalLength = uniqTimes.length;
 
   if (!totalLength) {
@@ -124,10 +136,10 @@ function aggregateFields(dataFrames: DataFrame[], config: FieldConfig): DataFram
   aggregatedDataFrame.addField({ name: 'Value', type: FieldType.number, config }, totalLength);
 
   for (let pointIndex = 0; pointIndex < totalLength; pointIndex++) {
-    const time = uniqTimes[pointIndex]
+    const time = uniqTimes[pointIndex];
     const value = dataFrames.reduce((acc, frame) => {
-      const [frameTimes, frameValues] = frame.fields
-      const targetIndex = frameTimes.values.findIndex(t => t === time)
+      const [frameTimes, frameValues] = frame.fields;
+      const targetIndex = frameTimes.values.findIndex(t => Math.abs(t - time) < step * 1000 / 2);
       return acc + (targetIndex !== -1 ? frameValues.values[targetIndex] : 0);
     }, 0);
     aggregatedDataFrame.set(pointIndex, { Value: value, Time: time });
@@ -141,7 +153,7 @@ function aggregateFields(dataFrames: DataFrame[], config: FieldConfig): DataFram
  */
 function getLogVolumeFieldConfig(level: LogLevel) {
   const name = level;
-  const color = '#8e8e8e'
+  const color = '#8e8e8e';
   return {
     displayNameFromDS: name,
     color: {

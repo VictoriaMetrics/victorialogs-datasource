@@ -39,7 +39,7 @@ import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
 import { escapeLabelValueInSelector, isRegexSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
-import { queryLogsVolume } from "./logsVolumeLegacy";
+import { LOGS_VOLUME_BARS, queryLogsVolume } from "./logsVolumeLegacy";
 import { addLabelToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
 import { replaceVariables, returnVariables } from "./parsingUtils";
 import { regularEscape } from "./regexUtils";
@@ -366,7 +366,7 @@ export class VictoriaLogsDatasource
       case SupplementaryQueryType.LogsVolume:
         const HITS_BY_FIELD = '_stream'
         const totalSeconds = request.range.to.diff(request.range.from, "second");
-        const step = Math.ceil(totalSeconds / 100) || "";
+        const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || "";
 
         return {
           ...query,
