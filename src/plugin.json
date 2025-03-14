@@ -41,19 +41,19 @@
     "screenshots": [
       {
         "name": "Connection properties",
-        "path": "img/datasource.png"
+        "path": "img/datasource.webp"
       },
       {
         "name": "Dashboard",
-        "path": "img/dashboard.png"
+        "path": "img/dashboard.webp"
       },
       {
         "name": "Explore",
-        "path": "img/explore.png"
+        "path": "img/explore.webp"
       },
       {
         "name": "Alerting",
-        "path": "img/alerting.png"
+        "path": "img/alerting.webp"
       }
     ],
     "version": "%VERSION%",

@@ -7,11 +7,11 @@ import { DataSourceHttpSettings } from "@grafana/ui";
 import { Options } from '../types';
 
 import { AlertingSettings } from './AlertingSettings';
+import { DerivedFields } from "./DerivedFields";
 import { HelpfulLinks } from "./HelpfulLinks";
 import { LimitsSettings } from "./LimitSettings";
-import { QuerySettings } from './QuerySettings';
-import { DerivedFields } from "./DerivedFields";
 import { LogsSettings } from './LogsSettings';
+import { QuerySettings } from './QuerySettings';
 
 export type Props = DataSourcePluginOptionsEditorProps<Options>;
 

@@ -38,7 +38,7 @@ function processStreamsFrames(
 ): DataFrame[] {
   return frames.map((frame) => {
     const query = frame.refId !== undefined ? queryMap.get(frame.refId) : undefined;
-    if (app === CoreApp.Dashboard) return processDashboardStreamFrame(frame, query, derivedFieldConfigs);
+    if (app === CoreApp.Dashboard) {return processDashboardStreamFrame(frame, query, derivedFieldConfigs);}
     return processStreamFrame(frame, query, derivedFieldConfigs);
   });
 }
