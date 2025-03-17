@@ -524,7 +524,7 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 			Data: json.RawMessage(`
 {
   "datasource": {
-    "type": "victorialogs-datasource",
+    "type": "victoriametrics-logs-datasource",
     "uid": "a1c68f07-1354-4dd1-97bd-3bc49e06f03e"
   },
   "editorMode": "code",
@@ -715,7 +715,7 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 			Data: json.RawMessage(`
 	{
 	  "datasource": {
-	    "type": "victorialogs-datasource",
+	    "type": "victoriametrics-logs-datasource",
 	    "uid": "a1c68f07-1354-4dd1-97bd-3bc49e06f03e"
 	  },
 	  "editorMode": "code",
@@ -741,7 +741,7 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 			Data: json.RawMessage(`
 {
   "datasource": {
-    "type": "victorialogs-datasource",
+    "type": "victoriametrics-logs-datasource",
     "uid": "a1c68f07-1354-4dd1-97bd-3bc49e06f03e"
   },
   "editorMode": "code",
@@ -903,7 +903,7 @@ func TestDatasourceStreamTailProcess(t *testing.T) {
 		Data: json.RawMessage(`
 {
   "datasource": {
-    "type": "victorialogs-datasource",
+    "type": "victoriametrics-logs-datasource",
     "uid": "a1c68f07-1354-4dd1-97bd-3bc49e06f03e"
   },
   "editorMode": "code",
