@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.16.0
+
 * FEATURE: implements the getLogRowContext method. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/41).
   Thanks to @Libr4rian for [this pull request](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/247). 
 * FEATURE: add support for build the linux/s390x. Extend backend build process to add more architectures. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/250).
