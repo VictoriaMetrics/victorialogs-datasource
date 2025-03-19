@@ -10,7 +10,7 @@ import {
   DataQueryResponse,
   DataSourceInstanceSettings,
   DataSourceWithLogsContextSupport,
-  dateTime,
+  Labels,
   LegacyMetricFindQueryOptions,
   LiveChannelScope,
   LoadingState,
@@ -426,7 +426,23 @@ export class VictoriaLogsDatasource
   };
 
   private prepareLogContextQueryExpr = (row: LogRowModel): string => {
-    return addLabelToQuery('', LABEL_STREAM_ID, row.labels[LABEL_STREAM_ID],'');
+    let streamId = "";
+
+    if (row.labels[LABEL_STREAM_ID]) {
+      // Explore View
+      streamId = row.labels[LABEL_STREAM_ID]
+    } else {
+      // Dashboard View
+      const transformedLabels: Labels = {};
+      Object.values(row.labels).forEach((label) => {
+        const [key, value] = label.split(':');
+        const cleanedKey = key.trim();
+        transformedLabels[cleanedKey] = value.trim().replace(/"/g, '');
+      });
+      streamId = transformedLabels[LABEL_STREAM_ID];
+    }
+
+    return addLabelToQuery('', LABEL_STREAM_ID, streamId,'');
   };
 
   private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions): DataQueryRequest<Query> => {
