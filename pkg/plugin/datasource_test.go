@@ -138,7 +138,7 @@ func TestDatasourceQueryRequest(t *testing.T) {
 	expErr(ctx, "error get object from decoded response: value doesn't contain object; it contains number")                                                                    // 1
 	expErr(ctx, "error parse time from _time field: cannot parse acdf: cannot parse duration \"acdf\"")                                                                        // 2
 	expErr(ctx, "error decode response: cannot parse JSON: cannot parse number: unexpected char: \"c\"; unparsed tail: \"cannot parse query []: missing query; context: []\"") // 3
-	expErr(ctx, "cannot parse value for tag \"hostname\": compound token cannot start with '}'")                                                                               // 4
+	expErr(ctx, "incorrect label value pair \"hostname\" in _stream field must have label=\"value\" format")                                                                   // 4
 
 	// 5
 	queryJSON := []byte(`{
@@ -549,7 +549,7 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 	expErr(ctx, "error get object from decoded response: value doesn't contain object; it contains number")                                                                    // 1
 	expErr(ctx, "error parse time from _time field: cannot parse acdf: cannot parse duration \"acdf\"")                                                                        // 2
 	expErr(ctx, "error decode response: cannot parse JSON: cannot parse number: unexpected char: \"c\"; unparsed tail: \"cannot parse query []: missing query; context: []\"") // 3
-	expErr(ctx, "StringExpr: unexpected token \"}\"; want \"string\"; unparsed data: \"}")                                                                                     // 4
+	expErr(ctx, "failed to parse stream response: incorrect label value pair \"hostname\" in _stream field must have label=\"value\" format")                                  // 4
 
 	expErr(ctx, "") // 5
 	dataResponse := func() *data.Frame {

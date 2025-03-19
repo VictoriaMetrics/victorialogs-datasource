@@ -61,7 +61,7 @@ func Test_parseStreamResponse(t *testing.T) {
 			name:     "invalid stream in the response",
 			filename: "test-data/invalid_stream",
 			want: func() backend.DataResponse {
-				return newResponseError(fmt.Errorf("cannot parse value for tag \"hostname\": compound token cannot start with '}'"), backend.StatusInternal)
+				return newResponseError(fmt.Errorf("incorrect label value pair \"hostname\" in _stream field must have label=\"value\" format"), backend.StatusInternal)
 			},
 		},
 		{

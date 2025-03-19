@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix issue with parsing `_stream` field with the `/` in the label names. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/265).
+
 ## v0.16.0
 
 * FEATURE: implements the getLogRowContext method. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/41).

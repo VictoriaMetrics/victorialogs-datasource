@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/VictoriaMetrics/metricsql"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/valyala/fastjson"
@@ -90,16 +89,12 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 		labels := data.Labels{}
 		if value.Exists(streamField) {
 			stream := value.GetStringBytes(streamField)
-			stf, err := utils.NewStreamFilter(string(stream))
+			stf, err := utils.ParseStreamFields(string(stream))
 			if err != nil {
 				return newResponseError(fmt.Errorf("%s", err), backend.StatusInternal)
 			}
-			for _, filter := range stf.Filters {
-				for _, tagFilter := range filter.TagFilters {
-					if tagFilter != nil {
-						labels[tagFilter.TagName] = tagFilter.Value
-					}
-				}
+			for _, field := range stf {
+				labels[field.Label] = field.Value
 			}
 		}
 
@@ -209,16 +204,12 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 		labels := data.Labels{}
 		if value.Exists(streamField) {
 			stream := value.GetStringBytes(streamField)
-			expr, err := metricsql.Parse(string(stream))
+			stf, err := utils.ParseStreamFields(string(stream))
 			if err != nil {
 				return err
 			}
-			if mExpr, ok := expr.(*metricsql.MetricExpr); ok {
-				for _, filters := range mExpr.LabelFilterss {
-					for _, filter := range filters {
-						labels[filter.Label] = filter.Value
-					}
-				}
+			for _, field := range stf {
+				labels[field.Label] = field.Value
 			}
 		}
 
