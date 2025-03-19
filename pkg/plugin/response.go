@@ -90,14 +90,14 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 		labels := data.Labels{}
 		if value.Exists(streamField) {
 			stream := value.GetStringBytes(streamField)
-			expr, err := metricsql.Parse(string(stream))
+			stf, err := utils.NewStreamFilter(string(stream))
 			if err != nil {
-				return newResponseError(err, backend.StatusInternal)
+				return newResponseError(fmt.Errorf("%s", err), backend.StatusInternal)
 			}
-			if mExpr, ok := expr.(*metricsql.MetricExpr); ok {
-				for _, filters := range mExpr.LabelFilterss {
-					for _, filter := range filters {
-						labels[filter.Label] = filter.Value
+			for _, filter := range stf.Filters {
+				for _, tagFilter := range filter.TagFilters {
+					if tagFilter != nil {
+						labels[tagFilter.TagName] = tagFilter.Value
 					}
 				}
 			}
