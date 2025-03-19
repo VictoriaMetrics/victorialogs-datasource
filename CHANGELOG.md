@@ -2,6 +2,10 @@
 
 ## tip
 
+## v0.16.1
+
+* BUGFIX: fix log context in dashboard view.
+
 ## v0.16.0
 
 * FEATURE: implements the getLogRowContext method. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/41).
