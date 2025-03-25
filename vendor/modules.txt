@@ -2,24 +2,6 @@
 ## explicit; go 1.18
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
-# github.com/VictoriaMetrics/VictoriaMetrics v1.113.0
-## explicit; go 1.24.0
-github.com/VictoriaMetrics/VictoriaMetrics/lib/buildinfo
-github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil
-github.com/VictoriaMetrics/VictoriaMetrics/lib/cgroup
-github.com/VictoriaMetrics/VictoriaMetrics/lib/fasttime
-github.com/VictoriaMetrics/VictoriaMetrics/lib/filestream
-github.com/VictoriaMetrics/VictoriaMetrics/lib/flagutil
-github.com/VictoriaMetrics/VictoriaMetrics/lib/fs
-github.com/VictoriaMetrics/VictoriaMetrics/lib/fs/fscore
-github.com/VictoriaMetrics/VictoriaMetrics/lib/fs/fsutil
-github.com/VictoriaMetrics/VictoriaMetrics/lib/logger
-github.com/VictoriaMetrics/VictoriaMetrics/lib/memory
-github.com/VictoriaMetrics/VictoriaMetrics/lib/regexutil
-github.com/VictoriaMetrics/VictoriaMetrics/lib/slicesutil
-github.com/VictoriaMetrics/VictoriaMetrics/lib/stringsutil
-github.com/VictoriaMetrics/VictoriaMetrics/lib/syncwg
-github.com/VictoriaMetrics/VictoriaMetrics/lib/timeutil
 # github.com/VictoriaMetrics/metrics v1.35.2
 ## explicit; go 1.17
 github.com/VictoriaMetrics/metrics
@@ -69,6 +51,8 @@ github.com/chromedp/cdproto/har
 # github.com/cpuguy83/go-md2man/v2 v2.0.6
 ## explicit; go 1.12
 github.com/cpuguy83/go-md2man/v2/md2man
+# github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+## explicit
 # github.com/elazarl/goproxy v1.7.2
 ## explicit; go 1.20
 github.com/elazarl/goproxy
@@ -279,6 +263,8 @@ github.com/pierrec/lz4/v4/internal/lz4block
 github.com/pierrec/lz4/v4/internal/lz4errors
 github.com/pierrec/lz4/v4/internal/lz4stream
 github.com/pierrec/lz4/v4/internal/xxh32
+# github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
+## explicit
 # github.com/prometheus/client_golang v1.20.5
 ## explicit; go 1.20
 github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil
@@ -319,9 +305,6 @@ github.com/unknwon/log
 # github.com/urfave/cli v1.22.16
 ## explicit; go 1.11
 github.com/urfave/cli
-# github.com/valyala/bytebufferpool v1.0.0
-## explicit
-github.com/valyala/bytebufferpool
 # github.com/valyala/fastjson v1.6.4
 ## explicit; go 1.12
 github.com/valyala/fastjson
@@ -332,9 +315,6 @@ github.com/valyala/fastrand
 # github.com/valyala/histogram v1.2.0
 ## explicit; go 1.12
 github.com/valyala/histogram
-# github.com/valyala/quicktemplate v1.8.0
-## explicit; go 1.17
-github.com/valyala/quicktemplate
 # github.com/zeebo/xxh3 v1.0.2
 ## explicit; go 1.17
 github.com/zeebo/xxh3
@@ -399,6 +379,8 @@ go.opentelemetry.io/otel/sdk/internal/x
 go.opentelemetry.io/otel/sdk/resource
 go.opentelemetry.io/otel/sdk/trace
 go.opentelemetry.io/otel/sdk/trace/tracetest
+# go.opentelemetry.io/otel/sdk/metric v1.33.0
+## explicit; go 1.22.0
 # go.opentelemetry.io/otel/trace v1.35.0
 ## explicit; go 1.22.0
 go.opentelemetry.io/otel/trace

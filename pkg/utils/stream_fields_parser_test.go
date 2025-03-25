@@ -37,32 +37,14 @@ func TestParseStreamFields(t *testing.T) {
 			wantErr:      true,
 		},
 		{
-			name:         "empty label field in quotes",
-			streamFields: `{""="b"}`,
-			want:         []StreamField(nil),
-			wantErr:      true,
-		},
-		{
 			name:         "incorrect label field",
 			streamFields: `{=a"}`,
 			want:         []StreamField(nil),
 			wantErr:      true,
 		},
 		{
-			name:         "incorrect label field with a quote after",
-			streamFields: `{"b""="a"}`,
-			want:         []StreamField(nil),
-			wantErr:      true,
-		},
-		{
 			name:         "both label and value in the quotes",
 			streamFields: `{"a=b"}`,
-			want:         []StreamField(nil),
-			wantErr:      true,
-		},
-		{
-			name:         "quote after the label",
-			streamFields: `{a="b""}`,
 			want:         []StreamField(nil),
 			wantErr:      true,
 		},
@@ -89,6 +71,104 @@ func TestParseStreamFields(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name:         "contains spaces",
+			streamFields: `{ a = "b", c="d"}`,
+			want: []StreamField{
+				{
+					Label: "a",
+					Value: "b",
+				},
+				{
+					Label: "c",
+					Value: "d",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:         "include comma inside value",
+			streamFields: `{a="b,c", d="e"}`,
+			want: []StreamField{
+				{
+					Label: "a",
+					Value: "b,c",
+				},
+				{
+					Label: "d",
+					Value: "e",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:         "include equal sign inside value",
+			streamFields: `{a="b=c", d="e"}`,
+			want: []StreamField{
+				{
+					Label: "a",
+					Value: "b=c",
+				},
+				{
+					Label: "d",
+					Value: "e",
+				},
+			},
+		},
+		{
+			name:         "all labels with dots",
+			streamFields: `{a.b.c="d"}`,
+			want: []StreamField{
+				{
+					Label: "a.b.c",
+					Value: "d",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:         "many labels with dots",
+			streamFields: `{a.b.c="d", e.f.g="h"}`,
+			want: []StreamField{
+				{
+					Label: "a.b.c",
+					Value: "d",
+				},
+				{
+					Label: "e.f.g",
+					Value: "h",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:         "all labels with dots and comma",
+			streamFields: `{a.b,c,d="e"}`,
+			want: []StreamField{
+				{
+					Label: "a.b,c,d",
+					Value: "e",
+				},
+			},
+		},
+		{
+			name:         "different label values",
+			streamFields: `{a.b,c,d="e", d="f", a,.b.c.d="e"}`,
+			want: []StreamField{
+				{
+					Label: "a.b,c,d",
+					Value: "e",
+				},
+				{
+					Label: "d",
+					Value: "f",
+				},
+				{
+					Label: "a,.b.c.d",
+					Value: "e",
+				},
+			},
 		},
 	}
 	for _, tt := range tests {
