@@ -47,7 +47,7 @@ jobs:
           cp -r docs ${TARGET}
           cp README.md ${TARGET}/
           sed -i '/VictoriaLogs datasource for Grafana/g' ${TARGET}/README.md
-          sed -i 's|docs/assets/|victorialogs/grafana-datasource/assets/|g' ${TARGET}/README.md
+          sed -i 's|docs/assets/|grafana-datasource/assets/|g' ${TARGET}/README.md
           echo "SHORT_SHA=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_OUTPUT
         working-directory: __vl-datasource
 
