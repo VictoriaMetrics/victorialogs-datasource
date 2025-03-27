@@ -27,7 +27,6 @@ var modes = [...]struct {
 	{NeedModule, "NeedModule"},
 	{NeedEmbedFiles, "NeedEmbedFiles"},
 	{NeedEmbedPatterns, "NeedEmbedPatterns"},
-	{NeedTarget, "NeedTarget"},
 }
 
 func (mode LoadMode) String() string {

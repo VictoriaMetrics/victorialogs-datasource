@@ -2,7 +2,7 @@
 
 ## tip
 
-* BUGFIX: fix issue with parsing `_stream` field with the `/` in the label names. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/265).
+* BUGFIX: fix parsing of `_stream` field with other than alpha-numeric characters in stream keys. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/265).
 
 ## v0.16.0
 

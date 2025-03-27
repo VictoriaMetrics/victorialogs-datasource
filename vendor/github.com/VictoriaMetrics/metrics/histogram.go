@@ -47,21 +47,13 @@ var bucketMultiplier = math.Pow(10, 1.0/bucketsPerDecimal)
 // Zero histogram is usable.
 type Histogram struct {
 	// Mu gurantees synchronous update for all the counters and sum.
-	//
-	// Do not use sync.RWMutex, since it has zero sense from performance PoV.
-	// It only complicates the code.
-	mu sync.Mutex
+	mu sync.RWMutex
 
-	// decimalBuckets contains counters for histogram buckets
 	decimalBuckets [decimalBucketsCount]*[bucketsPerDecimal]uint64
 
-	// lower is the number of values, which hit the lower bucket
 	lower uint64
-
-	// upper is the number of values, which hit the upper bucket
 	upper uint64
 
-	// sum is the sum of all the values put into Histogram
 	sum float64
 }
 
@@ -117,30 +109,28 @@ func (h *Histogram) Update(v float64) {
 	h.mu.Unlock()
 }
 
-// Merge merges src to h
-func (h *Histogram) Merge(src *Histogram) {
+// Merge merges histograms
+func (h *Histogram) Merge(b *Histogram) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	src.mu.Lock()
-	defer src.mu.Unlock()
+	b.mu.RLock()
+	defer b.mu.RUnlock()
 
-	h.lower += src.lower
-	h.upper += src.upper
-	h.sum += src.sum
+	h.lower += b.lower
+	h.upper += b.upper
+	h.sum += b.sum
 
-	for i, dbSrc := range src.decimalBuckets {
-		if dbSrc == nil {
+	for i, db := range b.decimalBuckets {
+		if db == nil {
 			continue
 		}
-		dbDst := h.decimalBuckets[i]
-		if dbDst == nil {
+		if h.decimalBuckets[i] == nil {
 			var b [bucketsPerDecimal]uint64
-			dbDst = &b
-			h.decimalBuckets[i] = dbDst
+			h.decimalBuckets[i] = &b
 		}
-		for j := range dbSrc {
-			dbDst[j] += dbSrc[j]
+		for j := range db {
+			h.decimalBuckets[i][j] = db[j]
 		}
 	}
 }
@@ -152,7 +142,7 @@ func (h *Histogram) Merge(src *Histogram) {
 // This is required to be compatible with Prometheus-style histogram buckets
 // with `le` (less or equal) labels.
 func (h *Histogram) VisitNonZeroBuckets(f func(vmrange string, count uint64)) {
-	h.mu.Lock()
+	h.mu.RLock()
 	if h.lower > 0 {
 		f(lowerBucketRange, h.lower)
 	}
@@ -171,7 +161,7 @@ func (h *Histogram) VisitNonZeroBuckets(f func(vmrange string, count uint64)) {
 	if h.upper > 0 {
 		f(upperBucketRange, h.upper)
 	}
-	h.mu.Unlock()
+	h.mu.RUnlock()
 }
 
 // NewHistogram creates and returns new histogram with the given name.
@@ -259,9 +249,9 @@ func (h *Histogram) marshalTo(prefix string, w io.Writer) {
 }
 
 func (h *Histogram) getSum() float64 {
-	h.mu.Lock()
+	h.mu.RLock()
 	sum := h.sum
-	h.mu.Unlock()
+	h.mu.RUnlock()
 	return sum
 }
 

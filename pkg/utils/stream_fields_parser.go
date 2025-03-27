@@ -36,21 +36,21 @@ func ParseStreamFields(streamFields string) ([]StreamField, error) {
 	for _, labelValuePair := range labelValuesPairs {
 		labelValuePair = strings.TrimSpace(labelValuePair)
 		if labelValuePair[0] == '"' || labelValuePair[0] == '`' {
-			return nil, fmt.Errorf("label can not start with quote: %q", labelValuePair)
+			return nil, fmt.Errorf("stream name can not start with quote: %q", labelValuePair)
 		}
 		fields := strings.SplitN(labelValuePair, "=", 2)
 		if len(fields) != 2 {
-			return nil, fmt.Errorf("incorrect label value pair %q in _stream field must have label=\"value\" format", labelValuePair)
+			return nil, fmt.Errorf("_stream field %q must have `label=\"value\"` format", labelValuePair)
 		}
 
 		label := strings.TrimSpace(fields[0])
 		if len(label) == 0 {
-			return nil, fmt.Errorf("label values pair %q must have label", labelValuePair)
+			return nil, fmt.Errorf("_stream field %q must have non-empty key", labelValuePair)
 		}
 
 		value := strings.TrimSpace(fields[1])
 		if len(value) == 0 || strings.EqualFold(value, `"`) {
-			return nil, fmt.Errorf("label values pair %q must have value", labelValuePair)
+			return nil, fmt.Errorf("_stream field %q must have non-empty value", labelValuePair)
 		}
 
 		value = strings.Replace(value, `"`, ``, -1)
