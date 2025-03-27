@@ -3,6 +3,7 @@
 ## tip
 
 * BUGFIX: fix parsing of `_stream` field with other than alpha-numeric characters in stream keys. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/265).
+* BUGFIX: fix Ad Hoc filter values autocomplete. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/237).
 
 ## v0.16.0
 

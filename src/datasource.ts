@@ -8,9 +8,11 @@ import {
   DataFrame,
   DataQueryRequest,
   DataQueryResponse,
+  DataSourceGetTagKeysOptions,
+  DataSourceGetTagValuesOptions,
   DataSourceInstanceSettings,
   DataSourceWithLogsContextSupport,
-  dateTime,
+  DEFAULT_FIELD_DISPLAY_VALUES_LIMIT,
   LegacyMetricFindQueryOptions,
   LiveChannelScope,
   LoadingState,
@@ -34,6 +36,7 @@ import {
   getTemplateSrv,
   TemplateSrv,
 } from '@grafana/runtime';
+import { DataQuery } from "@grafana/schema";
 
 import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
@@ -192,7 +195,7 @@ export class VictoriaLogsDatasource
 
     let expr = replaceVariables(queryExpr);
 
-    expr = adhocFilters.reduce((acc: string, filter: { key: string; operator: string; value: string }) => {
+    expr = adhocFilters.reduce((acc: string, filter: AdHocVariableFilter) => {
       const { key, operator } = filter;
       let { value } = filter;
       if (isRegexSelector(operator)) {
@@ -277,6 +280,29 @@ export class VictoriaLogsDatasource
     };
 
     return await this.processMetricFindQuery(interpolatedVariableQuery, options?.range);
+  }
+
+  async getTagKeys(options?: DataSourceGetTagKeysOptions<Query>): Promise<MetricFindValue[]> {
+    const list = await this.languageProvider?.getFieldList({
+      type: FilterFieldType.FieldName,
+      timeRange: options?.timeRange,
+      limit: DEFAULT_FIELD_DISPLAY_VALUES_LIMIT,
+    })
+    return list
+      ? list.map(({ value }) => ({ text: value || " " }))
+      : []
+  }
+
+  async getTagValues(options: DataSourceGetTagValuesOptions<Query>): Promise<MetricFindValue[]> {
+    const list = await this.languageProvider?.getFieldList({
+      type: FilterFieldType.FieldValue,
+      timeRange: options.timeRange,
+      limit: DEFAULT_FIELD_DISPLAY_VALUES_LIMIT,
+      field: options.key,
+    })
+    return list
+      ? list.map(({ value }) => ({ text: value || " " }))
+      : []
   }
 
   interpolateString(string: string, scopedVars?: ScopedVars) {
@@ -417,9 +443,9 @@ export class VictoriaLogsDatasource
   }
 
   getLogRowContext = async (
-      row: LogRowModel,
-      options?: LogRowContextOptions,
-      query?: Query
+    row: LogRowModel,
+    options?: LogRowContextOptions,
+    query?: DataQuery
   ): Promise<{ data: DataFrame[] }> => {
     const contextRequest = this.makeLogContextDataRequest(row, options);
     return lastValueFrom(this.runQuery(contextRequest));
@@ -441,8 +467,8 @@ export class VictoriaLogsDatasource
 
     const interval = rangeUtil.calculateInterval(range, 1);
 
-    const contextRequest: DataQueryRequest<Query> = {
-      app: CoreApp,
+    return {
+      app: CoreApp.Explore,
       interval: interval.interval,
       intervalMs: interval.intervalMs,
       range: range,
@@ -452,8 +478,6 @@ export class VictoriaLogsDatasource
       targets: [query],
       timezone: 'UTC'
     };
-
-    return contextRequest;
   };
 
   private createContextTimeRange = (rowTimeEpochMs: number, direction?: LogRowContextQueryDirection): TimeRange => {
@@ -463,13 +487,13 @@ export class VictoriaLogsDatasource
     const timeRange =
       direction === LogRowContextQueryDirection.Backward
         ?  {
-            from: toUtc(rowTimeEpochMs - offset),
-            to: toUtc(rowTimeEpochMs + overlap)
-          }
+          from: toUtc(rowTimeEpochMs - offset),
+          to: toUtc(rowTimeEpochMs + overlap)
+        }
         : {
-            from: toUtc(rowTimeEpochMs),
-            to: toUtc(rowTimeEpochMs + offset) // Add 1 second to avoid missing results
-          };
+          from: toUtc(rowTimeEpochMs),
+          to: toUtc(rowTimeEpochMs + offset) // Add 1 second to avoid missing results
+        };
 
     return { ...timeRange, raw: timeRange };
   }
