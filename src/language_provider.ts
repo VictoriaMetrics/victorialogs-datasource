@@ -12,14 +12,6 @@ interface FetchFieldsOptions {
   limit?: number;
 }
 
-interface FieldsRequestParams {
-  query: string;
-  start: number;
-  end: number;
-  limit?: number;
-  field?: string;
-}
-
 enum HitsValueType {
   NUMBER = 'number',
   DATE = 'date',
@@ -59,23 +51,29 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
 
   async getFieldList(options: FetchFieldsOptions): Promise<FieldHits[]> {
     if (options.type === FilterFieldType.FieldValue && !options.field) {
+      console.warn('getFieldList: field is required for FieldValue type');
       return [];
     }
 
-    const params: FieldsRequestParams = {
-      query: options.query || "*",
-      ...this.getTimeRangeParams(options.timeRange),
-    };
-    if (options.type === FilterFieldType.FieldValue) {
-      params.field = options.field;
+    const urlParams = new URLSearchParams()
+    urlParams.append('query', options.query || "*");
+
+    const timeRange = this.getTimeRangeParams(options.timeRange);
+    urlParams.append('start', timeRange.start.toString());
+    urlParams.append('end', timeRange.end.toString());
+
+    if (options.type === FilterFieldType.FieldValue && options.field) {
+      urlParams.append('field', options.field);
     }
 
     if (options.limit && (options.limit > 0) && (options.type === FilterFieldType.FieldValue)) {
-      params.limit = options.limit;
+      urlParams.append('limit', options.limit.toString());
     }
 
+    const params = Object.fromEntries(urlParams);
+
     const url = options.type === FilterFieldType.FieldName ? 'select/logsql/field_names' : `select/logsql/field_values`;
-    const key = `${url}/${Object.values(params).join('/')}`;
+    const key = `${url}?${urlParams.toString()}`;
 
     if (this.cacheValues.has(key)) {
       return this.cacheValues.get(key)!;
@@ -86,10 +84,15 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       this.cacheValues.delete(firstKey);
     }
 
-    const result = await this.request(url, [], params, { method: 'POST' }) as FieldHits[];
-    const sortedResult = sortFieldHits(result);
-    this.cacheValues.set(key, sortedResult);
-    return sortedResult;
+    try {
+      const res = await this.datasource.metadataRequest({ url, params, options: { method: 'POST' } });
+      const result = (res.data?.values || []) as FieldHits[];
+      const sortedResult = sortFieldHits(result);
+      this.cacheValues.set(key, sortedResult);
+      return sortedResult;
+    } catch (error) {
+      throw error;
+    }
   }
 
   getTimeRangeParams(timeRange?: TimeRange) {

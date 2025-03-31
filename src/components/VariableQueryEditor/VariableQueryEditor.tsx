@@ -1,5 +1,5 @@
+import { debounce } from "lodash";
 import React, { FormEvent, useEffect, useState } from 'react';
-import { usePrevious } from 'react-use';
 
 import { DEFAULT_FIELD_DISPLAY_VALUES_LIMIT, QueryEditorProps, SelectableValue } from '@grafana/data';
 import { InlineField, InlineFieldRow, Input, Select } from "@grafana/ui";
@@ -22,8 +22,8 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
   const [field, setField] = useState<string>('');
   const [limit, setLimit] = useState<number>(DEFAULT_FIELD_DISPLAY_VALUES_LIMIT);
   const [fieldNames, setFieldNames] = useState<SelectableValue<string>[]>([])
-
-  const previousType = usePrevious(type);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
 
   const handleTypeChange = (newType: SelectableValue<FilterFieldType>) => {
     if (!newType.value) {
@@ -69,26 +69,47 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
   }, [query]);
 
   useEffect(() => {
-    if (type !== FilterFieldType.FieldValue || previousType === type) {
+    if (type !== FilterFieldType.FieldValue) {
       return;
     }
 
     const getFiledNames = async () => {
-      const list = await datasource.languageProvider?.getFieldList({
-        type: FilterFieldType.FieldName,
-        timeRange: range,
-        limit,
-      })
-      const result = list ? list.map(({ value, hits }) => ({
-        value,
-        label: value || " ",
-        description: `hits: ${hits}`,
-      })) : []
-      setFieldNames(result)
-    }
+      try {
+        setError("");
+        setIsLoading(true);
+        const list = await datasource.languageProvider?.getFieldList({
+          type: FilterFieldType.FieldName,
+          timeRange: range,
+          limit,
+          query: queryFilter,
+        });
 
-    getFiledNames().catch(console.error)
-  }, [datasource, type, range, previousType, limit]);
+        const result = list
+          ? list.map(({ value, hits }) => ({
+            value,
+            label: value || " ",
+            description: `hits: ${hits}`,
+          }))
+          : [];
+
+        setFieldNames(result);
+      } catch (error) {
+        setError("Error fetching field names. See console for more details.");
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const debouncedGetFieldNames = debounce(getFiledNames, 1000);
+
+    debouncedGetFieldNames();
+
+    return () => {
+      debouncedGetFieldNames.cancel();
+      setIsLoading(false);
+    };
+  }, [datasource, type, range, limit, queryFilter]);
 
   return (
     <div>
@@ -104,7 +125,12 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
           />
         </InlineField>
         {type === FilterFieldType.FieldValue && (
-            <InlineField label="Field" labelWidth={20}>
+            <InlineField
+              label="Field"
+              labelWidth={20}
+              error={error}
+              invalid={!!error}
+            >
               <Select
                 aria-label="Field value"
                 onChange={handleFieldChange}
@@ -112,6 +138,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
                 value={field}
                 options={fieldNames}
                 width={20}
+                isLoading={isLoading}
               />
             </InlineField>
           )}
