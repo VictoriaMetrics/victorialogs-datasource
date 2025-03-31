@@ -1,0 +1,1 @@
+{"_msg":"123","_time":"2024-02-20T14:04:27Z", "_stream":"{Dino Species=\"Stegosaurus\",kubernetes.labels.app.kubernetes.io/instance=\"123\",kubernetes.labels.app.kubernetes.io/name=\"vmagent\",kubernetes.namespace_name=\"monitoring\"}"}
