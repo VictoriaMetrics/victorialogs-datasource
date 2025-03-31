@@ -1,5 +1,4 @@
 import {
-  CoreApp,
   DataFrame,
   DataQueryError,
   DataQueryRequest,
@@ -34,11 +33,10 @@ function processStreamsFrames(
   frames: DataFrame[],
   queryMap: Map<string, Query>,
   derivedFieldConfigs: DerivedFieldConfig[],
-  app: string
 ): DataFrame[] {
   return frames.map((frame) => {
     const query = frame.refId !== undefined ? queryMap.get(frame.refId) : undefined;
-    if (app === CoreApp.Dashboard) return processDashboardStreamFrame(frame, query, derivedFieldConfigs);
+    if (query?.refId === "Anno") {return processDashboardStreamFrame(frame, query, derivedFieldConfigs);}
     return processStreamFrame(frame, query, derivedFieldConfigs);
   });
 }
@@ -186,7 +184,6 @@ export function transformBackendResult(
 ): DataQueryResponse {
   const { data, errors, ...rest } = response;
   const queries = request.targets;
-  const { app } = request;
 
   // in the typescript type, data is an array of basically anything.
   // we do know that they have to be dataframes, so we make a quick check,
@@ -211,7 +208,7 @@ export function transformBackendResult(
     data: [
       ...processMetricRangeFrames(metricRangeFrames),
       ...processMetricInstantFrames(metricInstantFrames),
-      ...processStreamsFrames(streamsFrames, queryMap, derivedFieldConfigs, app),
+      ...processStreamsFrames(streamsFrames, queryMap, derivedFieldConfigs),
     ],
   };
 }

@@ -6,8 +6,7 @@ import {
 } from '@grafana/data';
 import {
   InlineField,
-  regexValidation,
-  Input, validate
+  Input
 } from '@grafana/ui';
 
 import { Options } from '../types';
@@ -15,7 +14,7 @@ import { Options } from '../types';
 type Props = Pick<DataSourcePluginOptionsEditorProps<Options>, 'options' | 'onOptionsChange'>;
 
 export const LogsSettings = (props: Props) => {
-  const {options, onOptionsChange} = props;
+  const { options, onOptionsChange } = props;
 
   // We are explicitly adding httpMethod so it is correctly displayed in dropdown. This way, it is more predictable for users.
 
