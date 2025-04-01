@@ -456,6 +456,42 @@ func Test_parseStreamResponse(t *testing.T) {
 		},
 		{
 			name:     "response with empty stream fields includes '/' in the label names",
+			filename: "test-data/stream_fields_with_spaces_in_names",
+			want: func() backend.DataResponse {
+				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+				labelsField.Name = gLabelsField
+
+				timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+				timeFd.Name = gTimeField
+
+				lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+				lineField.Name = gLineField
+
+				timeFd.Append(time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC))
+
+				lineField.Append("123")
+
+				labels := data.Labels{
+					"Dino Species": "Stegosaurus",
+					"kubernetes.labels.app.kubernetes.io/instance": "123",
+					"kubernetes.labels.app.kubernetes.io/name":     "vmagent",
+					"kubernetes.namespace_name":                    "monitoring",
+				}
+
+				b, _ := labelsToJSON(labels)
+
+				labelsField.Append(b)
+				frame := data.NewFrame("", timeFd, lineField, labelsField)
+
+				rsp := backend.DataResponse{}
+				frame.Meta = &data.FrameMeta{}
+				rsp.Frames = append(rsp.Frames, frame)
+
+				return rsp
+			},
+		},
+		{
+			name:     "response with stream fields includes spaces in the label names",
 			filename: "test-data/stream_fields_with_slashes_names",
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)

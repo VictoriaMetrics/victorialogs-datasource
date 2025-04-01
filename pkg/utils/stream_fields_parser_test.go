@@ -170,6 +170,24 @@ func TestParseStreamFields(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:         "label contains spaces",
+			streamFields: `{a d="e", d="f", a,.b.c.d="e"}`,
+			want: []StreamField{
+				{
+					Label: "a d",
+					Value: "e",
+				},
+				{
+					Label: "d",
+					Value: "f",
+				},
+				{
+					Label: "a,.b.c.d",
+					Value: "e",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
