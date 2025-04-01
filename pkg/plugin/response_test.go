@@ -491,7 +491,7 @@ func Test_parseStreamResponse(t *testing.T) {
 			},
 		},
 		{
-			name:     "response with empty stream fields includes '/' in the label names",
+			name:     "response with stream fields includes spaces in the label names",
 			filename: "test-data/stream_fields_with_slashes_names",
 			want: func() backend.DataResponse {
 				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)

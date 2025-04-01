@@ -171,7 +171,7 @@ func TestParseStreamFields(t *testing.T) {
 			},
 		},
 		{
-			name:         "different label values",
+			name:         "label contains spaces",
 			streamFields: `{a d="e", d="f", a,.b.c.d="e"}`,
 			want: []StreamField{
 				{
