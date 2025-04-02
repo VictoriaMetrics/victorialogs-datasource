@@ -2,7 +2,7 @@
 
 ## tip
 
-* BUGFIX: fix log context in dashboard view.
+* BUGFIX: fix log context in dashboard view. See [this pull request] (https://github.com/VictoriaMetrics/victorialogs-datasource/pull/267). 
 * BUGFIX: fix parsing of `_stream` field with other than alpha-numeric characters in stream keys. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/265) and [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/254).
 * BUGFIX: fix a bug where array indices were appended to log messages, resulting in incorrect log display on the dashboard. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/269).
 * BUGFIX: fix Ad Hoc filter values autocomplete. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/237).
