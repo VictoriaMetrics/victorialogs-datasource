@@ -22,7 +22,10 @@ func Build() {
 	linuxS390 := func () error {
 		return b.Custom("linux", "s390x")
 	}
-	mg.Deps(b.Linux, b.Windows, b.Darwin, b.DarwinARM64, b.LinuxARM64, b.LinuxARM, linuxS390)
+	freebsdAMD64 := func () error {
+		return b.Custom("freebsd", "amd64")
+	}
+	mg.Deps(b.Linux, b.Windows, b.Darwin, b.DarwinARM64, b.LinuxARM64, b.LinuxARM, freebsdAMD64, linuxS390)
 }
 
 // Default configures the default target.
