@@ -231,6 +231,12 @@ func (d *Datasource) streamQuery(ctx context.Context, request *backend.RunStream
 		return err
 	}
 
+	defer func() {
+		if err := r.Close(); err != nil {
+			backend.Logger.Error("failed to close response body", "err", err.Error())
+		}
+	}()
+
 	ch, ok := d.liveModeResponses.Load(request.Path)
 	if !ok {
 		return fmt.Errorf("failed to find the channel for the query: %s", request.Path)
@@ -310,7 +316,7 @@ func (d *Datasource) query(ctx context.Context, _ backend.PluginContext, q *Quer
 
 	defer func() {
 		if err := r.Close(); err != nil {
-			log.DefaultLogger.Error("failed to close response body", "err", err.Error())
+			backend.Logger.Error("failed to close response body", "err", err.Error())
 		}
 	}()
 
