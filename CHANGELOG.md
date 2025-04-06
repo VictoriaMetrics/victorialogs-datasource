@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.16.2
+
 * BUGFIX: properly close io.ReadCloser to avoid memory leak. See [this pull request](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/280).
 
 ## v0.16.1
