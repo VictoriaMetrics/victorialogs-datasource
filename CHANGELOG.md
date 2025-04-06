@@ -2,6 +2,10 @@
 
 ## tip
 
+## v0.17.0
+
+* BUGFIX: extend the `Custom query parameters` label width to fix the title.
+
 ## v0.16.2
 
 * BUGFIX: properly close io.ReadCloser to avoid memory leak. See [this pull request](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/280).
