@@ -2,8 +2,6 @@
 
 ## tip
 
-## v0.17.0
-
 * BUGFIX: extend the `Custom query parameters` label width to fix the title.
 
 ## v0.16.2
