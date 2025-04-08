@@ -316,6 +316,18 @@ func parseErrorResponse(reader io.Reader) error {
 	return nil
 }
 
+// parseStringResponseError reads data from the reader and returns error
+func parseStringResponseError(reader io.Reader) error {
+	d, err := io.ReadAll(reader)
+	if err != nil {
+		return fmt.Errorf("failed to read body response: %w", err)
+	}
+	if len(d) == 0 {
+		return fmt.Errorf("got empty response from the datasource")
+	}
+	return fmt.Errorf("error from datasource: %s", string(d))
+}
+
 // labelsToJSON converts labels to json representation
 // data.Labels when converted to JSON keep the fields sorted
 func labelsToJSON(labels data.Labels) (json.RawMessage, error) {

@@ -298,10 +298,14 @@ func (d *Datasource) datasourceQuery(ctx context.Context, q *Query, isStream boo
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusUnprocessableEntity {
+		switch resp.StatusCode {
+		case http.StatusUnprocessableEntity:
 			return nil, parseErrorResponse(resp.Body)
+		case http.StatusBadRequest:
+			return nil, parseStringResponseError(resp.Body)
+		default:
+			return nil, fmt.Errorf("failed to make http request: %d", resp.StatusCode)
 		}
-		return nil, fmt.Errorf("got unexpected response status code: %d", resp.StatusCode)
 	}
 
 	return resp.Body, nil

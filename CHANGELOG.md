@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: show the original error message returned from the VictoriaLogs backend on status code 400. It should help to troubleshoot problems with query or syntax. See [this pull request](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/287).
+
 ## v0.16.2
 
 * BUGFIX: properly close io.ReadCloser to avoid memory leak. See [this pull request](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/280).
