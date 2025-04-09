@@ -357,7 +357,7 @@ export class VictoriaLogsDatasource
       }).pipe(map((response) => {
         return {
           data: response.data || [],
-          key: `victorialogs-datasource-${request.requestId}-${query.refId}`,
+          key: `victoriametrics-logs-datasource-${request.requestId}-${query.refId}`,
           state: LoadingState.Streaming,
         };
       }));

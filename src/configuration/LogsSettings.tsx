@@ -28,7 +28,7 @@ export const LogsSettings = (props: Props) => {
         <div className="gf-form max-width-30">
           <InlineField
             label="Custom query parameters"
-            labelWidth={14}
+            labelWidth={28}
             tooltip="Add Custom parameters to all queries."
             interactive={true}
            >
