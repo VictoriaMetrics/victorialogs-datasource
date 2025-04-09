@@ -1,8 +1,9 @@
 import React from 'react';
+import { gte } from 'semver';
 
 import { DataSourcePluginOptionsEditorProps, DataSourceSettings } from '@grafana/data';
 import { config } from '@grafana/runtime';
-import { DataSourceHttpSettings, SecureSocksProxySettings } from "@grafana/ui";
+import { InlineSwitch, InlineField, DataSourceHttpSettings, SecureSocksProxySettings } from "@grafana/ui";
 
 import { Options } from '../types';
 
@@ -53,8 +54,40 @@ const ConfigEditor = (props: Props) => {
 
       <LimitsSettings {...props}/>
 
-      {config.secureSocksDSProxyEnabled && (
-        <SecureSocksProxySettings options={props.options} onOptionsChange={onOptionsChange} />
+      {config.featureToggles['secureSocksDSProxyEnabled' as keyof FeatureToggles] && gte(config.buildInfo.version, '10.0.0') && (
+        <>
+          <InlineField
+            label="Secure Socks Proxy"
+            tooltip={
+              <>
+                Enable proxying the data source connection through the
+                secure socks proxy to a
+                different network.
+                See{' '}
+                <a
+                  href="https://grafana.com/docs/grafana/next/setup-grafana/configure-grafana/proxy/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Configure a data source connection proxy.
+                </a>
+              </>
+            }
+          >
+            <InlineSwitch
+              value={options.jsonData.enableSecureSocksProxy}
+              onChange={(e) => {
+                onOptionsChange({
+                  ...options,
+                  jsonData: {
+                    ...options.jsonData,
+                    enableSecureSocksProxy: e.currentTarget.checked
+                  },
+                });
+              }}
+            />
+          </InlineField>
+        </>
       )}
     </>
   );

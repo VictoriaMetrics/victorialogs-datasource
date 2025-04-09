@@ -13,6 +13,7 @@ export interface Options extends DataSourceJsonData {
   // alertmanager?: string;
   // keepCookies?: string[];
   // predefinedOperations?: string;
+  enableSecureSocksProxy?: boolean;
 }
 
 export enum QueryDirection {
