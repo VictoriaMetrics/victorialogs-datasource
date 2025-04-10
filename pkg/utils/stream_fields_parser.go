@@ -25,10 +25,9 @@ func ParseStreamFields(streamFields string) ([]StreamField, error) {
 		return nil, fmt.Errorf("_stream field must end with '}'")
 	}
 
-	// remove "{ and }" from the start and the end of the string
-	streams := streamFields[1 : len(streamFields)-2]
+	streams := streamFields[1 : len(streamFields)-1]
 	if len(streams) == 0 {
-		return nil, fmt.Errorf("_stream fields must contain at least one '{' or '}'")
+		return []StreamField(nil), nil
 	}
 	labelValuesPairs := strings.Split(streams, "\",")
 
@@ -36,7 +35,7 @@ func ParseStreamFields(streamFields string) ([]StreamField, error) {
 	for _, labelValuePair := range labelValuesPairs {
 		labelValuePair = strings.TrimSpace(labelValuePair)
 		if labelValuePair[0] == '"' || labelValuePair[0] == '`' {
-			return nil, fmt.Errorf("stream name can not start with quote: %q", labelValuePair)
+			return nil, fmt.Errorf("_stream label can not start with quote: %q", labelValuePair)
 		}
 		fields := strings.SplitN(labelValuePair, "=", 2)
 		if len(fields) != 2 {
@@ -49,11 +48,14 @@ func ParseStreamFields(streamFields string) ([]StreamField, error) {
 		}
 
 		value := strings.TrimSpace(fields[1])
-		if len(value) == 0 || strings.EqualFold(value, `"`) {
-			return nil, fmt.Errorf("_stream field %q must have non-empty value", labelValuePair)
+		if !strings.HasSuffix(value, `"`) && !strings.HasPrefix(value, `"`) {
+			return nil, fmt.Errorf("_stream field %q must have quoted value", labelValuePair)
 		}
 
 		value = strings.Replace(value, `"`, ``, -1)
+		if len(value) == 0 {
+			return nil, fmt.Errorf("_stream field %q must have non-empty value", labelValuePair)
+		}
 		stf = append(stf, StreamField{
 			Label: label,
 			Value: value,

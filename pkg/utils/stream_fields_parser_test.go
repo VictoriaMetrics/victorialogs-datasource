@@ -188,6 +188,12 @@ func TestParseStreamFields(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:         "empty stream field",
+			streamFields: `{}`,
+			want:         []StreamField(nil),
+			wantErr:      false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

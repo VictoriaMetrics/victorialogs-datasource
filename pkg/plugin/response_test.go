@@ -61,7 +61,38 @@ func Test_parseStreamResponse(t *testing.T) {
 			name:     "invalid stream in the response",
 			filename: "test-data/invalid_stream",
 			want: func() backend.DataResponse {
-				return newResponseError(fmt.Errorf("_stream field \"hostname\" must have `label=\"value\"` format"), backend.StatusInternal)
+				return newResponseError(fmt.Errorf("_stream field \"hostname=\" must have quoted value"), backend.StatusInternal)
+			},
+		},
+		{
+			name:     "empty stream field in the response",
+			filename: "test-data/empty_stream",
+			want: func() backend.DataResponse {
+				labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+				labelsField.Name = gLabelsField
+
+				timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+				timeFd.Name = gTimeField
+
+				lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+				lineField.Name = gLineField
+
+				timeFd.Append(time.Date(2024, 02, 20, 00, 00, 00, 0, time.UTC))
+
+				lineField.Append("{}")
+
+				labels := data.Labels{}
+
+				b, _ := labelsToJSON(labels)
+
+				labelsField.Append(b)
+				frame := data.NewFrame("", timeFd, lineField, labelsField)
+
+				rsp := backend.DataResponse{}
+				frame.Meta = &data.FrameMeta{}
+				rsp.Frames = append(rsp.Frames, frame)
+
+				return rsp
 			},
 		},
 		{
