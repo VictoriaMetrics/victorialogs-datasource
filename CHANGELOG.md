@@ -4,6 +4,7 @@
 
 * BUGFIX: show the original error message returned from the VictoriaLogs backend on status code 400. It should help to troubleshoot problems with query or syntax. See [this pull request](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/287).
 * BUGFIX: extend the `Custom query parameters` label width to fix the title.
+* BUGFIX: fix handle empty `_stream` field when it returns like `_stream:"{}"` from the datasource. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/237).  
 
 ## v0.16.2
 
