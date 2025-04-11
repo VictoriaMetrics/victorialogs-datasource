@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.16.3
+
 * BUGFIX: fix shows the original error message returned from the VictoriaLogs backend on status code 400. It should help to troubleshoot problems with query or syntax. See [this pull request](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/287).
 * BUGFIX: fix extend the `Custom query parameters` label width to fix the title. See [this pull request](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/284)
   Thanks to @tommysitehost.
