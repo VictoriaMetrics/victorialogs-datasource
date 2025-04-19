@@ -174,7 +174,7 @@ spec:
                   mountPath: /var/lib/grafana
 ```
 
-See [Grafana operator reference](https://grafana-operator.github.io/grafana-operator/docs/grafana/) to find more about Grafana operator.
+See [Grafana operator reference](https://grafana.github.io/grafana-operator/docs/grafana/) to find more about Grafana operator.
 This example uses init container to download and install plugin.
 
 It is also possible to request plugin at `GrafanaDatasource` or `GrafanaDashboard` CRDs.
