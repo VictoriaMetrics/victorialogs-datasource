@@ -14,6 +14,12 @@ The VictoriaLogs datasource plugin allows you to query and visualize
 For detailed instructions on how to install the plugin in Grafana Cloud or locally,
 please checkout the [Plugin installation docs](https://grafana.com/docs/grafana/latest/plugins/installation/).
 
+### Install via Docker
+
+To install plugin via Grafana docker container [specify](https://grafana.com/docs/grafana/latest/setup-grafana/configure-docker/#build-a-grafana-docker-image-with-pre-installed-plugins)
+`GF_INSTALL_PLUGINS=victoriametrics-logs-datasourcee` environment variable. It will pre-install the plugin on container start.
+See more details at [Configure a Grafana Docker image](https://grafana.com/docs/grafana/latest/setup-grafana/configure-docker/).
+
 ### Grafana Provisioning
 
 Provisioning of Grafana plugin requires creating [datasource config file](http://docs.grafana.org/administration/provisioning/#datasources):
@@ -195,7 +201,7 @@ spec:
       dashboards: grafana
   plugins:
     - name: victoriametrics-logs-datasource
-      version: "0.14.3"
+      version: "0.16.3"
 ---
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDashboard
@@ -205,7 +211,7 @@ spec:
   resyncPeriod: 30s
   plugins:
     - name: victoriametrics-logs-datasource
-      version: "0.14.3"
+      version: "0.16.3"
   instanceSelector:
     matchLabels:
       dashboards: "grafana"
