@@ -17,7 +17,7 @@ please checkout the [Plugin installation docs](https://grafana.com/docs/grafana/
 ### Install via Docker
 
 To install plugin via Grafana docker container [specify](https://grafana.com/docs/grafana/latest/setup-grafana/configure-docker/#build-a-grafana-docker-image-with-pre-installed-plugins)
-`GF_INSTALL_PLUGINS=victoriametrics-logs-datasourcee` environment variable. It will pre-install the plugin on container start.
+`GF_INSTALL_PLUGINS=victoriametrics-logs-datasource` environment variable. It will pre-install the plugin on container start.
 See more details at [Configure a Grafana Docker image](https://grafana.com/docs/grafana/latest/setup-grafana/configure-docker/).
 
 ### Grafana Provisioning
