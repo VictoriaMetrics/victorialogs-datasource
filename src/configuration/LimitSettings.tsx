@@ -7,7 +7,11 @@ import {
 import {
   InlineField,
   regexValidation,
-  Input, validate
+  Input,
+  validate,
+  TextLink,
+  Stack,
+  Text
 } from '@grafana/ui';
 
 import { FilterFieldType, Options } from "../types";
@@ -17,19 +21,35 @@ const validationRule = regexValidation(
   'Value is not valid, you can use number'
 )
 
+const documentationLink = (
+  <TextLink
+    external
+    variant="bodySmall"
+    href="https://docs.victoriametrics.com/victorialogs/querying/#querying-field-values">
+    Learn more about querying field values
+  </TextLink>
+)
+
+
 const limitFields = [
   {
     label: "Field values",
-    tooltip: <>In the Query Builder, the <code>/select/logsql/field_values</code> endpoint allows an optional <code>limit=N</code> parameter to restrict the number of returned values to <code>N</code>. For more details, see the documentation <a href="https://docs.victoriametrics.com/victorialogs/querying/#querying-field-values" target="_blank" rel="noreferrer">here</a>.</>,
+    tooltip: (<>
+      In the Query Builder, the <code>/select/logsql/field_values</code> endpoint allows an
+      optional <code>limit=N</code> parameter to restrict the number of returned values to <code>N</code>.
+      Leave the field blank or set the value to <code>0</code> to remove the limit
+    </>),
     placeholder: "",
     key: FilterFieldType.FieldValue
   }
 ]
 
-type Props = Pick<DataSourcePluginOptionsEditorProps<Options>, 'options' | 'onOptionsChange'>;
+type Props = Pick<DataSourcePluginOptionsEditorProps<Options>, 'options' | 'onOptionsChange'> & {
+  children?: React.ReactNode
+};
 
 export const LimitsSettings = (props: Props) => {
-  const { options, onOptionsChange } = props;
+  const { options, onOptionsChange, children } = props;
 
   const [error, setError] = React.useState<string | null>(null)
 
@@ -39,9 +59,14 @@ export const LimitsSettings = (props: Props) => {
   }
 
   return (
-    <>
-      <h3 className="page-heading">Limits</h3>
-      <p className="text-help">Leave the field blank or set the value to <code>0</code> to remove the limit</p>
+    <Stack direction="column" gap={2}>
+      <div>
+        <Text variant="h4">Limits</Text>
+        <Text variant="bodySmall" color="disabled" element="p">
+          Sets a limit on how many values are returned in query results. {documentationLink}
+        </Text>
+      </div>
+
       <div className="gf-form-group">
         {limitFields.map((field) => (
           <div className="gf-form" key={field.key}>
@@ -54,7 +79,7 @@ export const LimitsSettings = (props: Props) => {
               invalid={!!error}
             >
               <Input
-                className="width-6"
+                className="width-8"
                 value={`${options.jsonData?.queryBuilderLimits?.[field.key] || ''}`}
                 onChange={onChangeHandler(field.key, options, onOptionsChange)}
                 spellCheck={false}
@@ -64,8 +89,9 @@ export const LimitsSettings = (props: Props) => {
             </InlineField>
           </div>
         ))}
+        {children}
       </div>
-    </>
+    </Stack>
   )
 };
 
