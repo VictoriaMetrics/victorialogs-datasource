@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: add support for configuring log level using custom rules. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/294).
+
 ## v0.16.3
 
 * FEATURE: enabled [PDC](https://grafana.com/docs/grafana-cloud/connect-externally-hosted/private-data-source-connect/) support. See [VictoriaMetrics#8800](https://github.com/VictoriaMetrics/VictoriaMetrics/issues/8800) for details.

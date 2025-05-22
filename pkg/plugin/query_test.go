@@ -296,7 +296,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				rawURL:      "http://127.0.0.1:9429",
 				queryParams: "",
 			},
-			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&field=&query=&start=1609459200&step=15s",
+			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=&start=1609459200&step=15s",
 			wantErr: false,
 		},
 		{
@@ -315,7 +315,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				rawURL:      "http://127.0.0.1:9429",
 				queryParams: "",
 			},
-			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&field=&query=&start=1609459200&step=15s",
+			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=&start=1609459200&step=15s",
 			wantErr: false,
 		},
 		{
@@ -334,7 +334,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				rawURL:      "http://127.0.0.1:9429",
 				queryParams: "",
 			},
-			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&field=&query=&start=1609459200&step=15s",
+			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=&start=1609459200&step=15s",
 			wantErr: false,
 		},
 		{
@@ -353,7 +353,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				rawURL:      "http://127.0.0.1:9429",
 				queryParams: "",
 			},
-			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&field=&query=_time%3A1s&start=1609459200&step=15s",
+			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=_time%3A1s&start=1609459200&step=15s",
 			wantErr: false,
 		},
 		{
@@ -372,7 +372,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				rawURL:      "http://127.0.0.1:9429",
 				queryParams: "",
 			},
-			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&field=&query=_time%3A1s+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
+			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=_time%3A1s+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
 			wantErr: false,
 		},
 		{
@@ -391,7 +391,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				rawURL:      "http://127.0.0.1:9429",
 				queryParams: "",
 			},
-			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&field=&query=_time%3A1s+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
+			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=_time%3A1s+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
 			wantErr: false,
 		},
 		{
@@ -410,7 +410,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				rawURL:      "http://127.0.0.1:9429",
 				queryParams: "",
 			},
-			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&field=&query=_time%3A1s+and+syslog&start=1609459200&step=15s",
+			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=_time%3A1s+and+syslog&start=1609459200&step=15s",
 			wantErr: false,
 		},
 		{
@@ -429,7 +429,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				rawURL:      "http://127.0.0.1:9429",
 				queryParams: "",
 			},
-			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&field=&query=_time%3A1s+and+syslog+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
+			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=_time%3A1s+and+syslog+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
 			wantErr: false,
 		},
 		{
@@ -448,7 +448,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				rawURL:      "http://127.0.0.1:9429",
 				queryParams: "",
 			},
-			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&field=&query=_time%3A1s+and+syslog+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
+			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=_time%3A1s+and+syslog+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
 			wantErr: false,
 		},
 		{
@@ -467,7 +467,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 				rawURL:      "http://127.0.0.1:9429",
 				queryParams: "",
 			},
-			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&field=&query=%2A+and+syslog+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
+			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=%2A+and+syslog+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
 			wantErr: false,
 		},
 	}
