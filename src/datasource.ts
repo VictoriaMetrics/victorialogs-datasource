@@ -41,6 +41,7 @@ import { DataQuery } from "@grafana/schema";
 
 import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
+import { LogLevelRule } from "./configuration/LogLevelRules/types";
 import { escapeLabelValueInSelector, isRegexSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
 import { LOGS_VOLUME_BARS, queryLogsVolume } from "./logsVolumeLegacy";
@@ -65,9 +66,9 @@ import { VariableSupport } from "./variableSupport/VariableSupport";
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 export const REF_ID_STARTER_LOG_SAMPLE = 'log-sample-';
-export const REF_ID_STARTER_LOG_CONTEXT_REQUEST= 'log-context-request-';
+export const REF_ID_STARTER_LOG_CONTEXT_REQUEST = 'log-context-request-';
 export const REF_ID_STARTER_LOG_CONTEXT_QUERY = 'log-context-query-';
-export const LABEL_STREAM_ID  = '_stream_id';
+export const LABEL_STREAM_ID = '_stream_id';
 
 export class VictoriaLogsDatasource
   extends DataSourceWithBackend<Query, Options>
@@ -83,6 +84,7 @@ export class VictoriaLogsDatasource
   customQueryParameters: URLSearchParams;
   languageProvider?: LogsQlLanguageProvider;
   queryBuilderLimits?: QueryBuilderLimits;
+  logLevelRules: LogLevelRule[];
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<Options>,
@@ -97,16 +99,17 @@ export class VictoriaLogsDatasource
     this.url = instanceSettings.url!;
     this.basicAuth = instanceSettings.basicAuth;
     this.withCredentials = instanceSettings.withCredentials;
-    this.httpMethod = instanceSettings.jsonData.httpMethod || 'POST';
+    this.httpMethod = settingsData.httpMethod || 'POST';
     this.maxLines = parseInt(settingsData.maxLines ?? '0', 10) || 1000;
     this.derivedFields = settingsData.derivedFields || [];
-    this.customQueryParameters = new URLSearchParams(instanceSettings.jsonData.customQueryParameters);
+    this.customQueryParameters = new URLSearchParams(settingsData.customQueryParameters);
     this.languageProvider = languageProvider ?? new LogsQlLanguageProvider(this);
     this.annotations = {
       QueryEditor: QueryEditor,
     };
     this.variables = new VariableSupport(this);
-    this.queryBuilderLimits = instanceSettings.jsonData.queryBuilderLimits;
+    this.queryBuilderLimits = settingsData.queryBuilderLimits;
+    this.logLevelRules = settingsData.logLevelRules || [];
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
@@ -133,9 +136,12 @@ export class VictoriaLogsDatasource
     return super
       .query(fixedRequest)
       .pipe(
-        map((response) =>
-          transformBackendResult(response, fixedRequest, this.derivedFields ?? [])
-        )
+        map((response) => transformBackendResult(
+          response,
+          fixedRequest,
+          this.derivedFields ?? [],
+          this.logLevelRules ?? []
+        ))
       );
   }
 
@@ -391,14 +397,16 @@ export class VictoriaLogsDatasource
   getSupplementaryQuery(options: SupplementaryQueryOptions, query: Query, request: DataQueryRequest<Query>): Query | undefined {
     switch (options.type) {
       case SupplementaryQueryType.LogsVolume:
-        const HITS_BY_FIELD = '_stream'
         const totalSeconds = request.range.to.diff(request.range.from, "second");
         const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || "";
+
+        const fields = this.logLevelRules.filter(r => r.enabled).map(r => r.field)
+        const uniqFields = Array.from(new Set(fields));
 
         return {
           ...query,
           step: `${step}s`,
-          field: HITS_BY_FIELD,
+          field: uniqFields,
           queryType: QueryType.Hits,
           refId: `${REF_ID_STARTER_LOG_VOLUME}${query.refId}`,
           supportingQueryType: SupportingQueryType.LogsVolume,
@@ -469,7 +477,7 @@ export class VictoriaLogsDatasource
       streamId = transformedLabels[LABEL_STREAM_ID];
     }
 
-    return addLabelToQuery('', LABEL_STREAM_ID, streamId,'');
+    return addLabelToQuery('', LABEL_STREAM_ID, streamId, '');
   };
 
   private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions): DataQueryRequest<Query> => {
@@ -503,7 +511,7 @@ export class VictoriaLogsDatasource
 
     const timeRange =
       direction === LogRowContextQueryDirection.Backward
-        ?  {
+        ? {
           from: toUtc(rowTimeEpochMs - offset),
           to: toUtc(rowTimeEpochMs + overlap)
         }

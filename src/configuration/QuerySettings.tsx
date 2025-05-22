@@ -10,10 +10,10 @@ type Props = {
 export const QuerySettings = (props: Props) => {
   const { maxLines, onMaxLinedChange } = props;
   return (
-    <div className="gf-form-group">
+    <div className="gf-form-inline">
       <InlineField
         label="Maximum lines"
-        labelWidth={22}
+        labelWidth={28}
         tooltip={
           <>
             VictoriaLogs queries must contain a limit of the maximum number of lines returned (default: 1000). Increase this
@@ -23,10 +23,10 @@ export const QuerySettings = (props: Props) => {
         }
       >
         <Input
+          className="width-8"
           type="number"
           value={maxLines}
           onChange={(event: React.FormEvent<HTMLInputElement>) => onMaxLinedChange(event.currentTarget.value)}
-          width={16}
           placeholder="1000"
           spellCheck={false}
         />

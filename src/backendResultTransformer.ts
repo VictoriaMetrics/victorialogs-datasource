@@ -3,16 +3,27 @@ import {
   DataQueryError,
   DataQueryRequest,
   DataQueryResponse,
+  Field,
   FieldType,
-  isDataFrame,
+  LogLevel,
   QueryResultMeta,
+  isDataFrame,
 } from '@grafana/data';
 
+import { LogLevelRule } from "./configuration/LogLevelRules/types";
+import { resolveLogLevel } from "./configuration/LogLevelRules/utils";
 import { getDerivedFields } from './getDerivedFields';
 import { makeTableFrames } from './makeTableFrames';
 import { getHighlighterExpressionsFromQuery } from './queryUtils';
 import { dataFrameHasError } from './responseUtils';
 import { DerivedFieldConfig, Query, QueryType } from './types';
+
+const ANNOTATIONS_REF_ID = 'Anno';
+
+enum FrameField {
+  Labels = 'labels',
+  Level = 'level'
+}
 
 function isMetricFrame(frame: DataFrame): boolean {
   return frame.fields.every((field) => field.type === FieldType.time || field.type === FieldType.number);
@@ -29,22 +40,67 @@ function setFrameMeta(frame: DataFrame, meta: QueryResultMeta): DataFrame {
   };
 }
 
+function addLevelField(frame: DataFrame, rules: LogLevelRule[]): DataFrame {
+  const rows = frame.length ?? frame.fields[0]?.values.length ?? 0;
+  const labelsField = frame.fields.find(f => f.name === FrameField.Labels);
+
+  const levelValues: LogLevel[] = Array.from({ length: rows }, (_, idx) => {
+    const labels = (labelsField?.values[idx] ?? {}) as Record<string, any>;
+    return resolveLogLevel(labels, rules);
+  });
+
+  const levelField: Field<LogLevel> = {
+    name: FrameField.Level,
+    type: FieldType.string,
+    config: {},
+    values: levelValues,
+  };
+
+  return { ...frame, fields: [...frame.fields, levelField] };
+}
+
+function transformDashboardLabelField(field: Field): Field {
+  if (field.name !== FrameField.Labels) {
+    return field;
+  }
+
+  return {
+    ...field,
+    values: field.values.map((value) => {
+      return Object.entries(value).map(([key, val]) => {
+        return `${key}: ${JSON.stringify(val)}`;
+      });
+    }),
+  };
+}
+
+function getStreamFields(fields: Field[], transformLabels: boolean): Field[] {
+  if (!transformLabels) {
+    return fields;
+  }
+
+  return fields.map(transformDashboardLabelField);
+}
+
 function processStreamsFrames(
   frames: DataFrame[],
   queryMap: Map<string, Query>,
   derivedFieldConfigs: DerivedFieldConfig[],
+  logLevelRules: LogLevelRule[]
 ): DataFrame[] {
   return frames.map((frame) => {
     const query = frame.refId !== undefined ? queryMap.get(frame.refId) : undefined;
-    if (query?.refId === "Anno") {return processDashboardStreamFrame(frame, query, derivedFieldConfigs);}
-    return processStreamFrame(frame, query, derivedFieldConfigs);
+    const isAnnotations = query?.refId === ANNOTATIONS_REF_ID
+    return processStreamFrame(frame, query, derivedFieldConfigs, logLevelRules, isAnnotations);
   });
 }
 
 function processStreamFrame(
   frame: DataFrame,
   query: Query | undefined,
-  derivedFieldConfigs: DerivedFieldConfig[]
+  derivedFieldConfigs: DerivedFieldConfig[],
+  logLevelRules: LogLevelRule[],
+  transformLabels = false
 ): DataFrame {
   const custom: Record<string, string> = {
     ...frame.meta?.custom, // keep the original meta.custom
@@ -61,55 +117,18 @@ function processStreamFrame(
     custom,
   };
 
-  const newFrame = setFrameMeta(frame, meta);
-  const derivedFields = getDerivedFields(newFrame, derivedFieldConfigs);
-  return {
-    ...newFrame,
-    fields: [...newFrame.fields, ...derivedFields],
-  };
-}
+  const frameWithMeta = setFrameMeta(frame, meta);
+  const frameWithLevel = addLevelField(frameWithMeta, logLevelRules);
 
-function processDashboardStreamFrame(
-  frame: DataFrame,
-  query: Query | undefined,
-  derivedFieldConfigs: DerivedFieldConfig[]
-): DataFrame {
-  const custom: Record<string, string> = {
-    ...frame.meta?.custom, // keep the original meta.custom
-  };
-
-  if (dataFrameHasError(frame)) {
-    custom.error = 'Error when parsing some of the logs';
-  }
-
-  const meta: QueryResultMeta = {
-    preferredVisualisationType: 'logs',
-    limit: query?.maxLines,
-    searchWords: query !== undefined ? getHighlighterExpressionsFromQuery(query.expr) : undefined,
-    custom,
-  };
-
-  const newFrame = setFrameMeta(frame, meta);
-  const derivedFields = getDerivedFields(newFrame, derivedFieldConfigs);
+  const derivedFields = getDerivedFields(frameWithLevel, derivedFieldConfigs);
+  const baseFields = getStreamFields(frameWithLevel.fields, transformLabels)
 
   return {
-    ...newFrame,
+    ...frameWithLevel,
     fields: [
-      ...newFrame.fields.map((field) => {
-        if (field.name === 'labels') {
-          return {
-            ...field,
-            values: field.values.map((value) => {
-              return Object.entries(value).map(([key, value]) => {
-                return `${key}: ${JSON.stringify(value)}`;
-              });
-            }),
-          };
-        }
-        return field;
-      }),
-      ...derivedFields,
-    ],
+      ...baseFields,
+      ...derivedFields
+    ]
   };
 }
 
@@ -180,7 +199,8 @@ function improveError(error: DataQueryError | undefined, queryMap: Map<string, Q
 export function transformBackendResult(
   response: DataQueryResponse,
   request: DataQueryRequest,
-  derivedFieldConfigs: DerivedFieldConfig[]
+  derivedFieldConfigs: DerivedFieldConfig[],
+  logLevelRules: LogLevelRule[],
 ): DataQueryResponse {
   const { data, errors, ...rest } = response;
   const queries = request.targets;
@@ -208,7 +228,7 @@ export function transformBackendResult(
     data: [
       ...processMetricRangeFrames(metricRangeFrames),
       ...processMetricInstantFrames(metricInstantFrames),
-      ...processStreamsFrames(streamsFrames, queryMap, derivedFieldConfigs),
+      ...processStreamsFrames(streamsFrames, queryMap, derivedFieldConfigs, logLevelRules),
     ],
   };
 }

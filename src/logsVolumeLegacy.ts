@@ -14,6 +14,9 @@ import {
 } from "@grafana/data";
 import { BarAlignment, GraphDrawStyle, StackingMode } from "@grafana/schema";
 
+import { LOG_LEVEL_COLOR } from "./configuration/LogLevelRules/const";
+import { LogLevelRule } from "./configuration/LogLevelRules/types";
+import { resolveLogLevel } from "./configuration/LogLevelRules/utils";
 import { VictoriaLogsDatasource } from "./datasource";
 import { Query } from "./types";
 
@@ -33,7 +36,7 @@ export const queryLogsVolume = (datasource: VictoriaLogsDatasource, request: Dat
 
     const subscription = queryObservable.subscribe({
       complete: () => {
-        const aggregatedLogsVolume = aggregateRawLogsVolume(rawLogsVolume, () => LogLevel.unknown, request);
+        const aggregatedLogsVolume = aggregateRawLogsVolume(rawLogsVolume, extractLevel, request, datasource.logLevelRules);
         if (aggregatedLogsVolume[0]) {
           aggregatedLogsVolume[0].meta = {
             custom: {
@@ -83,13 +86,14 @@ export const queryLogsVolume = (datasource: VictoriaLogsDatasource, request: Dat
  */
 export function aggregateRawLogsVolume(
   rawLogsVolume: DataFrame[],
-  extractLevel: (dataFrame: DataFrame) => LogLevel,
-  request: DataQueryRequest<Query>
+  extractLevel: (dataFrame: DataFrame, rules: LogLevelRule[]) => LogLevel,
+  request: DataQueryRequest<Query>,
+  rules: LogLevelRule[]
 ): DataFrame[] {
   const logsVolumeByLevelMap: Partial<Record<LogLevel, DataFrame[]>> = {};
 
   rawLogsVolume.forEach((dataFrame) => {
-    const level = extractLevel(dataFrame);
+    const level = extractLevel(dataFrame, rules);
     if (!logsVolumeByLevelMap[level]) {
       logsVolumeByLevelMap[level] = [];
     }
@@ -153,7 +157,7 @@ function aggregateFields(
  */
 function getLogVolumeFieldConfig(level: LogLevel) {
   const name = level;
-  const color = '#8e8e8e';
+  const color = LOG_LEVEL_COLOR[level as LogLevel] || LOG_LEVEL_COLOR[LogLevel.unknown];
   return {
     displayNameFromDS: name,
     color: {
@@ -174,4 +178,14 @@ function getLogVolumeFieldConfig(level: LogLevel) {
       },
     },
   };
+}
+
+const extractLevel = (frame: DataFrame, rules: LogLevelRule[]): LogLevel => {
+  const valueField = frame.fields.find(f => f.name === 'Value');
+
+  if (!valueField?.labels) {
+    return LogLevel.unknown;
+  }
+
+  return resolveLogLevel(valueField.labels, rules);
 }

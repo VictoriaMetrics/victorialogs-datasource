@@ -1,5 +1,7 @@
 import React from "react";
 
+import { Stack, Text } from "@grafana/ui";
+
 const tips = [
   {
     title: "Datasource",
@@ -20,11 +22,14 @@ const tips = [
 ]
 
 export const HelpfulLinks = () => (
-  <>
-    <h3 className="page-heading">Helpful links</h3>
+  <Stack direction="column" gap={2}>
+    <div>
+      <Text variant="h4">Helpful links</Text>
+    </div>
+
     <div className="gf-form-group gf-form-inline markdown-html">
       {tips.map(t => (
-        <a key={t.url}  className="gf-form-label gf-form-label--dashlink"
+        <a key={t.url} className="gf-form-label gf-form-label--dashlink"
            href={t.url}
            target="_blank"
            rel="docs noreferrer">
@@ -32,5 +37,5 @@ export const HelpfulLinks = () => (
         </a>
       ))}
     </div>
-  </>
+  </Stack>
 )

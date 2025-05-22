@@ -1,9 +1,9 @@
 import React from 'react';
 import { gte } from 'semver';
 
-import { DataSourcePluginOptionsEditorProps, DataSourceSettings } from '@grafana/data';
+import { DataSourcePluginOptionsEditorProps, DataSourceSettings, FeatureToggles } from '@grafana/data';
 import { config } from '@grafana/runtime';
-import { InlineSwitch, InlineField, DataSourceHttpSettings, SecureSocksProxySettings } from "@grafana/ui";
+import { InlineSwitch, InlineField, DataSourceHttpSettings, Space } from "@grafana/ui";
 
 import { Options } from '../types';
 
@@ -11,6 +11,7 @@ import { AlertingSettings } from './AlertingSettings';
 import { DerivedFields } from "./DerivedFields";
 import { HelpfulLinks } from "./HelpfulLinks";
 import { LimitsSettings } from "./LimitSettings";
+import { LogLevelRulesEditor } from "./LogLevelRules/LogLevelRulesEditor";
 import { LogsSettings } from './LogsSettings';
 import { QuerySettings } from './QuerySettings';
 
@@ -41,18 +42,24 @@ const ConfigEditor = (props: Props) => {
         sigV4AuthToggleEnabled={config.sigV4AuthEnabled}
       />
       <AlertingSettings options={options} onOptionsChange={onOptionsChange}/>
-      <QuerySettings
-        maxLines={options.jsonData.maxLines || ''}
-        onMaxLinedChange={(value) => onOptionsChange(setMaxLines(options, value))}
-      />
+
+      <Space v={5} />
+
+      <LimitsSettings {...props}>
+        <QuerySettings
+          maxLines={options.jsonData.maxLines || ''}
+          onMaxLinedChange={(value) => onOptionsChange(setMaxLines(options, value))}
+        />
+      </LimitsSettings>
+
+      <LogsSettings {...props}/>
+
       <DerivedFields
         fields={options.jsonData.derivedFields}
         onChange={(value) => onOptionsChange(setDerivedFields(options, value))}
       />
 
-      <LogsSettings {...props}/>
-
-      <LimitsSettings {...props}/>
+      <LogLevelRulesEditor {...props}/>
 
       {config.featureToggles['secureSocksDSProxyEnabled' as keyof FeatureToggles] && gte(config.buildInfo.version, '10.0.0') && (
         <>
