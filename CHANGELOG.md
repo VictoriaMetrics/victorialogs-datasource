@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix an issue when Grafana decides that the response is not a wide series and shows the error "input data must be a wide series but got type not (input refid)" . See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/302).
+
 ## v0.16.3
 
 * FEATURE: enabled [PDC](https://grafana.com/docs/grafana-cloud/connect-externally-hosted/private-data-source-connect/) support. See [VictoriaMetrics#8800](https://github.com/VictoriaMetrics/VictoriaMetrics/issues/8800) for details.
