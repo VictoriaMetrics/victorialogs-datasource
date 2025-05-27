@@ -406,7 +406,7 @@ export class VictoriaLogsDatasource
         return {
           ...query,
           step: `${step}s`,
-          field: uniqFields,
+          fields: uniqFields,
           queryType: QueryType.Hits,
           refId: `${REF_ID_STARTER_LOG_VOLUME}${query.refId}`,
           supportingQueryType: SupportingQueryType.LogsVolume,

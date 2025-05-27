@@ -53,7 +53,7 @@ export interface Query extends QueryFromSchema {
   direction?: QueryDirection;
   supportingQueryType?: SupportingQueryType;
   queryType?: QueryType;
-  field?: string[]; // groups the results by the specified field value for /select/logsql/hits
+  fields?: string[]; // groups the results by the specified field value for /select/logsql/hits
 }
 
 export type VictoriaLogsQueryEditorProps = QueryEditorProps<VictoriaLogsDatasource, Query, Options>;

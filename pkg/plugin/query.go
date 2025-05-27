@@ -53,7 +53,7 @@ type Query struct {
 	IntervalMs   int64     `json:"intervalMs"`
 	MaxLines     int       `json:"maxLines"`
 	Step         string    `json:"step"`
-	Fields       []string  `json:"field"`
+	Fields       []string  `json:"fields"`
 	QueryType    QueryType `json:"queryType"`
 	url          *url.URL
 	ForAlerting  bool `json:"-"`
