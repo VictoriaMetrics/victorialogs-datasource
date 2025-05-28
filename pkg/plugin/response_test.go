@@ -726,10 +726,10 @@ func Test_getStatsResponse(t *testing.T) {
 				frames := []*data.Frame{
 					data.NewFrame("",
 						data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": "message"}, []float64{13377}),
-					),
+					).SetMeta(&data.FrameMeta{Type: data.FrameTypeNumericMulti, TypeVersion: data.FrameTypeVersion{0, 1}}),
 					data.NewFrame("",
 						data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": ""}, []float64{2078793288}),
-					),
+					).SetMeta(&data.FrameMeta{Type: data.FrameTypeNumericMulti, TypeVersion: data.FrameTypeVersion{0, 1}}),
 				}
 
 				rsp := backend.DataResponse{}
