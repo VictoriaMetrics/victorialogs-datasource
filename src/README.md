@@ -81,6 +81,31 @@ And apply `Transformations` by labels:
 
 <img alt="Transformations" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/panel_table_transformation.png?raw=true">
 
+### Log level rules
+
+The **Log level rules** section in the datasource configuration allows you to assign log levels based on custom field conditions. This helps classify logs dynamically (e.g., as `error`, `info`, `debug`, etc.) using rules you define.
+
+#### How to use
+
+1. Open the datasource settings.
+
+2. Scroll to the **Log level rules** section.
+
+3. Click **"Add rule"** to define a new rule.
+
+4. For each rule, configure the following:
+
+    * **Enable switch** – enable or disable the rule.
+    * **Field name** – the log field the condition will evaluate.
+    * **Operator** – choose from: `Equals`, `Not equal`, `Matches regex`, `Less than`, `Greater than`
+    * **Value** – the value to compare the field against.
+    * **Log level** – level to assign if the condition matches: `critical`, `warning`, `error`, `info`, `debug`, `trace`, `unknown`
+    * **Delete button** – remove the rule.
+
+5.  After adding or editing rules, click **"Save & test"** to apply the changes.
+
+**Rule priority**: If multiple rules match a log entry, the **first matching rule** (top to bottom) takes precedence.
+
 ## License
 
 This project is licensed under

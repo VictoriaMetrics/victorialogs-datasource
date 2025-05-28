@@ -1,12 +1,14 @@
 import React, { SyntheticEvent } from 'react';
 
 import {
-    DataSourcePluginOptionsEditorProps,
-    SelectableValue,
+  DataSourcePluginOptionsEditorProps,
+  SelectableValue,
 } from '@grafana/data';
 import {
   InlineField,
-  Input
+  Input,
+  Stack,
+  Text
 } from '@grafana/ui';
 
 import { Options } from '../types';
@@ -22,8 +24,11 @@ export const LogsSettings = (props: Props) => {
     options.jsonData.httpMethod = 'POST';
   }
   return (
-    <>
-      <h3 className="page-heading">Misc</h3>
+    <Stack direction="column" gap={2}>
+      <div>
+        <Text variant="h4">Misc</Text>
+      </div>
+
       <div className="gf-form-group">
         <div className="gf-form max-width-30">
           <InlineField
@@ -31,7 +36,7 @@ export const LogsSettings = (props: Props) => {
             labelWidth={28}
             tooltip="Add Custom parameters to all queries."
             interactive={true}
-           >
+          >
             <Input
               className="width-25"
               value={options.jsonData.customQueryParameters}
@@ -42,7 +47,7 @@ export const LogsSettings = (props: Props) => {
           </InlineField>
         </div>
       </div>
-    </>
+    </Stack>
   );
 };
 
@@ -60,13 +65,13 @@ export const getValueFromEventItem = (eventItem: SyntheticEvent<HTMLInputElement
 
 const onChangeHandler =
   (key: keyof Options, options: Props['options'], onOptionsChange: Props['onOptionsChange']) =>
-  (eventItem: SyntheticEvent<HTMLInputElement> | SelectableValue<string>) => {
-    onOptionsChange({
-      ...options,
-      jsonData: {
-        ...options.jsonData,
-        [key]: getValueFromEventItem(eventItem),
-      },
-    });
-  };
+    (eventItem: SyntheticEvent<HTMLInputElement> | SelectableValue<string>) => {
+      onOptionsChange({
+        ...options,
+        jsonData: {
+          ...options.jsonData,
+          [key]: getValueFromEventItem(eventItem),
+        },
+      });
+    };
 

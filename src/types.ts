@@ -2,6 +2,7 @@ import { DataFrame, DataSourceJsonData, KeyValue, QueryEditorProps } from '@graf
 import { BackendSrvRequest } from "@grafana/runtime";
 import { DataQuery } from '@grafana/schema';
 
+import { LogLevelRule } from "./configuration/LogLevelRules/types";
 import { VictoriaLogsDatasource } from "./datasource";
 
 export interface Options extends DataSourceJsonData {
@@ -14,6 +15,7 @@ export interface Options extends DataSourceJsonData {
   // keepCookies?: string[];
   // predefinedOperations?: string;
   enableSecureSocksProxy?: boolean;
+  logLevelRules?: LogLevelRule[];
 }
 
 export enum QueryDirection {
@@ -51,7 +53,7 @@ export interface Query extends QueryFromSchema {
   direction?: QueryDirection;
   supportingQueryType?: SupportingQueryType;
   queryType?: QueryType;
-  field?: string; // groups the results by the specified field value for /select/logsql/hits
+  fields?: string[]; // groups the results by the specified field value for /select/logsql/hits
 }
 
 export type VictoriaLogsQueryEditorProps = QueryEditorProps<VictoriaLogsDatasource, Query, Options>;
