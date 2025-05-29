@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.17.0
+
 * FEATURE: add support for configuring log level using custom rules. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/294).
 * FEATURE: add support for build the freebsd/amd64. See [this pull request](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/281). Thanks to @AlexanderThaller.
 * BUGFIX: fix an issue when Grafana decides that the response is not a wide series and shows the error "input data must be a wide series but got type not (input refid)". See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/302).
