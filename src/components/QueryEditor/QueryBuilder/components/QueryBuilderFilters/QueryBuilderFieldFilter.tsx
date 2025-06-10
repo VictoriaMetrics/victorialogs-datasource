@@ -9,7 +9,7 @@ import { escapeLabelValueInExactSelector } from "../../../../../languageUtils";
 import { FilterFieldType, VisualQuery } from "../../../../../types";
 import { deleteByIndexPath } from "../../utils/modifyFilterVisualQuery/deleteByIndexPath";
 import { updateValueByIndexPath } from "../../utils/modifyFilterVisualQuery/updateByIndexPath";
-import { DEFAULT_FIELD } from "../../utils/parseToString";
+import { DEFAULT_FIELD, filterVisualQueryToString } from "../../utils/parseToString";
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -69,7 +69,10 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
 
     setterLoading(true)
     const limit = datasource.getQueryBuilderLimits(type)
-    const list = await datasource.languageProvider?.getFieldList({ type, timeRange, field, limit })
+    const filtersWithoutCurrent = deleteByIndexPath(query.filters, indexPath)
+    const currentOperator = query.filters.operators[indexPath[0] - 1] || "AND"
+    const filters = currentOperator === "AND" ? filterVisualQueryToString(filtersWithoutCurrent, true) : ""
+    const list = await datasource.languageProvider?.getFieldList({ type, timeRange, field, limit, query: filters });
     const result = list ? list.map(({ value, hits }) => ({
       value,
       label: value || " ",

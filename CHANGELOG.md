@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: improve query builder – when using AND operator, field and value selection is now narrowed. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/244).
+
 ## v0.17.0
 
 * FEATURE: add support for configuring log level using custom rules. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/294).
