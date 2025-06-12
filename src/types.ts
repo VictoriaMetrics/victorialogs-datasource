@@ -16,6 +16,7 @@ export interface Options extends DataSourceJsonData {
   // predefinedOperations?: string;
   enableSecureSocksProxy?: boolean;
   logLevelRules?: LogLevelRule[];
+  multitenancyHeaders?: MultitenancyHeaders;
 }
 
 export enum QueryDirection {
@@ -123,3 +124,10 @@ export type QueryBuilderLimits = {
   [FilterFieldType.FieldValue]?: number;
   [FilterFieldType.FieldName]?: number;
 };
+
+export enum TenantHeaderNames {
+  AccountID = 'AccountID',
+  ProjectID = 'ProjectID',
+}
+
+export type MultitenancyHeaders = Partial<Record<TenantHeaderNames, string | undefined>>
