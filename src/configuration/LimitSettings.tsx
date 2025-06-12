@@ -1,9 +1,6 @@
 import React, { SyntheticEvent } from 'react';
 
-import {
-  DataSourcePluginOptionsEditorProps,
-  SelectableValue,
-} from '@grafana/data';
+import { SelectableValue } from '@grafana/data';
 import {
   InlineField,
   regexValidation,
@@ -14,7 +11,10 @@ import {
   Text
 } from '@grafana/ui';
 
-import { FilterFieldType, Options } from "../types";
+import { FilterFieldType } from "../types";
+
+import { PropsConfigEditor } from "./ConfigEditor";
+import { getValueFromEventItem } from "./utils";
 
 const validationRule = regexValidation(
   /^$|^\d+$/,
@@ -44,7 +44,7 @@ const limitFields = [
   }
 ]
 
-type Props = Pick<DataSourcePluginOptionsEditorProps<Options>, 'options' | 'onOptionsChange'> & {
+type Props = PropsConfigEditor & {
   children?: React.ReactNode
 };
 
@@ -93,18 +93,6 @@ export const LimitsSettings = (props: Props) => {
       </div>
     </Stack>
   )
-};
-
-const getValueFromEventItem = (eventItem: SyntheticEvent<HTMLInputElement> | SelectableValue<string>) => {
-  if (!eventItem) {
-    return '';
-  }
-
-  if (eventItem.hasOwnProperty('currentTarget')) {
-    return eventItem.currentTarget.value;
-  }
-
-  return (eventItem as SelectableValue<string>).value;
 };
 
 const onChangeHandler =

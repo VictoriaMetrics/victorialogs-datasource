@@ -1,16 +1,14 @@
 import React from 'react';
 
-import { DataSourcePluginOptionsEditorProps, LogLevel, } from '@grafana/data';
+import { LogLevel, } from '@grafana/data';
 import { Button, Stack, InlineSwitch, Input, Select, Text } from '@grafana/ui';
 
-import { Options } from '../../types';
+import { PropsConfigEditor } from "../ConfigEditor";
 
 import { LOG_LEVEL_COLOR, LOG_LEVEL_OPTIONS, LOG_OPERATOR_OPTIONS } from "./const";
 import { LogLevelRule, LogLevelRuleType } from "./types";
 
-type Props = Pick<DataSourcePluginOptionsEditorProps<Options>, 'options' | 'onOptionsChange'>;
-
-export const LogLevelRulesEditor = (props: Props) => {
+export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
   const { options, onOptionsChange } = props;
 
   const onChangeHandler = (rules: LogLevelRule[]) => {

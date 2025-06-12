@@ -1,9 +1,6 @@
 import React, { SyntheticEvent } from 'react';
 
-import {
-  DataSourcePluginOptionsEditorProps,
-  SelectableValue,
-} from '@grafana/data';
+import { SelectableValue } from '@grafana/data';
 import {
   InlineField,
   Input,
@@ -13,9 +10,10 @@ import {
 
 import { Options } from '../types';
 
-type Props = Pick<DataSourcePluginOptionsEditorProps<Options>, 'options' | 'onOptionsChange'>;
+import { PropsConfigEditor } from "./ConfigEditor";
+import { getValueFromEventItem } from "./utils";
 
-export const LogsSettings = (props: Props) => {
+export const LogsSettings = (props: PropsConfigEditor) => {
   const { options, onOptionsChange } = props;
 
   // We are explicitly adding httpMethod so it is correctly displayed in dropdown. This way, it is more predictable for users.
@@ -51,20 +49,8 @@ export const LogsSettings = (props: Props) => {
   );
 };
 
-export const getValueFromEventItem = (eventItem: SyntheticEvent<HTMLInputElement> | SelectableValue<string>) => {
-  if (!eventItem) {
-    return '';
-  }
-
-  if (eventItem.hasOwnProperty('currentTarget')) {
-    return eventItem.currentTarget.value;
-  }
-
-  return (eventItem as SelectableValue<string>).value;
-};
-
 const onChangeHandler =
-  (key: keyof Options, options: Props['options'], onOptionsChange: Props['onOptionsChange']) =>
+  (key: keyof Options, options: PropsConfigEditor['options'], onOptionsChange: PropsConfigEditor['onOptionsChange']) =>
     (eventItem: SyntheticEvent<HTMLInputElement> | SelectableValue<string>) => {
       onOptionsChange({
         ...options,
