@@ -69,10 +69,10 @@ func NewDatasource(ctx context.Context, settings backend.DataSourceInstanceSetti
 // GrafanaSettings contains the raw DataSourceConfig as JSON as stored by Grafana server.
 // It repeats the properties in this object and includes custom properties.
 type GrafanaSettings struct {
-	HTTPMethod           string            `json:"httpMethod"`
-	QueryParams          string            `json:"customQueryParameters"`
-	CustomHeaders        http.Header       `json:"-"`
-	MultitenancyHeaders  map[string]string `json:"multitenancyHeaders"`
+	HTTPMethod          string            `json:"httpMethod"`
+	QueryParams         string            `json:"customQueryParameters"`
+	CustomHeaders       http.Header       `json:"-"`
+	MultitenancyHeaders map[string]string `json:"multitenancyHeaders"`
 }
 
 func NewGrafanaSettings(settings backend.DataSourceInstanceSettings) (*GrafanaSettings, error) {
