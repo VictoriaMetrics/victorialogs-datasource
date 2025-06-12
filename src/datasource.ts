@@ -52,6 +52,7 @@ import {
   DerivedFieldConfig,
   FilterActionType,
   FilterFieldType,
+  MultitenancyHeaders,
   Options,
   Query,
   QueryBuilderLimits,
@@ -85,6 +86,7 @@ export class VictoriaLogsDatasource
   languageProvider?: LogsQlLanguageProvider;
   queryBuilderLimits?: QueryBuilderLimits;
   logLevelRules: LogLevelRule[];
+  multitenancyHeaders?: MultitenancyHeaders;
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<Options>,
@@ -110,6 +112,7 @@ export class VictoriaLogsDatasource
     this.variables = new VariableSupport(this);
     this.queryBuilderLimits = settingsData.queryBuilderLimits;
     this.logLevelRules = settingsData.logLevelRules || [];
+    this.multitenancyHeaders = settingsData.multitenancyHeaders;
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
@@ -244,7 +247,7 @@ export class VictoriaLogsDatasource
     const options: BackendSrvRequest = defaults(overrides, {
       url: queryUrl,
       method: this.httpMethod,
-      headers: {},
+      headers: { ...this.getMultitenancyHeaders() },
       credentials: this.basicAuth || this.withCredentials ? 'include' : 'same-origin',
     });
 
@@ -521,5 +524,17 @@ export class VictoriaLogsDatasource
         };
 
     return { ...timeRange, raw: timeRange };
+  }
+
+  getMultitenancyHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {};
+    if (this.multitenancyHeaders) {
+      for (const [key, value] of Object.entries(this.multitenancyHeaders)) {
+        if (value) {
+          headers[key] = value;
+        }
+      }
+    }
+    return headers;
   }
 }

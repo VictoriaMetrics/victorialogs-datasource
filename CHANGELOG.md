@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: add a section to the datasource settings for tenant configuration. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/307).
+
 ## v0.17.0
 
 * FEATURE: add support for configuring log level using custom rules. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/294).
@@ -95,7 +97,7 @@ In the new version of the plugin, the plugin ID has been updated. The new plugin
 - You must update the `allow_loading_unsigned_plugins` field in the `grafana.ini` or `defaults.ini` configuration file.  
   **Example:**
     ```ini  
-    allow_loading_unsigned_plugins = victoriametrics-logs-datasource  
+  allow_loading_unsigned_plugins = victoriametrics-logs-datasource  
     ```
 - If you are using provisioning, update the `type` field to `victoriametrics-logs-datasource` in your provisioning configuration.
 - After making these changes, you must restart the Grafana server for the updates to take effect.
