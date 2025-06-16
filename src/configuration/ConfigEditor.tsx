@@ -14,6 +14,7 @@ import { LimitsSettings } from "./LimitSettings";
 import { LogLevelRulesEditor } from "./LogLevelRules/LogLevelRulesEditor";
 import { LogsSettings } from './LogsSettings';
 import { QuerySettings } from './QuerySettings';
+import { TenantSettings } from "./TenantSettings";
 
 export type PropsConfigEditor = DataSourcePluginOptionsEditorProps<Options>;
 
@@ -44,6 +45,8 @@ const ConfigEditor = (props: PropsConfigEditor) => {
       <AlertingSettings {...props}/>
 
       <Space v={5}/>
+
+      <TenantSettings {...props} />
 
       <LimitsSettings {...props}>
         <QuerySettings

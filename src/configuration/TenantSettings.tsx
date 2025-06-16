@@ -32,7 +32,6 @@ const fields = [
 
 export const TenantSettings = (props: PropsConfigEditor) => {
   const { options, onOptionsChange } = props;
-  console.log(options)
   const multitenancyHeaders = options.jsonData?.multitenancyHeaders;
 
   return (
