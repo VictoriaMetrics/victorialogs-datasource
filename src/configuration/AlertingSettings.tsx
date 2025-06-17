@@ -1,12 +1,10 @@
 import React from 'react';
 
-import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 import { InlineField, InlineSwitch } from '@grafana/ui';
 
-export function AlertingSettings({
-  options,
-  onOptionsChange,
-}: Pick<DataSourcePluginOptionsEditorProps, 'options' | 'onOptionsChange'>) {
+import { PropsConfigEditor } from "./ConfigEditor";
+
+export function AlertingSettings({ options, onOptionsChange }: PropsConfigEditor) {
   return (
     <div>
       <InlineField

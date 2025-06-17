@@ -14,8 +14,9 @@ import { LimitsSettings } from "./LimitSettings";
 import { LogLevelRulesEditor } from "./LogLevelRules/LogLevelRulesEditor";
 import { LogsSettings } from './LogsSettings';
 import { QuerySettings } from './QuerySettings';
+import { TenantSettings } from "./TenantSettings";
 
-export type Props = DataSourcePluginOptionsEditorProps<Options>;
+export type PropsConfigEditor = DataSourcePluginOptionsEditorProps<Options>;
 
 const makeJsonUpdater = <T extends any>(field: keyof Options) =>
   (options: DataSourceSettings<Options>, value: T): DataSourceSettings<Options> => ({
@@ -29,7 +30,7 @@ const makeJsonUpdater = <T extends any>(field: keyof Options) =>
 const setMaxLines = makeJsonUpdater('maxLines');
 const setDerivedFields = makeJsonUpdater('derivedFields');
 
-const ConfigEditor = (props: Props) => {
+const ConfigEditor = (props: PropsConfigEditor) => {
   const { options, onOptionsChange } = props;
 
   return (
@@ -41,9 +42,11 @@ const ConfigEditor = (props: Props) => {
         onChange={onOptionsChange}
         sigV4AuthToggleEnabled={config.sigV4AuthEnabled}
       />
-      <AlertingSettings options={options} onOptionsChange={onOptionsChange}/>
+      <AlertingSettings {...props}/>
 
-      <Space v={5} />
+      <Space v={5}/>
+
+      <TenantSettings {...props} />
 
       <LimitsSettings {...props}>
         <QuerySettings
