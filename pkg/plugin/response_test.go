@@ -737,6 +737,33 @@ func Test_getStatsResponse(t *testing.T) {
 				return rsp
 			},
 		},
+		{
+			name:     "add interval to config",
+			filename: "test-data/stats_response",
+			q: &Query{
+				DataQuery: backend.DataQuery{
+					RefID: "A",
+				},
+				LegendFormat: "legend {{app}}",
+				IntervalMs:   1000,
+			},
+			want: func() backend.DataResponse {
+				frames := []*data.Frame{
+					data.NewFrame("legend ",
+						data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1730937600, 0)}).SetConfig(&data.FieldConfig{Interval: 1000}),
+						data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": "message"}, []float64{13377}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+					),
+					data.NewFrame("legend ",
+						data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1730937600, 0)}).SetConfig(&data.FieldConfig{Interval: 1000}),
+						data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": ""}, []float64{2078793288}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+					),
+				}
+
+				rsp := backend.DataResponse{}
+				rsp.Frames = append(rsp.Frames, frames...)
+				return rsp
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

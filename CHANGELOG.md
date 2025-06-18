@@ -5,6 +5,8 @@
 * FEATURE: improve query builder – when using AND operator, field and value selection is now narrowed. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/244).
 * FEATURE: add a section to the datasource settings for tenant configuration. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/307).
 
+* BUGFIX: fix an issue where line charts were incorrectly connecting data points across missing (null) values despite the "Connect null values" panel setting being set to "Never". See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/311).
+
 ## v0.17.0
 
 * FEATURE: add support for configuring log level using custom rules. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/294).
