@@ -277,6 +277,15 @@ func (q *Query) addMetadataToMultiFrame(frame *data.Frame) {
 	frame.Name = customName
 }
 
+func (q *Query) addIntervalToFrame(frame *data.Frame) {
+	if len(frame.Fields) > 0 && q.IntervalMs > 0 {
+		if frame.Fields[0].Config == nil {
+			frame.Fields[0].Config = &data.FieldConfig{}
+		}
+		frame.Fields[0].Config.Interval = float64(q.IntervalMs)
+	}
+}
+
 var legendReplacer = regexp.MustCompile(`\{\{\s*(.+?)\s*\}\}`)
 
 func (q *Query) parseLegend(labels data.Labels) string {
