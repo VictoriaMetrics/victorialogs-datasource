@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix and issue when the additional `level` label was added if the logs level rules aren't configured. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/319).
+
 ## v0.18.0
 
 * FEATURE: improve query builder – when using AND operator, field and value selection is now narrowed. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/244).

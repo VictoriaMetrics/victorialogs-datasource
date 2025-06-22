@@ -106,6 +106,40 @@ The **Log level rules** section in the datasource configuration allows you to as
 
 **Rule priority**: If multiple rules match a log entry, the **first matching rule** (top to bottom) takes precedence.
 
+6. To define rules via the provision file, use the following format of the provision file:
+
+```yaml
+apiVersion: 1
+datasources:
+    # <string, required> Name of the VictoriaLogs datasource
+    # displayed in Grafana panels and queries.
+  - name: VictoriaLogs
+    # <string, required> Sets the data source type.
+    type: victoriametrics-logs-datasource
+    # <string, required> Sets the access mode, either
+    # proxy or direct (Server or Browser in the UI).
+    access: proxy
+    # <string> Sets URL for sending queries to VictoriaLogs server.
+    # see https://docs.victoriametrics.com/victorialogs/querying/
+    url: https://play-vmlogs.victoriametrics.com
+    # <string> Sets the pre-selected datasource for new panels.
+    # You can set only one default data source per organization.
+    isDefault: true
+    jsonData:
+      logLevelRules:
+       - field: "_stream_id"
+         value: "123123"
+         level: "error"
+         operator: "regex"
+         enabled: true
+```
+Where:
+- `field` is the name of the log field to evaluate.
+- `value` is the value to compare against.
+- `level` is the log level to assign if the condition matches.
+- `operator` is the comparison operator to use, such as `equals`, `notEquals`, `regex`, `lessThan`, `greaterThan` or `includes`.
+- `enabled` is a boolean flag to enable or disable the rule.
+
 ## License
 
 This project is licensed under
