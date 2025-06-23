@@ -11,7 +11,7 @@ export default function ResultFieldEditor(props: QueryBuilderOperationParamEdito
   return (
     <Combobox<string>
       createCustomValue
-      options={() => getFieldNameOptions(props)}
+      options={async () => [{ value: "", label: "empty", description: "empty" }, ... (await getFieldNameOptions(props))]}
       onChange={(value) => onChange(index, value.value)}
       value={value as string}
       width="auto"
