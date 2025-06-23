@@ -5,7 +5,7 @@ import { LogLevelRule, LogLevelRuleType } from "./types";
 
 export const resolveLogLevel = (log: Record<string, any>, rules: LogLevelRule[]): LogLevel => {
   for (const rule of rules) {
-    if (!rule.enabled) {
+    if (rule.enabled === false) {
       continue;
     }
 
@@ -47,12 +47,6 @@ export const resolveLogLevel = (log: Record<string, any>, rules: LogLevelRule[])
           } catch {
             // invalid regex — ignore
           }
-        }
-        break;
-
-      case LogLevelRuleType.Includes:
-        if (typeof fieldValue === 'string' && String(fieldValue).includes(String(rule.value))) {
-          return rule.level;
         }
         break;
     }

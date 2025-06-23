@@ -61,20 +61,20 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
 
       {rules.length > 0 && (
         <Stack direction="column" gap={0}>
-          {rules.map((rule, index) => (
+          {rules.map(({ enabled = true, field, value, level = LogLevel.unknown, operator }, index) => (
             <Stack direction="row" gap={0} key={index}>
 
               <div>
                 <InlineSwitch
                   label="Enabled"
-                  value={rule.enabled}
+                  value={enabled}
                   onChange={(e) => handleRuleChange(index, { enabled: e.currentTarget.checked })}
                 />
               </div>
 
               <Input
                 placeholder={"Field name"}
-                value={rule.field}
+                value={field}
                 onChange={(e) => handleRuleChange(index, { field: e.currentTarget.value })}
               />
 
@@ -82,14 +82,14 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
                 <Select
                   width={8}
                   options={LOG_OPERATOR_OPTIONS}
-                  value={LOG_OPERATOR_OPTIONS.find(opt => opt.value === rule.operator)}
+                  value={LOG_OPERATOR_OPTIONS.find(opt => opt.value === operator)}
                   onChange={(v) => handleRuleChange(index, { operator: v?.value! })}
                 />
               </div>
 
               <Input
                 placeholder="Value"
-                value={String(rule.value ?? '')}
+                value={String(value ?? '')}
                 onChange={(e) => handleRuleChange(index, { value: e.currentTarget.value })}
               />
 
@@ -97,18 +97,18 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
                 <Select
                   width={14}
                   options={LOG_LEVEL_OPTIONS}
-                  value={LOG_LEVEL_OPTIONS.find(opt => opt.value === rule.level)}
+                  value={LOG_LEVEL_OPTIONS.find(opt => opt.value === level)}
                   onChange={(v) => handleRuleChange(index, { level: v?.value! })}
                 />
               </div>
 
               <div className="gf-form-label">
-                {LOG_LEVEL_COLOR[rule.level] && (
+                {LOG_LEVEL_COLOR[level] && (
                   <div
                     style={{
                       width: '20px',
                       height: '20px',
-                      backgroundColor: LOG_LEVEL_COLOR[rule.level],
+                      backgroundColor: LOG_LEVEL_COLOR[level],
                       borderRadius: '50%',
                       display: 'inline-block',
                       margin: '0 8px',

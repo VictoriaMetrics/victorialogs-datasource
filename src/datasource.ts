@@ -403,7 +403,7 @@ export class VictoriaLogsDatasource
         const totalSeconds = request.range.to.diff(request.range.from, "second");
         const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || "";
 
-        const fields = this.logLevelRules.filter(r => r.enabled).map(r => r.field)
+        const fields = this.logLevelRules.filter(r => r.enabled !== false).map(r => r.field)
         const uniqFields = Array.from(new Set(fields));
 
         return {

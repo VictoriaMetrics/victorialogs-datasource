@@ -3,10 +3,9 @@ import { LogLevel } from "@grafana/data";
 export interface LogLevelRule {
   field: string;
   operator: LogLevelRuleType;
-  value: string | number | boolean;
+  value: string | number;
   level: LogLevel;
-  enabled: boolean;
-  description?: string;
+  enabled?: boolean;
 }
 
 export enum LogLevelRuleType {
@@ -15,5 +14,4 @@ export enum LogLevelRuleType {
   GreaterThan = 'greaterThan',
   LessThan = 'lessThan',
   Regex = 'regex',
-  Includes = 'includes',
 }
