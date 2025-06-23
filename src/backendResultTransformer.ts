@@ -40,6 +40,10 @@ function setFrameMeta(frame: DataFrame, meta: QueryResultMeta): DataFrame {
   };
 }
 
+function isValidLogLevel(level: string): boolean {
+  return Object.values(LogLevel).includes(level as LogLevel);
+}
+
 function addLevelField(frame: DataFrame, rules: LogLevelRule[]): DataFrame {
   if (rules.length === 0) {
     // If there are no rules, we don't need to add the level field
@@ -48,7 +52,10 @@ function addLevelField(frame: DataFrame, rules: LogLevelRule[]): DataFrame {
   const rows = frame.length ?? frame.fields[0]?.values.length ?? 0;
   const labelsField = frame.fields.find(f => f.name === FrameField.Labels);
 
-  const hasInfoLabel = labelsField?.values.some((value) => value['level']);
+  const hasInfoLabel = labelsField?.values.some((value) => {
+    const lvl = value['level'];
+    return lvl !== undefined && lvl !== null && isValidLogLevel(lvl.toLowerCase());
+  });
   if (hasInfoLabel) {
     // If the labels field already has a 'level' label, we don't need to add the level field
     return frame;
