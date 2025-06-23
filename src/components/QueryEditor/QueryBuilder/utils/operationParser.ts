@@ -216,6 +216,10 @@ export const parseOperation = (str: SplitString[], onlyFilters: boolean, queryMo
         str.shift();
         return { operation: { id: VictoriaLogsOperationId.NOT, params: [] }, length: 0 };
     }
+    const statsOperation = parseStatsOperation(str);
+    if (statsOperation) {
+        return statsOperation;
+    }
     if (str.length > 0 || (fieldName !== undefined)) {
         // Word
         return getOperationFromId(queryModeller, VictoriaLogsOperationId.Word, str, fieldName);
