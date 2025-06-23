@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { LogLevel, } from '@grafana/data';
-import { Button, Stack, InlineSwitch, Input, Select, Text } from '@grafana/ui';
+import { Button, Stack, InlineSwitch, Input, Select, Text, Tooltip, Badge } from '@grafana/ui';
 
 import { PropsConfigEditor } from "../ConfigEditor";
 
@@ -76,6 +76,17 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
                 placeholder={"Field name"}
                 value={field}
                 onChange={(e) => handleRuleChange(index, { field: e.currentTarget.value })}
+                suffix={field === "level" && (
+                  <Tooltip content={"This rule will be ignored if the log entry already contains a level field."}>
+                    <div>
+                      <Badge
+                        text={"May be skipped"}
+                        color={"orange"}
+                        icon="exclamation-triangle"
+                      />
+                    </div>
+                  </Tooltip>
+                )}
               />
 
               <div>
