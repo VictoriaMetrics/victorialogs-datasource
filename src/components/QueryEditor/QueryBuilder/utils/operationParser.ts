@@ -147,7 +147,14 @@ export const parseOperation = (str: SplitString[], onlyFilters: boolean, queryMo
     }
     switch (fieldName) {
         case "_time":
-            return getOperationFromId(queryModeller, VictoriaLogsOperationId.Time, str, fieldName);
+            const fnName = getFunctionName(str);
+            if (fnName === "day_range") {
+                return getOperationFromId(queryModeller, VictoriaLogsOperationId.DayRange, str, fieldName);
+            } else if (fnName === "week_range") {
+                return getOperationFromId(queryModeller, VictoriaLogsOperationId.WeekRange, str, fieldName);
+            } else {
+                return getOperationFromId(queryModeller, VictoriaLogsOperationId.Time, str, fieldName);
+            }
         case "_stream":
             return getOperationFromId(queryModeller, VictoriaLogsOperationId.Stream, str, fieldName);
         case "_stream_id":
@@ -198,7 +205,7 @@ export const parseOperation = (str: SplitString[], onlyFilters: boolean, queryMo
 
     const functionName = getFunctionName(str);
     // Filters
-    const filterOperationIds = ["contains_all", "contains_any", "seq", "range", "ipv4_range", "string_range", "len_range", "value_type", "eq_field", "le_field", "lt_field"];
+    const filterOperationIds = ["day_range", "week_range", "contains_all", "contains_any", "seq", "range", "ipv4_range", "string_range", "len_range", "value_type", "eq_field", "le_field", "lt_field"];
     if (filterOperationIds.includes(functionName.toLowerCase())) {
         return getOperationFromId(queryModeller, functionName.toLowerCase() as VictoriaLogsOperationId, str, fieldName);
     } else if (functionName.toLowerCase() === "in") {

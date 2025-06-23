@@ -32,6 +32,8 @@ import { buildSplitString, splitByUnescapedChar, SplitString } from './utils/str
 export enum VictoriaLogsOperationId {
   Word = 'word',
   Time = 'time',
+  DayRange = 'day_range',
+  WeekRange = 'week_range',
   Stream = 'stream',
   StreamId = 'stream_id',
   RangeComparison = 'range_comparison',
@@ -3180,6 +3182,179 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             }
           }
           return { params: [filter, offset], length: length - str.length };
+        },
+      },
+      {
+        id: VictoriaLogsOperationId.DayRange,
+        name: 'Day range',
+        params: [{
+          name: "Field",
+          type: "string",
+          editor: FieldEditor,
+        }, {
+          name: "Start",
+          type: "string",
+          placeholder: "HH:MM",
+        }, {
+          name: "End",
+          type: "string",
+          placeholder: "HH:MM",
+        }, {
+          name: "Include start",
+          type: "boolean",
+        }, {
+          name: "Include end",
+          type: "boolean",
+        }, {
+          name: "Offset",
+          type: "string",
+        }],
+        defaultParams: ["_time", "08:00", "18:00", false, false, ""],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Filters,
+        renderer: (model, def, innerExpr) => {
+          const field = model.params[0] as string;
+          const start = model.params[1] as string;
+          const end = model.params[2] as string;
+          const includeStart = model.params[3] as boolean;
+          const includeEnd = model.params[4] as boolean;
+          const offset = model.params[5] as string;
+          let expr = `${field}:day_range`;
+          expr += includeStart ? "[" : "("
+          expr += `${start}, ${end}`;
+          expr += includeEnd ? "]" : ")";
+          if (offset !== "") {
+            expr += ` offset ${offset}`;
+          }
+          if (innerExpr === "") {
+            return expr;
+          }
+          return innerExpr + " | " + expr;
+        },
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: (str: SplitString[], fieldName?: string) => {
+          let params: [string, string, string, boolean, boolean, string] = ["_time", "08:00", "18:00", false, false, ""];
+          let length = str.length;
+          params[0] = fieldName || "_time";
+          if (str.length > 0) {
+            if (str[0].type === "space") {
+              str.shift();
+            }
+            if (str.length > 0 && str[0].type === "bracket") {
+              const raw_value = str[0].raw_value;
+              if (raw_value.startsWith("[")) {
+                params[3] = true;
+              }
+              if (raw_value.endsWith("]")) {
+                params[4] = true;
+              }
+              const value = raw_value.slice(1, -1).split(",");
+              if (value.length === 2) {
+                params[1] = value[0];
+                params[2] = value[1];
+              }
+              str.shift();
+            }
+            if (str.length > 0 && str[0].type === "space" && str[0].value === "offset") {
+              str = str.slice(1);
+              if (isValue(str[0])) {
+                params[5] = getValue(str[0]);
+                str.shift();
+              }
+            }
+          }
+          return { params, length: length - str.length };
+        },
+      },
+      {
+        id: VictoriaLogsOperationId.WeekRange,
+        name: 'Week range',
+        params: [{
+          name: "Field",
+          type: "string",
+          editor: FieldEditor,
+        }, {
+          name: "Start",
+          type: "string",
+          options: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        }, {
+          name: "End",
+          type: "string",
+          options: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        }, {
+          name: "Include start",
+          type: "boolean",
+        }, {
+          name: "Include end",
+          type: "boolean",
+        }, {
+          name: "Offset",
+          type: "string",
+        }],
+        defaultParams: ["_time", "Mon", "Fri", false, false, ""],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Filters,
+        renderer: (model, def, innerExpr) => {
+          const field = model.params[0] as string;
+          const start = model.params[1] as string;
+          const end = model.params[2] as string;
+          const includeStart = model.params[3] as boolean;
+          const includeEnd = model.params[4] as boolean;
+          const offset = model.params[5] as string;
+          let expr = `${field}:day_range`;
+          expr += includeStart ? "[" : "("
+          expr += `${start}, ${end}`;
+          expr += includeEnd ? "]" : ")";
+          if (offset !== "") {
+            expr += ` offset ${offset}`;
+          }
+          if (innerExpr === "") {
+            return expr;
+          }
+          return innerExpr + " | " + expr;
+        },
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: (str: SplitString[], fieldName?: string) => {
+          let params: [string, string, string, boolean, boolean, string] = ["_time", "Mon", "Fri", false, false, ""];
+          let length = str.length;
+          params[0] = fieldName || "_time";
+          if (str.length > 0) {
+            if (str[0].type === "space") {
+              str.shift();
+            }
+            if (str.length > 0 && str[0].type === "bracket") {
+              const raw_value = str[0].raw_value;
+              if (raw_value.startsWith("[")) {
+                params[3] = true;
+              }
+              if (raw_value.endsWith("]")) {
+                params[4] = true;
+              }
+              const value = raw_value.slice(1, -1).split(",");
+              if (value.length === 2) {
+                let startDay = value[0].trim();
+                let endDay = value[1].trim();
+                const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+                if (startDay.length === 3) {
+                  startDay = daysOfWeek.find(day => day.startsWith(startDay)) || startDay;
+                }
+                if (endDay.length === 3) {
+                  endDay = daysOfWeek.find(day => day.startsWith(endDay)) || endDay;
+                }
+                params[1] = startDay;
+                params[2] = endDay;
+              }
+              str.shift();
+            }
+            if (str.length > 0 && str[0].type === "space" && str[0].value === "offset") {
+              str = str.slice(1);
+              if (isValue(str[0])) {
+                params[5] = getValue(str[0]);
+                str.shift();
+              }
+            }
+          }
+          return { params, length: length - str.length };
         },
       },
       {
