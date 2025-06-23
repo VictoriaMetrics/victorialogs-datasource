@@ -39,12 +39,12 @@ function parseStreamFilterValue(value: string): { label: string, not_in: boolean
       }
     }
   } else { // {app="nginx"}, {label=~"v1|...|vN"}, {app=~"nginx|foo\\.bar"}
-    const temp = value.split(/(=|!=|=~|!~| in | not_in )/);
+    const temp = value.split(/(!=|= ~|!~|=| in | not_in )/);
     label = temp[0].trim();
     const operator = temp[1].trim();
     not_in = ["not_in", "!~", "!="].includes(operator);
     if (operator.includes("~")) {
-      const splitPipes = splitByUnescapedPipe(splitString(unquoteString(temp[2])));
+      const splitPipes = splitByUnescapedPipe(splitString(unquoteString(temp[2].trim())));
       let value = "";
       for (const splitValues of splitPipes) {
         for (const splitValue of splitValues) {
@@ -55,8 +55,9 @@ function parseStreamFilterValue(value: string): { label: string, not_in: boolean
           } else {
             value += splitValue.value;
           }
+          values.push(value.replace(/\\(.)/g, "$1"));
+          value = "";
         }
-        values.push(value);
       }
     } else {
       const splitValue = splitString(temp[2]);
