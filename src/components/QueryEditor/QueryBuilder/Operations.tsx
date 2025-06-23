@@ -3065,14 +3065,18 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         }, {
           name: "Case Insensitive",
           type: "boolean",
+        }, {
+          name: "prefix",
+          type: "boolean",
         }],
-        defaultParams: [this.defaultField, "", false],
+        defaultParams: [this.defaultField, "", false, false],
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Filters,
         renderer: (model, def, innerExpr) => {
           const field = model.params[0] as string;
           const word = model.params[1] as string;
           const caseInsensitive = model.params[2] as boolean;
+          const prefix = model.params[3] as boolean;
           let expr = "";
           if (field !== this.defaultField) {
             expr = `${quoteString(field)}:`;
@@ -3083,6 +3087,9 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           }
           if (wordValue === "") {
             wordValue = '""';
+          }
+          if (prefix) {
+            wordValue += "*";
           }
           if (caseInsensitive) {
             expr += `i(${wordValue})`;
@@ -3121,8 +3128,15 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             if (isValue(value[0])) {
               params[1] = getValue(value[0]);
             }
+            if (value.length > 1 && value[1].value === "*") {
+              params[3] = true;
+            }
           }
           str.shift();
+          if (str.length > 0 && str[0].type === "space" && str[0].value === "*") {
+            params[3] = true;
+            str.shift();
+          }
           return { params, length: length - str.length };
         },
       },
