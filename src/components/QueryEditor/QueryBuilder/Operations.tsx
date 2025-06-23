@@ -2538,9 +2538,14 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         id: VictoriaLogsOperationId.Quantile,
         name: 'Quantile',
         params: [{
+          name: "Percentile",
+          type: "number",
+          placeholder: "Nth",
+          description: "Percentile value (0-100)",
+        }, {
           name: "Fields",
           type: "string",
-          editor: FieldsEditor, //TODO: needs quantile 
+          editor: FieldsEditor,
         }, {
           name: "Result field",
           type: "string",
@@ -2551,12 +2556,55 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           editor: this.conditionalEditor,
         }],
         alternativesKey: "stats",
-        defaultParams: ["", "", ""],
+        defaultParams: ["5", "", "", ""],
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Stats,
-        renderer: renderStatsOperation(false),
+        renderer: (model, def, innerExpr) => {
+          const percentile = model.params[0] as number;
+          const fields = model.params[1] as string;
+          const resultField = model.params[2] as string;
+          const condition = model.params[3] as string;
+          let expr = `quantile(0.${percentile}, ${fields})`;
+          if (condition !== "") {
+            expr += ` if (${condition})`;
+          }
+          if (resultField !== "") {
+            expr += ` ${quoteString(resultField)}`;
+          }
+          if (innerExpr === "") {
+            return expr;
+          }
+          return innerExpr + " | " + expr;
+        },
         addOperationHandler: addVictoriaOperation,
-        splitStringByParams: parseStatsOperation(false),
+        splitStringByParams: (str: SplitString[]) => {
+          let params: [number, string, string, string] = [5, "", "", ""];
+          const length = str.length;
+          if (str.length > 0) {
+            if (str[0].type === "space") {
+              str.shift();
+            }
+            if (str[0].type === "bracket") {
+              const value = str[0].value;
+              if (value.length > 0) {
+                const phi = value.shift();
+                if (phi) {
+                  let percentile = getValue(phi);
+                  percentile = percentile.replace(/^0\./, "");
+                  params[0] = Number.parseInt(percentile, 10);
+                }
+                if (value.length > 0 && value[0].value === ",") {
+                  value.shift();
+                }
+                params[1] = buildSplitString(value);
+              }
+              str.shift();
+            }
+            params[3] = getConditionFromString(str);
+            params[2] = getFieldValue(str);
+          }
+          return { params, length: length - str.length };
+        },
       },
       {
         id: VictoriaLogsOperationId.Rate,
@@ -2854,7 +2902,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
       },
     }, {
       id: VictoriaLogsOperationId.FieldContainsAnyValueFromVariable,
-      name: 'Fiel',
+      name: 'Field contains any value from Variable',
       params: [{
         name: "Field",
         type: "string",
@@ -4247,10 +4295,14 @@ function parseStatsOperationWithLimit(str: SplitString[]) {
         str.shift();
         if (str.length > 0) {
           params[1] = parseNumber(str[0], 0);
+          str.shift();
         }
       }
     }
     params[3] = getConditionFromString(str);
+    if (str.length > 0 && str[0].value === "as") {
+      str.shift();
+    }
     params[2] = getFieldValue(str);
   }
   return { params, length: length - str.length };
@@ -4268,6 +4320,9 @@ function parseStatsOperationWithoutLimit(str: SplitString[]) {
       str.shift();
     }
     params[2] = getConditionFromString(str);
+    if (str.length > 0 && str[0].value === "as") {
+      str.shift();
+    }
     params[1] = getFieldValue(str);
   }
   return { params, length: length - str.length };
