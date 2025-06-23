@@ -46,6 +46,5 @@ export function createDatasource(
     access: 'direct',
     ...settings,
   };
-
   return new VictoriaLogsDatasource(customSettings, templateSrvMock as TemplateSrv);
 }
