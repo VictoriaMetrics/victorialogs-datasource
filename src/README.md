@@ -111,8 +111,8 @@ The **Log level rules** section in the datasource configuration allows you to as
 ```yaml
 apiVersion: 1
 datasources:
-    # <string, required> Name of the VictoriaLogs datasource
-    # displayed in Grafana panels and queries.
+  # <string, required> Name of the VictoriaLogs datasource
+  # displayed in Grafana panels and queries.
   - name: VictoriaLogs
     # <string, required> Sets the data source type.
     type: victoriametrics-logs-datasource
@@ -127,18 +127,18 @@ datasources:
     isDefault: true
     jsonData:
       logLevelRules:
-       - field: "_stream_id"
-         value: "123123"
-         level: "error"
-         operator: "regex"
-         enabled: true
+        - field: "_stream_id"
+          value: "123123"
+          level: "error"
+          operator: "regex"
+          enabled: true
 ```
 Where:
-- `field` is the name of the log field to evaluate.
-- `value` is the value to compare against.
-- `level` is the log level to assign if the condition matches.
-- `operator` is the comparison operator to use, such as `equals`, `notEquals`, `regex`, `lessThan`, `greaterThan` or `includes`.
-- `enabled` is a boolean flag to enable or disable the rule.
+* `field` is the name of the log field to evaluate (e.g. `_stream_id`, `status_code`, `message`).
+* `value` is the value to compare against. Can be a string or a number, depending on the field.
+* `level` is the log level to assign if the condition matches. Valid values: `critical`, `error`, `warning`, `info`, `debug`, `trace`, `unknown`.
+* `operator` is the comparison operator to use, such as `equals`, `notEquals`, `regex`, `lessThan`, `greaterThan`.
+* `enabled` is a boolean flag to enable or disable the rule. Defaults to `true` if omitted.
 
 ## License
 
