@@ -180,12 +180,30 @@ function getLogVolumeFieldConfig(level: LogLevel) {
   };
 }
 
+function isValidLogLevel(level: string): boolean {
+  return Object.values(LogLevel).includes(level as LogLevel);
+}
+
 const extractLevel = (frame: DataFrame, rules: LogLevelRule[]): LogLevel => {
+  if (rules.length === 0) {
+    // If there are no rules, we don't need to add the level field
+    return LogLevel.unknown;
+  }
+
   const valueField = frame.fields.find(f => f.name === 'Value');
 
   if (!valueField?.labels) {
     return LogLevel.unknown;
   }
+
+  const hasInfoLabel = Object.entries(valueField.labels).some(([key, value]) => {
+    return key === 'level' && value !== undefined && value !== null && isValidLogLevel(value.toLowerCase());
+  })
+  if (hasInfoLabel) {
+    // If the labels field already has a 'level' label, we don't need to add the level field
+    return valueField.labels['level'] as LogLevel;
+  }
+
 
   return resolveLogLevel(valueField.labels, rules);
 }
