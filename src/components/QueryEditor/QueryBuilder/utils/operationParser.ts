@@ -30,7 +30,7 @@ export const getValuesFromBrackets = (str: SplitString[], removeBrackets = true)
     return result;
 }
 
-export const getConditionFromString = (str: SplitString[]): string  => {
+export const getConditionFromString = (str: SplitString[]): string => {
     if (str.length < 2) {
         return "";
     }
@@ -107,7 +107,7 @@ const getOperationFromId = (queryModeller: QueryModeller, id: string, str: Split
     return undefined;
 }
 
-export const parseStatsOperation = (str: SplitString[]): {operation: QueryBuilderOperation, length: number} | undefined => {
+export const parseStatsOperation = (str: SplitString[]): { operation: QueryBuilderOperation, length: number } | undefined => {
     let firstWord = "";
     if (str.length > 0) {
         if (str[0].type === "space") {
@@ -132,19 +132,8 @@ export const parseStatsOperation = (str: SplitString[]): {operation: QueryBuilde
     return undefined;
 }
 
-export const parseOperation = (str: SplitString[], onlyFilters: boolean, queryModeller: QueryModeller): {operation: QueryBuilderOperation, length: number} | undefined => {
+export const parseOperation = (str: SplitString[], onlyFilters: boolean, queryModeller: QueryModeller): { operation: QueryBuilderOperation, length: number } | undefined => {
     const fieldName = getFieldName(str);
-
-    if (str.length > 0 && str[0].type === "bracket" && str[0].raw_value.startsWith("(") && str[0].prefix === "") {
-        const value = str[0].value;
-        if (value.length === 1 && value[0].type === "space" && value[0].value.startsWith("$")) {
-            return getOperationFromId(queryModeller, VictoriaLogsOperationId.FieldContainsAnyValueFromVariable, str, fieldName);
-        }
-        if (checkLegacyMultiExact(value)) { // (="error" OR ="fatal")
-            return getOperationFromId(queryModeller, VictoriaLogsOperationId.MultiExact, str, fieldName);
-        }
-        return getOperationFromId(queryModeller, VictoriaLogsOperationId.Logical, str, fieldName);
-    }
     switch (fieldName) {
         case "_time":
             const fnName = getFunctionName(str);
@@ -160,72 +149,88 @@ export const parseOperation = (str: SplitString[], onlyFilters: boolean, queryMo
         case "_stream_id":
             return getOperationFromId(queryModeller, VictoriaLogsOperationId.StreamId, str, fieldName);
     }
-    // only stream filter has "{" as first char
-    if ((fieldName === undefined) && str[0].type === "bracket" && str[0].raw_value.startsWith("{") && str[0].prefix === "") {
-        return getOperationFromId(queryModeller, VictoriaLogsOperationId.Stream, str, fieldName);
-    }
 
-    if ((fieldName === undefined) && str.length > 0 && (str[0].type === "space" || str[0].type === "bracket") && !onlyFilters) { // pipes have no field and are not quoted
-        let firstWord;
-        if (str[0].type === "space") {
-            firstWord = str[0].value.toLowerCase();
-        } else if (str[0].type === "bracket") {
-            firstWord = str[0].prefix.toLowerCase();
-        } else {
-            return undefined;
+    if (str.length > 0) {
+        if (str[0].type === "bracket" && str[0].prefix === "") {
+            if (str[0].raw_value.startsWith("(")) {
+                const value = str[0].value;
+                if (value.length === 1 && value[0].type === "space" && value[0].value.startsWith("$")) {
+                    return getOperationFromId(queryModeller, VictoriaLogsOperationId.FieldContainsAnyValueFromVariable, str, fieldName);
+                }
+                if (checkLegacyMultiExact(value)) { // (="error" OR ="fatal")
+                    return getOperationFromId(queryModeller, VictoriaLogsOperationId.MultiExact, str, fieldName);
+                }
+                return getOperationFromId(queryModeller, VictoriaLogsOperationId.Logical, str, fieldName);
+            }
+            if (str[0].raw_value.startsWith("{")) {
+                return getOperationFromId(queryModeller, VictoriaLogsOperationId.Stream, str, fieldName);
+            }
         }
-        switch (firstWord) { // special cases for pipes
-            case "*":
-                return getOperationFromId(queryModeller, VictoriaLogsOperationId.Any, str, fieldName);
-            case "json_array_len":
-                return getOperationFromId(queryModeller, VictoriaLogsOperationId.JsonArrayLen, str, fieldName);
-            case "hash":
-                return getOperationFromId(queryModeller, VictoriaLogsOperationId.Hash, str, fieldName);
-            case "len":
-                return getOperationFromId(queryModeller, VictoriaLogsOperationId.Len, str, fieldName);
-            case "filter":
-            case "where":
+
+        if ((fieldName === undefined) && (str[0].type === "space" || str[0].type === "bracket") && !onlyFilters) { // pipes have no field and are not quoted
+            let firstWord;
+            switch (str[0].type) {
+                case "space":
+                    firstWord = str[0].value;
+                    break;
+                case "bracket":
+                    firstWord = str[0].prefix;
+                    break;
+            }
+            switch (firstWord) { // special cases for pipes
+                case "json_array_len":
+                    return getOperationFromId(queryModeller, VictoriaLogsOperationId.JsonArrayLen, str, fieldName);
+                case "hash":
+                    return getOperationFromId(queryModeller, VictoriaLogsOperationId.Hash, str, fieldName);
+                case "len":
+                    return getOperationFromId(queryModeller, VictoriaLogsOperationId.Len, str, fieldName);
+                case "eval":
+                    str.shift();
+                    return getOperationFromId(queryModeller, VictoriaLogsOperationId.Math, str, fieldName);
+                case "filter":
+                case "where":
+                    str.shift();
+                    return parseOperation(str, true, queryModeller);
+            }
+            const pipeOperationIds = queryModeller.getOperationsForCategory(VictoriaLogsQueryOperationCategory.Pipes)
+                .map(op => op.id.toLowerCase());
+            if (pipeOperationIds.includes(firstWord)) {
                 str.shift();
-                return parseOperation(str, true, queryModeller);
+                return getOperationFromId(queryModeller, firstWord as VictoriaLogsOperationId, str, fieldName);
+            }
         }
-        const pipeOperationIds = queryModeller.getOperationsForCategory(VictoriaLogsQueryOperationCategory.Pipes)
-            .map(op => op.id.toLowerCase());
-        if (pipeOperationIds.includes(firstWord)) {
+
+        if (str[0].type === "space" && str[0].value.startsWith("~")) {
+            return getOperationFromId(queryModeller, VictoriaLogsOperationId.Regexp, str, fieldName);
+        }
+        if (str[0].value === "=" || (str.length > 1 && str[0].value === "!" && str[1].value === "=")) {
+            return getOperationFromId(queryModeller, VictoriaLogsOperationId.Exact, str, fieldName);
+        }
+
+        const functionName = getFunctionName(str);
+        if (functionName !== "") {
+            // Filters
+            const filterOperationIds = ["day_range", "week_range", "contains_all", "contains_any", "seq", "range", "ipv4_range", "string_range", "len_range", "value_type", "eq_field", "le_field", "lt_field"];
+            if (filterOperationIds.includes(functionName.toLowerCase())) {
+                return getOperationFromId(queryModeller, functionName.toLowerCase() as VictoriaLogsOperationId, str, fieldName);
+            } else if (functionName.toLowerCase() === "in") {
+                return getOperationFromId(queryModeller, VictoriaLogsOperationId.MultiExact, str, fieldName);
+            } else if (functionName.toLowerCase() === "options" && !onlyFilters) {
+                return getOperationFromId(queryModeller, VictoriaLogsOperationId.Options, str, fieldName);
+            }
+        }
+        if (str[0].type === "space" && [">", "<"].includes(str[0].value.slice(0, 1))) {
+            // comparisons >, <, >=, <=
+            return getOperationFromId(queryModeller, VictoriaLogsOperationId.RangeComparison, str, fieldName);
+        } else if (str[0].type === "space" && ["!", "-"].includes(str[0].value.slice(0, 1))) {
+            // NOT Operator
             str.shift();
-            return getOperationFromId(queryModeller, firstWord as VictoriaLogsOperationId, str, fieldName);
+            return { operation: { id: VictoriaLogsOperationId.NOT, params: [] }, length: 0 };
         }
-    }
-
-    if (str.length > 0 && str[0].type === "space" && str[0].value.startsWith("~")) {
-        return getOperationFromId(queryModeller, VictoriaLogsOperationId.Regexp, str, fieldName);
-    }
-    if ( (str.length > 0 && str[0].value === "=" ) || (str.length > 1 && str[0].value === "!" && str[1].value === "=") ) {
-        return getOperationFromId(queryModeller, VictoriaLogsOperationId.Exact, str, fieldName);
-    }
-
-    const functionName = getFunctionName(str);
-    // Filters
-    const filterOperationIds = ["day_range", "week_range", "contains_all", "contains_any", "seq", "range", "ipv4_range", "string_range", "len_range", "value_type", "eq_field", "le_field", "lt_field"];
-    if (filterOperationIds.includes(functionName.toLowerCase())) {
-        return getOperationFromId(queryModeller, functionName.toLowerCase() as VictoriaLogsOperationId, str, fieldName);
-    } else if (functionName.toLowerCase() === "in") {
-        return getOperationFromId(queryModeller, VictoriaLogsOperationId.MultiExact, str, fieldName);
-    } else if (functionName.toLowerCase() === "options" && !onlyFilters) {
-        return getOperationFromId(queryModeller, VictoriaLogsOperationId.Options, str, fieldName);
-    }
-    if (str.length === 0) {
-
-    } else if (str[0].type === "space" && [">","<"].includes(str[0].value.slice(0,1))) {
-        // comparisons >, <, >=, <=
-        return getOperationFromId(queryModeller, VictoriaLogsOperationId.RangeComparison, str, fieldName);
-    } else if (str[0].type === "space" && ["!","-"].includes(str[0].value.slice(0,1))) {
-        // NOT Operator
-        str.shift();
-        return { operation: { id: VictoriaLogsOperationId.NOT, params: [] }, length: 0 };
-    }
-    const statsOperation = parseStatsOperation(str);
-    if (statsOperation) {
-        return statsOperation;
+        const statsOperation = parseStatsOperation(str);
+        if (statsOperation) {
+            return statsOperation;
+        }
     }
     if (str.length > 0 || (fieldName !== undefined)) {
         // Word

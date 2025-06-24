@@ -37,7 +37,6 @@ export enum VictoriaLogsOperationId {
   Stream = 'stream',
   StreamId = 'stream_id',
   RangeComparison = 'range_comparison',
-  Any = 'any',
   Exact = 'exact',
   MultiExact = 'multi_exact',
   ContainsAll = 'contains_all',
@@ -154,17 +153,17 @@ function parseFieldMapList(str: SplitString[]): { params: QueryBuilderOperationP
     if (!(str[1].type === "space" && str[1].value === "as")) {
       break;
     }
-    if (!isValue(str[0])) {
+    if (!isValue(str[2])) {
       break;
     }
-    toField = getValue(str[0]);
-    params.push(`\`${fromField}\` as \`${(toField)}\``);
-    if (str.length > 6) {
-      if (str[3].type === "space" && str[3].value === ",") {
+    toField = getValue(str[2]);
+    params.push(`${quoteString(fromField)} as ${quoteString(toField)}`);
+    str = str.slice(3);
+    if (str.length >= 4) {
+      if (str[0].type === "space" && str[0].value === ",") {
         str.shift();
       }
     }
-    str = str.slice(3);
   }
   if (params.length === 0) {
     params = [""];
@@ -471,12 +470,16 @@ export class OperationDefinitions {
           type: "boolean",
           optional: true,
         }, {
+          name: "Skip emptry results",
+          type: "boolean",
+          optional: true,
+        }, {
           name: "Condition",
           type: "string",
           editor: this.conditionalEditor,
         }],
         alternativesKey: "extract",
-        defaultParams: [this.defaultField, "", false, ""],
+        defaultParams: [this.defaultField, "", false, false, ""],
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Pipes,
         explainHandler: () => `
@@ -487,7 +490,8 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           const fromField = model.params[0] as string;
           const pattern = model.params[1] as string;
           const keepOriginalFields = model.params[2] as boolean;
-          const condition = model.params[3] as string;
+          const skipEmptyResults = model.params[3] as boolean;
+          const condition = model.params[4] as string;
           let expr = "extract ";
           if (condition !== "") {
             expr += `if (${condition}) `;
@@ -499,6 +503,9 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (keepOriginalFields) {
             expr += " keep_original_fields";
           }
+          if (skipEmptyResults) {
+            expr += " skip_empty_results";
+          }
           if (innerExpr === "") {
             return expr;
           }
@@ -507,8 +514,8 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
           let length = str.length;
-          let params: [string, string, boolean, string] = [this.defaultField, "", false, ""];
-          params[3] = getConditionFromString(str);
+          let params: [string, string, boolean, boolean, string] = [this.defaultField, "", false, false, ""];
+          params[4] = getConditionFromString(str);
           if (str.length === 0) {
             return { params, length: 0 };
           }
@@ -527,11 +534,24 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
               }
             }
           }
-          if (str.length > 0) {
-            if (str[0].type === "space" && str[0].value === "keep_original_fields") {
-              str = str.slice(1);
-              params[2] = true;
+          let i = 0;
+          while (str.length > 0) {
+            if (i>=2) {
+              break;
+            } else if (str[0].type === "space") {
+              if (str[0].value === "keep_original_fields") {
+                str = str.slice(1);
+                params[2] = true;
+              } else if (str[0].value === "skip_empty_results") {
+                str = str.slice(1);
+                params[3] = true;
+              } else {
+                break;
+              }
+            } else {
+              break;
             }
+            i++;
           }
           return { params, length: length - str.length };
         },
@@ -550,18 +570,22 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           name: "Keep original fields",
           type: "boolean",
         }, {
+          name: "Skip empty results",
+          type: "boolean",
+        }, {
           name: "Condition",
           type: "string",
           editor: this.conditionalEditor,
         }],
         alternativesKey: "extract",
-        defaultParams: [this.defaultField, "", false, ""],
+        defaultParams: [this.defaultField, "", false, false, ""],
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Pipes,
         renderer: (model, def, innerExpr) => {
           const fromField = model.params[0] as string;
           const pattern = model.params[1] as string;
           const keepOriginalFields = model.params[2] as boolean;
+          const skipEmptyResults = model.params[3] as boolean;
           const condition = model.params[3] as string;
           let expr = "extract_regexp ";
           if (condition !== "") {
@@ -574,6 +598,9 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (keepOriginalFields) {
             expr += " keep_original_fields";
           }
+          if (skipEmptyResults) {
+            expr += " skip_empty_results";
+          }
           if (innerExpr === "") {
             return expr;
           }
@@ -582,8 +609,8 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
           let length = str.length;
-          let params: [string, string, boolean, string] = [this.defaultField, "", false, ""];
-          params[3] = getConditionFromString(str);
+          let params: [string, string, boolean, boolean, string] = [this.defaultField, "", false, false, ""];
+          params[4] = getConditionFromString(str);
           if (str.length === 0) {
             return { params, length: 0 };
           }
@@ -602,11 +629,24 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
               }
             }
           }
-          if (str.length > 0) {
-            if (str[0].type === "space" && str[0].value === "keep_original_fields") {
-              str = str.slice(1);
-              params[2] = true;
+          let i = 0;
+          while (str.length > 0) {
+            if (i>=2) {
+              break;
+            } else if (str[0].type === "space") {
+              if (str[0].value === "keep_original_fields") {
+                str = str.slice(1);
+                params[2] = true;
+              } else if (str[0].value === "skip_empty_results") {
+                str = str.slice(1);
+                params[3] = true;
+              } else {
+                break;
+              }
+            } else {
+              break;
             }
+            i++;
           }
           return { params, length: length - str.length };
         },
@@ -660,8 +700,11 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           let length = str.length;
           let params: [number, number, number, boolean] = [0, 0, 0, false];
           if (str.length > 0) {
-            params[0] = parseNumber(str[0], 0);
-            str.shift();
+            const number = parseNumber(str[0], undefined);
+            if (number !== undefined) {
+              params[0] = number;
+              str.shift();
+            }
             for (let i = 0; i < 3; i++) {
               if (str.length > 0 && str[0].type === "space") { // next max_values_per_field/max_value_len/keep_const_fields
                 if (str[0].value === "keep_const_fields") {
@@ -673,7 +716,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
                   str.shift();
                 } else if (str[0].value === "max_value_len") {
                   str = str.slice(1);
-                  params[2] = parseNumber(str[0], 0);
+                  params[2] = parseNumber(str[0], 50);
                   str.shift();
                 }
               }
@@ -1365,7 +1408,11 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (condition !== "") {
             expr += ` if (${condition})`;
           }
-          expr += ` (${quoteString(oldValue)}, ${quoteString(newValue)})`;
+          let quotedNewValue = quoteString(newValue)
+          if (newValue === "") {
+            quotedNewValue = "''";
+          }
+          expr += ` (${quoteString(oldValue)}, ${quotedNewValue})`;
           if (field !== this.defaultField) {
             expr += ` at ${quoteString(field)}`;
           }
@@ -1394,8 +1441,10 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
               if (isValue(values[0])) {
                 params[1] = getValue(values[0]);
               }
-              if (isValue(values[1])) {
-                params[2] = getValue(values[1]);
+              if (values.length === 2 && values[1].value === ",") {
+                params[2] = "";
+              } else if (isValue(values[2])) {
+                params[2] = getValue(values[2]);
               }
               str = str.slice(1);
               if (str.length > 0) {
@@ -1410,8 +1459,8 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
               if (str.length >= 2) {
                 if (str[0].type === "space" && str[0].value === "limit") {
                   str = str.slice(1);
-                  if (isValue(str[1])) {
-                    params[3] = parseInt(getValue(str[1]), 10);
+                  if (isValue(str[0])) {
+                    params[3] = parseInt(getValue(str[0]), 10);
                     str.shift();
                   }
                 }
@@ -1456,7 +1505,11 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (condition !== "") {
             expr += ` if (${condition})`;
           }
-          expr += ` (${quoteString(oldValue)}, ${quoteString(newValue)})`;
+          let quotedNewValue = quoteString(newValue)
+          if (newValue === "") {
+            quotedNewValue = "''";
+          }
+          expr += ` (${quoteString(oldValue)}, ${quotedNewValue})`;
           if (field !== this.defaultField) {
             expr += ` at ${quoteString(field)}`;
           }
@@ -1474,7 +1527,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           let params: [string, string, string, number, string] = ["", "", "", 0, ""];
           params[4] = getConditionFromString(str);
           do {
-            if (str.length > 0) { // replace ("secret-password", "***") at _msg
+            if (str.length > 0) { // replace_regexp ("host-(.+?)-foo", "$1") at _msg
               if (str[0].type !== "bracket") {
                 break;
               }
@@ -1485,8 +1538,10 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
               if (isValue(values[0])) {
                 params[1] = getValue(values[0]);
               }
-              if (isValue(values[1])) {
-                params[2] = getValue(values[1]);
+              if (values.length === 2 && values[1].value === ",") {
+                params[2] = "";
+              } else if (isValue(values[2])) {
+                params[2] = getValue(values[2]);
               }
               str = str.slice(1);
               if (str.length > 0) {
@@ -1809,11 +1864,8 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             if (str.length > 0) {
               if (str[0].type === "space" && str[0].value === "by") {
                 str = str.slice(1);
-                if (str[0].type === "bracket") {
-                  result[1] = str[0].raw_value.slice(1, -1);
-                  str.shift();
-                }
-              } else if (str[0].type === "bracket" && str[0].prefix === "by") {
+              }
+              if (str[0].type === "bracket") {
                 result[1] = str[0].raw_value.slice(1, -1);
                 str.shift();
               }
@@ -2202,12 +2254,12 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           let params: [string, string, boolean] = [this.defaultField, "words", false];
           if (str.length > 0) {
             if (str[0].type === "space" && str[0].value === "from") {
-              str = str.slice(1);
-              if (str.length > 0) {
-                if (isValue(str[0])) {
-                  params[0] = getValue(str[0]);
-                  str.shift();
-                }
+              str.shift();
+            }
+            if (str.length > 0) {
+              if (isValue(str[0])) {
+                params[0] = getValue(str[0]);
+                str.shift();
               }
             }
 
@@ -3072,6 +3124,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         defaultParams: [this.defaultField, "", false, false],
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Filters,
+        explainHandler: () => `[word-filter](https://docs.victoriametrics.com/victorialogs/logsql/#word-filter) \\\n use \`*\` for non-empty field`,
         renderer: (model, def, innerExpr) => {
           const field = model.params[0] as string;
           const word = model.params[1] as string;
@@ -3562,43 +3615,9 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
               if (str[0].value.length > 1) {
                 params[2] = str[0].value.slice(1);
                 str.shift();
-              } else if (str.length > 1 && str[1].type === "space") {
-                params[2] = str[1].value;
+              } else if (str.length > 1 && isValue(str[1])) {
+                params[2] = getValue(str[1]);
                 str.shift();
-                str.shift();
-              }
-            }
-          }
-          return { params: params, length: length - str.length };
-        },
-      },
-      {
-        id: VictoriaLogsOperationId.Any,
-        name: 'Any',
-        params: [{
-          name: "Field",
-          type: "string",
-          editor: FieldEditor,
-        }],
-        defaultParams: [this.defaultField],
-        toggleable: true,
-        category: VictoriaLogsQueryOperationCategory.Filters,
-        renderer: (model, def, innerExpr) => {
-          const field = model.params[0] as string;
-          const expr = `${quoteString(field)}:*`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
-        },
-        addOperationHandler: addVictoriaOperation,
-        splitStringByParams: (str: SplitString[], fieldName?: string) => {
-          let params = [""];
-          params[0] = fieldName || this.defaultField;
-          let length = str.length;
-          if (str.length > 0) {
-            if (str[0].type === "space") {
-              if (str[0].value === "*") {
                 str.shift();
               }
             }
@@ -3671,7 +3690,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             params[1] = unquoteString(str[0].value);
             str = str.slice(1);
             if (str.length > 0 && str[0].type === "space" && str[0].value === "*") {
-              params[2] = true; // exact prefix
+              params[3] = true; // exact prefix
               str.shift();
             }
           }
@@ -4332,13 +4351,15 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
   }
 }
 
-function parseNumber(str: SplitString, defaultValue: number) {
+function parseNumber(str: SplitString, defaultValue: undefined): number | undefined;
+function parseNumber(str: SplitString, defaultValue: number): number;
+function parseNumber(str: SplitString, defaultValue: number | undefined) {
   let result = defaultValue;
   if (str === undefined) { return result; }
-  let value = '';
   if (!isValue(str)) {
     return result;
   }
+  let value = '';
   value = getValue(str);
   value = value.replace(/_/g, '');
   // Regex to extract only integer or float (no suffix)
@@ -4353,20 +4374,21 @@ function parseFirstLastPipe(str: SplitString[]) {
   let length = str.length;
   let params: [number, string, boolean, string] = [0, "", false, ""];
   do {
-    if (str.length >= 3) { // 10 by (request_duration)
-      if (!(str[0])) {
+    if (str.length >= 2) { // 10 by (request_duration)
+      const value = parseNumber(str[0], undefined);
+      if (value === undefined) {
         break;
       }
-      params[0] = parseNumber(str[0], 0);
-      if (str[1].type !== "space" || str[1].value !== "by") {
+      params[0] = value;
+      str.shift();
+      if (str[0].type === "space" && str[0].value === "by") {
+        str.shift();
+      }
+      if (str.length === 0 || str[0].type !== "bracket") {
         break;
       }
-      if (str[2].type !== "bracket") {
-        break;
-      }
-      params[1] = str[2].raw_value.slice(1, -1);
-
-      str = str.slice(3);
+      params[1] = str[0].raw_value.slice(1, -1);
+      str = str.slice(1);
       if (str.length > 0 && str[0].type === "space" && str[0].value === "desc") {
         params[2] = true;
         str.shift();
@@ -4396,12 +4418,11 @@ function parseLenPipe(str: SplitString[], fnName: string) {
       str.shift();
     } else if (str[0].type === "space" && str[0].value === fnName && str[1].type === "bracket") {
       value = str[1].value;
-      str.shift();
+      str = str.slice(2);
     } else {
       return { params, length: length - str.length };
     }
     if (value.length > 0) {
-
       if (value[0].type === "space") {
         params[0] = value[0].value;
       } else if (value[0].type === "quote") {
