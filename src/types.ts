@@ -48,6 +48,7 @@ export interface QueryFromSchema extends DataQuery {
   legendFormat?: string;
   maxLines?: number;
   step?: string;
+  extraFilters?: string;
 }
 
 export interface Query extends QueryFromSchema {

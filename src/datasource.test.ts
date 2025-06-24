@@ -1,8 +1,9 @@
+import  { AdHocVariableFilter } from '@grafana/data';
 import { TemplateSrv } from "@grafana/runtime";
 
 import { createDatasource } from "./__mocks__/datasource";
 import { VictoriaLogsDatasource } from "./datasource";
-
+ 
 const replaceMock = jest.fn().mockImplementation((a: string) => a);
 
 const templateSrvStub = {
@@ -203,6 +204,22 @@ describe('VictoriaLogsDatasource', () => {
         scopedVars
       );
       expect(replacedQuery.expr).toBe('baz: "foo" AND qux: "bar"');
+    });
+  });
+
+  describe('getExtraFilters', () => {
+    it('should return undefined when no adhoc filters are provided', () => {
+      const result = ds.getExtraFilters();
+      expect(result).toBeUndefined();
+    });
+
+    it('should return a valid query string when adhoc filters are present', () => {
+      const filters: AdHocVariableFilter[] = [
+        { key: 'key1', operator: '=', value: 'value1' },
+        { key: 'key2', operator: '!=', value: 'value2' },
+      ];
+      const result = ds.getExtraFilters(filters);
+      expect(result).toBe('key1:="value1" AND key2:!="value2"');
     });
   });
 });

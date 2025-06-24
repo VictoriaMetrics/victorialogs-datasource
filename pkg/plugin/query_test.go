@@ -9,11 +9,12 @@ import (
 
 func TestQuery_getQueryURL(t *testing.T) {
 	type fields struct {
-		RefID     string
-		Expr      string
-		MaxLines  int
-		TimeRange backend.TimeRange
-		QueryType QueryType
+		RefID        string
+		Expr         string
+		MaxLines     int
+		TimeRange    backend.TimeRange
+		QueryType    QueryType
+		ExtraFilters string
 	}
 	type args struct {
 		rawURL      string
@@ -470,6 +471,46 @@ func TestQuery_getQueryURL(t *testing.T) {
 			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=%2A+and+syslog+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
 			wantErr: false,
 		},
+		{
+			name: "with extra filters",
+			fields: fields{
+				RefID:    "1",
+				Expr:     "* and syslog | stats by(type) count()",
+				MaxLines: 10,
+				TimeRange: backend.TimeRange{
+					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+				},
+				QueryType:    QueryTypeHits,
+				ExtraFilters: "key1:\"value1\" AND key2:\"value2\"",
+			},
+			args: args{
+				rawURL:      "http://127.0.0.1:9429",
+				queryParams: "",
+			},
+			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&extra_filters=key1%3A%22value1%22+AND+key2%3A%22value2%22&query=%2A+and+syslog+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
+			wantErr: false,
+		},
+		{
+			name: "with empty extra filters",
+			fields: fields{
+				RefID:    "1",
+				Expr:     "* and syslog | stats by(type) count()",
+				MaxLines: 10,
+				TimeRange: backend.TimeRange{
+					From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+					To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+				},
+				QueryType:    QueryTypeHits,
+				ExtraFilters: "",
+			},
+			args: args{
+				rawURL:      "http://127.0.0.1:9429",
+				queryParams: "",
+			},
+			want:    "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=%2A+and+syslog+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -481,7 +522,8 @@ func TestQuery_getQueryURL(t *testing.T) {
 				Expr:     tt.fields.Expr,
 				MaxLines: tt.fields.MaxLines,
 
-				QueryType: tt.fields.QueryType,
+				QueryType:    tt.fields.QueryType,
+				ExtraFilters: tt.fields.ExtraFilters,
 			}
 			got, err := q.getQueryURL(tt.args.rawURL, tt.args.queryParams)
 			if (err != nil) != tt.wantErr {
