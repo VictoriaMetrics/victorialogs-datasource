@@ -272,7 +272,17 @@ spec:
 
 ## Getting started development
 
-### 1. Configure Grafana
+### 1. Install [Grafana](https://grafana.com/docs/grafana/latest/setup-grafana/installation/)
+<details>
+<summary>Tip for Apple(arm64)</summary>
+
+To download the `arm64` build of grafana for macOS from the [grafana download page](https://grafana.com/grafana/download?platform=mac), need to change `amd64` to `arm64` in the `wget` url.
+
+More details about debugging grafana plugin on **Apple Silicon** can be found in [this article](https://st-g.de/2023/10/grafana-plugin-debugging-on-apple-silicon).
+
+</details>
+
+### 2. Configure Grafana
 
 Installing dev version of Grafana plugin requires to change `grafana.ini` config to allow loading unsigned plugins:
 
@@ -286,8 +296,9 @@ plugins = {{path to directory with plugin}}
 allow_loading_unsigned_plugins = victoriametrics-logs-datasource
 ```
 
-### 2. Run the plugin
+### 3. Run the plugin
 
+#### 1. How to run a frontend plugin in development mode:
 In the project directory, you can run:
 
 ```sh
@@ -300,8 +311,37 @@ yarn dev
 # build the plugin for production to the `victoriametrics-logs-datasource` folder and zip build
 yarn build:zip
 ```
+#### 2. How to run a debugger for a backend plugin:
 
-### 3. How to build backend plugin
+
+1. install [delve](https://github.com/go-delve/delve)
+```sh
+  go install github.com/go-delve/delve/cmd/dlv@latest
+```
+2. install [mage](https://magefile.org/)
+```sh
+  go install github.com/magefile/mage@latest
+```
+2. install dependencies
+```sh
+  go mod download
+```
+3. build backend plugin
+```sh
+  mage build
+```
+4. build frontend plugin:
+```sh
+  make vl-frontend-plugin-build
+```
+5. run grafana
+5. run debugger for backend plugin
+```sh
+  mage debugger
+```
+6. run debugger in IDE with the following configuration - port:`3222`.
+
+### 4. How to build backend plugin
 
 From the root folder of the project run the following command:
 
@@ -319,7 +359,7 @@ This command will build executable multi-platform files to the `victoriametrics-
 * arm64
 * windows
 
-### 4.How to build frontend plugin
+### 5.How to build frontend plugin
 
 From the root folder of the project run the following command:
 
@@ -329,7 +369,7 @@ make vl-frontend-plugin-build
 
 This command will build all frontend app into `victoriametrics-logs-datasource` folder.
 
-### 5. How to build frontend and backend parts of the plugin:
+### 6. How to build frontend and backend parts of the plugin:
 
 When frontend and backend parts of the plugin is required, run the following command from the root folder of the project:
 
