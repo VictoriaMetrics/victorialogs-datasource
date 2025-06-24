@@ -4449,7 +4449,11 @@ function getFieldValue(str: SplitString[], defaultValue = ""): string {
   let value = defaultValue;
   if (isValue(str[0])) {
     value = getValue(str[0]);
-    str.shift();
+    if (str[0].value === ",") {
+      value = defaultValue;
+    } else {
+      str.shift();
+    }
   }
   return value;
 }
