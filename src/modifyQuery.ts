@@ -1,8 +1,12 @@
-import { buildVisualQueryFromString, splitExpression } from "./components/QueryEditor/QueryBuilder/utils/parseFromString";
+import {
+  buildVisualQueryFromString,
+  splitExpression
+} from "./components/QueryEditor/QueryBuilder/utils/parseFromString";
 import { parseVisualQueryToString } from "./components/QueryEditor/QueryBuilder/utils/parseToString";
 import { FilterVisualQuery } from "./types";
 
-const operators = ["=", "!=", "=~", "!~", "<", ">"]
+const operators = ["=", "!=", "=~", "!~", "<", ">"];
+const streamKeys = ["_stream", "_stream_id"];
 
 export function queryHasFilter(query: string, key: string, value: string, operator?: string): boolean {
   const applicableOperators = operator ? [operator] : operators;
@@ -10,12 +14,24 @@ export function queryHasFilter(query: string, key: string, value: string, operat
 }
 
 const getFilterInsertValue = (key: string, value: string, operator: string): string => {
+  if (streamKeys.includes(key)) {
+    return getFilterInsertValueForStream(key, value, operator);
+  }
+
   switch (operator) {
     case "=~":
       return `${key}:~"${value}"`
     default:
       return `${key}:${operator}"${value}"`
   }
+}
+
+const getFilterInsertValueForStream = (key: string, value: string, operator: string): string => {
+  if (operator.includes('!')) {
+    return `(! ${key}: ${value})`;
+  }
+
+  return `${key}:${value}`;
 }
 
 export const addLabelToQuery = (query: string, key: string, value: string, operator: string): string => {

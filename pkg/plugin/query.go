@@ -55,6 +55,7 @@ type Query struct {
 	Step         string    `json:"step"`
 	Fields       []string  `json:"fields"`
 	QueryType    QueryType `json:"queryType"`
+	ExtraFilters string    `json:"extraFilters"`
 	url          *url.URL
 	ForAlerting  bool `json:"-"`
 }
@@ -72,6 +73,10 @@ func (q *Query) getQueryURL(rawURL string, queryParams string) (string, error) {
 	params, err := url.ParseQuery(queryParams)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse query params: %s", err.Error())
+	}
+
+	if q.ExtraFilters != "" {
+		params.Set("extra_filters", q.ExtraFilters)
 	}
 
 	q.url = u

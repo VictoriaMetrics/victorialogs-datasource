@@ -42,12 +42,11 @@ import { DataQuery } from "@grafana/schema";
 import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
 import { LogLevelRule } from "./configuration/LogLevelRules/types";
-import { escapeLabelValueInSelector, isRegexSelector } from "./languageUtils";
+import { escapeLabelValueInSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
 import { LOGS_VOLUME_BARS, queryLogsVolume } from "./logsVolumeLegacy";
 import { addLabelToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
-import { replaceVariables, returnVariables } from "./parsingUtils";
-import { regularEscape } from "./regexUtils";
+import { returnVariables } from "./parsingUtils";
 import {
   DerivedFieldConfig,
   FilterActionType,
@@ -180,7 +179,6 @@ export class VictoriaLogsDatasource
 
   applyTemplateVariables(target: Query, scopedVars: ScopedVars, adhocFilters?: AdHocVariableFilter[]): Query {
     const { __auto, __interval, __interval_ms, __range, __range_s, __range_ms, ...rest } = scopedVars || {};
-    const exprWithAdHoc = this.addAdHocFilters(target.expr, adhocFilters);
 
     const variables = {
       ...rest,
@@ -194,27 +192,19 @@ export class VictoriaLogsDatasource
     return {
       ...target,
       legendFormat: this.templateSrv.replace(target.legendFormat, rest),
-      expr: this.interpolateString(exprWithAdHoc, variables),
+      expr: this.interpolateString(target.expr, variables),
+      extraFilters: this.getExtraFilters(adhocFilters),
     };
   }
 
-  addAdHocFilters(queryExpr: string, adhocFilters?: AdHocVariableFilter[]) {
+  getExtraFilters(adhocFilters?: AdHocVariableFilter[]): string | undefined {
     if (!adhocFilters) {
-      return queryExpr;
+      return;
     }
-
-    let expr = replaceVariables(queryExpr);
-
-    expr = adhocFilters.reduce((acc: string, filter: AdHocVariableFilter) => {
-      const { key, operator } = filter;
-      let { value } = filter;
-      if (isRegexSelector(operator)) {
-        value = regularEscape(value);
-      } else {
-        value = escapeLabelValueInSelector(value, operator);
-      }
+    
+    const expr = adhocFilters.reduce((acc: string, { key, operator, value }: AdHocVariableFilter) => {
       return addLabelToQuery(acc, key, value, operator);
-    }, expr);
+    }, '');
 
     return returnVariables(expr);
   }
