@@ -2,7 +2,8 @@
 
 ## tip
 
-* BUGFIX: fix and issue when the additional `level` label was added if the logs level rules aren't configured. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/319).
+* BUGFIX: fix an issue when the additional `level` label was added if the logs level rules aren't configured. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/319).
+* BUGFIX: fix an issue with loading field names when creating a variable using a variable or a regexp operator in the query. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/312).
 
 ## v0.18.0
 
