@@ -5,7 +5,7 @@ import { VisualQuery } from "../../../types";
 import { OperationDefinitions } from "./Operations";
 import { QueryModeller } from './QueryModellerClass';
 import { VictoriaLogsQueryOperationCategory } from './VictoriaLogsQueryOperationCategory';
-import { parseOperation } from './utils/operationParser';
+import { parseOperation, parseStatsOperation } from './utils/operationParser';
 import { splitByOperator, splitByUnescapedPipe, splitString } from './utils/stringSplitter';
 
 export const operationDefinitions = new OperationDefinitions();
@@ -53,6 +53,16 @@ const handleExpression = (expr: string, defaultField = "_msg"): QueryBuilderOper
         if (parsedOperation) {
           operationList.push(parsedOperation.operation);
           splitByOp = splitByOp.slice(parsedOperation.length);
+          if (queryModeller.getOperationDefinition(parsedOperation.operation.id).category === VictoriaLogsQueryOperationCategory.Stats) {
+            while (splitByOp.length > 0 && splitByOp[0].value === ",") {
+              splitByOp = splitByOp.slice(1);
+              let statsOperation = parseStatsOperation(splitByOp);
+              if (statsOperation) {
+                operationList.push(statsOperation.operation);
+                splitByOp = splitByOp.slice(statsOperation.length);
+              }
+            }
+          }
         } else {
           break;
         }
