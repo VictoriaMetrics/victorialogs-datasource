@@ -90,6 +90,8 @@ export class QueryModeller implements VictoriaVisualQueryModeller {
         queryString += operationDef.renderer(operation, operationDef, "");
       } else if (i > 0 && checkIsFilter(opDefs[i-1]) && checkIsFilter(operationDef)) {
         queryString += operationDef.renderer(operation, operationDef, "");
+      } else if (operationDef.id === VictoriaLogsOperationId.Comment) {
+        queryString += operationDef.renderer(operation, operationDef, "");
       } else {
         queryString = operationDef.renderer(operation, operationDef, queryString);
       }

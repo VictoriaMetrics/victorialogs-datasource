@@ -191,6 +191,9 @@ export const parseOperation = (str: SplitString[], onlyFilters: boolean, queryMo
                 case "where":
                     str.shift();
                     return parseOperation(str, true, queryModeller);
+                case "keep":
+                    str.shift();
+                    return getOperationFromId(queryModeller, VictoriaLogsOperationId.Fields, str, fieldName);
             }
             const pipeOperationIds = queryModeller.getOperationsForCategory(VictoriaLogsQueryOperationCategory.Pipes)
                 .map(op => op.id.toLowerCase());

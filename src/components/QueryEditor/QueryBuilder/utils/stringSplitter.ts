@@ -10,7 +10,12 @@ interface SplitStringValue {
   value: string;
 }
 
-export type SplitString = SplitStringValue | SplitStringBracket;
+interface SplitStringComment {
+  type: "comment";
+  value: string;
+}
+
+export type SplitString = SplitStringValue | SplitStringBracket | SplitStringComment;
 
 export const splitString = (str: string): SplitString[] => {
   str = str.trim();
@@ -27,6 +32,7 @@ export const splitString = (str: string): SplitString[] => {
   let closingBrackets = [")", "]", "}"];
   let bracketCount = 0;
   let bracketPrefix = "";
+  let isComment = false;
   const singleChars = [",", "|", "=", " ", "\n", "\r"];
   for (let char of str) {
     if (bracketCount > 0) {
@@ -53,6 +59,16 @@ export const splitString = (str: string): SplitString[] => {
     } else if (isEscaped) {
       currentPart += char;
       isEscaped = false;
+    } else if (isComment) {
+      if (char === "\n") {
+        isComment = false;
+        if (currentPart.trim() !== '') {
+          result.push({ type: "comment", value: currentPart.trim() });
+        }
+        currentPart = '';
+      } else {
+        currentPart += char;
+      }
     } else if (char === "`" && !inSingleQuote && !inDoubleQuote) {
       isEscaped = false;
       inBacktick = !inBacktick;
@@ -92,9 +108,10 @@ export const splitString = (str: string): SplitString[] => {
         result.push({ type: "quote", value: currentPart });
         currentPart = '';
       }
-
     } else if (!inSingleQuote && !inDoubleQuote && !inBacktick) {
-      if (char === ":") {
+      if (char === "#") {
+        isComment = true;
+      } else if (char === ":") {
         result.push({ type: "colon", value: currentPart });
         currentPart = '';
       } else if (openingBrackets.includes(char)) {
@@ -123,6 +140,8 @@ export const splitString = (str: string): SplitString[] => {
       result.push({ type: "quote", value: currentPart + currentPart.slice(0, 1) });
     } else if (bracketCount > 0) {
       result.push({ type: "bracket", raw_value: currentPart, prefix: bracketPrefix, value: splitString(currentPart.slice(1,0)) });
+    } else if (isComment) {
+      result.push({ type: "comment", value: currentPart.trim() });
     } else {
       result.push({ type: "space", value: currentPart.trim() });
     }

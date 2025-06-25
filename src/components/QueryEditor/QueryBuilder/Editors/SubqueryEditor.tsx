@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import { SelectableValue } from '@grafana/data';
-import { OperationList, QueryBuilderOperationParamEditorProps, QueryBuilderOperationParamValue } from '@grafana/plugin-ui';
+import { OperationList, QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
 import { RadioButtonGroup, MultiSelect, Combobox } from '@grafana/ui';
 
 import { VisualQuery } from '../../../../types';
@@ -60,7 +60,7 @@ function parseLegacyMultiExact(str: SplitString[]): string[] {
   return values;
 }
 
-function parseSubquery(value: string, stdFieldName: string): { values: string[]; isQuery: boolean; query: string; fieldName: string } {
+function parseSubquery(value: string): { values: string[]; isQuery: boolean; query: string; fieldName: string } {
   let str = splitString(value);
   if (str.length === 0) { // empty === stream_id
     return { values: [], isQuery: false, query: "", fieldName: "" };
@@ -109,9 +109,10 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
   } else {
     stdFieldName = operation.params[0] as string;
   }
-  const { values, isQuery, query: queryValue, fieldName } = parseSubquery(value as string, stdFieldName);
+  const parsedSubquery = useMemo(() => parseSubquery(value as string), [value]);
+  const { values, isQuery, query: queryValue, fieldName } = parsedSubquery;
 
-  const [filterValues, setFilterValues] = useState<SelectableValue[]>(toLabelOption(values));
+  const [filterValues, setFilterValues] = useState<string[]>(values);
   const [useQueryAsValue, setUseQueryAsValue] = useState<boolean>(isQuery);
   const [selectQuery, setSelectQuery] = useState<{ expr: string, visQuery: VisualQuery }>({
     expr: queryValue,
@@ -120,13 +121,13 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
   const [queryField, setQueryField] = useState<string>(fieldName);
 
   const buildSubqueryValue = (values: SelectableValue[]) => {
-    setFilterValues(values);
-    values = values.filter(v => v.value !== undefined && v.value !== "");
-    const valueExpr = "(" + values.map(v => {
-      if (v.value.startsWith("$")) {
-        return v.value
+    const strValues = values.filter(v => v.value !== undefined && v.value !== "").map(v => v.value);
+    setFilterValues(strValues);
+    const valueExpr = "(" + strValues.map(value => {
+      if (value.startsWith("$")) {
+        return value;
       }
-      return quoteString(v.value);
+      return quoteString(value);
     }).join(", ") + ")";
     onChange(index, valueExpr);
   }
@@ -219,10 +220,4 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
       </div>
     </>
   );
-}
-
-const toLabelOption = (
-  values: QueryBuilderOperationParamValue[] | undefined
-): SelectableValue[] => {
-  return values ? values.map((value) => ({ label: value?.toString(), value })) : [];
 }

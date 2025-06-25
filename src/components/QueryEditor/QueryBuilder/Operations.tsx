@@ -121,6 +121,7 @@ export enum VictoriaLogsOperationId {
   // Special
   Options = 'options',
   FieldContainsAnyValueFromVariable = 'contains_any_from_variable', // multi variable not compatible with normal contains_any
+  Comment = 'comment',
 }
 
 export interface VictoriaQueryBuilderOperationDefinition extends QueryBuilderOperationDefinition {
@@ -536,7 +537,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           }
           let i = 0;
           while (str.length > 0) {
-            if (i>=2) {
+            if (i >= 2) {
               break;
             } else if (str[0].type === "space") {
               if (str[0].value === "keep_original_fields") {
@@ -631,7 +632,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           }
           let i = 0;
           while (str.length > 0) {
-            if (i>=2) {
+            if (i >= 2) {
               break;
             } else if (str[0].type === "space") {
               if (str[0].value === "keep_original_fields") {
@@ -1825,15 +1826,24 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         }, {
           name: "Hits field name",
           type: "string",
+        }, {
+          name: "Add rank",
+          type: "boolean",
+        }, {
+          name: "Rank field name",
+          type: "string",
+          editor: ResultFieldEditor,
         }],
         alternativesKey: "reduce",
-        defaultParams: [10, "", ""],
+        defaultParams: [10, "", "", false, "rank"],
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Pipes,
         renderer: (model, def, innerExpr) => {
           const topNumber = model.params[0] as number;
           const fields = model.params[1] as string;
           const hitsFieldName = model.params[2] as string;
+          const addRank = model.params[3] as boolean;
+          const rankFieldName = model.params[4] as string;
           let expr = "top ";
           if (topNumber !== 10) {
             expr += topNumber + " ";
@@ -1844,6 +1854,12 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (hitsFieldName !== "") {
             expr += `hits as ${quoteString(hitsFieldName)}`;
           }
+          if (addRank) {
+            expr += " rank";
+            if (rankFieldName !== "rank") {
+              expr += " as " + quoteString(rankFieldName);
+            }
+          }
           if (innerExpr === "") {
             return expr;
           }
@@ -1852,7 +1868,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
           let length = str.length;
-          let result: [number, string, string] = [10, "", ""];
+          let result: [number, string, string, boolean, string] = [10, "", "", false, "rank"];
           if (str.length > 0) {
             if (str[0].type === "space" || str[0].type === "quote") {
               const value = getValue(str[0]).replace("_", "");
@@ -1870,15 +1886,33 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
                 str.shift();
               }
             }
-            if (str.length >= 3) { // top by (path) hits as visits
-              if (str[0].type === "space" && str[0].value === "hits") {
+            let i = 0;
+            while (str.length >= 2 && i < 2) {
+              if (str.length >= 3 && str[0].type === "space" && str[0].value === "hits") {
                 if (str[1].type === "space" && str[1].value === "as") {
                   str = str.slice(2);
                   if (isValue(str[0])) {
                     result[2] = getValue(str[0]);
                     str.shift();
+                    i++;
                   }
                 }
+              } else if (str[0].type === "space" && (str[0].value === "rank" || str[0].value === "with")) {
+                if (str[0].value === "with") {
+                  str.shift();
+                }
+                result[3] = true;
+                str = str.slice(1);
+                i++;
+                if (str.length >= 2 && str[0].type === "space" && str[0].value === "as") {
+                  str = str.slice(1);
+                  if (isValue(str[0])) {
+                    result[4] = getValue(str[0]);
+                    str.shift();
+                  }
+                }
+              } else {
+                break;
               }
             }
           }
@@ -2288,6 +2322,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Unroll from fields",
           type: "string",
+          editor: FieldsEditor,
         }, {
           name: "Condition",
           type: "string",
@@ -2326,6 +2361,21 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             if (str[0].type === "bracket") {
               params[0] = str[0].raw_value.slice(1, -1);
               str.shift();
+            } else if (isValue(str[0])) {
+              let values: string[] = [];
+              while (str.length > 0) {
+                if (isValue(str[0])) {
+                  values.push(str[0].value);
+                  str.shift();
+                  if (str.length === 0 || str[0].value !== ",") {
+                    break;
+                  }
+                  str.shift();
+                } else {
+                  break;
+                }
+              }
+              params[0] = values.join(", ");
             }
           }
           return { params, length: length - str.length };
@@ -2753,7 +2803,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldEditor,
+          editor: FieldsEditor,
         }, {
           name: "Result field",
           type: "string",
@@ -2777,7 +2827,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldEditor,
+          editor: FieldsEditor,
         }, {
           name: "Result field",
           type: "string",
@@ -2934,23 +2984,28 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
       addOperationHandler: addVictoriaOperation,
       splitStringByParams: (str: SplitString[]) => {
         let params: [number, boolean] = [0, false];
-        if (str.length > 0 && str[0].type === "bracket") {
-          for (const value of str[0].raw_value.slice(1, -1).split(",")) {
-            const trimmedValue = value.trim();
-            if (trimmedValue.startsWith("concurrency")) {
-              const parts = trimmedValue.split("=");
-              if (parts.length === 2) {
-                params[0] = parseInt(parts[1], 10);
+        if (str.length > 0) {
+          if (str[0].value === "options") {
+            str.shift();
+          }
+          if (str.length > 0 && str[0].type === "bracket") {
+            for (const value of str[0].raw_value.slice(1, -1).split(",")) {
+              const trimmedValue = value.trim();
+              if (trimmedValue.startsWith("concurrency")) {
+                const parts = trimmedValue.split("=");
+                if (parts.length === 2) {
+                  params[0] = parseInt(parts[1], 10);
+                }
+              } else if (trimmedValue.startsWith("ignore_global_time_filter")) {
+                if (trimmedValue.endsWith("=true")) {
+                  params[1] = true;
+                } else if (trimmedValue.endsWith("=false")) {
+                  params[1] = false;
+                }
               }
-            } else if (trimmedValue.startsWith("ignore_global_time_filter")) {
-              if (trimmedValue.endsWith("=true")) {
-                params[1] = true;
-              } else if (trimmedValue.endsWith("=false")) {
-                params[1] = false;
-              }
-            }
-          };
-          str.shift();
+            };
+            str.shift();
+          }
         }
         return { params, length: str.length };
       },
@@ -2995,6 +3050,32 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         }
         return { params, length: length - str.length };
       },
+    }, {
+      id: VictoriaLogsOperationId.Comment,
+      name: 'Comment',
+      params: [{
+        name: "Comment",
+        type: "string",
+      }],
+      defaultParams: [""],
+      toggleable: true,
+      category: VictoriaLogsQueryOperationCategory.Special,
+      renderer: (model, def, innerExpr) => {
+        const comment = model.params[0] as string;
+        const expr = `# ${comment} \n`;
+        if (innerExpr === "") {
+          return expr;
+        }
+        return innerExpr + " | " + expr;
+      },
+      addOperationHandler: addVictoriaOperation,
+      splitStringByParams: (str: SplitString[]) => {
+        let params: string[] = [""];
+        if (str.length > 0 && str[0].type === "comment") {
+          params[0] = str[0].value;
+        }
+        return { params, length: 1 };
+      }
     }];
   }
 

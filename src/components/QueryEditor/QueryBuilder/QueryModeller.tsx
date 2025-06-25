@@ -48,6 +48,10 @@ const handleExpression = (expr: string, defaultField = "_msg"): QueryBuilderOper
           continue;
         }
       }
+      const comments = splitByOp.filter(part => part.type === "comment");
+      if (comments.length > 0) {
+        splitByOp = splitByOp.filter(part => part.type !== "comment");
+      }
       while (splitByOp.length > 0) {
         const parsedOperation = parseOperation(splitByOp, lastOpWasOperator, operationQueryModeller);
         if (parsedOperation) {
@@ -65,6 +69,15 @@ const handleExpression = (expr: string, defaultField = "_msg"): QueryBuilderOper
           }
         } else {
           break;
+        }
+      }
+      while (comments.length > 0) {
+        const comment = comments.shift();
+        if (comment) {
+          operationList.push({
+            id: "comment",
+            params: [comment.value],
+          });
         }
       }
       lastOpWasOperator = false;
