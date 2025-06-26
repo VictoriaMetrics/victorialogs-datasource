@@ -10,6 +10,7 @@ import FieldAsFieldEditor from './Editors/FieldAsFieldEditor';
 import FieldEditor from './Editors/FieldEditor';
 import FieldValueTypeEditor from './Editors/FieldValueTypeEditor';
 import FieldsEditor from './Editors/FieldsEditor';
+import FieldsEditorWithPrefix from './Editors/FieldsEditorWithPrefix';
 import LogicalFilterEditor from './Editors/LogicalFilterEditor';
 import MathExprEditor from './Editors/MathExprEditor';
 import NumberEditor from './Editors/NumberEditor';
@@ -389,7 +390,7 @@ export class OperationDefinitions {
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }],
         alternativesKey: "change",
         defaultParams: [""],
@@ -800,7 +801,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }],
         alternativesKey: "reduce",
         defaultParams: [""],
@@ -822,6 +823,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           let length = str.length;
           let fields: string[] = [];
           let lastComma = true;
+          //TODO: handle "'awdasd awdas'* , 'asdasd asdasd'" correctly
           while (str.length > 0) {
             if (str[0].value === ",") {
               lastComma = true;
@@ -1289,7 +1291,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Source fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Destination field",
           type: "string",
@@ -1997,13 +1999,30 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             }
           }
           // Check for "by (fields)"
-          if (str.length > 0 && str[0].type === "bracket") {
-            fields = str[0].raw_value.slice(1, -1);
-            str = str.slice(1);
-          } else {
-            return {
-              params: [fields, withHits, limit],
-              length: Length - str.length,
+          if (str.length > 0) {
+            if (str[0].type === "bracket") {
+              fields = str[0].raw_value.slice(1, -1);
+              str = str.slice(1);
+            } else if (isValue(str[0])) {
+              let values: string[] = [];
+              while (str.length > 0) {
+                if (isValue(str[0])) {
+                  values.push(str[0].value);
+                  str.shift();
+                  if (str.length === 0 || str[0].value !== ",") {
+                    break;
+                  }
+                  str.shift();
+                } else {
+                  break;
+                }
+              }
+              fields = values.join(", ");
+            } else {
+              return {
+                params: [fields, withHits, limit],
+                length: Length - str.length,
+              }
             }
           }
           let i = 0;
@@ -2392,7 +2411,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Result field",
           type: "string",
@@ -2416,7 +2435,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Result field",
           type: "string",
@@ -2440,7 +2459,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Limit",
           type: "string",
@@ -2544,7 +2563,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Limit",
           type: "string",
@@ -2572,7 +2591,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Result field",
           type: "string",
@@ -2596,7 +2615,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Result field",
           type: "string",
@@ -2620,7 +2639,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Result field",
           type: "string",
@@ -2649,7 +2668,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         }, {
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Result field",
           type: "string",
@@ -2755,7 +2774,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Result field",
           type: "string",
@@ -2779,7 +2798,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Result field",
           type: "string",
@@ -2803,7 +2822,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Result field",
           type: "string",
@@ -2827,7 +2846,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Result field",
           type: "string",
@@ -2851,7 +2870,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Result field",
           type: "string",
@@ -2875,7 +2894,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Result field",
           type: "string",
@@ -2899,7 +2918,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Limit",
           type: "string",
@@ -2927,7 +2946,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         params: [{
           name: "Fields",
           type: "string",
-          editor: FieldsEditor,
+          editor: FieldsEditorWithPrefix,
         }, {
           name: "Result field",
           type: "string",
@@ -4633,3 +4652,6 @@ function parseStatsOperation(hasLimit: boolean): StatsParamsParseFnWithLimit | S
     return parseStatsOperationWithoutLimit;
   }
 }
+
+//TODO: make all operations that use brackets or comma seperated fields in one function parsing
+//TODO: fields editor with prefix toggle like sorted fields
