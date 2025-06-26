@@ -51,7 +51,7 @@ export default function FieldsEditorWithPrefix(props: QueryBuilderOperationParam
         setState({ isLoading: true });
         let options = await getFieldNameOptions(props);
         const selectedNames = values.map(v => v.name);
-        options = options.filter((opt: SelectableValue<FieldWithPrefix>) => opt.value && !selectedNames.includes(opt.value.name));
+        options = options.filter((opt: SelectableValue<string>) => opt.value && !selectedNames.includes(opt.value));
         setState({ options, isLoading: undefined });
       }}
       isLoading={state.isLoading}
@@ -112,7 +112,6 @@ const parseValue = (value: SplitString[]): FieldWithPrefix => {
 
 const parseInputValues = (str: SplitString[]): FieldWithPrefix[] => {
   let fields: FieldWithPrefix[] = [];
-  //TODO: test "'awdasd awdas'* , 'asdasd asdasd'"
   for (const field of splitByUnescapedChar(str, ',')) {
     if (field.length > 0 && field[0].type !== "bracket") {
       fields.push(parseValue(field));

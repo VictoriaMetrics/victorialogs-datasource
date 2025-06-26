@@ -173,6 +173,10 @@ function parseFieldMapList(str: SplitString[]): { params: QueryBuilderOperationP
   return { params, length: length - str.length };
 }
 
+function pipeExpr(innerExpr: string, expr: string): string {
+  return innerExpr === "" ? expr : innerExpr + " | " + expr;
+}
+
 export class OperationDefinitions {
   defaultField: string;
   operationDefinitions: VictoriaQueryBuilderOperationDefinition[];
@@ -230,12 +234,7 @@ export class OperationDefinitions {
         toggleable: true,
         alternativesKey: "debug",
         category: VictoriaLogsQueryOperationCategory.Pipes,
-        renderer: (model, def, innerExpr) => {
-          if (innerExpr === "") {
-            return "block_stats";
-          }
-          return innerExpr + " | block_stats";
-        },
+        renderer: (model, def, innerExpr) => pipeExpr(innerExpr, "block_stats"),
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
           return { params: [], length: 0 };
@@ -249,12 +248,7 @@ export class OperationDefinitions {
         toggleable: true,
         alternativesKey: "debug",
         category: VictoriaLogsQueryOperationCategory.Pipes,
-        renderer: (model, def, innerExpr) => {
-          if (innerExpr === "") {
-            return "blocks_count";
-          }
-          return innerExpr + " | blocks_count";
-        },
+        renderer: (model, def, innerExpr) => pipeExpr(innerExpr, "blocks_count"),
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
           return { params: [], length: 0 };
@@ -293,10 +287,7 @@ export class OperationDefinitions {
           if (prettify) {
             expr += " prettify";
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -340,10 +331,7 @@ export class OperationDefinitions {
             return innerExpr;
           }
           const expr = "copy " + fields.join(', ');
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: parseFieldMapList,
@@ -366,10 +354,7 @@ export class OperationDefinitions {
           if (field !== this.defaultField) {
             expr += ` ${quoteString(field)}`;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -399,43 +384,13 @@ export class OperationDefinitions {
         renderer: (model, def, innerExpr) => {
           const fields = model.params[0] as string;
           const expr = "delete " + fields;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
           let length = str.length;
-          let params: string[] = [];
-          let lastWasComma = true;
-          while (str.length > 0) {
-            if (str[0].type === "space" && str[0].value === ",") {
-              lastWasComma = true;
-              str.shift();
-              continue;
-            }
-            if (!lastWasComma) {
-              break;
-            }
-            if (!isValue(str[0])) {
-              break;
-            }
-            params.push(getValue(str[0]));
-            str.shift();
-            lastWasComma = false;
-          }
-          if (params.length === 0) {
-            params[0] = "";
-          }
-          let param = "";
-          for (let i = 0; i < params.length; i++) {
-            param += quoteString(params[i]);
-            if (i < params.length - 1) {
-              param += ", ";
-            }
-          }
-          return { params: [param], length: length - str.length };
+          const values = parsePrefixFieldList(str);
+          return { params: [values.join(", ")], length: length - str.length };
         },
       },
       {
@@ -447,10 +402,7 @@ export class OperationDefinitions {
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Pipes,
         renderer: (model, def, innerExpr) => {
-          if (innerExpr === "") {
-            return "drop_empty_fields";
-          }
-          return innerExpr + " | drop_empty_fields";
+          return pipeExpr(innerExpr, "drop_empty_fields");
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -488,75 +440,9 @@ export class OperationDefinitions {
 Pattern: \`text1<field1>text2<field2>...textN<fieldN>textN+1\`
 <br>
 Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the input text. Anonymous placeholders are written as <_>.`,
-        renderer: (model, def, innerExpr) => {
-          const fromField = model.params[0] as string;
-          const pattern = model.params[1] as string;
-          const keepOriginalFields = model.params[2] as boolean;
-          const skipEmptyResults = model.params[3] as boolean;
-          const condition = model.params[4] as string;
-          let expr = "extract ";
-          if (condition !== "") {
-            expr += `if (${condition}) `;
-          }
-          expr += " " + quoteString(pattern);
-          if (fromField !== this.defaultField) {
-            expr += ` from ${quoteString(fromField)}`;
-          }
-          if (keepOriginalFields) {
-            expr += " keep_original_fields";
-          }
-          if (skipEmptyResults) {
-            expr += " skip_empty_results";
-          }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
-        },
+        renderer: (model, def, innerExpr) => buildExtractOperation(model, innerExpr, this.defaultField),
         addOperationHandler: addVictoriaOperation,
-        splitStringByParams: (str: SplitString[]) => {
-          let length = str.length;
-          let params: [string, string, boolean, boolean, string] = [this.defaultField, "", false, false, ""];
-          params[4] = getConditionFromString(str);
-          if (str.length === 0) {
-            return { params, length: 0 };
-          }
-          // "ip=<ip> " from _msg
-          if (str[0].type !== "quote") {
-            return { params, length: 0 };
-          }
-          params[1] = unquoteString(str[0].value);
-          str = str.slice(1);
-          if (str.length >= 2) {
-            if (str[0].type === "space" && str[0].value === "from") {
-              str = str.slice(1);
-              if (isValue(str[0])) {
-                params[0] = getValue(str[0]);
-                str.shift();
-              }
-            }
-          }
-          let i = 0;
-          while (str.length > 0) {
-            if (i >= 2) {
-              break;
-            } else if (str[0].type === "space") {
-              if (str[0].value === "keep_original_fields") {
-                str = str.slice(1);
-                params[2] = true;
-              } else if (str[0].value === "skip_empty_results") {
-                str = str.slice(1);
-                params[3] = true;
-              } else {
-                break;
-              }
-            } else {
-              break;
-            }
-            i++;
-          }
-          return { params, length: length - str.length };
-        },
+        splitStringByParams: (str: SplitString[]) => parseExtractOperation(str, this.defaultField),
       },
       {
         id: VictoriaLogsOperationId.ExtractRegexp,
@@ -583,75 +469,9 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         defaultParams: [this.defaultField, "", false, false, ""],
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Pipes,
-        renderer: (model, def, innerExpr) => {
-          const fromField = model.params[0] as string;
-          const pattern = model.params[1] as string;
-          const keepOriginalFields = model.params[2] as boolean;
-          const skipEmptyResults = model.params[3] as boolean;
-          const condition = model.params[3] as string;
-          let expr = "extract_regexp ";
-          if (condition !== "") {
-            expr += ` if (${condition})`;
-          }
-          expr += " " + quoteString(pattern);
-          if (fromField !== this.defaultField) {
-            expr += ` from ${quoteString(fromField)}`;
-          }
-          if (keepOriginalFields) {
-            expr += " keep_original_fields";
-          }
-          if (skipEmptyResults) {
-            expr += " skip_empty_results";
-          }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
-        },
+        renderer: (model, def, innerExpr) => buildExtractOperation(model, innerExpr, this.defaultField),
         addOperationHandler: addVictoriaOperation,
-        splitStringByParams: (str: SplitString[]) => {
-          let length = str.length;
-          let params: [string, string, boolean, boolean, string] = [this.defaultField, "", false, false, ""];
-          params[4] = getConditionFromString(str);
-          if (str.length === 0) {
-            return { params, length: 0 };
-          }
-          // "ip=<ip> " from _msg
-          if (str[0].type !== "quote") {
-            return { params, length: 0 };
-          }
-          params[1] = unquoteString(str[0].value);
-          str = str.slice(1);
-          if (str.length >= 2) {
-            if (str[0].type === "space" && str[0].value === "from") {
-              str = str.slice(1);
-              if (isValue(str[0])) {
-                params[0] = getValue(str[0]);
-                str.shift();
-              }
-            }
-          }
-          let i = 0;
-          while (str.length > 0) {
-            if (i >= 2) {
-              break;
-            } else if (str[0].type === "space") {
-              if (str[0].value === "keep_original_fields") {
-                str = str.slice(1);
-                params[2] = true;
-              } else if (str[0].value === "skip_empty_results") {
-                str = str.slice(1);
-                params[3] = true;
-              } else {
-                break;
-              }
-            } else {
-              break;
-            }
-            i++;
-          }
-          return { params, length: length - str.length };
-        },
+        splitStringByParams: (str: SplitString[]) => parseExtractOperation(str, this.defaultField),
       },
       {
         id: VictoriaLogsOperationId.Facets,
@@ -692,10 +512,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (keepConstFields) {
             expr += " keep_const_fields";
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -736,10 +553,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Pipes,
         renderer: (model, def, innerExpr) => {
-          if (innerExpr === "") {
-            return "field_names";
-          }
-          return innerExpr + "| field_names";
+          return pipeExpr(innerExpr, "field_names");
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -769,10 +583,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (limit > 0) {
             expr += " limit " + limit;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + "| " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -813,32 +624,12 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             return innerExpr;
           }
           const expr = "fields " + fields;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
           let length = str.length;
-          let fields: string[] = [];
-          let lastComma = true;
-          //TODO: handle "'awdasd awdas'* , 'asdasd asdasd'" correctly
-          while (str.length > 0) {
-            if (str[0].value === ",") {
-              lastComma = true;
-              str.shift();
-              continue;
-            }
-            if (!lastComma) {
-              break;
-            }
-            lastComma = false;
-            if (isValue(str[0])) {
-              fields.push(getValue(str[0]));
-              str.shift();
-            }
-          }
+          let fields = parsePrefixFieldList(str);
           if (fields.length === 0) {
             fields.push("");
           }
@@ -886,10 +677,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (partitionBy !== "") {
             expr += ` partition by (${partitionBy})`;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: parseFirstLastPipe,
@@ -926,10 +714,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (field !== this.defaultField) {
             expr += ` as ${quoteString(field)}`;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -991,10 +776,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (prefix !== "") {
             expr += ` prefix ${quoteString(prefix)}`;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -1061,10 +843,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           const field = model.params[0] as string;
           const resultField = model.params[1] as string;
           let expr = `json_array_len(${quoteString(field)}) as ${quoteString(resultField)}`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => parseLenPipe(str, "json_array_len"),
@@ -1089,10 +868,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           const field = model.params[0] as string;
           const resultField = model.params[1] as string;
           let expr = `hash(${quoteString(field)}) as ${quoteString(resultField)}`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => parseLenPipe(str, "hash"),
@@ -1131,10 +907,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (partitionBy !== "") {
             expr += ` partition by (${partitionBy})`;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: parseFirstLastPipe,
@@ -1159,11 +932,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           const field = model.params[0] as string;
           const resultField = model.params[1] as string;
           let expr = `len(${quoteString(field)}) as ${quoteString(resultField)}`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
-
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => parseLenPipe(str, "len"),
@@ -1182,10 +951,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         renderer: (model, def, innerExpr) => {
           const number = model.params[0] as number;
           let expr = "limit " + number;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -1206,10 +972,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         category: VictoriaLogsQueryOperationCategory.Pipes,
         renderer: (model, def, innerExpr) => {
           const expr = "math " + model.params.join(', ');
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -1275,10 +1038,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         renderer: (model, def, innerExpr) => {
           const offset = model.params[0] as number;
           let expr = "offset " + offset;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -1309,10 +1069,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             expr += ` fields (${sourceFields})`;
           }
           expr += ` as ${quoteString(destField)}`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: this.parsePackPipe,
@@ -1341,10 +1098,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             expr += ` fields (${sourceFields})`;
           }
           expr += ` as ${quoteString(destField)}`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: this.parsePackPipe,
@@ -1368,10 +1122,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             return innerExpr;
           }
           const expr = 'rename ' + fields.join(', ')
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: parseFieldMapList,
@@ -1422,10 +1173,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (limit > 0) {
             expr += " limit " + limit;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -1519,10 +1267,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (limit > 0) {
             expr += " limit " + limit;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -1584,10 +1329,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         renderer: (model, def, innerExpr) => {
           const sample = model.params[0] as number;
           let expr = "sample " + sample;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -1637,10 +1379,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (offset > 0) {
             expr += " offset " + offset;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => { // sort by (foo, bar) desc
@@ -1719,26 +1458,23 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (stats.length > 0) {
             expr += " " + stats.join(", ");
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
-          let result: string[] = [""];
+          let params: string[] = [""];
           let length = str.length;
           if (str.length > 0) { // check for stats by fields
             if (str[0].type === "space" && str[0].value === "by") { // optional
               str.shift();
             }
             if (str[0].type === "bracket" && str[0].prefix === "") {
-              result[0] = str[0].raw_value.slice(1, -1);
+              params[0] = str[0].raw_value.slice(1, -1);
               str = str.slice(1);
             }
           }
-          result[1] = buildSplitString(str);
-          return { params: result, length: length };
+          params[1] = buildSplitString(str);
+          return { params, length: length }; // everything of str
         },
       },
       {
@@ -1771,10 +1507,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (time_window !== "1h" && time_window !== "") {
             expr += " time_window " + time_window;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -1862,10 +1595,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
               expr += " as " + quoteString(rankFieldName);
             }
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -1886,6 +1616,11 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
               if (str[0].type === "bracket") {
                 result[1] = str[0].raw_value.slice(1, -1);
                 str.shift();
+              } else if (isValue(str[0])) {
+                const values = getFieldList(str);
+                result[1] = values.join(", ");
+              } else {
+                return { params: result, length: length - str.length };
               }
             }
             let i = 0;
@@ -1935,10 +1670,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         category: VictoriaLogsQueryOperationCategory.Pipes,
         renderer: (model, def, innerExpr) => {
           const expr = "union (" + model.params[0] + ")";
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -1974,17 +1706,14 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           const fields = model.params[0] as string;
           const withHits = model.params[1] as boolean;
           const limit = model.params[2] as number;
-          let expr = `uniq by (${fields})`;
+          let expr = `uniq (${fields})`;
           if (limit > 0) {
             expr += " limit " + limit;
           }
           if (withHits) {
             expr += " with hits";
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -2004,19 +1733,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
               fields = str[0].raw_value.slice(1, -1);
               str = str.slice(1);
             } else if (isValue(str[0])) {
-              let values: string[] = [];
-              while (str.length > 0) {
-                if (isValue(str[0])) {
-                  values.push(str[0].value);
-                  str.shift();
-                  if (str.length === 0 || str[0].value !== ",") {
-                    break;
-                  }
-                  str.shift();
-                } else {
-                  break;
-                }
-              }
+              let values = getFieldList(str);
               fields = values.join(", ");
             } else {
               return {
@@ -2107,10 +1824,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (skipEmptyResults) {
             expr += " skip_empty_results";
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -2179,10 +1893,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (skipEmptyResults) {
             expr += " skip_empty_results";
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -2251,10 +1962,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (timeOffset !== "") {
             expr += " offset " + timeOffset;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -2296,10 +2004,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (dropDuplicates) {
             expr += " drop_duplicates";
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -2361,16 +2066,13 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (fields !== "") {
             expr += ` (${fields})`;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
           let params: [fields: string, condition: string] = ["", ""];
-          params[1] = getConditionFromString(str);
           let length = str.length;
+          params[1] = getConditionFromString(str);
           if (str.length > 0) {
             if (str[0].type === "space" && str[0].value === "by") {
               str.shift();
@@ -2381,19 +2083,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
               params[0] = str[0].raw_value.slice(1, -1);
               str.shift();
             } else if (isValue(str[0])) {
-              let values: string[] = [];
-              while (str.length > 0) {
-                if (isValue(str[0])) {
-                  values.push(str[0].value);
-                  str.shift();
-                  if (str.length === 0 || str[0].value !== ",") {
-                    break;
-                  }
-                  str.shift();
-                } else {
-                  break;
-                }
-              }
+              let values = getFieldList(str);
               params[0] = values.join(", ");
             }
           }
@@ -2694,10 +2384,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (resultField !== "") {
             expr += ` ${quoteString(resultField)}`;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -2755,17 +2442,15 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (resultField !== "") {
             expr += ` ${quoteString(resultField)}`;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
           let params: [string, string] = ["", ""];
+          const length = str.length;
           params[0] = getConditionFromString(str);
           params[1] = getFieldValue(str);
-          return { params, length: 1 };
+          return { params, length: length - str.length };
         },
       },
       {
@@ -2995,10 +2680,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           expr += "ignore_global_time_filter=true";
         }
         expr += ")";
-        if (innerExpr === "") {
-          return expr;
-        }
-        return innerExpr + " | " + expr;
+        return pipeExpr(innerExpr, expr);
       },
       addOperationHandler: addVictoriaOperation,
       splitStringByParams: (str: SplitString[]) => {
@@ -3051,10 +2733,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           expr = quoteString(field) + ":";
         }
         expr += `(${variable})`;
-        if (innerExpr === "") {
-          return expr;
-        }
-        return innerExpr + " | " + expr;
+        return pipeExpr(innerExpr, expr);
       },
       addOperationHandler: addVictoriaOperation,
       splitStringByParams: (str: SplitString[], fieldName?: string) => {
@@ -3082,10 +2761,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
       renderer: (model, def, innerExpr) => {
         const comment = model.params[0] as string;
         const expr = `# ${comment} \n`;
-        if (innerExpr === "") {
-          return expr;
-        }
-        return innerExpr + " | " + expr;
+        return pipeExpr(innerExpr, expr);
       },
       addOperationHandler: addVictoriaOperation,
       splitStringByParams: (str: SplitString[]) => {
@@ -3120,7 +2796,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         if (str[0].type === "bracket") {
           params[0] = str[0].raw_value.slice(1, -1);
           str.shift();
-        } else {
+        } {
           return { params, length: length - str.length };
         }
       }
@@ -3249,10 +2925,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           } else {
             expr += `${wordValue}`;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
@@ -3313,11 +2986,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (offset !== "") {
             expr += ` offset ${offset}`;
           }
-          if (innerExpr === "") {
-            return expr;
-          } else {
-            return innerExpr + " | " + expr;
-          }
+          return pipeExpr(innerExpr, expr);
         },
         explainHandler: () => `[time-filter](https://docs.victoriametrics.com/victorialogs/logsql/#time-filter)`,
         addOperationHandler: addVictoriaOperation,
@@ -3393,10 +3062,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (offset !== "") {
             expr += ` offset ${offset}`;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
@@ -3475,10 +3141,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (offset !== "") {
             expr += ` offset ${offset}`;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
@@ -3539,10 +3202,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         renderer: (model, def, innerExpr) => {
           const labels = model.params.join(", ");
           const expr = `{${labels}}`
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
@@ -3575,10 +3235,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         category: VictoriaLogsQueryOperationCategory.Filters,
         renderer: (model, def, innerExpr) => {
           const expr = `_stream_id:in${model.params[0]}`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         explainHandler: () => `[stream-id-filter](https://docs.victoriametrics.com/victorialogs/logsql/#_stream_id-filter)`,
         addOperationHandler: addVictoriaOperation,
@@ -3586,11 +3243,8 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           let length = str.length;
           let params: [string] = [""];
           if (str.length > 0) {
-            if (str[0].type === "quote") {
-              params[0] = unquoteString(str[0].value);
-              str.shift();
-            } else if (str[0].type === "space") {
-              params[0] = str[0].value;
+            if (isValue(str[0])) {
+              params[0] = getValue(str[0]);
               str.shift();
             } else if (str[0].type === "bracket") {
               params[0] = str[0].raw_value;
@@ -3631,10 +3285,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           } else {
             expr += `~${quoteString(substr)}`;
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         explainHandler: () => `[regexp-filter](https://docs.victoriametrics.com/victorialogs/logsql/#regexp-filter)`,
         addOperationHandler: addVictoriaOperation,
@@ -3689,10 +3340,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           const comparison = model.params[1] as string;
           const value = model.params[2] as string;
           const expr = `${quoteString(field)}:${comparison}${value}`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
@@ -3766,10 +3414,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (exactPrefix) {
             expr += "*"; // exact prefix
           }
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
@@ -3820,10 +3465,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             result = `${quoteString(fieldName)}:`;
           }
           result += `in${matches}`;
-          if (innerExpr === "") {
-            return result;
-          }
-          return innerExpr + " | " + result;
+          return pipeExpr(innerExpr, result);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
@@ -3859,10 +3501,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             expr = `${quoteString(field)}:`;
           }
           expr += "contains_all" + model.params[1];
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
@@ -3898,17 +3537,13 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             expr = `${quoteString(field)}:`;
           }
           expr += "contains_any" + model.params[1];
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
           let length = str.length;
-          let params: string[] = [""];
-          params[0] = fieldName || this.defaultField;
-          if (str[0].type === "bracket" && str[0].prefix === "contains_any") {
+          let params: [string, string] = [fieldName || this.defaultField, ""];
+          if (str.length > 0 && str[0].type === "bracket" && str[0].prefix === "contains_any") {
             params[1] = str[0].raw_value;
             str.shift();
           }
@@ -3945,10 +3580,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             expr = `${quoteString(field)}:`;
           }
           expr += `seq(${sequence})`; // seq("foo", "bar baz")
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
@@ -4004,10 +3636,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           expr += includeLower ? "[" : "("
           expr += `${lower}, ${upper}`;
           expr += includeUpper ? "]" : ")";
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         explainHandler: () => `[range-filter](https://docs.victoriametrics.com/victorialogs/logsql/#range-filterr)`,
         addOperationHandler: addVictoriaOperation,
@@ -4062,32 +3691,24 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           if (field !== this.defaultField) {
             expr = `${quoteString(field)}:`;
           }
-          expr += "ipv4_range(" + start;
-          if (end !== "") {
-            expr += ", " + end;
-          }
-          expr += ")";
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          expr += `ipv4_range(${start}${end ? `, ${end}` : ''})`;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
           let length = str.length;
           let params: [string, string, string] = ["", "", ""];
           params[0] = fieldName || this.defaultField;
-          if (str.length > 0) { // ipv4_range(127.0.0.0, 127.255.255.255) or ipv4_range("127.0.0.0/8") or pv4_range("1.2.3.4")
-            if (str[0].type === "bracket" && str[0].prefix === "ipv4_range") {
-              const results = getValuesFromBrackets(str[0].value);
-              if (results.length > 0) {
-                params[1] = results[0];
-                if (results.length > 1) {
-                  params[2] = results[1];
-                }
+          // ipv4_range(127.0.0.0, 127.255.255.255) or ipv4_range("127.0.0.0/8") or pv4_range("1.2.3.4")
+          if (str.length > 0 && str[0].type === "bracket" && str[0].prefix === "ipv4_range") {
+            const results = getValuesFromBrackets(str[0].value);
+            if (results.length > 0) {
+              params[1] = results[0];
+              if (results.length > 1) {
+                params[2] = results[1];
               }
-              str.shift();
             }
+            str.shift();
           }
           return { params, length: length - str.length };
         },
@@ -4120,23 +3741,19 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             expr = `${quoteString(field)}:`;
           }
           expr += `string_range(${start}, ${end})`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
           let length = str.length;
           let params: [string, string, string] = ["", "", ""];
           params[0] = fieldName || this.defaultField;
-          if (str.length > 0) { // ipv4_range(127.0.0.0, 127.255.255.255) or ipv4_range("127.0.0.0/8") or ipv4_range("1.2.3.4")
-            if (str[0].type === "bracket" && str[0].prefix === "string_range") {
-              const results = getValuesFromBrackets(str[0].value);
-              params[1] = results[0] || "";
-              params[2] = results[1] || "";
-              str.shift();
-            }
+          // string_range(A, C)
+          if (str.length > 0 && str[0].type === "bracket" && str[0].prefix === "string_range") {
+            const results = getValuesFromBrackets(str[0].value);
+            params[1] = results[0] || "";
+            params[2] = results[1] || "";
+            str.shift();
           }
           return { params, length: length - str.length };
         },
@@ -4169,23 +3786,19 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             expr = `${quoteString(field)}:`;
           }
           expr += `len_range(${start}, ${end})`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
           let length = str.length;
           let params: [string, string, string] = ["", "5", "10"];
           params[0] = fieldName || this.defaultField;
-          if (str.length > 0) { // len_range(5, 10) or len_range(5, inf)
-            if (str[0].type === "bracket" && str[0].prefix === "len_range") {
-              const results = getValuesFromBrackets(str[0].value);
-              params[1] = results[0] || "5";
-              params[2] = results[1] || "10";
-              str.shift();
-            }
+          // len_range(5, 10) or len_range(5, inf)
+          if (str.length > 0 && str[0].type === "bracket" && str[0].prefix === "len_range") {
+            const results = getValuesFromBrackets(str[0].value);
+            params[1] = results[0] || "5";
+            params[2] = results[1] || "10";
+            str.shift();
           }
           return { params, length: length - str.length };
         },
@@ -4213,23 +3826,11 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             expr = `${quoteString(field)}:`;
           }
           expr += `value_type(${type})`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
-          let length = str.length;
-          let params: [string, string] = ["", ""];
-          params[0] = fieldName || this.defaultField;
-          if (str.length > 0) {
-            if (str[0].type === "bracket" && str[0].prefix === "value_type") { // value_type(uint64)
-              params[1] = getValuesFromBrackets(str[0].value, false)[0]; // only one value type
-              str.shift();
-            }
-          }
-          return { params, length: length - str.length };
+          return parseCompareOperation(str, fieldName || this.defaultField);
         },
       },
       {
@@ -4256,23 +3857,11 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             expr = `${quoteString(field1)}:`;
           }
           expr += `eq_field(${quoteString(field2)})`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
-          let length = str.length;
-          let params: string[] = ["", ""];
-          params[0] = fieldName || this.defaultField;
-          if (str.length > 0) {
-            if (str[0].type === "bracket" && str[0].prefix === "eq_field") { // eq_field(customer_id)
-              params[1] = getValuesFromBrackets(str[0].value)[0]; // only one field
-              str.shift();
-            }
-          }
-          return { params, length: length - str.length };
+          return parseCompareOperation(str, fieldName || this.defaultField);
         },
       },
       {
@@ -4299,23 +3888,11 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             expr = `${quoteString(field1)}:`;
           }
           expr += `le_field(${quoteString(field2)})`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
-          let length = str.length;
-          let params: string[] = ["", ""];
-          params[0] = fieldName || this.defaultField;
-          if (str.length > 0) {
-            if (str[0].type === "bracket" && str[0].prefix === "le_field") { // eq_field(customer_id)
-              params[1] = getValuesFromBrackets(str[0].value)[0]; // only one field
-              str.shift();
-            }
-          }
-          return { params, length: length - str.length };
+          return parseCompareOperation(str, fieldName || this.defaultField);
         },
       },
       {
@@ -4342,23 +3919,11 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             expr = `${quoteString(field1)}:`;
           }
           expr += `lt_field(${quoteString(field2)})`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[], fieldName?: string) => {
-          let length = str.length;
-          let params: string[] = ["", ""];
-          params[0] = fieldName || this.defaultField;
-          if (str.length > 0) {
-            if (str[0].type === "bracket" && str[0].prefix === "lt_field") { // eq_field(customer_id)
-              params[1] = getValuesFromBrackets(str[0].value)[0]; // only one field 
-              str.shift();
-            }
-          }
-          return { params, length: length - str.length };
+          return parseCompareOperation(str, fieldName || this.defaultField);
         },
       },
       {
@@ -4384,10 +3949,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             expr = `${quoteString(field)}:`;
           }
           expr += `(${subquery})`;
-          if (innerExpr === "") {
-            return expr;
-          }
-          return innerExpr + " | " + expr;
+          return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
         explainHandler: () => `[logical-filter](https://docs.victoriametrics.com/victorialogs/logsql/#logical-filter)`,
@@ -4579,10 +4141,7 @@ function renderStatsOperation(hasLimit = false) {
     if (resultField !== "") {
       expr += ` ${quoteString(resultField)}`;
     }
-    if (innerExpr === "") {
-      return expr;
-    }
-    return innerExpr + " | " + expr;
+    return pipeExpr(innerExpr, expr);
   }
   return renderStatsOperation;
 }
@@ -4653,5 +4212,116 @@ function parseStatsOperation(hasLimit: boolean): StatsParamsParseFnWithLimit | S
   }
 }
 
-//TODO: make all operations that use brackets or comma seperated fields in one function parsing
-//TODO: fields editor with prefix toggle like sorted fields
+function getFieldList(str: SplitString[]) {
+  let fields: string[] = [];
+  while (str.length > 0) {
+    if (str[0].type === "space" || str[0].type === "quote") {
+      fields.push(str[0].value);
+      str.shift();
+      if (str.length > 0 && str[0].value === ",") {
+        str.shift();
+        continue;
+      }
+    }
+    break;
+  }
+  return fields;
+}
+
+function parseCompareOperation(str: SplitString[], fieldName: string) {
+  let length = str.length;
+  let params: string[] = [fieldName, ""];
+  const compareOps = ["value_type", "eq_field", "le_field", "lt_field"];
+  if (str.length > 0 && str[0].type === "bracket" && compareOps.includes(str[0].prefix)) {
+    params[1] = getValuesFromBrackets(str[0].value)[0];
+    str.shift();
+  }
+  return { params, length: length - str.length };
+}
+
+function parseExtractOperation(str: SplitString[], defaultField: string) {
+  let length = str.length;
+  let params: [string, string, boolean, boolean, string] = [defaultField, "", false, false, ""];
+  params[4] = getConditionFromString(str);
+  if (str.length === 0 || str[0].type !== "quote") {
+    return { params, length: 0 };
+  }
+  // "ip=<ip> " from _msg
+  params[1] = unquoteString(str[0].value);
+  str = str.slice(1);
+  if (str.length >= 2) {
+    if (str[0].type === "space" && str[0].value === "from") {
+      str = str.slice(1);
+      if (isValue(str[0])) {
+        params[0] = getValue(str[0]);
+        str.shift();
+      }
+    }
+  }
+  let i = 0;
+  while (str.length > 0) {
+    if (i >= 2) {
+      break;
+    } else if (str[0].type === "space") {
+      if (str[0].value === "keep_original_fields") {
+        str = str.slice(1);
+        params[2] = true;
+      } else if (str[0].value === "skip_empty_results") {
+        str = str.slice(1);
+        params[3] = true;
+      } else {
+        break;
+      }
+    } else {
+      break;
+    }
+    i++;
+  }
+  return { params, length: length - str.length };
+}
+
+function buildExtractOperation(model: QueryBuilderOperation, innerExpr: string, defaultField: string): string {
+  const fromField = model.params[0] as string;
+  const pattern = model.params[1] as string;
+  const keepOriginalFields = model.params[2] as boolean;
+  const skipEmptyResults = model.params[3] as boolean;
+  const condition = model.params[4] as string;
+  let expr = "extract ";
+  if (condition !== "") {
+    expr += `if (${condition}) `;
+  }
+  expr += " " + quoteString(pattern);
+  if (fromField !== defaultField) {
+    expr += ` from ${quoteString(fromField)}`;
+  }
+  if (keepOriginalFields) {
+    expr += " keep_original_fields";
+  }
+  if (skipEmptyResults) {
+    expr += " skip_empty_results";
+  }
+  return pipeExpr(innerExpr, expr);
+}
+
+function parsePrefixFieldList(str: SplitString[]): string[] {
+  let fields: string[] = [];
+  while (str.length > 0) {
+    if (str[0].type === "space" || str[0].type === "quote") {
+      let value = str[0].value;
+      if (str.length > 0 && str[0].type === "quote") {
+        str.shift();
+        if (str[0].value === ",") {
+          value += "*";
+        }
+      }
+      str.shift();
+      fields.push(value);
+      if (str.length > 0 && str[0].value === ",") {
+        str.shift();
+        continue;
+      }
+    }
+    break;
+  }
+  return fields;
+}
