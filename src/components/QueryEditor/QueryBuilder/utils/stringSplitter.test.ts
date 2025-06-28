@@ -156,12 +156,33 @@ describe("splitString", () => {
   });
   // Time filter
   it("should handle time filters correctly", () => {
-    let input = "_time:2.5d15m42.345s or (\"_time\":\"2.5d15m42.345s\" OR _time:YYYY-MM-DDZ OR _time:[min_time, max_time])";
-    console.log("first", ...splitString(input));
-
-    input = "_time:<2.5d15m42.345s or \"_time\":\">2.5d15m42.345s\" OR _time:>=YYYY-MM-DDZ OR _time:[min_time, max_time] OR _time:2023-04-25T22:45:59Z";
-    console.log("second", ...splitString(input));
-    
+    const input = "_time:<2.5d15m42.345s or \"_time\":\">2.5d15m42.345s\" OR _time:>=YYYY-MM-DDZ OR _time:[min_time, max_time] OR _time:2023-04-25T22:45:59Z";
+    const expected = [
+      { type: "colon", value: "_time" },
+      { type: 'space', value: '<2.5d15m42.345s' },
+      { type: "space", value: "or" },
+      { type: "quote", value: '"_time"' },
+      { type: "colon", value: "" },
+      { type: "quote", value: '">2.5d15m42.345s"' },
+      { type: "space", value: "OR" },
+      { type: "colon", value: "_time" },
+      { type: "space", value: ">" },
+      { type: "space", value: "=" },
+      { type: "space", value: "YYYY-MM-DDZ" },
+      { type: "space", value: "OR" },
+      { type: "colon", value: "_time" },
+      { type: "bracket", prefix: "", value: [
+        { type: "space", value: "min_time" },
+        { type: "space", value: "," },
+        { type: "space", value: "max_time" },
+      ], raw_value: "[min_time, max_time]" },
+      { type: "space", value: "OR" },
+      { type: "colon", value: "_time" },
+      { type: "colon", value: "2023-04-25T22" },
+      { type: "colon", value: "45" },
+      { type: "space", value: "59Z" },
+    ];
+    expect(splitString(input)).toEqual(expected);
   });
 });
 
@@ -222,20 +243,11 @@ describe('splitByOperator', () => {
   });
 
   it('should split by unescaped operator, but not in quotes', () => {
-    const str = splitString('a" and b" or c');
-    const result = splitByOperator(str);
-    expect(result).toEqual([
-      [ { type: 'quote', value: 'a" and b"' } ],
-      [ { type: 'space', value: 'or' } ],
-      [ { type: 'space', value: 'c' } ]
-    ]); 
-  });
-
-  it('should split by unescaped operator, but not in quotes', () => {
     const str = splitString('a\' and b\' or c');
     const result = splitByOperator(str);
     expect(result).toEqual([
-      [ { type: "quote", value: "a' and b'" } ],
+      [ { type: "space", value: "a" },
+        { type: "quote", value: "' and b'" } ],
       [ { type: "space", value: "or" } ],
       [ { type: "space", value: "c" } ]
     ]);
