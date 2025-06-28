@@ -1,7 +1,34 @@
+import { VictoriaLogsOperationId } from "../Operations"
+
 import { SplitString } from "./stringSplitter";
 
+function mustQuote(str: string): boolean {
+    const value = str.trim().toLowerCase();
+    const commands = Object.values(VictoriaLogsOperationId);
+    if (commands.includes(value as VictoriaLogsOperationId)) {
+        return true;
+    }
+    const keywords = [
+        "by", "limit", "as", "from", "keep_original_fields",
+        "skip_empty_results", "if", "prettify", "max_values_per_field",
+        "max_value_len", "keep_const_fields", "partition", "desc",
+        "inner", "prefix", "offset", "before", "after", "time_window",
+        "hits", "rank", "with", "result_prefix", "fields", "from",
+        "drop_duplicates", "concurrency", "ignore_global_time_filter",
+        "i", "at", "in"
+    ];
+    if (keywords.includes(value)) {
+        return true;
+    }
+    const chars = [" ", "'", "\"", "`", ":", "=", "#", ">", "<", ",", "(", ")", "[", "]", "{", "}", "+", "-", "/", "%", "|", "&", "^", "~", "!", ";", "?", "@", "\\"];
+    if (chars.some(char => value.includes(char))) {
+        return true;
+    }
+    return false;
+}
+
 export const quoteString = (str: string): string => {
-    if (!str.includes(' ') && !str.includes('"') && !str.includes("'") && !str.includes('`') && !str.includes(":") && !str.includes("=")) {
+    if (!mustQuote(str)) {
         return str;
     }
     if (!str.includes("`")) {
@@ -35,7 +62,7 @@ export const isValue = (str: SplitString): boolean => {
 
 export const getValue = (str: SplitString): string => {
     if (str.type === "quote") {
-      return unquoteString(str.value);
+        return unquoteString(str.value);
     } else if (str.type === "space") {
         return str.value;
     }

@@ -3083,8 +3083,8 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
               }
               const value = raw_value.slice(1, -1).split(",");
               if (value.length === 2) {
-                params[1] = value[0];
-                params[2] = value[1];
+                params[1] = value[0].trim();
+                params[2] = value[1].trim();
               }
               str.shift();
             }
