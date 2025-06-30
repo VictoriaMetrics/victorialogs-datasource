@@ -1,5 +1,5 @@
 import { css } from "@emotion/css";
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import { GrafanaTheme2, TimeRange } from '@grafana/data';
 import { useStyles2 } from '@grafana/ui';
@@ -8,9 +8,7 @@ import { VictoriaLogsDatasource } from "../../../datasource";
 import { Query, VisualQuery } from "../../../types";
 
 import QueryBuilder from "./QueryBuilder";
-import { buildVisualQueryFromString } from "./utils/parseFromString";
-import { parseVisualQueryToString } from "./utils/parseToString";
-
+import { buildVisualQueryToString, parseExprToVisualQuery } from "./QueryModeller";
 
 export interface Props {
   query: Query;
@@ -25,13 +23,17 @@ export function QueryBuilderContainer(props: Props) {
 
   const { query, onChange, onRunQuery, datasource, timeRange } = props
 
+  const visQuery = useMemo(() => {
+    return parseExprToVisualQuery(query.expr).query;
+  }, [query.expr]);
+
   const [state, setState] = useState<{expr: string, visQuery: VisualQuery}>({
     expr: query.expr,
-    visQuery: buildVisualQueryFromString(query.expr).query
+    visQuery: visQuery,
   })
 
   const onVisQueryChange = (visQuery: VisualQuery) => {
-    const expr = parseVisualQueryToString(visQuery);
+    const expr = buildVisualQueryToString(visQuery);
     setState({ expr, visQuery })
     onChange({ ...props.query, expr: expr });
   };
@@ -48,7 +50,7 @@ export function QueryBuilderContainer(props: Props) {
       <hr/>
 
       <p className={styles.previewText}>
-        {query.expr !== '' && query.expr}
+        {state.expr !== '' && state.expr}
       </p>
     </>
   );
