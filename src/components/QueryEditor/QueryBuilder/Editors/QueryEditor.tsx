@@ -1,11 +1,11 @@
 import { css } from "@emotion/css";
-import { VictoriaLogsDatasource } from "config/vl/victorialogs-datasource/src/datasource";
 import React, { useState } from "react";
 
 import { GrafanaTheme2 } from "@grafana/data";
 import { QueryBuilderOperationParamEditorProps } from "@grafana/plugin-ui";
 import { InlineField, useStyles2 } from "@grafana/ui";
 
+import { VictoriaLogsDatasource } from "../../../../datasource";
 import { VisualQuery } from "../../../../types";
 import QueryBuilder from "../QueryBuilder";
 import { buildVisualQueryToString, parseExprToVisualQuery } from "../QueryModeller";
