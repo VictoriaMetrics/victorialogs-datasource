@@ -10,7 +10,7 @@ export interface Props {
 }
 
 const editorModes = [
-  { label: 'Beta Builder', value: QueryEditorMode.Builder },
+  { label: 'Builder', value: QueryEditorMode.Builder },
   { label: 'Code', value: QueryEditorMode.Code },
 ];
 

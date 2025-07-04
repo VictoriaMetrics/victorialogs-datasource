@@ -1,4 +1,5 @@
 import { DataFrame, DataSourceJsonData, KeyValue, QueryEditorProps } from '@grafana/data';
+import { QueryBuilderLabelFilter, QueryBuilderOperation } from '@grafana/plugin-ui';
 import { BackendSrvRequest } from "@grafana/runtime";
 import { DataQuery } from '@grafana/schema';
 
@@ -83,19 +84,10 @@ export interface ToggleFilterAction {
   frame?: DataFrame;
 }
 
-export interface FilterVisualQuery {
-  values: (string | FilterVisualQuery)[];
-  operators: string[];
-}
-
-export interface PipeVisualQuery {
-  type: string;
-  args: string[];
-}
-
 export interface VisualQuery {
-  filters: FilterVisualQuery;
-  pipes: string[]//PipeVisualQuery[];
+  labels: QueryBuilderLabelFilter[];
+  operations: QueryBuilderOperation[];
+  expr: string;
 }
 
 export interface RequestArguments {
@@ -111,7 +103,9 @@ export interface FieldHits {
 
 export enum FilterFieldType {
   FieldName = 'fieldName',
-  FieldValue = 'fieldValue'
+  FieldValue = 'fieldValue',
+  StreamFieldNames = 'streamFieldNames',
+  StreamFieldValues = 'streamFieldValues',
 }
 
 export interface VariableQuery extends DataQuery {
@@ -124,6 +118,8 @@ export interface VariableQuery extends DataQuery {
 export type QueryBuilderLimits = {
   [FilterFieldType.FieldValue]?: number;
   [FilterFieldType.FieldName]?: number;
+  [FilterFieldType.StreamFieldNames]?: number;
+  [FilterFieldType.StreamFieldValues]?: number;
 };
 
 export enum TenantHeaderNames {

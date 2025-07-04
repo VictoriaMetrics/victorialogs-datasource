@@ -1,9 +1,6 @@
-import {
-  buildVisualQueryFromString,
-  splitExpression
-} from "./components/QueryEditor/QueryBuilder/utils/parseFromString";
-import { parseVisualQueryToString } from "./components/QueryEditor/QueryBuilder/utils/parseToString";
-import { FilterVisualQuery } from "./types";
+import { VictoriaLogsOperationId } from "./components/QueryEditor/QueryBuilder/Operations";
+import { buildVisualQueryToString, parseExprToVisualQuery } from "./components/QueryEditor/QueryBuilder/QueryModeller";
+import { LABEL_STREAM_ID } from "./datasource";
 
 const operators = ["=", "!=", "=~", "!~", "<", ">"];
 const streamKeys = ["_stream", "_stream_id"];
@@ -34,50 +31,89 @@ const getFilterInsertValueForStream = (key: string, value: string, operator: str
   return `${key}:${value}`;
 }
 
+const getType = (operator: string, key: string): "exact" | "regex" | "range" | "stream" => {
+  if (operator.endsWith("=")) {
+    return "exact";
+  } else if (operator.endsWith("~")) {
+    return "regex";
+  } else if (operator === "<" || operator === ">") {
+    return "range";
+  } else if (operator === "" && key === LABEL_STREAM_ID) {
+    return "stream";
+  } else {
+    throw new Error(`Unsupported operator: ${operator}`);
+  }
+}
+
 export const addLabelToQuery = (query: string, key: string, value: string, operator: string): string => {
-  const [filters, ...pipes] = splitExpression(query)
-  const insertPart = getFilterInsertValue(key, value, operator)
-  const pipesPart = pipes?.length ? `| ${pipes.join(' | ')}` : ''
-  return filters.length ? (`${filters} AND ${insertPart} ${pipesPart}`).trim() : (`${insertPart} ${pipesPart}`).trim()
+  const type = getType(operator, key);
+  const visQuery = parseExprToVisualQuery(query).query;
+  if (type === "exact") {
+    const notEqual = operator === "!=";
+    visQuery.operations.push({
+      id: VictoriaLogsOperationId.Exact,
+      params: [key, value, notEqual, false, false],
+    });
+  } else if (type === "regex") {
+    const notEqual = operator === "!~";
+    if (notEqual) {
+      visQuery.operations.push({
+        id: VictoriaLogsOperationId.NOT,
+        params: [],
+      });
+    }
+    visQuery.operations.push({
+      id: VictoriaLogsOperationId.Regexp,
+      params: [key, value, false],
+    });
+  } else if (type === "range") {
+    visQuery.operations.push({
+      id: VictoriaLogsOperationId.RangeComparison,
+      params: [key, operator, value],
+    });
+  } else if (type === "stream") {
+    visQuery.operations.push({
+      id: VictoriaLogsOperationId.StreamId,
+      params: [value],
+    });
+  }
+  return buildVisualQueryToString(visQuery);
 }
 
 export const removeLabelFromQuery = (query: string, key: string, value: string, operator?: string): string => {
-  const { query: { filters, pipes }, errors } = buildVisualQueryFromString(query);
-
-  if (errors.length) {
-    console.error(errors.join('\n'));
-    return query;
-  }
-
-  const keyValues = operator
-    ? [getFilterInsertValue(key, value, operator)]
-    : operators.map(op => getFilterInsertValue(key, value, op));
-
-  keyValues.forEach(keyValue => recursiveRemove(filters, keyValue));
-
-  return parseVisualQueryToString({ filters, pipes });
-};
-
-const recursiveRemove = (filters: FilterVisualQuery, keyValue: string): boolean => {
-  const { values, operators } = filters;
-  let removed = false;
-
-  for (let i = values.length - 1; i >= 0; i--) {
-    const val = values[i];
-    const isString = typeof val === 'string'
-    const isFilterObject = typeof val === 'object' && 'values' in val
-
-    if (isString && val === keyValue) {
-      // If the string matches keyValue, delete it and the operator
-      values.splice(i, 1);
-      (i > 0 && i - 1 < operators.length) && operators.splice(i - 1, 1);
-      removed = true;
-    } else if (isFilterObject) {
-      // If it is an object of type FilterVisualQuery, recursively check it
-      const wasRemoved = recursiveRemove(val, keyValue);
-      removed = wasRemoved || removed;
+  const visQuery = parseExprToVisualQuery(query).query;
+  if (operator !== undefined) {
+    const type = getType(operator, key);
+    if (type === "exact") {
+      visQuery.operations = visQuery.operations.filter(op => {
+        if (op.id === VictoriaLogsOperationId.Exact) {
+          return !(op.params[0] === key && op.params[1] === value && (operator === "!=" ? !op.params[2] : op.params[2]));
+        }
+        return true;
+      })
+    } else if (type === "regex") {
+      visQuery.operations = visQuery.operations.filter(op => {
+        if (op.id === VictoriaLogsOperationId.Regexp) {
+          return !(op.params[0] === key && op.params[1] === value);
+        }
+        return true;
+      })
+    } else if (type === "range") {
+      visQuery.operations = visQuery.operations.filter(op => {
+        if (op.id === VictoriaLogsOperationId.RangeComparison) {
+          return !(op.params[0] === key && op.params[1] === operator && op.params[2] === value);
+        }
+        return true;
+      })
+    } else if (type === "stream") {
+      visQuery.operations = visQuery.operations.filter(op => {
+        if (op.id === VictoriaLogsOperationId.StreamId) {
+          return !((op.params[0] as string).includes(value));
+        }
+        return true;
+      })
     }
+        
   }
-
-  return removed;
-}
+  return buildVisualQueryToString(visQuery);
+};
