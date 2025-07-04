@@ -12,7 +12,7 @@ import QueryEditorStatsWarn from "../QueryEditorStatsWarn";
 import { EditorHeader } from "./EditorHeader";
 import { QueryBuilderContainer } from "./QueryBuilder/QueryBuilderContainer";
 import { QueryEditorModeToggle } from "./QueryBuilder/QueryEditorModeToggle";
-import { buildVisualQueryFromString } from "./QueryBuilder/utils/parseFromString";
+import { parseExprToVisualQuery } from "./QueryBuilder/QueryModeller";
 import QueryCodeEditor from "./QueryCodeEditor";
 import { QueryEditorOptions } from "./QueryEditorOptions";
 import { changeEditorMode, getQueryWithDefaults } from "./state";
@@ -31,7 +31,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
       if (newEditorMode === QueryEditorMode.Builder) {
-        const result = buildVisualQueryFromString(query.expr || '');
+        const result = parseExprToVisualQuery(query.expr || '');
         if (result.errors.length) {
           setParseModalOpen(true);
           return;
