@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 
-import { QueryBuilderOperationParamEditorProps } from "@grafana/plugin-ui";
-import { Combobox, Input } from "@grafana/ui";
+import { QueryBuilderOperationParamEditorProps, toOption } from "@grafana/plugin-ui";
+import { Input, Select } from "@grafana/ui";
 
 import { quoteString, unquoteString, getValue } from "../utils/stringHandler";
 import { SplitString, splitString } from "../utils/stringSplitter";
@@ -15,24 +15,35 @@ export default function MathExprEditor(props: QueryBuilderOperationParamEditorPr
   const updateValue = (expr: string, resultField: string) => {
     onChange(index, `${expr} as ${quoteString(resultField)}`);
   }
+  const [state, setState] = useState({
+    loading: false,
+    options: [] as any[],
+  });
   return (
     <>
       <Input
         defaultValue={expr}
-        onBlur={(e) => {updateValue(e.currentTarget.value, resultField)}}
+        onBlur={(e) => { updateValue(e.currentTarget.value, resultField) }}
         placeholder="Enter math expression"
       />
       <div style={{ padding: '6px 0 8px 0px' }}>as</div>
-      <Combobox<string>
-        createCustomValue
-        options={()=>getFieldNameOptions(props)}
-        onChange={(value) => {
-          updateValue(expr, value.value);
+      <Select<string>
+        allowCustomValue={true}
+        allowCreateWhileLoading={true}
+        isLoading={state.loading}
+        onOpenMenu={async () => {
+          setState((prev) => ({ ...prev, loading: true }));
+          setState({
+            loading: false,
+            options: await getFieldNameOptions(props),
+          });
         }}
-        value={resultField}
+        options={state.options}
+        onChange={(value) => {
+          updateValue(expr, value.value as string);
+        }}
+        value={toOption(resultField)}
         width="auto"
-        maxWidth={30}
-        minWidth={10}
       />
     </>
   )

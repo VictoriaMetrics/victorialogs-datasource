@@ -3431,7 +3431,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             }
             if (!isValue(str[0])) {
               return { params, length: length - str.length };
-            } 
+            }
             params[1] = getValue(str[0]);
             str = str.slice(1);
             if (str.length > 0 && str[0].type === "space" && str[0].value === "*") {
@@ -3820,7 +3820,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         category: VictoriaLogsQueryOperationCategory.Filters,
         renderer: (model, def, innerExpr) => {
           const field = model.params[0] as string;
-          const type = model.params[1] as string;
+          const type = model.params[1] as string || "";
           let expr = "";
           if (field !== this.defaultField) {
             expr = `${quoteString(field)}:`;

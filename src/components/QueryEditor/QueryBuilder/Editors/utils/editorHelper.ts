@@ -74,5 +74,5 @@ export async function getValueTypeOptions(props: QueryBuilderOperationParamEdito
   const { operation } = props;
   const fieldName = operation.params[0] as string;
   const valueTypeOperations = `uniq by "${fieldName}" | block_stats`;
-  return getFieldValueOptions(props, "type",valueTypeOperations);
+  return getFieldValueOptions(props, "type", valueTypeOperations);
 }

@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 
-import { SelectableValue } from '@grafana/data';
+import { SelectableValue, toOption } from '@grafana/data';
 import { OperationList, QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
-import { RadioButtonGroup, MultiSelect, Combobox } from '@grafana/ui';
+import { RadioButtonGroup, MultiSelect, Select } from '@grafana/ui';
 
 import { VisualQuery } from '../../../../types';
 import { VictoriaLogsOperationId } from '../Operations';
@@ -168,6 +168,10 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
     setFieldNames(options)
     setIsLoadingFieldNames(false)
   }
+  const [state, setState] = useState({
+    loading: false,
+    options: [] as any[],
+  });
   return (
     <>
       <div style={{ padding: '6px 0 8px 0px', display: 'block' }}>
@@ -213,18 +217,26 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
               queryModeller={queryModeller}
             />
             FieldName
-            <Combobox<string>
-              options={()=>getFieldNameOptions(props)}
-              value={queryField}
-              onChange={(value) => {
-                setQueryField(value.value)
-                buildSubquery(selectQuery.expr, value.value, stdFieldName);
+
+            <Select<string>
+              allowCustomValue={true}
+              allowCreateWhileLoading={true}
+              isLoading={state.loading}
+              onOpenMenu={async () => {
+                setState((prev) => ({ ...prev, loading: true }));
+                setState({
+                  loading: false,
+                  options: await getFieldNameOptions(props),
+                });
               }}
+              options={state.options}
+              onChange={(value) => {
+                setQueryField(value.value as string);
+                buildSubquery(selectQuery.expr, value.value as string, stdFieldName);
+              }}
+              value={toOption(queryField as string)}
               width="auto"
-              maxWidth={30}
-              minWidth={10}
-              createCustomValue
-              />
+            />
           </>
         }
       </div>

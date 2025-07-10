@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
-import { QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
-import { InlineField, Stack, Combobox } from '@grafana/ui';
+import { QueryBuilderOperationParamEditorProps, toOption } from '@grafana/plugin-ui';
+import { InlineField, Stack, Select } from '@grafana/ui';
 
 import { isValue, quoteString, getValue } from '../utils/stringHandler';
 import { splitString } from '../utils/stringSplitter';
@@ -44,35 +44,51 @@ export default function FieldAsFieldEditor(props: QueryBuilderOperationParamEdit
     onChange(index, value);
   };
 
+  const [state, setState] = useState({
+    loading: false,
+    options: [] as any[],
+  });
+
+  const handleOpenMenu = async () => {
+    setState((prev) => ({ ...prev, loading: true }));
+    const options = await getFieldNameOptions(props);
+    setState({
+      loading: false,
+      options,
+    });
+  };
+
   return (
     <Stack>
       <InlineField>
-        <Combobox<string>
-          createCustomValue
-          options={()=>getFieldNameOptions(props)}
+        <Select<string>
+          allowCustomValue={true}
+          allowCreateWhileLoading={true}
+          isLoading={state.loading}
+          onOpenMenu={handleOpenMenu}
+          options={state.options}
           onChange={(value) => {
-            setFromField(value.value);
-            updateValue(value.value, toField);
+            setFromField(value.value as string);
+            updateValue(value.value as string, toField);
           }}
-          value={fromField}
+          value={toOption(fromField as string)}
           width="auto"
-          maxWidth={30}
-          minWidth={10}
         />
       </InlineField>
       <div style={{ padding: '6px 0 8px 0px' }}>as</div>
       <InlineField>
-        <Combobox<string>
-          createCustomValue
-          options={()=>getFieldNameOptions(props)}
+        <Select<string>
+          allowCustomValue={true}
+          allowCreateWhileLoading={true}
+          isLoading={state.loading}
+          onOpenMenu={handleOpenMenu}
+          options={state.options}
           onChange={(value) => {
-            setToField(value.value);
-            updateValue(fromField, value.value);
+            setToField(value.value as string);
+            updateValue(fromField, value.value as string);
           }}
-          value={toField}
+          value={toOption(toField as string)}
           width="auto"
-          maxWidth={30}
-          minWidth={10}
         />
       </InlineField>
     </Stack>
