@@ -90,6 +90,8 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       case FilterFieldType.StreamFieldValues:
         url = `select/logsql/stream_field_values`;
         break;
+      default:
+        throw new Error(`Unsupported field type: ${options.type}`);
     }
     const key = `${url}?${urlParams.toString()}`;
 

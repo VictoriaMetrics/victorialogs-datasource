@@ -33,7 +33,7 @@ export const splitString = (str: string): SplitString[] => {
   let bracketCount = 0;
   let bracketPrefix = "";
   let isComment = false;
-  const singleChars = [",", "|", "=", " ", "\n", "\r"];
+  const singleChars = [",", "|", "=", " ", "\n", "\r", "!"];
   for (let char of str) {
     if (bracketCount > 0) {
       currentPart += char;
@@ -41,15 +41,15 @@ export const splitString = (str: string): SplitString[] => {
         bracketCount--;
         if (bracketCount === 0) {
           if (!closingBrackets.includes(currentPart.charAt(0))) { // check for prefix
-              for (const char of currentPart) {
-                  if (openingBrackets.includes(currentPart.charAt(0))) {
-                      break;
-                  }
-                  bracketPrefix += char;
-                  currentPart = currentPart.slice(1);
+            for (const char of currentPart) {
+              if (openingBrackets.includes(currentPart.charAt(0))) {
+                break;
               }
+              bracketPrefix += char;
+              currentPart = currentPart.slice(1);
+            }
           }
-          result.push({ type: "bracket", raw_value: currentPart, prefix: bracketPrefix, value: splitString(currentPart.slice(1,-1)) });
+          result.push({ type: "bracket", raw_value: currentPart, prefix: bracketPrefix, value: splitString(currentPart.slice(1, -1)) });
           bracketPrefix = '';
           currentPart = '';
         }
@@ -139,7 +139,7 @@ export const splitString = (str: string): SplitString[] => {
     if (inDoubleQuote || inSingleQuote || inBacktick) {
       result.push({ type: "quote", value: currentPart + currentPart.slice(0, 1) });
     } else if (bracketCount > 0) {
-      result.push({ type: "bracket", raw_value: currentPart, prefix: bracketPrefix, value: splitString(currentPart.slice(1,0)) });
+      result.push({ type: "bracket", raw_value: currentPart, prefix: bracketPrefix, value: splitString(currentPart.slice(1, 0)) });
     } else if (isComment) {
       result.push({ type: "comment", value: currentPart.trim() });
     } else {
@@ -154,7 +154,7 @@ export const buildSplitString = (str: SplitString[]): string => {
   for (const part of str) {
     if (part.type === "bracket") {
       result += part.prefix + part.raw_value;
-    } else if (part.type === "quote" ||part.type === "space") {
+    } else if (part.type === "quote" || part.type === "space") {
       result += part.value;
     } else {
       result += part.value + ":";
@@ -171,7 +171,7 @@ export const splitByUnescapedChar = (str: SplitString[], checkChar: string): Spl
     const char = str[i].value;
     if (char === checkChar) {
       result.push(str.slice(lastI, i));
-      lastI = i+1;
+      lastI = i + 1;
     }
   }
   if (lastI < str.length) {
@@ -192,10 +192,10 @@ export const splitByOperator = (str: SplitString[]): SplitString[][] => {
     if (stringPart.type !== "space") {
       continue;
     }
-    if (["and","or","not"].includes(stringPart.value.toLowerCase())) {
+    if (["and", "or", "not"].includes(stringPart.value.toLowerCase())) {
       result.push(str.slice(lastI, i));
       result.push([stringPart]); // seperate operator
-      lastI = i+1;
+      lastI = i + 1;
     }
   }
   if (lastI < str.length) {
