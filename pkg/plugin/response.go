@@ -96,6 +96,9 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 			for _, field := range stf {
 				labels[field.Label] = field.Value
 			}
+			if !value.Exists(messageField) && len(stf) > 0 {
+				lineField.Append("")
+			}
 		}
 
 		obj, err := value.Object()
