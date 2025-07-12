@@ -1,3 +1,5 @@
+import { QueryBuilderOperation } from "@grafana/plugin-ui";
+
 import { VictoriaLogsOperationId } from "./components/QueryEditor/QueryBuilder/Operations";
 import { buildVisualQueryToString, parseExprToVisualQuery } from "./components/QueryEditor/QueryBuilder/QueryModeller";
 import { LABEL_STREAM_ID } from "./datasource";
@@ -31,15 +33,33 @@ const getFilterInsertValueForStream = (key: string, value: string, operator: str
   return `${key}:${value}`;
 }
 
-const getType = (operator: string, key: string): "exact" | "regex" | "range" | "stream" => {
+const valueOperations = [
+  VictoriaLogsOperationId.Exact,
+  VictoriaLogsOperationId.Regexp,
+  VictoriaLogsOperationId.RangeComparison,
+  VictoriaLogsOperationId.StreamId,
+  VictoriaLogsOperationId.Stream,
+]
+
+type ValueOperationType = (typeof valueOperations)[number];
+
+function getType(operator: string, key: string): ValueOperationType
+function getType(operator: string | undefined, key: string): ValueOperationType | typeof valueOperations
+function getType(operator: string | undefined, key: string): ValueOperationType | typeof valueOperations {
+  if (key === LABEL_STREAM_ID) {
+    return VictoriaLogsOperationId.StreamId;
+  } else if (key === "_stream") {
+    return VictoriaLogsOperationId.Stream;
+  }
+  if (!operator) {
+    return valueOperations;
+  }
   if (operator.endsWith("=")) {
-    return "exact";
+    return VictoriaLogsOperationId.Exact;
   } else if (operator.endsWith("~")) {
-    return "regex";
+    return VictoriaLogsOperationId.Regexp;
   } else if (operator === "<" || operator === ">") {
-    return "range";
-  } else if (operator === "" && key === LABEL_STREAM_ID) {
-    return "stream";
+    return VictoriaLogsOperationId.RangeComparison;
   } else {
     throw new Error(`Unsupported operator: ${operator}`);
   }
@@ -48,13 +68,13 @@ const getType = (operator: string, key: string): "exact" | "regex" | "range" | "
 export const addLabelToQuery = (query: string, key: string, value: string, operator: string): string => {
   const type = getType(operator, key);
   const visQuery = parseExprToVisualQuery(query).query;
-  if (type === "exact") {
+  if (type === VictoriaLogsOperationId.Exact) {
     const notEqual = operator === "!=";
     visQuery.operations.push({
       id: VictoriaLogsOperationId.Exact,
       params: [key, value, notEqual, false, false],
     });
-  } else if (type === "regex") {
+  } else if (type === VictoriaLogsOperationId.Regexp) {
     const notEqual = operator === "!~";
     if (notEqual) {
       visQuery.operations.push({
@@ -66,54 +86,97 @@ export const addLabelToQuery = (query: string, key: string, value: string, opera
       id: VictoriaLogsOperationId.Regexp,
       params: [key, value, false],
     });
-  } else if (type === "range") {
+  } else if (type === VictoriaLogsOperationId.RangeComparison) {
     visQuery.operations.push({
       id: VictoriaLogsOperationId.RangeComparison,
       params: [key, operator, value],
     });
-  } else if (type === "stream") {
+  } else if (type === VictoriaLogsOperationId.StreamId) {
+    const notEqual = operator === "!=";
+    if (notEqual) {
+      visQuery.operations.push({
+        id: VictoriaLogsOperationId.NOT,
+        params: [],
+      });
+    }
     visQuery.operations.push({
       id: VictoriaLogsOperationId.StreamId,
       params: [value],
+    });
+  } else if (type === VictoriaLogsOperationId.Stream) {
+    const notEqual = operator === "!=";
+    if (notEqual) {
+      visQuery.operations.push({
+        id: VictoriaLogsOperationId.NOT,
+        params: [],
+      });
+    }
+    visQuery.operations.push({
+      id: VictoriaLogsOperationId.Stream,
+      params: [value.slice(1, -1)],
     });
   }
   return buildVisualQueryToString(visQuery);
 }
 
-export const removeLabelFromQuery = (query: string, key: string, value: string, operator?: string): string => {
-  const visQuery = parseExprToVisualQuery(query).query;
-  if (operator !== undefined) {
-    const type = getType(operator, key);
-    if (type === "exact") {
-      visQuery.operations = visQuery.operations.filter(op => {
-        if (op.id === VictoriaLogsOperationId.Exact) {
-          return !(op.params[0] === key && op.params[1] === value && (operator === "!=" ? !op.params[2] : op.params[2]));
-        }
-        return true;
-      })
-    } else if (type === "regex") {
-      visQuery.operations = visQuery.operations.filter(op => {
-        if (op.id === VictoriaLogsOperationId.Regexp) {
-          return !(op.params[0] === key && op.params[1] === value);
-        }
-        return true;
-      })
-    } else if (type === "range") {
-      visQuery.operations = visQuery.operations.filter(op => {
-        if (op.id === VictoriaLogsOperationId.RangeComparison) {
-          return !(op.params[0] === key && op.params[1] === operator && op.params[2] === value);
-        }
-        return true;
-      })
-    } else if (type === "stream") {
-      visQuery.operations = visQuery.operations.filter(op => {
-        if (op.id === VictoriaLogsOperationId.StreamId) {
-          return !((op.params[0] as string).includes(value));
-        }
-        return true;
-      })
+function filterOut(op: QueryBuilderOperation, key: string, value: string, operator?: string): boolean {
+  const is_not = operator === "!=" || operator === "!~";
+  if (op.id === VictoriaLogsOperationId.Exact) {
+    if (!operator) {
+      return (op.params[0] === key && op.params[1] === value);
     }
-        
+    return (op.params[0] === key && op.params[1] === value && op.params[2] === is_not);
+  } else if (op.id === VictoriaLogsOperationId.Regexp) {
+    return (op.params[0] === key && op.params[1] === value);
+  } else if (op.id === VictoriaLogsOperationId.RangeComparison) {
+    if (!operator) {
+      return (op.params[0] === key && op.params[2] === value);
+    }
+    return (op.params[0] === key && op.params[1] === operator && op.params[2] === value);
+  } else if (op.id === VictoriaLogsOperationId.StreamId) {
+    return ((op.params[0] as string).includes(value));
   }
+  return false;
+}
+
+export const removeLabelFromQuery = (query: string, key: string, value: string, operator?: string, defaultField = "_msg"): string => {
+  const visQuery = parseExprToVisualQuery(query, defaultField).query;
+  const type = getType(operator, key);
+
+  // Remove matching operations and handle logical operators
+  let newOps: QueryBuilderOperation[] = [];
+  let i = 0;
+  while (i < visQuery.operations.length) {
+    const op = visQuery.operations[i];
+    const isTarget = (type.includes(op.id as VictoriaLogsOperationId) || type === op.id) && filterOut(op, key, value, operator);
+    if (isTarget) {
+      // Remove logical op before if present
+      if (i > 0) {
+        const prev = visQuery.operations[i - 1];
+        if ([VictoriaLogsOperationId.AND, VictoriaLogsOperationId.OR, VictoriaLogsOperationId.NOT, "and", "or", "not"].includes(prev.id as any)) {
+          newOps.pop();
+        }
+      } else if (i + 1 < visQuery.operations.length) {
+        // If first op, remove logical op after if present
+        const next = visQuery.operations[i + 1];
+        if ([VictoriaLogsOperationId.AND, VictoriaLogsOperationId.OR, VictoriaLogsOperationId.NOT, "and", "or", "not"].includes(next.id as any)) {
+          i++;
+        }
+      }
+      // skip this op (removal)
+      i++;
+      continue;
+    }
+    newOps.push(op);
+    i++;
+  }
+  visQuery.operations = newOps;
+
+  visQuery.operations = visQuery.operations.filter(op => {
+    if (op.id === VictoriaLogsOperationId.Logical) {
+      op.params[1] = removeLabelFromQuery(op.params[1] as string, key, value, operator, op.params[0] as string);
+    }
+    return true;
+  })
   return buildVisualQueryToString(visQuery);
 };

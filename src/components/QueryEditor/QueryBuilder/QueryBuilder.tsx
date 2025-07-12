@@ -1,6 +1,6 @@
 
 import { css } from "@emotion/css";
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 
 import { GrafanaTheme2, TimeRange, DataSourceApi } from "@grafana/data";
 import {
@@ -11,7 +11,7 @@ import { useStyles2 } from "@grafana/ui";
 import { VictoriaLogsDatasource } from "../../../datasource";
 import { VisualQuery } from "../../../types";
 
-import { queryModeller } from "./QueryModeller";
+import { QueryModeller } from "./QueryModellerClass";
 
 interface Props {
   query: VisualQuery;
@@ -23,6 +23,9 @@ interface Props {
 
 const QueryBuilder = memo<Props>(({ datasource, query, onChange, onRunQuery, timeRange }) => {
   const styles = useStyles2(getStyles);
+  const queryModeller = useMemo(() => {
+    return new QueryModeller([]);
+  }, []);
 
   const onVisQueryChange = (visQuery: VisualQuery) => {
     const expr = queryModeller.renderQuery(visQuery);

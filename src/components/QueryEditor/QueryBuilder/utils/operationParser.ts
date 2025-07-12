@@ -1,8 +1,7 @@
-import { QueryBuilderOperation } from "@grafana/plugin-ui";
+import { QueryBuilderOperation, VisualQueryModeller } from "@grafana/plugin-ui";
 
 import { checkLegacyMultiExact } from "../Editors/SubqueryEditor";
 import { VictoriaLogsOperationId } from "../Operations";
-import { queryModeller } from "../QueryModeller";
 import { QueryModeller } from "../QueryModellerClass";
 import { VictoriaLogsQueryOperationCategory } from "../VictoriaLogsQueryOperationCategory";
 
@@ -107,7 +106,7 @@ const getOperationFromId = (queryModeller: QueryModeller, id: string, str: Split
     return undefined;
 }
 
-export const parseStatsOperation = (str: SplitString[]): { operation: QueryBuilderOperation, length: number } | undefined => {
+export const parseStatsOperation = (str: SplitString[], queryModeller: VisualQueryModeller): { operation: QueryBuilderOperation, length: number } | undefined => {
     let firstWord = "";
     if (str.length > 0) {
         if (str[0].type === "space") {
@@ -121,7 +120,7 @@ export const parseStatsOperation = (str: SplitString[]): { operation: QueryBuild
     if (firstWord === "") {
         return undefined;
     }
-    for (const operation of queryModeller.getOperationsForCategory(VictoriaLogsQueryOperationCategory.Stats)) {
+    for (const operation of (queryModeller as QueryModeller).getOperationsForCategory(VictoriaLogsQueryOperationCategory.Stats)) {
         if (operation.id.toLowerCase() === firstWord) {
             const orioginalLength = str.length;
             const { params, length } = operation.splitStringByParams(str);
@@ -230,7 +229,7 @@ export const parseOperation = (str: SplitString[], onlyFilters: boolean, queryMo
             str.shift();
             return { operation: { id: VictoriaLogsOperationId.NOT, params: [] }, length: 0 };
         }
-        const statsOperation = parseStatsOperation(str);
+        const statsOperation = parseStatsOperation(str, queryModeller);
         if (statsOperation) {
             return statsOperation;
         }

@@ -23,7 +23,7 @@ import StreamFieldEditor from './Editors/StreamFieldEditor';
 import SubqueryEditor from './Editors/SubqueryEditor';
 import UnpackedFieldsSelector from './Editors/UnpackedFieldsSelector';
 import VariableEditor from './Editors/VariableEditor';
-import { buildVisualQueryToString, parseExprToVisualQuery } from './QueryModeller';
+import { parseExprToVisualQuery } from './QueryModeller';
 import { QueryModeller } from "./QueryModellerClass";
 import { VictoriaLogsQueryOperationCategory } from "./VictoriaLogsQueryOperationCategory";
 import { getValuesFromBrackets, getConditionFromString } from './utils/operationParser';
@@ -205,7 +205,7 @@ export class OperationDefinitions {
         visQuery: visQuery,
       })
       const onEditorChange = (query: VisualQuery) => {
-        const expr = buildVisualQueryToString(query as VisualQuery);
+        const expr = queryModeller.renderQuery(query as VisualQuery);
         setState({ expr, visQuery: query })
         onChange(index, expr);
       };
@@ -1584,10 +1584,10 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             expr += topNumber + " ";
           }
           if (fields !== "") {
-            expr += `by (${fields}) `;
+            expr += `by (${fields})`;
           }
           if (hitsFieldName !== "") {
-            expr += `hits as ${quoteString(hitsFieldName)}`;
+            expr += ` hits as ${quoteString(hitsFieldName)}`;
           }
           if (addRank) {
             expr += " rank";
@@ -3975,7 +3975,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         defaultParams: [],
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Operators,
-        renderer: (model, def, innerExpr) => innerExpr + ' AND',
+        renderer: (model, def, innerExpr) => innerExpr + 'AND',
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
           return { params: [], length: 0 };

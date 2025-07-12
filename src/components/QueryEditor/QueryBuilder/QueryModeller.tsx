@@ -8,32 +8,33 @@ import { VictoriaLogsQueryOperationCategory } from './VictoriaLogsQueryOperation
 import { parseOperation, parseStatsOperation } from './utils/operationParser';
 import { splitByOperator, splitByUnescapedPipe, splitString } from './utils/stringSplitter';
 
-export const operationDefinitions = new OperationDefinitions();
-
-export const queryModeller = new QueryModeller(operationDefinitions.all());
-
 export function createQueryModellerWithDefaultField(defaultField: string, categegories: VictoriaLogsQueryOperationCategory[]) {
   const queryModeller = new QueryModeller(new OperationDefinitions(defaultField).all(), categegories);
   return queryModeller;
 }
 
 export function createQueryModellerForCategories(categegories: VictoriaLogsQueryOperationCategory[] = Object.values(VictoriaLogsQueryOperationCategory)) {
-  const queryModeller = new QueryModeller(operationDefinitions.all(), categegories);
+  const queryModeller = new QueryModeller(new OperationDefinitions().all(), categegories);
   return queryModeller;
 }
 
-export const buildVisualQueryToString = (query: VisualQuery): string => {
+export const buildVisualQueryToString = (query: VisualQuery, queryModeller?: QueryModeller): string => {
+  if (!queryModeller) {
+    queryModeller = createQueryModellerForCategories(Object.values(VictoriaLogsQueryOperationCategory));
+  }
   return queryModeller.renderQuery(query);
 }
 
-const handleExpression = (expr: string, defaultField = "_msg"): QueryBuilderOperation[] => {
+const handleExpression = (expr: string, defaultField = "_msg", queryModeller?: QueryModeller): QueryBuilderOperation[] => {
   let operationList: QueryBuilderOperation[] = [];
   // first split by pipes then by operators
   let lastOpWasOperator = false;
   const fullSplitString = splitString(expr || "");
   let operationQueryModeller = queryModeller;
-  if ( defaultField !== "_msg" ) {
+  if (defaultField !== "_msg" || queryModeller === undefined) {
     operationQueryModeller = createQueryModellerWithDefaultField(defaultField, Object.values(VictoriaLogsQueryOperationCategory))
+  } else {
+    operationQueryModeller = queryModeller;
   }
   for (const splitByPipes of splitByUnescapedPipe(fullSplitString)) {
     for (let splitByOp of splitByOperator(splitByPipes)) {
@@ -56,10 +57,10 @@ const handleExpression = (expr: string, defaultField = "_msg"): QueryBuilderOper
         if (parsedOperation) {
           operationList.push(parsedOperation.operation);
           splitByOp = splitByOp.slice(parsedOperation.length);
-          if (queryModeller.getOperationDefinition(parsedOperation.operation.id).category === VictoriaLogsQueryOperationCategory.Stats) {
+          if (operationQueryModeller.getOperationDefinition(parsedOperation.operation.id).category === VictoriaLogsQueryOperationCategory.Stats) {
             while (splitByOp.length > 0 && splitByOp[0].value === ",") {
               splitByOp = splitByOp.slice(1);
-              let statsOperation = parseStatsOperation(splitByOp);
+              let statsOperation = parseStatsOperation(splitByOp, operationQueryModeller);
               if (statsOperation) {
                 operationList.push(statsOperation.operation);
                 splitByOp = splitByOp.slice(statsOperation.length);
@@ -85,7 +86,7 @@ const handleExpression = (expr: string, defaultField = "_msg"): QueryBuilderOper
   return operationList;
 }
 
-export const parseExprToVisualQuery = (expr: string, defaultField = "_msg"): {query: VisualQuery, errors: string[]} => {
+export const parseExprToVisualQuery = (expr: string, defaultField = "_msg"): { query: VisualQuery, errors: string[] } => {
   const newOperations = handleExpression(expr, defaultField);
   const query: VisualQuery = {
     labels: [],

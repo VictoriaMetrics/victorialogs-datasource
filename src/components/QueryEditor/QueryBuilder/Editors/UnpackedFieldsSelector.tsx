@@ -5,14 +5,13 @@ import { QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
 import { MultiSelect } from '@grafana/ui';
 
 import { FilterFieldType, VisualQuery } from "../../../../types";
-import { queryModeller } from '../QueryModeller';
 import { getValuesFromBrackets } from '../utils/operationParser';
 import { quoteString } from '../utils/stringHandler';
 import { splitString } from '../utils/stringSplitter';
 
 export default function UnpackedFieldsSelector(unpackOperation: "unpack_json" | "unpack_logfmt" | "unpack_syslog") {
   function UnpackedFieldsSelectorEditor(props: QueryBuilderOperationParamEditorProps) {
-    const { value, onChange, index, datasource, timeRange, query, operation } = props;
+    const { value, onChange, index, datasource, timeRange, query, operation, queryModeller } = props;
 
     const str = splitString(value as string);
     const [values, setValues] = useState<SelectableValue<string>[]>(toOption(getValuesFromBrackets(str)));
@@ -44,7 +43,7 @@ export default function UnpackedFieldsSelector(unpackOperation: "unpack_json" | 
           const operations = (query as VisualQuery).operations;
           const operationIdx = operations.findIndex(op => op === operation);
           const prevOperations = operations.slice(0, operationIdx);
-          let prevExpr = queryModeller.renderOperations("", prevOperations);
+          let prevExpr = queryModeller.renderQuery({ operations: prevOperations, labels: [] });
           const unpackedQuery = ` | fields "${fieldName}" | ${unpackOperation} from "${fieldName}" result_prefix "result_" | delete "${fieldName}" `;
           if (prevExpr === "") {
             prevExpr = "*";

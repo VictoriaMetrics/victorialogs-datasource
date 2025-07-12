@@ -6,7 +6,7 @@ import { RadioButtonGroup, MultiSelect, Select } from '@grafana/ui';
 
 import { VisualQuery } from '../../../../types';
 import { VictoriaLogsOperationId } from '../Operations';
-import { buildVisualQueryToString, parseExprToVisualQuery, queryModeller } from "../QueryModeller";
+import { buildVisualQueryToString, parseExprToVisualQuery } from "../QueryModeller";
 import { getValue, isValue, quoteString, unquoteString } from '../utils/stringHandler';
 import { SplitString, splitString } from '../utils/stringSplitter';
 
@@ -99,7 +99,7 @@ function parseSubquery(value: string): { values: string[]; isQuery: boolean; que
 }
 
 export default function SubqueryEditor(props: QueryBuilderOperationParamEditorProps) {
-  const { datasource, timeRange, onRunQuery, onChange, index, value, operation } = props;
+  const { datasource, timeRange, onRunQuery, onChange, index, value, operation, queryModeller } = props;
   const paramLen = operation.params.length;
   // paramLen = 1 -> StreamId (single value possible)
   // paramLen = 2 -> Multi Exact, contains_all, contains_any

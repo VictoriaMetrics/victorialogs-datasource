@@ -2,19 +2,19 @@ import { QueryBuilderLabelFilter, QueryBuilderOperation, VisualQueryModeller } f
 
 import { VisualQuery } from "../../../types";
 
-import { VictoriaLogsOperationId, VictoriaQueryBuilderOperationDefinition } from "./Operations";
+import { VictoriaLogsOperationId, VictoriaQueryBuilderOperationDefinition, OperationDefinitions } from "./Operations";
 import { VictoriaLogsQueryOperationCategory } from "./VictoriaLogsQueryOperationCategory";
 
 declare abstract class VictoriaVisualQueryModeller implements VisualQueryModeller {
-    innerQueryPlaceholder: string;
-    constructor(operationDefinitions: VictoriaQueryBuilderOperationDefinition[], innerQueryPlaceholder?: string);
-    abstract renderOperations(queryString: string, operations: QueryBuilderOperation[]): string;
-    abstract renderLabels(labels: QueryBuilderLabelFilter[]): string;
-    abstract renderQuery(query: VisualQuery, nested?: boolean): string;
-    getOperationsForCategory(category: string): VictoriaQueryBuilderOperationDefinition[];
-    getAlternativeOperations(key: string): VictoriaQueryBuilderOperationDefinition[];
-    getCategories(): string[];
-    getOperationDefinition(id: string): VictoriaQueryBuilderOperationDefinition | undefined;
+  innerQueryPlaceholder: string;
+  constructor(operationDefinitions: VictoriaQueryBuilderOperationDefinition[], innerQueryPlaceholder?: string);
+  abstract renderOperations(queryString: string, operations: QueryBuilderOperation[]): string;
+  abstract renderLabels(labels: QueryBuilderLabelFilter[]): string;
+  abstract renderQuery(query: VisualQuery, nested?: boolean): string;
+  getOperationsForCategory(category: string): VictoriaQueryBuilderOperationDefinition[];
+  getAlternativeOperations(key: string): VictoriaQueryBuilderOperationDefinition[];
+  getCategories(): string[];
+  getOperationDefinition(id: string): VictoriaQueryBuilderOperationDefinition | undefined;
 }
 
 export class QueryModeller implements VictoriaVisualQueryModeller {
@@ -24,6 +24,9 @@ export class QueryModeller implements VictoriaVisualQueryModeller {
   categories: string[];
   onlyStats: boolean;
   constructor(operationDefinitions: VictoriaQueryBuilderOperationDefinition[], categories: string[] = Object.values(VictoriaLogsQueryOperationCategory)) {
+    if (operationDefinitions.length === 0) {
+      operationDefinitions = new OperationDefinitions().all();
+    }
     this.onlyStats = categories.includes(VictoriaLogsQueryOperationCategory.Stats) && categories.length === 1;
     this.operationDefinitions = operationDefinitions.filter(op => {
       return categories.some(category => op.category === category);
@@ -87,14 +90,17 @@ export class QueryModeller implements VictoriaVisualQueryModeller {
           queryString += ", ";
         }
         queryString += operationDef.renderer(operation, operationDef, "");
-      } else if (i > 0 && checkIsFilter(opDefs[i-1]) && checkIsFilter(operationDef)) {
-        queryString += operationDef.renderer(operation, operationDef, "");
+      } else if (i > 0 && checkIsFilter(opDefs[i - 1]) && checkIsFilter(operationDef)) {
+        queryString += " " + operationDef.renderer(operation, operationDef, "");
       } else if (operationDef.id === VictoriaLogsOperationId.Comment) {
         queryString += operationDef.renderer(operation, operationDef, "");
+      } else if (operationDef.category === VictoriaLogsQueryOperationCategory.Operators) {
+        if (i > 0 && !checkIsFilter(opDefs[i - 1])) {
+          queryString += " |" + operationDef.renderer(operation, operationDef, "");
+        }
       } else {
         queryString = operationDef.renderer(operation, operationDef, queryString);
       }
-      queryString += " ";
     }
     return queryString.trim();
   }
