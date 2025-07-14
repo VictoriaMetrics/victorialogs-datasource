@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix an issue with missing `_msg` field in the response. If `_msg` field is missed in the response now always returned as an empty string. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/330).
+
 ## v0.18.1
 
 * BUGFIX: fix an issue when the additional `level` label was added if the logs level rules aren't configured. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/319).
