@@ -25,8 +25,8 @@ export default function VariableEditor(props: QueryBuilderOperationParamEditorPr
         });
       }}
       options={state.options}
-      onChange={(value) => {
-        onChange(index, value.value as string);
+      onChange={({ value = "" }) => {
+        onChange(index, value);
       }}
       value={toOption(value as string)}
       width="auto"

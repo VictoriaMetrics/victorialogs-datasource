@@ -19,8 +19,8 @@ export default function UnpackedFieldsSelector(unpackOperation: "unpack_json" | 
     const setFields = (values: SelectableValue<string>[]) => {
       setValues(values);
       const newValue = values
-        .filter(v => v.value !== undefined && v.value !== "")
-        .map(v => quoteString(v.value as string))
+        .filter(({ value }) => value !== undefined && value !== "")
+        .map(({ value = "" }) => quoteString(value))
         .join(", ");
       if (values.length === 0) {
         onChange(index, "");

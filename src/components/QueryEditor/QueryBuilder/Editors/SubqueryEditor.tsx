@@ -230,11 +230,11 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
                 });
               }}
               options={state.options}
-              onChange={(value) => {
-                setQueryField(value.value as string);
-                buildSubquery(selectQuery.expr, value.value as string, stdFieldName);
+              onChange={({ value = "" }) => {
+                setQueryField(value);
+                buildSubquery(selectQuery.expr, value, stdFieldName);
               }}
-              value={toOption(queryField as string)}
+              value={toOption(queryField)}
               width="auto"
             />
           </>

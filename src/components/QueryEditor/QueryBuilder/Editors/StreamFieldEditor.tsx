@@ -121,16 +121,16 @@ export default function StreamFieldEditor(props: QueryBuilderOperationParamEdito
   const [valuesNotIn, setValuesNotIn] = useState<boolean>(initialStreamSelector.not_in);
   const [labelValues, setLabelValues] = useState<SelectableValue[]>([]);
 
-  const updateField = async (newFromField: SelectableValue<string>) => {
-    if (field === newFromField.value) {
+  const updateField = async ({ value = "" }) => {
+    if (field === value) {
       return;
     }
-    setField(newFromField.value as string);
-    onChange(index, buildStreamFilterValue(newFromField.value as string, [], valuesNotIn));
+    setField(value);
+    onChange(index, buildStreamFilterValue(value, [], valuesNotIn));
   };
 
   const updateValues = (rawValues: SelectableValue<string>[]) => {
-    const values = rawValues.map((value) => value.value as string);
+    const values = rawValues.map(({ value = "" }) => value);
     setValues(values);
     onChange(index, buildStreamFilterValue(field, values, valuesNotIn));
   };

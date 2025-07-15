@@ -60,11 +60,11 @@ export default function FieldAsFieldEditor(props: QueryBuilderOperationParamEdit
           isLoading={state.loading}
           onOpenMenu={handleOpenMenu}
           options={state.options}
-          onChange={(value) => {
-            setFromField(value.value as string);
-            updateValue(value.value as string, toField);
+          onChange={({ value = "" }) => {
+            setFromField(value);
+            updateValue(value, toField);
           }}
-          value={toOption(fromField as string)}
+          value={toOption(fromField)}
           width="auto"
         />
       </InlineField>
@@ -76,11 +76,11 @@ export default function FieldAsFieldEditor(props: QueryBuilderOperationParamEdit
           isLoading={state.loading}
           onOpenMenu={handleOpenMenu}
           options={state.options}
-          onChange={(value) => {
-            setToField(value.value as string);
-            updateValue(fromField, value.value as string);
+          onChange={({ value = "" }) => {
+            setToField(value);
+            updateValue(fromField, value);
           }}
-          value={toOption(toField as string)}
+          value={toOption(toField)}
           width="auto"
         />
       </InlineField>

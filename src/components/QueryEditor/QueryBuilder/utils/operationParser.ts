@@ -13,16 +13,16 @@ export const getValuesFromBrackets = (str: SplitString[], removeBrackets = true)
         return [];
     }
     let result: string[] = [];
-    for (const value of str) {
-        if (value.type === "quote") {
+    for (const { type, value } of str) {
+        if (type === "quote") {
             if (removeBrackets) {
-                result.push(unquoteString(value.value));
+                result.push(unquoteString(value));
             } else {
-                result.push(value.value);
+                result.push(value);
             }
-        } else if (value.type === "space") {
-            if (value.value !== ",") {
-                result.push(value.value);
+        } else if (type === "space") {
+            if (value !== ",") {
+                result.push(value);
             }
         }
     }

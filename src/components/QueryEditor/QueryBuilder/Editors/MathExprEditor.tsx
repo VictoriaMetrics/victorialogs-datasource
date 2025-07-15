@@ -39,8 +39,8 @@ export default function MathExprEditor(props: QueryBuilderOperationParamEditorPr
           });
         }}
         options={state.options}
-        onChange={(value) => {
-          updateValue(expr, value.value as string);
+        onChange={({ value = "" }) => {
+          updateValue(expr, value);
         }}
         value={toOption(resultField)}
         width="auto"
