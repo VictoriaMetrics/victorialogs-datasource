@@ -4,7 +4,7 @@ import { SelectableValue } from '@grafana/data';
 import { QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
 import { Icon, MultiSelect } from '@grafana/ui';
 
-import { quoteString, unquoteString } from '../utils/stringHandler';
+import { getValue, quoteString, unquoteString } from '../utils/stringHandler';
 import { splitByUnescapedChar, SplitString, splitString } from '../utils/stringSplitter';
 
 import { getFieldNameOptions } from './utils/editorHelper';
@@ -96,12 +96,7 @@ const parseInputValues = (str: SplitString[]): FieldWithDirection[] => {
   let fields: FieldWithDirection[] = [];
   for (const field of splitByUnescapedChar(str, ',')) {
     if (field.length === 2 && field[1].type === "space" && field[0].type !== "bracket") {
-      let fieldName = "";
-      if (field[0].type === "quote") {
-        fieldName = unquoteString(field[0].value);
-      } else {
-        fieldName = field[0].value;
-      }
+      const fieldName = getValue(field[0]);
       const isDesc = field[1].value.toLowerCase() === 'desc';
       fields.push({ name: fieldName, isDesc });
     } else if (field.length === 1) {
