@@ -1,52 +1,25 @@
-import { css } from "@emotion/css";
-import React, { useState } from "react";
+import React from "react";
 
-import { GrafanaTheme2 } from "@grafana/data";
 import { QueryBuilderOperationParamEditorProps } from "@grafana/plugin-ui";
-import { InlineField, useStyles2 } from "@grafana/ui";
+import { InlineField } from "@grafana/ui";
 
 import { VictoriaLogsDatasource } from "../../../../datasource";
-import { VisualQuery } from "../../../../types";
-import QueryBuilder from "../QueryBuilder";
-import { buildVisualQueryToString, parseExprToVisualQuery } from "../QueryModeller";
+import { QueryBuilderContainer } from "../QueryBuilderContainer";
 
 export default function QueryEditor(props: QueryBuilderOperationParamEditorProps) {
-  const styles = useStyles2(getStyles);
-  const { value, onChange, index, datasource, timeRange, onRunQuery } = props;
-
-  const [state, setState] = useState<{ expr: string, visQuery: VisualQuery }>({
-    expr: value as string,
-    visQuery: parseExprToVisualQuery(value as string).query
-  });
-
-  const onVisQueryChange = (visQuery: VisualQuery) => {
-    const expr = buildVisualQueryToString(visQuery);
-    setState({ expr, visQuery })
-    onChange(index, expr);
+  const { datasource, value, timeRange, onRunQuery, onChange } = props;
+  const onVisQueryChange = (update: { expr: string }) => {
+    onChange(props.index, update.expr);
   };
   return (
     <InlineField>
-      <>
-        <QueryBuilder
-          query={state.visQuery}
-          datasource={datasource as VictoriaLogsDatasource}
-          onChange={onVisQueryChange}
-          onRunQuery={onRunQuery}
-          timeRange={timeRange}
-        />
-        <hr />
-        <p className={styles.previewText}>
-          {state.expr !== '' && state.expr}
-        </p>
-      </>
+      <QueryBuilderContainer
+        query={{ expr: value as string }}
+        datasource={datasource as VictoriaLogsDatasource}
+        onChange={onVisQueryChange}
+        onRunQuery={onRunQuery}
+        timeRange={timeRange}
+      />
     </InlineField>
   )
 }
-
-const getStyles = (theme: GrafanaTheme2) => {
-  return {
-    previewText: css`
-      font-size: ${theme.typography.bodySmall.fontSize};
-    `
-  };
-};

@@ -1,46 +1,31 @@
 import { css } from "@emotion/css";
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 
 import { GrafanaTheme2, TimeRange } from '@grafana/data';
 import { useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from "../../../datasource";
-import { Query, VisualQuery } from "../../../types";
 
 import QueryBuilder from "./QueryBuilder";
-import { parseExprToVisualQuery } from "./QueryModeller";
 
-export interface Props {
-  query: Query;
+export interface Props<Q extends { expr: string;[key: string]: any } = { expr: string;[key: string]: any }> {
+  query: Q;
   datasource: VictoriaLogsDatasource;
-  onChange: (update: Query) => void;
+  onChange: (update: Q) => void;
   onRunQuery: () => void;
   timeRange?: TimeRange;
 }
 
-export function QueryBuilderContainer(props: Props) {
+export function QueryBuilderContainer<Q extends { expr: string;[key: string]: any } = { expr: string;[key: string]: any }>(props: Props<Q>) {
   const styles = useStyles2(getStyles);
-
-  const { query, onChange, onRunQuery, datasource, timeRange } = props
-
-  const visQuery = useMemo(() => {
-    return parseExprToVisualQuery(query.expr).query;
-  }, [query.expr]);
-
-  const [state, setState] = useState<{ expr: string, visQuery: VisualQuery }>({
-    expr: query.expr,
-    visQuery: visQuery,
-  })
-
-  const onVisQueryChange = (visQuery: VisualQuery) => {
-    setState({ expr: visQuery.expr, visQuery })
-    onChange({ ...props.query, expr: visQuery.expr });
+  const { query, onChange, onRunQuery, datasource, timeRange } = props;
+  const onVisQueryChange = (expr: string) => {
+    onChange({ ...query, expr });
   };
-
   return (
     <>
       <QueryBuilder
-        query={state.visQuery}
+        queryExpr={query.expr}
         datasource={datasource}
         onChange={onVisQueryChange}
         onRunQuery={onRunQuery}
@@ -49,7 +34,7 @@ export function QueryBuilderContainer(props: Props) {
       <hr />
 
       <p className={styles.previewText}>
-        {state.expr !== '' && state.expr}
+        {query.expr !== '' && query.expr}
       </p>
     </>
   );
