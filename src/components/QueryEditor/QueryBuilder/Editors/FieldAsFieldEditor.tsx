@@ -29,18 +29,11 @@ export default function FieldAsFieldEditor(props: QueryBuilderOperationParamEdit
   const [toField, setToField] = useState<string>(parsedToField);
 
   const updateValue = (fromField: string, toField: string) => {
-    let value = "";
-    if (fromField.trim() === "") {
-      value += "\"\"";
-    } else {
-      value += quoteString(fromField.trim());
-    }
-    value += " as ";
-    if (toField.trim() === "") {
-      value += "\"\"";
-    } else {
-      value += quoteString(toField.trim());
-    }
+    const parts = [fromField, toField].map(field => {
+      const trimmed = field.trim();
+      return trimmed === "" ? "\"\"" : quoteString(trimmed);
+    });
+    const value = parts.join(" as ");
     onChange(index, value);
   };
 
