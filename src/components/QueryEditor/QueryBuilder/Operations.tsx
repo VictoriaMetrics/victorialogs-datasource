@@ -3136,7 +3136,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           const includeStart = model.params[3] as boolean;
           const includeEnd = model.params[4] as boolean;
           const offset = model.params[5] as string;
-          let expr = `${field}:day_range`;
+          let expr = `${field}:week_range`;
           expr += includeStart ? "[" : "("
           expr += `${start}, ${end}`;
           expr += includeEnd ? "]" : ")";

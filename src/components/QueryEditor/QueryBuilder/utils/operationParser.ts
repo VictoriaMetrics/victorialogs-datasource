@@ -136,9 +136,9 @@ export const parseOperation = (str: SplitString[], onlyFilters: boolean, queryMo
     switch (fieldName) {
         case "_time":
             const fnName = getFunctionName(str);
-            if (fnName === "day_range") {
+            if (fnName === VictoriaLogsOperationId.DayRange) {
                 return getOperationFromId(queryModeller, VictoriaLogsOperationId.DayRange, str, fieldName);
-            } else if (fnName === "week_range") {
+            } else if (fnName === VictoriaLogsOperationId.WeekRange) {
                 return getOperationFromId(queryModeller, VictoriaLogsOperationId.WeekRange, str, fieldName);
             } else {
                 return getOperationFromId(queryModeller, VictoriaLogsOperationId.Time, str, fieldName);
