@@ -159,7 +159,9 @@ function parseFieldMapList(str: SplitString[]): { params: QueryBuilderOperationP
       break;
     }
     toField = getValue(str[2]);
-    params.push(`${quoteString(fromField)} as ${quoteString(toField)}`);
+    const quotedFromString = fromField === "" ? '""' : quoteString(fromField);
+    const quotedToString = toField === "" ? '""' : quoteString(toField);
+    params.push(`${quotedFromString} as ${quotedToString}`);
     str = str.slice(3);
     if (str.length >= 4) {
       if (str[0].type === "space" && str[0].value === ",") {
