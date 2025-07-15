@@ -8,14 +8,14 @@ import { VictoriaLogsQueryOperationCategory } from "../VictoriaLogsQueryOperatio
 import { unquoteString } from "./stringHandler";
 import { SplitString } from "./stringSplitter";
 
-export const getValuesFromBrackets = (str: SplitString[], removeBrackets = true): string[] => {
+export const getValuesFromBrackets = (str: SplitString[], removeQuotes = true): string[] => {
     if (str.length === 0) {
         return [];
     }
     let result: string[] = [];
     for (const { type, value } of str) {
         if (type === "quote") {
-            result.push(removeBrackets ? unquoteString(value) : value);
+            result.push(removeQuotes ? unquoteString(value) : value);
         } else if (type === "space" && value !== ",") {
             result.push(value);
         }
