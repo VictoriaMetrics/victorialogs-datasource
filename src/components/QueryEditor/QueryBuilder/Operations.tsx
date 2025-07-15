@@ -328,7 +328,7 @@ export class OperationDefinitions {
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Pipes,
         renderer: (model, def, innerExpr) => {
-          const fields = model.params.filter(p => p !== undefined && p !== '');
+          const fields = model.params.filter(Boolean);
           if (fields.length === 0) {
             return innerExpr;
           }
@@ -1119,7 +1119,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Pipes,
         renderer: (model, def, innerExpr) => {
-          const fields = model.params.filter(p => p !== undefined && p !== '');
+          const fields = model.params.filter(Boolean);
           if (fields.length === 0) {
             return innerExpr;
           }
@@ -1452,7 +1452,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         category: VictoriaLogsQueryOperationCategory.Pipes,
         renderer: (model, def, innerExpr) => {
           const statsBy = model.params[0] as string;
-          const stats = model.params.slice(1).filter(p => p !== undefined && p !== "");
+          const stats = model.params.slice(1).filter(Boolean);
           let expr = "stats";
           if (statsBy !== "") {
             expr += ` by (${statsBy})`;
@@ -3569,7 +3569,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         category: VictoriaLogsQueryOperationCategory.Filters,
         renderer: (model, def, innerExpr) => {
           const field = model.params[0] as string;
-          const params = model.params.slice(1).filter(p => p !== undefined && p !== '') as string[];
+          const params = model.params.slice(1).filter(Boolean) as string[];
           let sequence = "";
           for (let i = 0; i < params.length; i++) {
             sequence += quoteString(params[i]);

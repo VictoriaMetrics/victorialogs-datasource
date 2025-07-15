@@ -19,8 +19,9 @@ export default function UnpackedFieldsSelector(unpackOperation: "unpack_json" | 
     const setFields = (values: SelectableValue<string>[]) => {
       setValues(values);
       const newValue = values
-        .filter(({ value }) => value !== undefined && value !== "")
-        .map(({ value = "" }) => quoteString(value))
+        .map(({ value = "" }) => value)
+        .filter(Boolean)
+        .map(quoteString)
         .join(", ");
       if (values.length === 0) {
         onChange(index, "");
@@ -73,7 +74,7 @@ export default function UnpackedFieldsSelector(unpackOperation: "unpack_json" | 
 const toOption = (
   values: string[]
 ): SelectableValue<string>[] => {
-  values = values.filter((value) => value !== undefined && value !== "");
+  values = values.filter(Boolean);
   return values.map((value) => {
     return { label: value?.toString(), value };
   })

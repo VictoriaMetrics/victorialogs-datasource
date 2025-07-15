@@ -14,7 +14,7 @@ export default function FieldsEditor(props: QueryBuilderOperationParamEditorProp
   const { value, onChange, index } = props;
 
   const setFields = (values: SelectableValue<string>[]) => {
-    const rawValues = values.map((v) => v.value?.trim()).filter((v) => v !== undefined && v !== null);
+    const rawValues = values.map(({ value = "" }) => value.trim()).filter(Boolean);
     let value = rawValues.map((v) => quoteString(v)).join(", ");
     onChange(index, value);
   }

@@ -122,7 +122,7 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
   const [queryField, setQueryField] = useState<string>(fieldName);
 
   const buildSubqueryValue = (values: SelectableValue[]) => {
-    const strValues = values.filter(v => v.value !== undefined && v.value !== "").map(v => v.value);
+    const strValues = values.map(v => v.value).filter(Boolean);
     setFilterValues(strValues);
     const valueExpr = "(" + strValues.map(value => {
       if (value.startsWith("$")) {
