@@ -55,7 +55,7 @@ export const isFilterFunction = (str: string): boolean => {
 
 export const getFieldName = (str: SplitString[]): string | undefined => {
     if (str.length === 0) {
-        return undefined;
+        return;
     }
     let fieldName = undefined;
     if (str[0].type === "colon") { // field1:
@@ -103,7 +103,7 @@ const getOperationFromId = (queryModeller: QueryModeller, id: string, str: Split
         const deltaLength = orioginalLength - str.length;
         return { operation: { id, params }, length: length - deltaLength };
     }
-    return undefined;
+    return;
 }
 
 export const parseStatsOperation = (str: SplitString[], queryModeller: VisualQueryModeller): { operation: QueryBuilderOperation, length: number } | undefined => {
@@ -114,11 +114,11 @@ export const parseStatsOperation = (str: SplitString[], queryModeller: VisualQue
         } else if (str[0].type === "bracket") {
             firstWord = str[0].prefix.toLowerCase();
         } else {
-            return undefined;
+            return;
         }
     }
     if (firstWord === "") {
-        return undefined;
+        return;
     }
     for (const operation of (queryModeller as QueryModeller).getOperationsForCategory(VictoriaLogsQueryOperationCategory.Stats)) {
         if (operation.id.toLowerCase() === firstWord) {
@@ -128,7 +128,7 @@ export const parseStatsOperation = (str: SplitString[], queryModeller: VisualQue
             return { operation: { id: operation.id, params }, length: length - deltaLength };
         }
     }
-    return undefined;
+    return;
 }
 
 export const parseOperation = (str: SplitString[], onlyFilters: boolean, queryModeller: QueryModeller): { operation: QueryBuilderOperation, length: number } | undefined => {
@@ -238,5 +238,5 @@ export const parseOperation = (str: SplitString[], onlyFilters: boolean, queryMo
         // Word
         return getOperationFromId(queryModeller, VictoriaLogsOperationId.Word, str, fieldName);
     }
-    return undefined;
+    return;
 }
