@@ -3,9 +3,7 @@ import { css } from "@emotion/css";
 import React, { memo, useMemo } from 'react';
 
 import { GrafanaTheme2, TimeRange, DataSourceApi } from "@grafana/data";
-import {
-  OperationList,
-} from '@grafana/plugin-ui';
+import { OperationList } from '@grafana/plugin-ui';
 import { useStyles2 } from "@grafana/ui";
 
 import { VictoriaLogsDatasource } from "../../../datasource";

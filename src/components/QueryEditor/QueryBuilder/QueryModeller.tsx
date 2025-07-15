@@ -86,8 +86,8 @@ const handleExpression = (expr: string, defaultField = "_msg", queryModeller?: Q
   return operationList;
 }
 
-export const parseExprToVisualQuery = (expr: string, defaultField = "_msg"): { query: VisualQuery, errors: string[] } => {
-  const newOperations = handleExpression(expr, defaultField);
+export const parseExprToVisualQuery = (expr: string, defaultField = "_msg", queryModeller?: QueryModeller): { query: VisualQuery, errors: string[] } => {
+  const newOperations = handleExpression(expr, defaultField, queryModeller);
   const query: VisualQuery = {
     labels: [],
     operations: newOperations,

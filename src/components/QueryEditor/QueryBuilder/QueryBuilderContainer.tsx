@@ -8,7 +8,7 @@ import { VictoriaLogsDatasource } from "../../../datasource";
 import { Query, VisualQuery } from "../../../types";
 
 import QueryBuilder from "./QueryBuilder";
-import { buildVisualQueryToString, parseExprToVisualQuery } from "./QueryModeller";
+import { parseExprToVisualQuery } from "./QueryModeller";
 
 export interface Props {
   query: Query;
@@ -27,15 +27,14 @@ export function QueryBuilderContainer(props: Props) {
     return parseExprToVisualQuery(query.expr).query;
   }, [query.expr]);
 
-  const [state, setState] = useState<{expr: string, visQuery: VisualQuery}>({
+  const [state, setState] = useState<{ expr: string, visQuery: VisualQuery }>({
     expr: query.expr,
     visQuery: visQuery,
   })
 
   const onVisQueryChange = (visQuery: VisualQuery) => {
-    const expr = buildVisualQueryToString(visQuery);
-    setState({ expr, visQuery })
-    onChange({ ...props.query, expr: expr });
+    setState({ expr: visQuery.expr, visQuery })
+    onChange({ ...props.query, expr: visQuery.expr });
   };
 
   return (
@@ -47,7 +46,7 @@ export function QueryBuilderContainer(props: Props) {
         onRunQuery={onRunQuery}
         timeRange={timeRange}
       />
-      <hr/>
+      <hr />
 
       <p className={styles.previewText}>
         {state.expr !== '' && state.expr}
