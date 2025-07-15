@@ -50,15 +50,20 @@ function parseExpr(str: SplitString[]): string {
   if (str.length === 0) {
     return "";
   }
+  const token = str[0];
   let expr = "";
-  if (str[0].type === "quote") {
-    expr = unquoteString(str[0].value);
-  } else if (str[0].type === "space") {
-    expr = str[0].value;
-  } else if (str[0].type === "bracket") {
-    expr = str[0].raw_value;
-  } else {
-    return "";
+  switch (token.type) {
+    case "quote":
+      expr = unquoteString(token.value);
+      break;
+    case "space":
+      expr = token.value;
+      break;
+    case "bracket":
+      expr = token.raw_value;
+      break;
+    default:
+      return "";
   }
   str.shift();
   return expr;
