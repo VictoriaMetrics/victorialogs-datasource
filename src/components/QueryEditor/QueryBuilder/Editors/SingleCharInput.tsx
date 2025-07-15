@@ -26,7 +26,7 @@ export default function SingleCharInput(props: QueryBuilderOperationParamEditorP
     return (
         <Input
             type="text"
-            value={value as string}
+            value={String(value || "")}
             onBlur={handleChange}
             onKeyDown={handleKeyDown}
             width={10}

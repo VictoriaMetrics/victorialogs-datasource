@@ -19,11 +19,11 @@ export default function NumberEditor(props: QueryBuilderOperationParamEditorProp
     const updateValue = (e: React.FocusEvent<HTMLInputElement>) => {
         onChange(index, e.target.value.trim());
     }
-    
+
     return (
-        <input 
+        <input
             type="text"
-            defaultValue={value as string}
+            defaultValue={String(value || "")}
             onInput={handleInputChange}
             onBlur={updateValue}
             style={{ width: '15ch' }}

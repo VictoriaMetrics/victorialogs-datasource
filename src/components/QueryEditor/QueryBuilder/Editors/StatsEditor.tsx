@@ -19,7 +19,7 @@ export default function StatsEditor(props: QueryBuilderOperationParamEditorProps
        count() if (PUT) puts,
        count() total
   */
-  const operations = useMemo(() => parseStatsValue(value as string, queryModeller), [value, queryModeller]);
+  const operations = useMemo(() => parseStatsValue(String(value || ""), queryModeller), [value, queryModeller]);
   const expr = useMemo(() => {
     return buildVisualQueryToString({
       labels: [],

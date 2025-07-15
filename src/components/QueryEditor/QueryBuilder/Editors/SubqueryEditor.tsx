@@ -110,7 +110,7 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
   } else {
     stdFieldName = operation.params[0] as string;
   }
-  const parsedSubquery = useMemo(() => parseSubquery(value as string), [value]);
+  const parsedSubquery = useMemo(() => parseSubquery(String(value || "")), [value]);
   const { values, isQuery, query: queryValue, fieldName } = parsedSubquery;
 
   const [filterValues, setFilterValues] = useState<string[]>(values);

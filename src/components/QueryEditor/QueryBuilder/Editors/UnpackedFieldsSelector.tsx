@@ -13,7 +13,7 @@ export default function UnpackedFieldsSelector(unpackOperation: "unpack_json" | 
   function UnpackedFieldsSelectorEditor(props: QueryBuilderOperationParamEditorProps) {
     const { value, onChange, index, datasource, timeRange, query, operation, queryModeller } = props;
 
-    const str = splitString(value as string);
+    const str = splitString(String(value || ""));
     const [values, setValues] = useState<SelectableValue<string>[]>(toOption(getValuesFromBrackets(str)));
 
     const setFields = (values: SelectableValue<string>[]) => {

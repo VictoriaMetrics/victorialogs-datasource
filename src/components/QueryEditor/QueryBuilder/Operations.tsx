@@ -200,10 +200,10 @@ export class OperationDefinitions {
     function ConditionalEditor(props: QueryBuilderOperationParamEditorProps) {
       const { value, index, onChange, onRunQuery, datasource, timeRange } = props;
       const visQuery = useMemo(() => {
-        return parseExprToVisualQuery(value as string).query;
+        return parseExprToVisualQuery(String(value || "")).query;
       }, [value]);
       const [state, setState] = useState<{ expr: string, visQuery: VisualQuery }>({
-        expr: value as string,
+        expr: String(value || ""),
         visQuery: visQuery,
       })
       const onEditorChange = (query: VisualQuery) => {
@@ -3822,7 +3822,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         category: VictoriaLogsQueryOperationCategory.Filters,
         renderer: (model, def, innerExpr) => {
           const field = model.params[0] as string;
-          const type = model.params[1] as string || "";
+          const type = model.params[1] as string;
           let expr = "";
           if (field !== this.defaultField) {
             expr = `${quoteString(field)}:`;

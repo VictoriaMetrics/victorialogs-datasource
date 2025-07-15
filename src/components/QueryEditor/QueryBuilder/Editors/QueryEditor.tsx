@@ -14,7 +14,7 @@ export default function QueryEditor(props: QueryBuilderOperationParamEditorProps
   return (
     <InlineField>
       <QueryBuilderContainer
-        query={{ expr: value as string }}
+        query={{ expr: String(value || "") }}
         datasource={datasource as VictoriaLogsDatasource}
         onChange={onVisQueryChange}
         onRunQuery={onRunQuery}

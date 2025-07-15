@@ -15,8 +15,8 @@ export default function LogicalFilterEditor(props: QueryBuilderOperationParamEdi
   const fieldName = operation.params[0] as string;
   const queryModeller = useMemo(() => createQueryModellerWithDefaultField(fieldName, [VictoriaLogsQueryOperationCategory.Filters, VictoriaLogsQueryOperationCategory.Operators]), [fieldName]);
   const [state, setState] = useState<{ expr: string, visQuery: VisualQuery }>({
-    expr: value as string,
-    visQuery: parseExprToVisualQuery(value as string, fieldName, queryModeller).query
+    expr: String(value || ""),
+    visQuery: parseExprToVisualQuery(String(value || ""), fieldName, queryModeller).query
   })
 
   const onVisQueryChange = (visQuery: VisualQuery) => {

@@ -28,7 +28,7 @@ export default function VariableEditor(props: QueryBuilderOperationParamEditorPr
       onChange={({ value = "" }) => {
         onChange(index, value);
       }}
-      value={toOption(value as string)}
+      value={toOption(String(value || ""))}
       width="auto"
     />
   );

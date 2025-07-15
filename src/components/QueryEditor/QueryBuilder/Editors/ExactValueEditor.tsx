@@ -29,7 +29,7 @@ export default function ExactValueEditor(props: QueryBuilderOperationParamEditor
         onChange={({ value = "" }) => {
           onChange(index, value);
         }}
-        value={toOption(value as string)}
+        value={toOption(String(value || ""))}
         width="auto"
       />
     </InlineField>

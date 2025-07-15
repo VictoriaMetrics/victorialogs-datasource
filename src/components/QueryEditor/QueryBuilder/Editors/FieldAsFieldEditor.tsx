@@ -11,7 +11,7 @@ import { getFieldNameOptions } from './utils/editorHelper';
 export default function FieldAsFieldEditor(props: QueryBuilderOperationParamEditorProps) {
   const { value, onChange, index } = props;
 
-  const str = splitString(value as string);
+  const str = splitString(String(value || ""));
   let parsedFromField = "";
   let parsedToField = "";
   if (str.length === 3) {

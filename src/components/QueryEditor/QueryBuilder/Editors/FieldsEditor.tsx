@@ -15,7 +15,7 @@ export default function FieldsEditor(props: QueryBuilderOperationParamEditorProp
 
   const setFields = (values: SelectableValue<string>[]) => {
     const rawValues = values.map((v) => v.value?.trim()).filter((v) => v !== undefined && v !== null);
-    let value = rawValues.map((v)=> quoteString(v)).join(", ");
+    let value = rawValues.map((v) => quoteString(v)).join(", ");
     onChange(index, value);
   }
 
@@ -34,7 +34,7 @@ export default function FieldsEditor(props: QueryBuilderOperationParamEditorProp
     <MultiSelect<string>
       onChange={setFields}
       options={state.options}
-      value={getValuesFromBrackets(splitString(value as string))}
+      value={getValuesFromBrackets(splitString(String(value || "")))}
       isLoading={state.isLoading}
       allowCustomValue
       noOptionsMessage="No labels found"

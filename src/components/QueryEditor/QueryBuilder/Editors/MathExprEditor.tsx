@@ -10,7 +10,7 @@ import { getFieldNameOptions } from "./utils/editorHelper";
 
 export default function MathExprEditor(props: QueryBuilderOperationParamEditorProps) {
   const { value, onChange, index } = props;
-  const { expr, resultField } = parseMathExprValue(value as string);
+  const { expr, resultField } = parseMathExprValue(String(value || ""));
 
   const updateValue = (expr: string, resultField: string) => {
     onChange(index, `${expr} as ${quoteString(resultField)}`);

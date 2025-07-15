@@ -17,7 +17,7 @@ interface FieldWithPrefix {
 export default function FieldsEditorWithPrefix(props: QueryBuilderOperationParamEditorProps) {
   const { value, onChange, index } = props;
 
-  const str = splitString(value as string);
+  const str = splitString(String(value || ""));
   const parsedValues = parseInputValues(str);
   const [values, setValues] = useState<FieldWithPrefix[]>(parsedValues);
 

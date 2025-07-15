@@ -17,7 +17,7 @@ interface FieldWithDirection {
 export default function SortedFieldsEditor(props: QueryBuilderOperationParamEditorProps) {
   const { value, onChange, index } = props;
 
-  const str = splitString(value as string);
+  const str = splitString(String(value || ""));
   const parsedValues = parseInputValues(str);
   const [values, setValues] = useState<FieldWithDirection[]>(parsedValues);
 

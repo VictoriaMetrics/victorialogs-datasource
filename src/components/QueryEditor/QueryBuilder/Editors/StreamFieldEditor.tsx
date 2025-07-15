@@ -115,7 +115,7 @@ function buildStreamFilterValue(label: string, values: string[], not_in: boolean
 export default function StreamFieldEditor(props: QueryBuilderOperationParamEditorProps) {
   const { value, onChange, index, datasource, timeRange } = props;
 
-  const initialStreamSelector = parseStreamFilterValue(value as string);
+  const initialStreamSelector = parseStreamFilterValue(String(value || ""));
   const [field, setField] = useState<string>(initialStreamSelector.label);
   const [values, setValues] = useState<string[]>(initialStreamSelector.values);
   const [valuesNotIn, setValuesNotIn] = useState<boolean>(initialStreamSelector.not_in);
