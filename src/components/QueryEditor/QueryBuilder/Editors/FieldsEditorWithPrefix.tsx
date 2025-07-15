@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { SelectableValue } from '@grafana/data';
 import { QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
-import { MultiSelect } from '@grafana/ui';
+import { FormatOptionLabelMeta, MultiSelect } from '@grafana/ui';
 
 import { quoteString, unquoteString } from '../utils/stringHandler';
 import { splitByUnescapedChar, SplitString, splitString } from '../utils/stringSplitter';
@@ -44,6 +44,29 @@ export default function FieldsEditorWithPrefix(props: QueryBuilderOperationParam
     isLoading?: boolean;
   }>({});
 
+  const formatOptionLabel = (option: SelectableValue<FieldWithPrefix>, { context }: FormatOptionLabelMeta<FieldWithPrefix>) => {
+    if (context === 'value') {
+      const field = option as FieldWithPrefix;
+      const handleToggle = (e: React.SyntheticEvent) => {
+        e.stopPropagation();
+        const idx = values.findIndex((v) => (v).name === field.name);
+        if (idx !== -1) {
+          togglePrefix(idx);
+        }
+      };
+      return (
+        <span
+          tabIndex={0}
+          style={{ cursor: 'pointer' }}
+          onMouseDown={handleToggle}
+        >
+          {formatFieldLabel(field)}
+        </span>
+      );
+    }
+    return <>{option.label}</>;
+  }
+
   return (
     <MultiSelect<FieldWithPrefix>
       openMenuOnFocus
@@ -61,28 +84,7 @@ export default function FieldsEditorWithPrefix(props: QueryBuilderOperationParam
       options={state.options}
       value={values}
       onChange={(values) => setFields(values.map((v) => v.value || v as FieldWithPrefix))}
-      formatOptionLabel={(option, { context }) => {
-        if (context === 'value') {
-          const field = option as FieldWithPrefix;
-          const handleToggle = (e: React.SyntheticEvent) => {
-            e.stopPropagation();
-            const idx = values.findIndex((v) => (v).name === field.name);
-            if (idx !== -1) {
-              togglePrefix(idx);
-            }
-          };
-          return (
-            <span
-              tabIndex={0}
-              style={{ cursor: 'pointer' }}
-              onMouseDown={handleToggle}
-            >
-              {formatFieldLabel(field)}
-            </span>
-          );
-        }
-        return <>{option.label}</>;
-      }}
+      formatOptionLabel={formatOptionLabel}
     />
   );
 }
@@ -96,17 +98,16 @@ const parseValue = (value: SplitString[]): FieldWithPrefix => {
     return { name: '', isPrefix: false };
   }
   if (value[0].type === "quote") {
-    let isPrefix = false;
-    if (value.length > 1) {
-      isPrefix = (value[1].type === "space" && value[1].value === "*");
-    }
+    const { type, value: secondValue } = value[1] || {};
+    const isPrefix = type === "space" && secondValue === "*";
     return { name: unquoteString(value[0].value), isPrefix };
   } else {
-    let fieldValue = value[0].value;
-    if (fieldValue.endsWith('*')) {
-      return { name: fieldValue.slice(0, -1), isPrefix: true };
-    }
-    return { name: fieldValue, isPrefix: false };
+    const fieldValue = value[0].value;
+    const isPrefix = fieldValue.endsWith("*");
+    return {
+      name: isPrefix ? fieldValue.slice(0, -1) : fieldValue,
+      isPrefix,
+    };
   }
 }
 
