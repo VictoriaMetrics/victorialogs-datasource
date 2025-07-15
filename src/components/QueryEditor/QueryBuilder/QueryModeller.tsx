@@ -8,13 +8,13 @@ import { VictoriaLogsQueryOperationCategory } from './VictoriaLogsQueryOperation
 import { parseOperation, parseStatsOperation } from './utils/operationParser';
 import { splitByOperator, splitByUnescapedPipe, splitString } from './utils/stringSplitter';
 
-export function createQueryModellerWithDefaultField(defaultField: string, categegories: VictoriaLogsQueryOperationCategory[]) {
-  const queryModeller = new QueryModeller(new OperationDefinitions(defaultField).all(), categegories);
+export function createQueryModellerWithDefaultField(defaultField: string, categories: VictoriaLogsQueryOperationCategory[]) {
+  const queryModeller = new QueryModeller(new OperationDefinitions(defaultField).all(), categories);
   return queryModeller;
 }
 
-export function createQueryModellerForCategories(categegories: VictoriaLogsQueryOperationCategory[] = Object.values(VictoriaLogsQueryOperationCategory)) {
-  const queryModeller = new QueryModeller(new OperationDefinitions().all(), categegories);
+export function createQueryModellerForCategories(categories: VictoriaLogsQueryOperationCategory[] = Object.values(VictoriaLogsQueryOperationCategory)) {
+  const queryModeller = new QueryModeller(new OperationDefinitions().all(), categories);
   return queryModeller;
 }
 

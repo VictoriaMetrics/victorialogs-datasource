@@ -172,11 +172,10 @@ export const removeLabelFromQuery = (query: string, key: string, value: string, 
   }
   visQuery.operations = newOps;
 
-  visQuery.operations = visQuery.operations.filter(op => {
+  visQuery.operations.forEach(op => {
     if (op.id === VictoriaLogsOperationId.Logical) {
       op.params[1] = removeLabelFromQuery(op.params[1] as string, key, value, operator, op.params[0] as string);
     }
-    return true;
-  })
+  });
   return buildVisualQueryToString(visQuery);
 };
