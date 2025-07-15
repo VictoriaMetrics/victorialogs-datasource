@@ -52,23 +52,24 @@ export const getFieldName = (str: SplitString[]): string | undefined => {
         return;
     }
     let fieldName = undefined;
-    if (str[0].type === "colon") { // field1:
-        fieldName = str[0].value;
+    const { type: firstType, value: firstValue } = str[0];
+    const { type: secondType, value: secondValue } = str[1] || {};
+    const firstIsColon = firstType === "colon";
+    const isSpaceColon = firstType === "space" && secondType === "colon" && secondValue === "";
+    const isQuoteColon = firstType === "quote" && secondType === "colon" && secondValue === "";
+    if (firstIsColon) {
+        fieldName = firstValue;
         str.shift();
-    } else if (str.length >= 2) {
-        if (str[0].type === "space" && str[1].type === "colon" && str[1].value === "") { // field1 :
-            if (!isFilterFunction(str[0].value) && !isStatFunction(str[0].value)) {
-                fieldName = str[0].value;
-                str.shift();
-                str.shift();
-            }
-        } else if (str[0].type === "quote" && str[1].type === "colon" && str[1].value === "") { // "field1" :
-            fieldName = unquoteString(str[0].value);
-            str.shift();
-            str.shift();
-        }
+    } else if (isQuoteColon) {
+        fieldName = unquoteString(firstValue).trim();
+        str.shift();
+        str.shift();
+    } else if (isSpaceColon && !isFilterFunction(firstValue) && !isStatFunction(firstValue)) {
+        fieldName = firstValue;
+        str.shift();
+        str.shift();
     }
-    return fieldName?.trim();
+    return fieldName;
 }
 
 export const getFunctionName = (str: SplitString[]) => {
