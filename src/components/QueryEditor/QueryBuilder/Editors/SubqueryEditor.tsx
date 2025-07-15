@@ -25,13 +25,10 @@ export const checkLegacyMultiExact = (str: SplitString[]): boolean => {
       return false;
     }
     str = str.slice(2);
-    if (str.length > 0) {
-      if (str[0].type === "space" && str[0].value.toLowerCase() === "or") {
-        str = str.slice(1);
-      } else {
-        return false;
-      }
+    if (!str.length || str[0].type !== "space" || str[0].value.toLowerCase() !== "or") {
+      break;
     }
+    str = str.slice(1);
   }
   return true;
 }
@@ -49,13 +46,10 @@ function parseLegacyMultiExact(str: SplitString[]): string[] {
       values.push(getValue(str[1]));
     }
     str = str.slice(2);
-    if (str.length > 0) {
-      if (str[0].type === "space" && str[0].value.toLowerCase() === "or") {
-        str = str.slice(1);
-      } else {
-        break;
-      }
+    if (!str.length || str[0].type !== "space" || str[0].value.toLowerCase() !== "or") {
+      break;
     }
+    str = str.slice(1);
   }
   return values;
 }
