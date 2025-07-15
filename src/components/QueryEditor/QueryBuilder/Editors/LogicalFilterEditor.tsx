@@ -37,7 +37,7 @@ export default function LogicalFilterEditor(props: QueryBuilderOperationParamEdi
         />
         <hr />
         <p className={styles.previewText}>
-          {state.expr !== '' && state.expr}
+          {state.expr}
         </p>
       </>
     </InlineField>

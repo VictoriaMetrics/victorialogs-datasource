@@ -34,7 +34,7 @@ export function QueryBuilderContainer<Q extends { expr: string;[key: string]: an
       <hr />
 
       <p className={styles.previewText}>
-        {query.expr !== '' && query.expr}
+        {query.expr}
       </p>
     </>
   );
