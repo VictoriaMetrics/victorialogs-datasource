@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 
+import { SelectableValue } from "@grafana/data";
 import { QueryBuilderOperationParamEditorProps, toOption } from "@grafana/plugin-ui";
 import { Input, Select } from "@grafana/ui";
 
@@ -15,10 +16,8 @@ export default function MathExprEditor(props: QueryBuilderOperationParamEditorPr
   const updateValue = (expr: string, resultField: string) => {
     onChange(index, `${expr} as ${quoteString(resultField)}`);
   }
-  const [state, setState] = useState({
-    loading: false,
-    options: [] as any[],
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [options, setOptions] = useState<SelectableValue<string>[]>([]);
   return (
     <>
       <Input
@@ -30,15 +29,13 @@ export default function MathExprEditor(props: QueryBuilderOperationParamEditorPr
       <Select<string>
         allowCustomValue={true}
         allowCreateWhileLoading={true}
-        isLoading={state.loading}
+        isLoading={isLoading}
         onOpenMenu={async () => {
-          setState((prev) => ({ ...prev, loading: true }));
-          setState({
-            loading: false,
-            options: await getFieldNameOptions(props),
-          });
+          setIsLoading(true);
+          setOptions(await getFieldNameOptions(props));
+          setIsLoading(false);
         }}
-        options={state.options}
+        options={options}
         onChange={({ value = "" }) => {
           updateValue(expr, value);
         }}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import { SelectableValue } from '@grafana/data';
 import { QueryBuilderOperationParamEditorProps, toOption } from '@grafana/plugin-ui';
 import { InlineField, Select } from '@grafana/ui';
 
@@ -7,25 +8,21 @@ import { getFieldValueOptions } from './utils/editorHelper';
 
 export default function ExactValueEditor(props: QueryBuilderOperationParamEditorProps) {
   const { onChange, index, value, operation } = props;
-  const [state, setState] = useState({
-    loading: false,
-    options: [] as any[],
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [options, setOptions] = useState<SelectableValue<string>[]>([]);
 
   return (
     <InlineField>
       <Select<string>
         allowCustomValue={true}
         allowCreateWhileLoading={true}
-        isLoading={state.loading}
+        isLoading={isLoading}
         onOpenMenu={async () => {
-          setState((prev) => ({ ...prev, loading: true }));
-          setState({
-            loading: false,
-            options: await getFieldValueOptions(props, operation.params[0] as string),
-          });
+          setIsLoading(true);
+          setOptions(await getFieldValueOptions(props, operation.params[0] as string));
+          setIsLoading(false);
         }}
-        options={state.options}
+        options={options}
         onChange={({ value = "" }) => {
           onChange(index, value);
         }}

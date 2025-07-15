@@ -30,16 +30,14 @@ export default function UnpackedFieldsSelector(unpackOperation: "unpack_json" | 
       }
     }
 
-    const [state, setState] = useState<{
-      options?: SelectableValue[];
-      isLoading?: boolean;
-    }>({});
+    const [isLoading, setIsLoading] = useState(false);
+    const [options, setOptions] = useState<SelectableValue<string>[]>([]);
 
     return (
       <MultiSelect<string>
         openMenuOnFocus
         onOpenMenu={async () => {
-          setState({ isLoading: true });
+          setIsLoading(true);
           const fieldName = operation.params[0] as string;
           const operations = (query as VisualQuery).operations;
           const operationIdx = operations.findIndex(op => op === operation);
@@ -56,13 +54,14 @@ export default function UnpackedFieldsSelector(unpackOperation: "unpack_json" | 
             label: value.replace(/^(result_)/, "") || " ",
             description: `hits: ${hits}`,
           })) : []
-          setState({ options, isLoading: undefined });
+          setOptions(options);
+          setIsLoading(false);
         }}
-        isLoading={state.isLoading}
+        isLoading={isLoading}
         allowCustomValue
         noOptionsMessage="No labels found"
         loadingMessage="Loading labels"
-        options={state.options}
+        options={options}
         value={values}
         onChange={setFields}
       />

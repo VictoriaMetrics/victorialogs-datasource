@@ -19,23 +19,21 @@ export default function FieldsEditor(props: QueryBuilderOperationParamEditorProp
     onChange(index, value);
   }
 
-  const [state, setState] = useState<{
-    options?: SelectableValue[];
-    isLoading?: boolean;
-  }>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [options, setOptions] = useState<SelectableValue<string>[]>([]);
 
   const handleOpenMenu = async () => {
-    setState({ isLoading: true });
-    const options = await getFieldNameOptions(props);
-    setState({ options, isLoading: undefined });
+    setIsLoading(true);
+    setOptions(await getFieldNameOptions(props));
+    setIsLoading(false);
   }
 
   return (
     <MultiSelect<string>
       onChange={setFields}
-      options={state.options}
+      options={options}
       value={getValuesFromBrackets(splitString(String(value || "")))}
-      isLoading={state.isLoading}
+      isLoading={isLoading}
       allowCustomValue
       noOptionsMessage="No labels found"
       loadingMessage="Loading labels"

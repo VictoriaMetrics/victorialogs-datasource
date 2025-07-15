@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import { SelectableValue } from '@grafana/data';
 import { QueryBuilderOperationParamEditorProps, toOption } from '@grafana/plugin-ui';
 import { InlineField, Stack, Select } from '@grafana/ui';
 
@@ -37,18 +38,13 @@ export default function FieldAsFieldEditor(props: QueryBuilderOperationParamEdit
     onChange(index, value);
   };
 
-  const [state, setState] = useState({
-    loading: false,
-    options: [] as any[],
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [options, setOptions] = useState<SelectableValue<string>[]>([]);
 
   const handleOpenMenu = async () => {
-    setState((prev) => ({ ...prev, loading: true }));
-    const options = await getFieldNameOptions(props);
-    setState({
-      loading: false,
-      options,
-    });
+    setIsLoading(true);
+    setOptions(await getFieldNameOptions(props));
+    setIsLoading(false);
   };
 
   return (
@@ -57,9 +53,9 @@ export default function FieldAsFieldEditor(props: QueryBuilderOperationParamEdit
         <Select<string>
           allowCustomValue={true}
           allowCreateWhileLoading={true}
-          isLoading={state.loading}
+          isLoading={isLoading}
           onOpenMenu={handleOpenMenu}
-          options={state.options}
+          options={options}
           onChange={({ value = "" }) => {
             setFromField(value);
             updateValue(value, toField);
@@ -73,9 +69,9 @@ export default function FieldAsFieldEditor(props: QueryBuilderOperationParamEdit
         <Select<string>
           allowCustomValue={true}
           allowCreateWhileLoading={true}
-          isLoading={state.loading}
+          isLoading={isLoading}
           onOpenMenu={handleOpenMenu}
-          options={state.options}
+          options={options}
           onChange={({ value = "" }) => {
             setToField(value);
             updateValue(fromField, value);

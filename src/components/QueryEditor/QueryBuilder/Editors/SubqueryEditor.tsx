@@ -162,10 +162,8 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
     setFieldNames(options)
     setIsLoadingFieldNames(false)
   }
-  const [state, setState] = useState({
-    loading: false,
-    options: [] as any[],
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [options, setOptions] = useState<SelectableValue<string>[]>([]);
   return (
     <>
       <div style={{ padding: '6px 0 8px 0px', display: 'block' }}>
@@ -215,15 +213,13 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
             <Select<string>
               allowCustomValue={true}
               allowCreateWhileLoading={true}
-              isLoading={state.loading}
+              isLoading={isLoading}
               onOpenMenu={async () => {
-                setState((prev) => ({ ...prev, loading: true }));
-                setState({
-                  loading: false,
-                  options: await getFieldNameOptions(props),
-                });
+                setIsLoading(true);
+                setOptions(await getFieldNameOptions(props));
+                setIsLoading(false);
               }}
-              options={state.options}
+              options={options}
               onChange={({ value = "" }) => {
                 setQueryField(value);
                 buildSubquery(selectQuery.expr, value, stdFieldName);

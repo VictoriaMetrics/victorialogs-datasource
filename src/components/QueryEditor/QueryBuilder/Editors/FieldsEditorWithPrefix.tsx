@@ -39,10 +39,8 @@ export default function FieldsEditorWithPrefix(props: QueryBuilderOperationParam
     setFields(values);
   };
 
-  const [state, setState] = useState<{
-    options?: SelectableValue<FieldWithPrefix>[];
-    isLoading?: boolean;
-  }>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [options, setOptions] = useState<SelectableValue<FieldWithPrefix>[]>([]);
 
   const formatOptionLabel = (option: SelectableValue<FieldWithPrefix>, { context }: FormatOptionLabelMeta<FieldWithPrefix>) => {
     if (context === 'value') {
@@ -71,17 +69,18 @@ export default function FieldsEditorWithPrefix(props: QueryBuilderOperationParam
     <MultiSelect<FieldWithPrefix>
       openMenuOnFocus
       onOpenMenu={async () => {
-        setState({ isLoading: true });
+        setIsLoading(true);
         let options = await getFieldNameOptions(props);
         const selectedNames = values.map(v => v.name);
         options = options.filter((opt: SelectableValue<string>) => opt.value && !selectedNames.includes(opt.value));
-        setState({ options, isLoading: undefined });
+        setOptions(options);
+        setIsLoading(false);
       }}
-      isLoading={state.isLoading}
+      isLoading={isLoading}
       allowCustomValue
       noOptionsMessage="No labels found"
       loadingMessage="Loading labels"
-      options={state.options}
+      options={options}
       value={values}
       onChange={(values) => setFields(values.map((v) => v.value || v as FieldWithPrefix))}
       formatOptionLabel={formatOptionLabel}

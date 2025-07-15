@@ -134,18 +134,16 @@ export default function StreamFieldEditor(props: QueryBuilderOperationParamEdito
     setValues(values);
     onChange(index, buildStreamFilterValue(field, values, valuesNotIn));
   };
-  const [state, setState] = useState({
-    loading: false,
-    options: [] as any[],
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [options, setOptions] = useState<SelectableValue<string>[]>([]);
   return (
     <Stack>
       <Select<string>
         allowCustomValue={true}
         allowCreateWhileLoading={true}
-        isLoading={state.loading}
+        isLoading={isLoading}
         onOpenMenu={async () => {
-          setState((prev) => ({ ...prev, loading: true }));
+          setIsLoading(true);
           const streamFieldNames = await datasource.languageProvider?.getFieldList({
             type: FilterFieldType.StreamFieldNames,
             timeRange,
@@ -155,12 +153,10 @@ export default function StreamFieldEditor(props: QueryBuilderOperationParamEdito
             label: value || " ",
             description: `hits: ${hits}`,
           }));
-          setState({
-            loading: false,
-            options,
-          });
+          setOptions(options);
+          setIsLoading(false);
         }}
-        options={state.options}
+        options={options}
         onChange={updateField}
         value={toOption(field)}
         width="auto"
