@@ -5,98 +5,87 @@ import { QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
 import { Stack, MultiSelect, RadioButtonGroup, InlineField, Select } from '@grafana/ui';
 
 import { FieldHits, FilterFieldType } from "../../../../types";
+import { getValuesFromBrackets } from '../utils/operationParser';
 import { getValue, isValue, quoteString } from '../utils/stringHandler';
-import { splitByUnescapedPipe, splitString } from '../utils/stringSplitter';
+import { splitByUnescapedPipe, SplitString, splitString } from '../utils/stringSplitter';
 
-function parseStreamFilterValue(value: string): { label: string, not_in: boolean, values: string[] } {
-  // possible values: {app="nginx"}, {label in (v1,...,vN)}, {label not_in (v1,...,vN)}, {label=~"v1|...|vN"}, {label!~"v1|...|vN"}, {app in ("nginx", "foo.bar")}, {app=~"nginx|foo\\.bar"} // also excaped strings
-  if (value === "") {
+export function parseNonBraketValue(value: SplitString[]): { label: string, not_in: boolean, values: string[] } {
+  let label = getValue(value[0]);
+  value.shift();
+  let is_regex = false;
+  let not_in = false;
+  let values: string[] = [];
+  // get the operator
+  if (value[0]) {
+    if (value[0].value === "!") {
+      not_in = true;
+      value = value.slice(1);
+      if (value[0] && value[0].value === "~") {
+        is_regex = true;
+        value.shift();
+      }
+    } else if (value[0].value === "not_in") {
+      not_in = true;
+      value.shift();
+    } else if (value[0].value === "=") {
+      value = value.slice(1);
+      if (value[0] && value[0].value === "~") {
+        is_regex = true;
+        value.shift();
+      }
+    } else if (value[0].value === "in") {
+      value.shift();
+    }
+  }
+  // get the values
+  if (value[0]) {
+    const splitValue = splitString(getValue(value[0]));
+    if (is_regex) {
+      for (const group of splitByUnescapedPipe(splitValue)) {
+        let val = "";
+        for (const part of group) {
+          if (part.type === "colon") {
+            val += part.value + ":";
+          } else if (part.type === "bracket") {
+            val += part.raw_value;
+          } else {
+            val += part.value;
+          }
+        }
+        values.push(val.replace(/\\(.)/g, "$1"));
+      }
+    } else if (splitValue.length && isValue(splitValue[0])) {
+      values = [getValue(splitValue[0])];
+    }
+  }
+  return { label, not_in, values };
+}
+
+export function parseStreamFilterValue(value: string): { label: string, not_in: boolean, values: string[] } {
+  // possible values: {app="nginx"}, {label in (v1,...,vN)}, {label not_in (v1,...,vN)}, {label=~"v1|...|vN"}, {label!~"v1|...|vN"}, {app in ("nginx", "foo.bar")}, {app=~"nginx|foo\\.bar"}
+  if (!value) {
     return { label: "", not_in: false, values: [] };
   }
   const splitBracket = splitString(value);
-  if (splitBracket.length === 0) { // empty
+  if (!splitBracket.length) {
     return { label: "", not_in: false, values: [] };
   }
   let label = "";
-  let values: string[] = [];
-  const lastElement = splitBracket[splitBracket.length - 1];
-  let not_in = false;
-  if (lastElement.type === "bracket") { // {app in ("nginx", "test") }
-    if (isValue(splitBracket[0])) {
-      label = getValue(splitBracket[0]);
-    }
-    if (lastElement.prefix === "not_in") {
-      not_in = true;
-    } else if (splitBracket[1].value === "not_in") {
-      not_in = true;
-    }
-    for (const value of lastElement.value) {
-      if (value.value === ",") {
-        continue;
-      }
-      if (isValue(value)) {
-        values.push(getValue(value));
-      }
-    }
-  } else { // {app="nginx"}, {label=~"v1|...|vN"}, {app=~"nginx|foo\\.bar"}
-    if (isValue(splitBracket[0])) {
-      label = getValue(splitBracket[0]);
-      let restBracket = splitBracket.slice(1);
-      if (splitBracket.length > 0) {
-        let is_regex = false;
-        if (restBracket[0].value === "!") {
-          not_in = true;
-          restBracket = restBracket.slice(1);
-          if (restBracket.length > 0 && restBracket[0].value === "~") {
-            is_regex = true;
-          }
-          restBracket.shift();
-        } else if (restBracket[0].value === "not_in") {
-          not_in = true;
-          splitBracket.shift();
-        } else if (restBracket[0].value === "=") {
-          restBracket = restBracket.slice(1);
-          if (restBracket.length > 0 && restBracket[0].value === "~") {
-            is_regex = true;
-            restBracket.shift();
-          }
-        } else if (restBracket[0].value === "in") {
-          restBracket.shift();
-        }
-        if (restBracket.length > 0) {
-          let splitValue = splitString(getValue(restBracket[0]));
-          if (is_regex) {
-            const splitPipes = splitByUnescapedPipe(splitValue);
-            let value = "";
-            for (const splitValues of splitPipes) {
-              for (const splitValue of splitValues) {
-                if (splitValue.type === "colon") {
-                  value += splitValue.value + ":";
-                } else if (splitValue.type === "bracket") {
-                  value += splitValue.raw_value;
-                } else {
-                  value += splitValue.value;
-                }
-                values.push(value.replace(/\\(.)/g, "$1"));
-                value = "";
-              }
-            }
-          } else {
-            if (splitValue.length > 0) {
-              if (isValue(splitValue[0])) {
-                values = [getValue(splitValue[0])];
-              }
-            }
-          }
-        }
-      }
-    }
+  if (isValue(splitBracket[0])) {
+    label = getValue(splitBracket[0]);
   }
-  return {
-    label,
-    not_in,
-    values,
+  // Bracket case: {label in (...)} or {label not_in (...)}
+  const last = splitBracket[splitBracket.length - 1];
+  if (last.type === "bracket") {
+    const not_in = last.prefix === "not_in" || (splitBracket[1] && splitBracket[1].value === "not_in");
+    const values = getValuesFromBrackets(last.value);
+    return { label, not_in, values };
   }
+  // Non-bracket case: {label=...}, {label=~...}, {label!~...}, etc.
+  if (isValue(splitBracket[0])) {
+    return parseNonBraketValue(splitBracket);
+  }
+  return { label, not_in: false, values: [] };
 }
 
 function buildStreamFilterValue(label: string, values: string[], not_in: boolean): string {
