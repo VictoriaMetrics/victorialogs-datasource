@@ -78,6 +78,7 @@ export default function FieldsEditorWithPrefix(props: QueryBuilderOperationParam
       }}
       isLoading={isLoading}
       allowCustomValue
+      allowCreateWhileLoading
       noOptionsMessage="No labels found"
       loadingMessage="Loading labels"
       options={options}

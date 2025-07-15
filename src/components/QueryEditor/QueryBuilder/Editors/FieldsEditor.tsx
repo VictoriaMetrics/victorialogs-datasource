@@ -35,6 +35,7 @@ export default function FieldsEditor(props: QueryBuilderOperationParamEditorProp
       value={getValuesFromBrackets(splitString(String(value || "")))}
       isLoading={isLoading}
       allowCustomValue
+      allowCreateWhileLoading
       noOptionsMessage="No labels found"
       loadingMessage="Loading labels"
       width={20}

@@ -192,6 +192,7 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
             value={filterValues}
             isLoading={isLoadingFieldNames}
             allowCustomValue
+            allowCreateWhileLoading
             noOptionsMessage="No labels found"
             loadingMessage="Loading labels"
             width={30}

@@ -59,6 +59,7 @@ export default function UnpackedFieldsSelector(unpackOperation: "unpack_json" | 
         }}
         isLoading={isLoading}
         allowCustomValue
+        allowCreateWhileLoading
         noOptionsMessage="No labels found"
         loadingMessage="Loading labels"
         options={options}

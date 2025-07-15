@@ -119,6 +119,7 @@ export default function StreamFieldEditor(props: QueryBuilderOperationParamEdito
   const [field, setField] = useState<string>(initialStreamSelector.label);
   const [values, setValues] = useState<string[]>(initialStreamSelector.values);
   const [valuesNotIn, setValuesNotIn] = useState<boolean>(initialStreamSelector.not_in);
+  const [isLoadingLabelValues, setIsLoadingLabelValues] = useState(false);
   const [labelValues, setLabelValues] = useState<SelectableValue[]>([]);
 
   const updateField = async ({ value = "" }) => {
@@ -182,6 +183,7 @@ export default function StreamFieldEditor(props: QueryBuilderOperationParamEdito
             if (field === "") {
               return;
             }
+            setIsLoadingLabelValues(true);
             const streamFieldNames = await datasource.languageProvider?.getFieldList({
               type: FilterFieldType.StreamFieldValues,
               field,
@@ -193,8 +195,11 @@ export default function StreamFieldEditor(props: QueryBuilderOperationParamEdito
               description: `hits: ${hits}`,
             }));
             setLabelValues(options);
+            setIsLoadingLabelValues(false);
           }}
+          isLoading={isLoadingLabelValues}
           allowCustomValue
+          allowCreateWhileLoading
           loadingMessage="Loading labels"
           options={labelValues}
           value={values}

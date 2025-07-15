@@ -51,6 +51,7 @@ export default function SortedFieldsEditor(props: QueryBuilderOperationParamEdit
       }}
       isLoading={isLoading}
       allowCustomValue
+      allowCreateWhileLoading
       noOptionsMessage="No labels found"
       loadingMessage="Loading labels"
       options={options}
