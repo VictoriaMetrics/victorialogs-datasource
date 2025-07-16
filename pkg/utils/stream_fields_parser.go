@@ -29,8 +29,8 @@ func ParseStreamFields(streamFields string) ([]StreamField, error) {
 	if len(streams) == 0 {
 		return []StreamField(nil), nil
 	}
-	labelValuesPairs := strings.Split(streams, "\",")
 
+	labelValuesPairs := splitStreamsToFields(streams)
 	stf := make([]StreamField, 0, len(labelValuesPairs))
 	for _, labelValuePair := range labelValuesPairs {
 		labelValuePair = strings.TrimSpace(labelValuePair)
@@ -52,7 +52,11 @@ func ParseStreamFields(streamFields string) ([]StreamField, error) {
 			return nil, fmt.Errorf("_stream field %q must have quoted value", labelValuePair)
 		}
 
-		value = strings.Replace(value, `"`, ``, -1)
+		// Remove only the enclosing quotes, preserving any internal quotes
+		if strings.HasPrefix(value, `"`) && strings.HasSuffix(value, `"`) {
+			value = value[1 : len(value)-1]
+		}
+
 		if len(value) == 0 {
 			return nil, fmt.Errorf("_stream field %q must have non-empty value", labelValuePair)
 		}
@@ -63,4 +67,52 @@ func ParseStreamFields(streamFields string) ([]StreamField, error) {
 	}
 
 	return stf, nil
+}
+
+// splitStreamsToFields parses a string of stream fields, respecting quoted values and
+// only splitting on commas that separate fields. It handles quoted strings by toggling
+// the `expectingComma` flag and ensures that commas within quotes are not treated as field
+// separators. After closing a quote, the function expects a comma for field separation.
+// The function returns a slice of strings representing individual fields.
+func splitStreamsToFields(streamFields string) []string {
+
+	var fields []string
+	var currentField strings.Builder
+	var inQuotes bool
+	var expectingComma bool
+
+	for i := 0; i < len(streamFields); i++ {
+		char := streamFields[i]
+
+		if char == '"' {
+			inQuotes = !inQuotes
+			currentField.WriteByte(char)
+
+			// After closing quote, we should be expecting a comma for field separation
+			if !inQuotes {
+				expectingComma = true
+			}
+		} else if char == ',' && expectingComma {
+			// Only split on commas that follow a closing quote
+			field := strings.TrimSpace(currentField.String())
+			fields = append(fields, field)
+			currentField.Reset()
+			expectingComma = false
+		} else {
+			currentField.WriteByte(char)
+
+			// If we encounter any non-whitespace character after a closing quote
+			// that isn't a comma, we're no longer expecting a field separator
+			if expectingComma && char != ' ' {
+				expectingComma = false
+			}
+		}
+	}
+
+	if currentField.Len() > 0 {
+		field := strings.TrimSpace(currentField.String())
+		fields = append(fields, field)
+	}
+
+	return fields
 }
