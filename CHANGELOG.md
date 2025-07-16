@@ -2,6 +2,8 @@
 
 ## tip
 
+* BREAKING: increase minimum required Grafana version to `>=10.4.0` to ensure compatibility with [`@grafana/plugin-ui`](https://github.com/grafana/plugin-ui). This drops support for older Grafana versions.
+
 * BUGFIX: fix an issue with missing `_msg` field in the response. If `_msg` field is missed in the response now always returned as an empty string. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/330).
 
 ## v0.18.1
