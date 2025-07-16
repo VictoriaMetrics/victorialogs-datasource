@@ -11,20 +11,20 @@ export default function FieldValueTypeEditor(props: QueryBuilderOperationParamEd
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<SelectableValue<string>[]>([]);
 
+  const handleOpenMenu = async () => {
+    setIsLoading(true);
+    setOptions(await getValueTypeOptions(props));
+    setIsLoading(false);
+  }
+
   return (
     <Select<string>
       allowCustomValue={true}
       allowCreateWhileLoading={true}
       isLoading={isLoading}
-      onOpenMenu={async () => {
-        setIsLoading(true);
-        setOptions(await getValueTypeOptions(props));
-        setIsLoading(false);
-      }}
+      onOpenMenu={handleOpenMenu}
       options={options}
-      onChange={({ value = "" }) => {
-        onChange(index, value);
-      }}
+      onChange={({ value = "" }) => onChange(index, value)}
       value={toOption(String(value || ""))}
       width="auto"
     />

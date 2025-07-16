@@ -128,10 +128,9 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
       if (strValues.length === 1) {
         onChange(index, strValues[0]);
         return;
-      } else {
-        onChange(index, "in" + valueExpr);
-        return;
       }
+      onChange(index, "in" + valueExpr);
+      return;
     }
     onChange(index, valueExpr);
   }
@@ -156,14 +155,27 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
   };
   const [fieldNames, setFieldNames] = useState<SelectableValue<string>[]>([])
   const [isLoadingFieldNames, setIsLoadingFieldNames] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [options, setOptions] = useState<SelectableValue<string>[]>([]);
   const handleOpenMenu = async () => {
     setIsLoadingFieldNames(true);
     const options = await getFieldValueOptions(props, stdFieldName);
     setFieldNames(options)
     setIsLoadingFieldNames(false)
   }
-  const [isLoading, setIsLoading] = useState(false);
-  const [options, setOptions] = useState<SelectableValue<string>[]>([]);
+  const onQueryValueToggle = (value: boolean) => {
+    setUseQueryAsValue(value);
+    if (value) {
+      buildSubquery("", queryField, stdFieldName)
+    } else {
+      buildSubqueryValue([]);
+    }
+  }
+  const handleOpenFieldNameMenu = async () => {
+    setIsLoading(true);
+    setOptions(await getFieldNameOptions(props));
+    setIsLoading(false);
+  }
   return (
     <>
       <div style={{ padding: '6px 0 8px 0px', display: 'block' }}>
@@ -174,14 +186,7 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
               { label: 'query', value: true },
             ]}
             value={useQueryAsValue}
-            onChange={(value) => {
-              setUseQueryAsValue(value);
-              if (value) {
-                buildSubquery("", queryField, stdFieldName)
-              } else {
-                buildSubqueryValue([]);
-              }
-            }}
+            onChange={onQueryValueToggle}
             size="sm"
           />
         </div>
@@ -215,11 +220,7 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
               allowCustomValue={true}
               allowCreateWhileLoading={true}
               isLoading={isLoading}
-              onOpenMenu={async () => {
-                setIsLoading(true);
-                setOptions(await getFieldNameOptions(props));
-                setIsLoading(false);
-              }}
+              onOpenMenu={handleOpenFieldNameMenu}
               options={options}
               onChange={({ value = "" }) => {
                 setQueryField(value);

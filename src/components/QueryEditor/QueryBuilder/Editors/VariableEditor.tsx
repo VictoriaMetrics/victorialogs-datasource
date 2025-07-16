@@ -11,20 +11,20 @@ export default function VariableEditor(props: QueryBuilderOperationParamEditorPr
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<SelectableValue<string>[]>([]);
 
+  const handleOpenMenu = async () => {
+    setIsLoading(true);
+    setOptions(await getVariableOptions());
+    setIsLoading(false);
+  }
+
   return (
     <Select<string>
       allowCustomValue={true}
       allowCreateWhileLoading={true}
       isLoading={isLoading}
-      onOpenMenu={async () => {
-        setIsLoading(true);
-        setOptions(await getVariableOptions());
-        setIsLoading(false);
-      }}
+      onOpenMenu={handleOpenMenu}
       options={options}
-      onChange={({ value = "" }) => {
-        onChange(index, value);
-      }}
+      onChange={({ value = "" }) => onChange(index, value)}
       value={toOption(String(value || ""))}
       width="auto"
     />

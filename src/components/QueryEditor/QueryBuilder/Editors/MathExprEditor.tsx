@@ -18,6 +18,13 @@ export default function MathExprEditor(props: QueryBuilderOperationParamEditorPr
   }
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<SelectableValue<string>[]>([]);
+
+  const handleOpenMenu = async () => {
+    setIsLoading(true);
+    setOptions(await getFieldNameOptions(props));
+    setIsLoading(false);
+  }
+
   return (
     <>
       <Input
@@ -30,15 +37,9 @@ export default function MathExprEditor(props: QueryBuilderOperationParamEditorPr
         allowCustomValue={true}
         allowCreateWhileLoading={true}
         isLoading={isLoading}
-        onOpenMenu={async () => {
-          setIsLoading(true);
-          setOptions(await getFieldNameOptions(props));
-          setIsLoading(false);
-        }}
+        onOpenMenu={handleOpenMenu}
         options={options}
-        onChange={({ value = "" }) => {
-          updateValue(expr, value);
-        }}
+        onChange={({ value = "" }) => updateValue(expr, value)}
         value={toOption(resultField)}
         width="auto"
       />

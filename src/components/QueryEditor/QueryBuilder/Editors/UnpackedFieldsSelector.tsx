@@ -33,30 +33,32 @@ export default function UnpackedFieldsSelector(unpackOperation: "unpack_json" | 
     const [isLoading, setIsLoading] = useState(false);
     const [options, setOptions] = useState<SelectableValue<string>[]>([]);
 
+    const handleOpenMenu = async () => {
+      setIsLoading(true);
+      const fieldName = operation.params[0] as string;
+      const operations = (query as VisualQuery).operations;
+      const operationIdx = operations.findIndex(op => op === operation);
+      const prevOperations = operations.slice(0, operationIdx);
+      let prevExpr = queryModeller.renderQuery({ operations: prevOperations, labels: [] });
+      const unpackedQuery = ` | fields "${fieldName}" | ${unpackOperation} from "${fieldName}" result_prefix "result_" | delete "${fieldName}" `;
+      if (prevExpr === "") {
+        prevExpr = "*";
+      }
+      const queryExpr = prevExpr + unpackedQuery;
+      let options = await datasource.languageProvider?.getFieldList({ query: queryExpr, timeRange, type: FilterFieldType.FieldName });
+      options = options ? options.map(({ value, hits }: { value: string; hits: number }) => ({
+        value: value.replace(/^(result_)/, ""),
+        label: value.replace(/^(result_)/, "") || " ",
+        description: `hits: ${hits}`,
+      })) : []
+      setOptions(options);
+      setIsLoading(false);
+    }
+
     return (
       <MultiSelect<string>
         openMenuOnFocus
-        onOpenMenu={async () => {
-          setIsLoading(true);
-          const fieldName = operation.params[0] as string;
-          const operations = (query as VisualQuery).operations;
-          const operationIdx = operations.findIndex(op => op === operation);
-          const prevOperations = operations.slice(0, operationIdx);
-          let prevExpr = queryModeller.renderQuery({ operations: prevOperations, labels: [] });
-          const unpackedQuery = ` | fields "${fieldName}" | ${unpackOperation} from "${fieldName}" result_prefix "result_" | delete "${fieldName}" `;
-          if (prevExpr === "") {
-            prevExpr = "*";
-          }
-          const queryExpr = prevExpr + unpackedQuery;
-          let options = await datasource.languageProvider?.getFieldList({ query: queryExpr, timeRange, type: FilterFieldType.FieldName });
-          options = options ? options.map(({ value, hits }: { value: string; hits: number }) => ({
-            value: value.replace(/^(result_)/, ""),
-            label: value.replace(/^(result_)/, "") || " ",
-            description: `hits: ${hits}`,
-          })) : []
-          setOptions(options);
-          setIsLoading(false);
-        }}
+        onOpenMenu={handleOpenMenu}
         isLoading={isLoading}
         allowCustomValue
         allowCreateWhileLoading

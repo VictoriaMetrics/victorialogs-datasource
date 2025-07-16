@@ -64,17 +64,23 @@ export default function FieldsEditorWithPrefix(props: QueryBuilderOperationParam
     return <>{option.label}</>;
   }
 
+  const handleOpenMenu = async () => {
+    setIsLoading(true);
+    let options = await getFieldNameOptions(props);
+    const selectedNames = values.map(v => v.name);
+    options = options.filter((opt: SelectableValue<string>) => opt.value && !selectedNames.includes(opt.value));
+    setOptions(options);
+    setIsLoading(false);
+  }
+
+  const handleChange = (values: SelectableValue<FieldWithPrefix>[]) => {
+    setFields(values.map((v) => v.value || v as FieldWithPrefix))
+  }
+
   return (
     <MultiSelect<FieldWithPrefix>
       openMenuOnFocus
-      onOpenMenu={async () => {
-        setIsLoading(true);
-        let options = await getFieldNameOptions(props);
-        const selectedNames = values.map(v => v.name);
-        options = options.filter((opt: SelectableValue<string>) => opt.value && !selectedNames.includes(opt.value));
-        setOptions(options);
-        setIsLoading(false);
-      }}
+      onOpenMenu={handleOpenMenu}
       isLoading={isLoading}
       allowCustomValue
       allowCreateWhileLoading
@@ -82,7 +88,7 @@ export default function FieldsEditorWithPrefix(props: QueryBuilderOperationParam
       loadingMessage="Loading labels"
       options={options}
       value={values}
-      onChange={(values) => setFields(values.map((v) => v.value || v as FieldWithPrefix))}
+      onChange={handleChange}
       formatOptionLabel={formatOptionLabel}
     />
   );

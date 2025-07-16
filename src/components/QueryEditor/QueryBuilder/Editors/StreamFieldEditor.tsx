@@ -126,26 +126,49 @@ export default function StreamFieldEditor(props: QueryBuilderOperationParamEdito
   };
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<SelectableValue<string>[]>([]);
+
+  const handleOpenNamesMenu = async () => {
+    setIsLoading(true);
+    const streamFieldNames = await datasource.languageProvider?.getFieldList({
+      type: FilterFieldType.StreamFieldNames,
+      timeRange,
+    });
+    const options = streamFieldNames.map(({ value, hits }: FieldHits) => ({
+      value: value,
+      label: value || " ",
+      description: `hits: ${hits}`,
+    }));
+    setOptions(options);
+    setIsLoading(false);
+  }
+
+  const handleOpenValuesMenu = async () => {
+
+    if (field === "") {
+      return;
+    }
+    setIsLoadingLabelValues(true);
+    const streamFieldNames = await datasource.languageProvider?.getFieldList({
+      type: FilterFieldType.StreamFieldValues,
+      field,
+      timeRange,
+    });
+    const options = streamFieldNames.map(({ value, hits }: FieldHits) => ({
+      value: value,
+      label: value || " ",
+      description: `hits: ${hits}`,
+    }));
+    setLabelValues(options);
+    setIsLoadingLabelValues(false);
+  }
+
   return (
     <Stack>
       <Select<string>
         allowCustomValue={true}
         allowCreateWhileLoading={true}
         isLoading={isLoading}
-        onOpenMenu={async () => {
-          setIsLoading(true);
-          const streamFieldNames = await datasource.languageProvider?.getFieldList({
-            type: FilterFieldType.StreamFieldNames,
-            timeRange,
-          });
-          const options = streamFieldNames.map(({ value, hits }: FieldHits) => ({
-            value: value,
-            label: value || " ",
-            description: `hits: ${hits}`,
-          }));
-          setOptions(options);
-          setIsLoading(false);
-        }}
+        onOpenMenu={handleOpenNamesMenu}
         options={options}
         onChange={updateField}
         value={toOption(field)}
@@ -168,24 +191,7 @@ export default function StreamFieldEditor(props: QueryBuilderOperationParamEdito
       <InlineField>
         <MultiSelect<string>
           openMenuOnFocus
-          onOpenMenu={async () => {
-            if (field === "") {
-              return;
-            }
-            setIsLoadingLabelValues(true);
-            const streamFieldNames = await datasource.languageProvider?.getFieldList({
-              type: FilterFieldType.StreamFieldValues,
-              field,
-              timeRange,
-            });
-            const options = streamFieldNames.map(({ value, hits }: FieldHits) => ({
-              value: value,
-              label: value || " ",
-              description: `hits: ${hits}`,
-            }));
-            setLabelValues(options);
-            setIsLoadingLabelValues(false);
-          }}
+          onOpenMenu={handleOpenValuesMenu}
           isLoading={isLoadingLabelValues}
           allowCustomValue
           allowCreateWhileLoading

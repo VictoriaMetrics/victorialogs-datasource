@@ -38,17 +38,19 @@ export default function SortedFieldsEditor(props: QueryBuilderOperationParamEdit
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<SelectableValue<FieldWithDirection>[]>([]);
 
+  const handleOpenMenu = async () => {
+    setIsLoading(true);
+    let options = await getFieldNameOptions(props);
+    const selectedNames = values.map(v => v.name);
+    options = options.filter((opt: SelectableValue<FieldWithDirection>) => opt.value && !selectedNames.includes(opt.value.name));
+    setOptions(options);
+    setIsLoading(false);
+  }
+
   return (
     <MultiSelect<FieldWithDirection>
       openMenuOnFocus
-      onOpenMenu={async () => {
-        setIsLoading(true);
-        let options = await getFieldNameOptions(props);
-        const selectedNames = values.map(v => v.name);
-        options = options.filter((opt: SelectableValue<FieldWithDirection>) => opt.value && !selectedNames.includes(opt.value.name));
-        setOptions(options);
-        setIsLoading(false);
-      }}
+      onOpenMenu={handleOpenMenu}
       isLoading={isLoading}
       allowCustomValue
       allowCreateWhileLoading
