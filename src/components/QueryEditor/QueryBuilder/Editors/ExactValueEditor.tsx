@@ -10,22 +10,20 @@ export default function ExactValueEditor(props: QueryBuilderOperationParamEditor
   const { onChange, index, value, operation } = props;
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<SelectableValue<string>[]>([]);
-
+  const handleOpenMenu = async () => {
+    setIsLoading(true);
+    setOptions(await getFieldValueOptions(props, operation.params[0] as string));
+    setIsLoading(false);
+  };
   return (
     <InlineField>
       <Select<string>
         allowCustomValue={true}
         allowCreateWhileLoading={true}
         isLoading={isLoading}
-        onOpenMenu={async () => {
-          setIsLoading(true);
-          setOptions(await getFieldValueOptions(props, operation.params[0] as string));
-          setIsLoading(false);
-        }}
+        onOpenMenu={handleOpenMenu}
         options={options}
-        onChange={({ value = "" }) => {
-          onChange(index, value);
-        }}
+        onChange={({ value = "" }) => onChange(index, value)}
         value={toOption(String(value || ""))}
         width="auto"
       />
