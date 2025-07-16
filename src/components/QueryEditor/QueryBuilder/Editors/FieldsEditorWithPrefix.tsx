@@ -26,9 +26,8 @@ export default function FieldsEditorWithPrefix(props: QueryBuilderOperationParam
     const newValue = values.map((field) => {
       if (field.isPrefix !== undefined) {
         return field.isPrefix ? `${quoteString(field.name)}*` : `${quoteString(field.name)}`;
-      } else {
-        return quoteString(field as unknown as string);
       }
+      return quoteString(field as unknown as string);
     }).join(', ');
     onChange(index, newValue);
   }
