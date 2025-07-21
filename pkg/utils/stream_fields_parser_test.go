@@ -218,7 +218,7 @@ func TestParseStreamFields(t *testing.T) {
 			want: []StreamField{
 				{
 					Label: "process.command_args",
-					Value: "[\\\"/opt/java/openjdk/bin/java\\\",\\\"-jar\\\",\\\"/app.jar\\\"]",
+					Value: "[\"/opt/java/openjdk/bin/java\",\"-jar\",\"/app.jar\"]",
 				},
 			},
 		},
@@ -248,7 +248,7 @@ func TestParseStreamFields(t *testing.T) {
 				},
 				{
 					Label: "process.command_args",
-					Value: "[\\\"/opt/java/openjdk/bin/java\\\",\\\"-jar\\\",\\\"/app.jar\\\"]",
+					Value: "[\"/opt/java/openjdk/bin/java\",\"-jar\",\"/app.jar\"]",
 				},
 				{
 					Label: "process.executable.path",

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -53,16 +54,16 @@ func ParseStreamFields(streamFields string) ([]StreamField, error) {
 		}
 
 		// Remove only the enclosing quotes, preserving any internal quotes
-		if strings.HasPrefix(value, `"`) && strings.HasSuffix(value, `"`) {
-			value = value[1 : len(value)-1]
+		unqValue, err := strconv.Unquote(value)
+		if err != nil {
+			return nil, fmt.Errorf("_stream field %q has invalid quoted value: %v", labelValuePair, err)
 		}
-
-		if len(value) == 0 {
+		if len(unqValue) == 0 {
 			return nil, fmt.Errorf("_stream field %q must have non-empty value", labelValuePair)
 		}
 		stf = append(stf, StreamField{
 			Label: label,
-			Value: value,
+			Value: unqValue,
 		})
 	}
 
