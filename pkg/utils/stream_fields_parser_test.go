@@ -223,6 +223,26 @@ func TestParseStreamFields(t *testing.T) {
 			},
 		},
 		{
+			name:         "space after the quote and before the comma",
+			streamFields: `{process.command_args="[\"/opt/java/openjdk/bin/java\" ,\"-jar\",\"/app.jar\"]"}`,
+			want: []StreamField{
+				{
+					Label: "process.command_args",
+					Value: "[\"/opt/java/openjdk/bin/java\" ,\"-jar\",\"/app.jar\"]",
+				},
+			},
+		},
+		{
+			name:         "space after the quote and before the comma for the many of them",
+			streamFields: `{process.command_args="[\"/opt/java/openjdk/bin/java\" ,\"-jar\" ,\"/app.jar\"]"}`,
+			want: []StreamField{
+				{
+					Label: "process.command_args",
+					Value: "[\"/opt/java/openjdk/bin/java\" ,\"-jar\" ,\"/app.jar\"]",
+				},
+			},
+		},
+		{
 			name:         "real world example with comma inside the value after the quotes",
 			streamFields: `{deployment.environment="dev",host.arch="amd64",host.name="ip-XXX.compute.internal",os.description="Linux 5.10.XXX.amzn2.x86_64",os.type="linux",process.command_args="[\"/opt/java/openjdk/bin/java\",\"-jar\",\"/app.jar\"]",process.executable.path="/opt/java/openjdk/bin/java",process.pid="1",process.runtime.description="Eclipse Adoptium OpenJDK 64-Bit Server VM XXX",process.runtime.name="OpenJDK Runtime Environment",process.runtime.version="17.0.XXX",service.instance.id="XXX",service.name="XXX",service.version="0.0.1-SNAPSHOT",telemetry.distro.name="opentelemetry-spring-boot-starter",telemetry.distro.version="2.8.0",telemetry.sdk.language="java",telemetry.sdk.name="opentelemetry",telemetry.sdk.version="1.42.1"}`,
 			want: []StreamField{
