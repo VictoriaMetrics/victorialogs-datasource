@@ -42,16 +42,13 @@ export enum QueryEditorMode {
   Code = 'code',
 }
 
-export interface QueryFromSchema extends DataQuery {
+export interface Query extends DataQuery {
   editorMode?: QueryEditorMode;
   expr: string;
   legendFormat?: string;
   maxLines?: number;
   step?: string;
   extraFilters?: string;
-}
-
-export interface Query extends QueryFromSchema {
   direction?: QueryDirection;
   supportingQueryType?: SupportingQueryType;
   queryType?: QueryType;

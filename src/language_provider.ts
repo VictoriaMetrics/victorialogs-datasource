@@ -1,5 +1,4 @@
 import { getDefaultTimeRange, LanguageProvider, TimeRange, } from '@grafana/data';
-import { BackendSrvRequest } from '@grafana/runtime';
 
 import { VictoriaLogsDatasource } from './datasource';
 import { FieldHits, FilterFieldType } from "./types";
@@ -33,17 +32,6 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
 
     Object.assign(this, initialValues);
   }
-
-  request = async (url: string, defaultValue: any, params = {}, options?: Partial<BackendSrvRequest>): Promise<any> => {
-    try {
-      const res = await this.datasource.metadataRequest({ url, params, options });
-      return res.data?.values;
-    } catch (error) {
-      console.error(error);
-    }
-
-    return defaultValue;
-  };
 
   start = async (): Promise<any[]> => {
     return Promise.all([]);
@@ -85,7 +73,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     }
 
     try {
-      const res = await this.datasource.metadataRequest({ url, params, options: { method: 'POST' } });
+      const res = await this.datasource.postResource(url, params);
       const result = (res.data?.values || []) as FieldHits[];
       const sortedResult = sortFieldHits(result);
       this.cacheValues.set(key, sortedResult);

@@ -128,6 +128,7 @@ github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt
 github.com/grafana/grafana-plugin-sdk-go/backend/internal/endpointctx
 github.com/grafana/grafana-plugin-sdk-go/backend/log
 github.com/grafana/grafana-plugin-sdk-go/backend/proxy
+github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter
 github.com/grafana/grafana-plugin-sdk-go/backend/tracing
 github.com/grafana/grafana-plugin-sdk-go/backend/useragent
 github.com/grafana/grafana-plugin-sdk-go/build

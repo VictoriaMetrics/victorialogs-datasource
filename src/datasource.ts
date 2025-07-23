@@ -1,4 +1,4 @@
-import { cloneDeep, defaults } from 'lodash';
+import { cloneDeep } from 'lodash';
 import { lastValueFrom, merge, Observable } from "rxjs";
 import { map } from 'rxjs/operators';
 
@@ -29,10 +29,8 @@ import {
   toUtc,
 } from '@grafana/data';
 import {
-  BackendSrvRequest,
+  config,
   DataSourceWithBackend,
-  FetchResponse,
-  getBackendSrv,
   getGrafanaLiveSrv,
   getTemplateSrv,
   TemplateSrv,
@@ -57,7 +55,6 @@ import {
   QueryBuilderLimits,
   QueryFilterOptions,
   QueryType,
-  RequestArguments,
   SupportingQueryType,
   ToggleFilterAction,
   VariableQuery,
@@ -115,7 +112,7 @@ export class VictoriaLogsDatasource
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-    const queries = request.targets.filter(q => q.expr).map((q) => {
+    const queries = request.targets.filter(q => q.expr || config.publicDashboardAccessToken !== '').map((q) => {
       return {
         ...q,
         maxLines: q.maxLines ?? this.maxLines,
@@ -221,48 +218,17 @@ export class VictoriaLogsDatasource
     return value;
   }
 
-  async metadataRequest({ url, params, options }: RequestArguments) {
-    return await lastValueFrom(
-      this._request({
-        url: `/api/datasources/proxy/${this.id}/${url.replace(/^\//, '')}`,
-        params,
-        options: { method: 'GET', hideFromInspector: true, ...options },
-      })
-    )
-  }
-
-  _request<T = any>({ url, params = {}, options: overrides }: RequestArguments): Observable<FetchResponse<T>> {
-    const queryUrl = url.startsWith(`/api/datasources/proxy/${this.id}`) ? url : `${this.url}/${url}`;
-
-    const options: BackendSrvRequest = defaults(overrides, {
-      url: queryUrl,
-      method: this.httpMethod,
-      headers: { ...this.getMultitenancyHeaders() },
-      credentials: this.basicAuth || this.withCredentials ? 'include' : 'same-origin',
-    });
-
-    for (const [key, value] of this.customQueryParameters) {
-      if (params[key] == null) {
-        params[key] = value;
-      }
+  interpolateVariablesInQueries(queries: PromQuery[], scopedVars: ScopedVars): PromQuery[] {
+    let expandedQueries = queries;
+    if (queries && queries.length) {
+      expandedQueries = queries.map((query) => ({
+        ...query,
+        datasource: this.getRef(),
+        expr: this.templateSrv.replace(query.expr, scopedVars, this.interpolateQueryExpr),
+        interval: this.templateSrv.replace(query.interval, scopedVars),
+      }));
     }
-
-    if (options.method === 'GET' && Object.keys(params).length) {
-      const searchParams = new URLSearchParams(params);
-      const separator = options.url.search(/\?/) >= 0 ? '&' : '?'
-      options.url += separator + searchParams.toString()
-    }
-
-    if (options.method !== 'GET') {
-      options.headers!['Content-Type'] = 'application/x-www-form-urlencoded';
-      options.data = params;
-    }
-
-    if (this.basicAuth) {
-      options.headers!.Authorization = this.basicAuth;
-    }
-
-    return getBackendSrv().fetch<T>(options);
+    return expandedQueries;
   }
 
   async metricFindQuery(
@@ -348,7 +314,7 @@ export class VictoriaLogsDatasource
         addr: {
           scope: LiveChannelScope.DataSource,
           namespace: this.uid,
-          path: `${request.requestId}/${query.refId}`, // this will allow each new query to create a new connection
+          path: `${request.requestId}/${query.refId}`,
           data: {
             ...query,
           },
@@ -514,17 +480,5 @@ export class VictoriaLogsDatasource
         };
 
     return { ...timeRange, raw: timeRange };
-  }
-
-  getMultitenancyHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {};
-    if (this.multitenancyHeaders) {
-      for (const [key, value] of Object.entries(this.multitenancyHeaders)) {
-        if (value) {
-          headers[key] = value;
-        }
-      }
-    }
-    return headers;
   }
 }
