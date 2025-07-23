@@ -1,16 +1,27 @@
-run:
-  timeout: 2m
+version: "2"
 linters:
   enable:
     - revive
-issues:
-  exclude-dirs:
-    - go
-    - opt
-  exclude-rules:
-    - linters:
-        - staticcheck
-      text: "SA(4003|1019|5011):"
-  include:
-    - EXC0012
-    - EXC0014
+  exclusions:
+    generated: lax
+    presets:
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - staticcheck
+        text: 'SA(4003|1019|5011):'
+    paths:
+      - go
+      - opt
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
