@@ -127,7 +127,7 @@ func TestGetTime(t *testing.T) {
 	o = opts{
 		s: "2019-02-02T01:01:00",
 		want: func() time.Time {
-			t := time.Date(2019, 2, 1, 23, 1, 0, 0, time.UTC)
+			t := time.Date(2019, 2, 2, 1, 1, 0, 0, time.UTC)
 			return t
 		},
 	}
@@ -137,7 +137,7 @@ func TestGetTime(t *testing.T) {
 	o = opts{
 		s: "2019-02-02T01:01:01",
 		want: func() time.Time {
-			t := time.Date(2019, 2, 1, 23, 1, 1, 0, time.UTC)
+			t := time.Date(2019, 2, 2, 1, 1, 1, 0, time.UTC)
 			return t
 		},
 	}
