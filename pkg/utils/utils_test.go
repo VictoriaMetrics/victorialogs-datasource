@@ -366,7 +366,7 @@ func Test_calculateStep(t *testing.T) {
 	}
 	f(o)
 
-	//two days time range with minimal resolution
+	// two days time range with minimal resolution
 	o = opts{
 		baseInterval: 60 * time.Second,
 		timeRange: backend.TimeRange{
@@ -586,4 +586,95 @@ func TestAddTimeFieldWithRange(t *testing.T) {
 | stats by (_time:1s) count()`,
 	}
 	f(o)
+}
+
+func TestTryParseTimestampRFC3339NanoString_Success(t *testing.T) {
+	f := func(s, timestampExpected string) {
+		t.Helper()
+
+		nsecs, ok := TryParseTimestampRFC3339Nano(s)
+		if !ok {
+			t.Fatalf("cannot parse timestamp %q", s)
+		}
+		timestamp := time.Unix(0, nsecs).UTC().AppendFormat(nil, time.RFC3339Nano)
+		if string(timestamp) != timestampExpected {
+			t.Fatalf("unexpected timestamp; got %q; want %q", timestamp, timestampExpected)
+		}
+	}
+
+	// No fractional seconds
+	f("2023-01-15T23:45:51Z", "2023-01-15T23:45:51Z")
+
+	// Different number of fractional seconds
+	f("2023-01-15T23:45:51.1Z", "2023-01-15T23:45:51.1Z")
+	f("2023-01-15T23:45:51.12Z", "2023-01-15T23:45:51.12Z")
+	f("2023-01-15T23:45:51.123Z", "2023-01-15T23:45:51.123Z")
+	f("2023-01-15T23:45:51.1234Z", "2023-01-15T23:45:51.1234Z")
+	f("2023-01-15T23:45:51.12345Z", "2023-01-15T23:45:51.12345Z")
+	f("2023-01-15T23:45:51.123456Z", "2023-01-15T23:45:51.123456Z")
+	f("2023-01-15T23:45:51.1234567Z", "2023-01-15T23:45:51.1234567Z")
+	f("2023-01-15T23:45:51.12345678Z", "2023-01-15T23:45:51.12345678Z")
+	f("2023-01-15T23:45:51.123456789Z", "2023-01-15T23:45:51.123456789Z")
+
+	// The minimum possible timestamp
+	f("1677-09-21T00:12:44Z", "1677-09-21T00:12:44Z")
+
+	// The maximum possible timestamp
+	f("2262-04-11T23:47:15.999999999Z", "2262-04-11T23:47:15.999999999Z")
+
+	// timestamp with timezone
+	f("2023-01-16T00:45:51+01:00", "2023-01-15T23:45:51Z")
+	f("2023-01-16T00:45:51.123-01:00", "2023-01-16T01:45:51.123Z")
+
+	// SQL datetime format
+	// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/6721
+	f("2023-01-16 00:45:51+01:00", "2023-01-15T23:45:51Z")
+	f("2023-01-16 00:45:51.123-01:00", "2023-01-16T01:45:51.123Z")
+}
+
+func TestTryParseTimestampRFC3339Nano_Failure(t *testing.T) {
+	f := func(s string) {
+		t.Helper()
+		_, ok := TryParseTimestampRFC3339Nano(s)
+		if ok {
+			t.Fatalf("expecting failure when parsing %q", s)
+		}
+	}
+
+	// invalid length
+	f("")
+	f("foobar")
+
+	// missing fractional part after dot
+	f("2023-01-15T22:15:51.Z")
+
+	// too small year
+	f("1676-09-21T00:12:43Z")
+
+	// too big year
+	f("2263-04-11T23:47:17Z")
+
+	// too small timestamp
+	f("1677-09-21T00:12:43.999999999Z")
+
+	// too big timestamp
+	f("2262-04-11T23:47:16Z")
+
+	// invalid year
+	f("YYYY-04-11T23:47:17Z")
+
+	// invalid moth
+	f("2023-MM-11T23:47:17Z")
+
+	// invalid day
+	f("2023-01-DDT23:47:17Z")
+
+	// invalid hour
+	f("2023-01-23Thh:47:17Z")
+
+	// invalid minute
+	f("2023-01-23T23:mm:17Z")
+
+	// invalid second
+	f("2023-01-23T23:33:ssZ")
 }

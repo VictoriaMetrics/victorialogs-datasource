@@ -4,8 +4,9 @@
 
 * BREAKING: increase minimum required Grafana version to `>=10.4.0` to ensure compatibility with [`@grafana/plugin-ui`](https://github.com/grafana/plugin-ui). This drops support for older Grafana versions.
 
-* BUGFIX: fix an issue with missing `_msg` field in the response. If `_msg` field is missed in the response now always returned as an empty string. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/330).
-* BUGFIX: fix an issue with parsing of the `_stream` field that contains commas in its value. Previously, commas in the `_stream` field values were incorrectly processed, leading to parsing errors. This has been fixed to properly handle complex string values with commas. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/334).
+* BUGFIX: fix an issue with missing `_msg` field in the response. If `_msg` field is missed in the response now always returned as an empty string. See [#330](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/330).
+* BUGFIX: fix an issue with parsing of the `_stream` field that contains commas in its value. Previously, commas in the `_stream` field values were incorrectly processed, leading to parsing errors. This has been fixed to properly handle complex string values with commas. See [#334](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/334).
+* BUGFIX: fix an issue with parsing timestamp from the `_time` field if it contains nanosecond precision. Now, the plugin correctly handles timestamps with nanosecond precision in the `_time` field and do not round it, ensuring accurate time representation in logs. See [#340](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/340)
 
 ## v0.18.1
 

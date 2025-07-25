@@ -2,9 +2,11 @@ package utils
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/VictoriaMetrics/metricsql"
@@ -18,6 +20,9 @@ const (
 	varRange      = "$__range"
 
 	timeField = "_time"
+
+	nsecsPerHour   = 3600 * 1e9
+	nsecsPerMinute = 60 * 1e9
 )
 
 var (
@@ -28,18 +33,29 @@ var (
 
 const (
 	// These values prevent from overflow when storing msec-precision time in int64.
-	minTimeMsecs = 0 // use 0 instead of `int64(-1<<63) / 1e6` because the storage engine doesn't actually support negative time
-	maxTimeMsecs = int64(1<<63-1) / 1e6
+	minTimeNsecs = 0 // use 0 instead of `int64(-1<<63) / 1e6` because the storage engine doesn't actually support negative time
+	maxTimeNsecs = int64(1<<63 - 1)
+	maxTimeMsecs = maxTimeNsecs / 1e6
 )
 
 // GetTime  returns time from the given string.
 func GetTime(s string) (time.Time, error) {
+	if nsecs, ok := TryParseTimestampRFC3339Nano(s); ok {
+		if nsecs < minTimeNsecs {
+			nsecs = 0
+		}
+		if nsecs > maxTimeNsecs {
+			nsecs = maxTimeNsecs
+		}
+		return time.Unix(0, nsecs).UTC(), nil
+	}
+
 	secs, err := ParseTime(s)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("cannot parse %s: %w", s, err)
 	}
 	msecs := int64(secs * 1e3)
-	if msecs < minTimeMsecs {
+	if msecs < minTimeNsecs {
 		msecs = 0
 	}
 	if msecs > maxTimeMsecs {
@@ -188,6 +204,238 @@ func ParseDuration(s string) (time.Duration, error) {
 		return 0, err
 	}
 	return time.Duration(ms) * time.Millisecond, nil
+}
+
+// TryParseTimestampRFC3339Nano parses s as RFC3339 with optional nanoseconds part and timezone offset and returns unix timestamp in nanoseconds.
+//
+// If s doesn't contain timezone offset, then the local timezone is used.
+//
+// The returned timestamp can be negative if s is smaller than 1970 year.x
+func TryParseTimestampRFC3339Nano(s string) (int64, bool) {
+	if len(s) < len("2006-01-02T15:04:05") {
+		return 0, false
+	}
+
+	secs, ok, tail := tryParseTimestampSecs(s)
+	if !ok {
+		return 0, false
+	}
+	s = tail
+	nsecs := secs * 1e9
+
+	// Parse timezone offset
+	offsetNsecs, prefix, ok := parseTimezoneOffset(s)
+	if !ok {
+		return 0, false
+	}
+	nsecs -= offsetNsecs
+	s = prefix
+
+	// Parse optional fractional part of seconds.
+	if len(s) == 0 {
+		return nsecs, true
+	}
+	if s[0] == '.' {
+		s = s[1:]
+	}
+	digits := len(s)
+	if digits > 9 {
+		return 0, false
+	}
+	n64, ok := tryParseDateUint64(s)
+	if !ok {
+		return 0, false
+	}
+
+	if digits < 9 {
+		n64 *= uint64(math.Pow10(9 - digits))
+	}
+	nsecs += int64(n64)
+	return nsecs, true
+}
+
+func parseTimezoneOffset(s string) (int64, string, bool) {
+	if strings.HasSuffix(s, "Z") {
+		return 0, s[:len(s)-1], true
+	}
+
+	n := strings.LastIndexAny(s, "+-")
+	if n < 0 {
+		offsetNsecs := GetLocalTimezoneOffsetNsecs()
+		return offsetNsecs, s, true
+	}
+	offsetStr := s[n+1:]
+	isMinus := s[n] == '-'
+	if len(offsetStr) == 0 {
+		return 0, s, false
+	}
+	offsetNsecs, ok := tryParseHHMM(offsetStr)
+	if !ok {
+		return 0, s, false
+	}
+	if isMinus {
+		offsetNsecs = -offsetNsecs
+	}
+	return offsetNsecs, s[:n], true
+}
+
+func tryParseHHMM(s string) (int64, bool) {
+	if len(s) != len("hh:mm") || s[2] != ':' {
+		return 0, false
+	}
+	hourStr := s[:2]
+	minuteStr := s[3:]
+	hours, ok := tryParseDateUint64(hourStr)
+	if !ok || hours > 24 {
+		return 0, false
+	}
+	minutes, ok := tryParseDateUint64(minuteStr)
+	if !ok || minutes > 60 {
+		return 0, false
+	}
+	return int64(hours)*nsecsPerHour + int64(minutes)*nsecsPerMinute, true
+}
+
+// tryParseTimestampSecs parses YYYY-MM-DDTHH:mm:ss into unix timestamp in seconds.
+func tryParseTimestampSecs(s string) (int64, bool, string) {
+	// Parse year
+	if s[len("YYYY")] != '-' {
+		return 0, false, s
+	}
+	yearStr := s[:len("YYYY")]
+	n, ok := tryParseDateUint64(yearStr)
+	if !ok || n < 1677 || n > 2262 {
+		return 0, false, s
+	}
+	year := int(n)
+	s = s[len("YYYY")+1:]
+
+	// Parse month
+	if s[len("MM")] != '-' {
+		return 0, false, s
+	}
+	monthStr := s[:len("MM")]
+	n, ok = tryParseDateUint64(monthStr)
+	if !ok {
+		return 0, false, s
+	}
+	month := time.Month(n)
+	s = s[len("MM")+1:]
+
+	// Parse day.
+	//
+	// Allow whitespace additionally to T as the delimiter after DD,
+	// so SQL datetime format can be parsed additionally to RFC3339.
+	// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/6721
+	delim := s[len("DD")]
+	if delim != 'T' && delim != ' ' {
+		return 0, false, s
+	}
+	dayStr := s[:len("DD")]
+	n, ok = tryParseDateUint64(dayStr)
+	if !ok {
+		return 0, false, s
+	}
+	day := int(n)
+	s = s[len("DD")+1:]
+
+	// Parse hour
+	if s[len("HH")] != ':' {
+		return 0, false, s
+	}
+	hourStr := s[:len("HH")]
+	n, ok = tryParseDateUint64(hourStr)
+	if !ok {
+		return 0, false, s
+	}
+	hour := int(n)
+	s = s[len("HH")+1:]
+
+	// Parse minute
+	if s[len("MM")] != ':' {
+		return 0, false, s
+	}
+	minuteStr := s[:len("MM")]
+	n, ok = tryParseDateUint64(minuteStr)
+	if !ok {
+		return 0, false, s
+	}
+	minute := int(n)
+	s = s[len("MM")+1:]
+
+	// Parse second
+	secondStr := s[:len("SS")]
+	n, ok = tryParseDateUint64(secondStr)
+	if !ok {
+		return 0, false, s
+	}
+	second := int(n)
+	s = s[len("SS"):]
+
+	secs := time.Date(year, month, day, hour, minute, second, 0, time.UTC).Unix()
+	if secs < int64(-1<<63)/1e9 || secs >= int64((1<<63)-1)/1e9 {
+		// Too big or too small timestamp
+		return 0, false, s
+	}
+	return secs, true, s
+}
+
+// tryParseDateUint64 parses s (which is a part of some timestamp) as uint64 value.
+func tryParseDateUint64(s string) (uint64, bool) {
+	if len(s) == 0 || len(s) > 9 {
+		return 0, false
+	}
+
+	if len(s) == 2 {
+		// fast path for two-digit number, which is used in hours, minutes and seconds
+		if s[0] < '0' || s[0] > '9' {
+			return 0, false
+		}
+		n := 10*uint64(s[0]-'0') + uint64(s[1]-'0')
+		return n, true
+	}
+
+	n := uint64(0)
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if ch < '0' || ch > '9' {
+			return 0, false
+		}
+		if n > ((1<<64)-1)/10 {
+			return 0, false
+		}
+		n *= 10
+		d := uint64(ch - '0')
+		if n > (1<<64)-1-d {
+			return 0, false
+		}
+		n += d
+	}
+	return n, true
+}
+
+// GetLocalTimezoneOffsetNsecs returns local timezone offset in nanoseconds.
+func GetLocalTimezoneOffsetNsecs() int64 {
+	return localTimezoneOffsetNsecs.Load()
+}
+
+var localTimezoneOffsetNsecs atomic.Int64
+
+func updateLocalTimezoneOffsetNsecs() {
+	_, offset := time.Now().Zone()
+	nsecs := int64(offset) * 1e9
+	localTimezoneOffsetNsecs.Store(nsecs)
+}
+
+func init() {
+	updateLocalTimezoneOffsetNsecs()
+	// Update local timezone offset in a loop, since it may change over the year due to DST.
+	go func() {
+		t := time.NewTicker(5 * time.Second)
+		for range t.C {
+			updateLocalTimezoneOffsetNsecs()
+		}
+	}()
 }
 
 // ReplaceTemplateVariable get query and use it expression to remove grafana template variables with

@@ -471,9 +471,9 @@ func Test_parseStreamResponse(t *testing.T) {
 			lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 			lineField.Name = gLineField
 
-			timeFd.Append(time.Date(2024, 9, 10, 12, 24, 38, 124000000, time.UTC))
-			timeFd.Append(time.Date(2024, 9, 10, 12, 36, 10, 664000000, time.UTC))
-			timeFd.Append(time.Date(2024, 9, 10, 13, 06, 56, 451000000, time.UTC))
+			timeFd.Append(time.Date(2024, 9, 10, 12, 24, 38, 124811000, time.UTC))
+			timeFd.Append(time.Date(2024, 9, 10, 12, 36, 10, 664553169, time.UTC))
+			timeFd.Append(time.Date(2024, 9, 10, 13, 06, 56, 451470000, time.UTC))
 
 			lineField.Append("1")
 
@@ -535,7 +535,7 @@ func Test_parseStreamResponse(t *testing.T) {
 			lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 			lineField.Name = gLineField
 
-			timeFd.Append(time.Date(2024, 9, 10, 12, 36, 10, 664000000, time.UTC))
+			timeFd.Append(time.Date(2024, 9, 10, 12, 36, 10, 664553169, time.UTC))
 
 			// string with more than 1MB
 			str := strings.Repeat("1", 1024*1024*2)
@@ -652,8 +652,8 @@ func Test_parseStreamResponse(t *testing.T) {
 			lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 			lineField.Name = gLineField
 
-			timeFd.Append(time.Date(2025, 7, 8, 9, 16, 54, 721000000, time.UTC))
-			timeFd.Append(time.Date(2025, 7, 8, 9, 16, 54, 734000000, time.UTC))
+			timeFd.Append(time.Date(2025, 7, 8, 9, 16, 54, 721591656, time.UTC))
+			timeFd.Append(time.Date(2025, 7, 8, 9, 16, 54, 734626217, time.UTC))
 
 			lineField.Append("some new message")
 
