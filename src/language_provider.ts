@@ -42,6 +42,10 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       console.warn('getFieldList: field is required for FieldValue type');
       return [];
     }
+    if (options.type === FilterFieldType.StreamFieldValues && !options.field) {
+      console.warn('getFieldList: field is required for StreamFieldValues type');
+      return [];
+    }
 
     const urlParams = new URLSearchParams()
     urlParams.append('query', options.query || "*");
@@ -50,7 +54,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     urlParams.append('start', timeRange.start.toString());
     urlParams.append('end', timeRange.end.toString());
 
-    if (options.type === FilterFieldType.FieldValue && options.field) {
+    if ((options.type === FilterFieldType.FieldValue || options.type === FilterFieldType.StreamFieldValues) && options.field) {
       urlParams.append('field', options.field);
     }
 
@@ -60,7 +64,23 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
 
     const params = Object.fromEntries(urlParams);
 
-    const url = options.type === FilterFieldType.FieldName ? 'select/logsql/field_names' : `select/logsql/field_values`;
+    let url = "";
+    switch (options.type) {
+      case FilterFieldType.FieldName:
+        url = 'select/logsql/field_names';
+        break;
+      case FilterFieldType.FieldValue:
+        url = `select/logsql/field_values`;
+        break;
+      case FilterFieldType.StreamFieldNames:
+        url = 'select/logsql/stream_field_names';
+        break;
+      case FilterFieldType.StreamFieldValues:
+        url = `select/logsql/stream_field_values`;
+        break;
+      default:
+        throw new Error(`Unsupported field type: ${options.type}`);
+    }
     const key = `${url}?${urlParams.toString()}`;
 
     if (this.cacheValues.has(key)) {
