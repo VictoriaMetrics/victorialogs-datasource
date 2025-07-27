@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { SelectableValue } from '@grafana/data';
 import { QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
-import { Icon, MultiSelect } from '@grafana/ui';
+import { FormatOptionLabelMeta, Icon, MultiSelect } from '@grafana/ui';
 
 import { getValue, quoteString, unquoteString } from '../utils/stringHandler';
 import { splitByUnescapedChar, SplitString, splitString } from '../utils/stringSplitter';
@@ -24,6 +24,10 @@ export default function SortedFieldsEditor(props: QueryBuilderOperationParamEdit
   const setFields = (values: FieldWithDirection[]) => {
     setValues(values);
     const newValue = values.map((field) => {
+      const isRaw = field.isDesc === undefined;
+      if (isRaw) {
+        return quoteString(field as unknown as string);
+      }
       return field.isDesc ? `${quoteString(field.name)} desc` : `${quoteString(field.name)}`;
     }).join(', ');
     onChange(index, newValue);
@@ -42,9 +46,37 @@ export default function SortedFieldsEditor(props: QueryBuilderOperationParamEdit
     setIsLoading(true);
     let options = await getFieldNameOptions(props);
     const selectedNames = values.map(v => v.name);
-    options = options.filter((opt: SelectableValue<FieldWithDirection>) => opt.value && !selectedNames.includes(opt.value.name));
+    options = options.filter((opt: SelectableValue<string>) => opt.value && !selectedNames.includes(opt.value));
     setOptions(options);
     setIsLoading(false);
+  }
+
+  const handleFormatOptionLabel = (option: SelectableValue<FieldWithDirection>, { context }: FormatOptionLabelMeta<FieldWithDirection>) => {
+    if (context === 'value') {
+      const field = option as FieldWithDirection;
+      const handleToggle = (e: React.SyntheticEvent) => {
+        e.stopPropagation();
+        const idx = values.findIndex((v) => (v).name === field.name);
+        if (idx !== -1) {
+          toggleDirection(idx);
+        }
+      };
+      return (
+        <span
+          tabIndex={0}
+          style={{ cursor: 'pointer' }}
+          onMouseDown={handleToggle}
+          title={field.isDesc ? 'Sorting descending' : 'Sorting ascending'}
+        >
+          {formatFieldLabel(field)}
+          <Icon
+            name={field.isDesc ? 'arrow-down' : 'arrow-up'}
+            style={{ marginLeft: '4px', verticalAlign: 'middle' }}
+          />
+        </span>
+      );
+    }
+    return <>{option.label}</>;
   }
 
   return (
@@ -59,33 +91,7 @@ export default function SortedFieldsEditor(props: QueryBuilderOperationParamEdit
       options={options}
       value={values}
       onChange={(values) => setFields(values.map((v) => v.value || v as FieldWithDirection))}
-      formatOptionLabel={(option, { context }) => {
-        if (context === 'value') {
-          const field = option as FieldWithDirection;
-          const handleToggle = (e: React.SyntheticEvent) => {
-            e.stopPropagation();
-            const idx = values.findIndex((v) => (v).name === field.name);
-            if (idx !== -1) {
-              toggleDirection(idx);
-            }
-          };
-          return (
-            <span
-              tabIndex={0}
-              style={{ cursor: 'pointer' }}
-              onMouseDown={handleToggle}
-              title={field.isDesc ? 'Sorting descending' : 'Sorting ascending'}
-            >
-              {formatFieldLabel(field)}
-              <Icon
-                name={field.isDesc ? 'arrow-down' : 'arrow-up'}
-                style={{ marginLeft: '4px', verticalAlign: 'middle' }}
-              />
-            </span>
-          );
-        }
-        return <>{option.label}</>;
-      }}
+      formatOptionLabel={handleFormatOptionLabel}
     />
   );
 }
