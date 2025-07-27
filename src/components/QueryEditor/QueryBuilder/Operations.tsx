@@ -4235,7 +4235,7 @@ function parseCompareOperation(str: SplitString[], fieldName: string) {
   let params: string[] = [fieldName, ""];
   const compareOps = ["value_type", "eq_field", "le_field", "lt_field"];
   if (str.length > 0 && str[0].type === "bracket" && compareOps.includes(str[0].prefix)) {
-    params[1] = getValuesFromBrackets(str[0].value)[0];
+    params[1] = getValuesFromBrackets(str[0].value)[0] || "";
     str.shift();
   }
   return { params, length: length - str.length };
