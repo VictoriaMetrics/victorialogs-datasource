@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.19.1
+
 * BUGFIX: upgrade `jest` library version to fix vulnerability warning.
 
 ## v0.19.0
