@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: upgrade `jest` library version to fix vulnerability warning.
+
 ## v0.19.0
 
 * BREAKING: increase minimum required Grafana version to `>=10.4.0` to ensure compatibility with [`@grafana/plugin-ui`](https://github.com/grafana/plugin-ui). This drops support for older Grafana versions.
