@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -18,6 +19,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
@@ -41,15 +43,21 @@ const (
 type Datasource struct {
 	im     instancemgmt.InstanceManager
 	logger log.Logger
+	backend.CallResourceHandler
 }
 
 // NewDatasource creates a new datasource instance.
 func NewDatasource() *Datasource {
-	im := datasource.NewInstanceManager(newDatasourceInstance)
-	return &Datasource{
-		im:     im,
-		logger: log.New(),
-	}
+	var ds Datasource
+	ds.im = datasource.NewInstanceManager(newDatasourceInstance)
+	ds.logger = log.New()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", ds.RootHandler)
+	mux.HandleFunc("/select/logsql/field_values", ds.VLAPIQuery)
+	mux.HandleFunc("/select/logsql/field_names", ds.VLAPIQuery)
+	ds.CallResourceHandler = httpadapter.New(mux)
+	return &ds
 }
 
 // newDatasourceInstance returns an initialized VM datasource instance
@@ -468,6 +476,19 @@ func (d *Datasource) RootHandler(rw http.ResponseWriter, req *http.Request) {
 func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	pluginCxt := backend.PluginConfigFromContext(ctx)
+
+	fieldsQuery, err := getFieldsQueryFromRaw(req.Body)
+	if err != nil {
+		writeError(rw, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer func() {
+		if err := req.Body.Close(); err != nil {
+			d.logger.Error("VLAPIQuery: failed to close request body", "err", err.Error())
+		}
+	}()
+
 	di, err := d.getInstance(ctx, pluginCxt)
 	if err != nil {
 		d.logger.Error("Error loading datasource", "error", err)
@@ -481,6 +502,7 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	u.Path = path.Join(u.Path, req.URL.Path)
+	u.RawQuery = fieldsQuery.queryParams().Encode()
 	newReq, err := http.NewRequestWithContext(ctx, req.Method, u.String(), nil)
 	if err != nil {
 		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to create new request with context: %w", err))
@@ -509,12 +531,21 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-	defer resp.Body.Close()
-	bodyBytes, err := io.ReadAll(resp.Body)
+	reader := io.Reader(resp.Body)
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		reader, err = gzip.NewReader(reader)
+		if err != nil {
+			writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to create gzip reader: %w", err))
+			return
+		}
+	}
+
+	bodyBytes, err := io.ReadAll(reader)
 	if err != nil {
 		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to read http response body: %w", err))
 		return
 	}
+	defer resp.Body.Close()
 
 	rw.Header().Add("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)

@@ -52,6 +52,7 @@ export interface Query extends DataQuery {
   direction?: QueryDirection;
   supportingQueryType?: SupportingQueryType;
   queryType?: QueryType;
+  interval?: string; // for /select/logsql/query
   fields?: string[]; // groups the results by the specified field value for /select/logsql/hits
 }
 
@@ -99,6 +100,10 @@ export interface RequestArguments {
   url: string;
   params?: Record<string, string>;
   options?: Partial<BackendSrvRequest>;
+}
+
+export interface FieldHitsResponse {
+  values: FieldHits[];
 }
 
 export interface FieldHits {

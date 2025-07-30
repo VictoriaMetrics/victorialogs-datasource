@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/VictoriaMetrics/metricsql"
@@ -415,27 +414,10 @@ func tryParseDateUint64(s string) (uint64, bool) {
 }
 
 // GetLocalTimezoneOffsetNsecs returns local timezone offset in nanoseconds.
+// It accounts for DST automatically.
 func GetLocalTimezoneOffsetNsecs() int64 {
-	return localTimezoneOffsetNsecs.Load()
-}
-
-var localTimezoneOffsetNsecs atomic.Int64
-
-func updateLocalTimezoneOffsetNsecs() {
 	_, offset := time.Now().Zone()
-	nsecs := int64(offset) * 1e9
-	localTimezoneOffsetNsecs.Store(nsecs)
-}
-
-func init() {
-	updateLocalTimezoneOffsetNsecs()
-	// Update local timezone offset in a loop, since it may change over the year due to DST.
-	go func() {
-		t := time.NewTicker(5 * time.Second)
-		for range t.C {
-			updateLocalTimezoneOffsetNsecs()
-		}
-	}()
+	return int64(offset) * 1e9
 }
 
 // ReplaceTemplateVariable get query and use it expression to remove grafana template variables with

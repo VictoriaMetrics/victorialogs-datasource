@@ -198,7 +198,7 @@ export class VictoriaLogsDatasource
     if (!adhocFilters) {
       return;
     }
-    
+
     const expr = adhocFilters.reduce((acc: string, { key, operator, value }: AdHocVariableFilter) => {
       return addLabelToQuery(acc, key, value, operator);
     }, '');
@@ -218,7 +218,7 @@ export class VictoriaLogsDatasource
     return value;
   }
 
-  interpolateVariablesInQueries(queries: PromQuery[], scopedVars: ScopedVars): PromQuery[] {
+  interpolateVariablesInQueries(queries: Query[], scopedVars: ScopedVars): Query[] {
     let expandedQueries = queries;
     if (queries && queries.length) {
       expandedQueries = queries.map((query) => ({

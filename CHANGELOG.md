@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix regression of the plugin that cause the plugin to not work with `field_values` and `field_names` queries. Fix comments after the plugin verification procedure.
+
 ## v0.19.1
 
 * BUGFIX: upgrade `jest` library version to fix vulnerability warning.
