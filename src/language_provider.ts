@@ -1,7 +1,7 @@
 import { getDefaultTimeRange, LanguageProvider, TimeRange, } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from './datasource';
-import { FieldHits, FilterFieldType } from "./types";
+import { FieldHits, FieldHitsResponse, FilterFieldType } from './types';
 
 interface FetchFieldsOptions {
   type: FilterFieldType;
@@ -18,10 +18,11 @@ enum HitsValueType {
 }
 
 export default class LogsQlLanguageProvider extends LanguageProvider {
+  request!: (url: string, params?: any) => Promise<any>;
   declare startTask: Promise<any>;
   datasource: VictoriaLogsDatasource;
   cacheSize: number;
-  cacheValues: Map<string, FieldHits[]>
+  cacheValues: Map<string, FieldHits[]>;
 
   constructor(datasource: VictoriaLogsDatasource, initialValues?: Partial<LogsQlLanguageProvider>) {
     super();
@@ -43,8 +44,8 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       return [];
     }
 
-    const urlParams = new URLSearchParams()
-    urlParams.append('query', options.query || "*");
+    const urlParams = new URLSearchParams();
+    urlParams.append('query', options.query || '*');
 
     const timeRange = this.getTimeRangeParams(options.timeRange);
     urlParams.append('start', timeRange.start.toString());
@@ -54,7 +55,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       urlParams.append('field', options.field);
     }
 
-    if (options.limit && (options.limit > 0) && (options.type === FilterFieldType.FieldValue)) {
+    if (options.limit && options.limit > 0 && options.type === FilterFieldType.FieldValue) {
       urlParams.append('limit', options.limit.toString());
     }
 
@@ -73,8 +74,8 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     }
 
     try {
-      const res = await this.datasource.postResource(url, params);
-      const result = (res.data?.values || []) as FieldHits[];
+      const res = (await this.datasource.postResource(url, params)) as FieldHitsResponse;
+      const result = (res?.values || []) as FieldHits[];
       const sortedResult = sortFieldHits(result);
       this.cacheValues.set(key, sortedResult);
       return sortedResult;
@@ -94,8 +95,8 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
 
     return {
       start: start.valueOf(),
-      end: end.valueOf()
-    }
+      end: end.valueOf(),
+    };
   }
 }
 
