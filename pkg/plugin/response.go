@@ -32,6 +32,8 @@ const (
 	logsVisualisation = "logs"
 )
 
+var nowFunc = time.Now
+
 // parseStreamResponse reads data from the reader and collects
 // fields and frame with necessary information
 func parseInstantResponse(reader io.Reader) backend.DataResponse {
@@ -99,6 +101,9 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 			if !value.Exists(messageField) && len(stf) > 0 {
 				lineField.Append("")
 			}
+			if !value.Exists(timeField) && !value.Exists(messageField) && len(stf) == 0 {
+				lineField.Append("")
+			}
 		}
 
 		obj, err := value.Object()
@@ -133,7 +138,7 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 
 	// Grafana expects time field to be always non-empty.
 	if timeFd.Len() == 0 {
-		now := time.Now()
+		now := nowFunc()
 		for i := 0; i < lineField.Len(); i++ {
 			timeFd.Append(now)
 		}
@@ -247,7 +252,7 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 
 		// Grafana expects time field to be always non-empty.
 		if timeFd.Len() == 0 {
-			now := time.Now()
+			now := nowFunc()
 			for i := 0; i < lineField.Len(); i++ {
 				timeFd.Append(now)
 			}
