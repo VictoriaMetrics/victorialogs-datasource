@@ -15,7 +15,15 @@ import (
 	"github.com/valyala/fastjson"
 )
 
-func Test_parseStreamResponse(t *testing.T) {
+func Test_parseInstantResponse(t *testing.T) {
+	now := time.Now()
+	nowFunc = func() time.Time {
+		return now
+	}
+	defer func() {
+		nowFunc = time.Now
+	}()
+
 	type opts struct {
 		filename string
 		want     func() backend.DataResponse
@@ -33,7 +41,7 @@ func Test_parseStreamResponse(t *testing.T) {
 
 		if w.Error != nil {
 			if !reflect.DeepEqual(w, resp) {
-				t.Errorf("parseStreamResponse() = %#v, want %#v", resp, w)
+				t.Errorf("parseInstantResponse() = %#v, want %#v", resp, w)
 			}
 			return
 		}
@@ -47,7 +55,7 @@ func Test_parseStreamResponse(t *testing.T) {
 		expFieldsLen := got.Fields[0].Len()
 		for j, field := range want.Fields {
 			// if time field is empty, fill it with the value from the response
-			// because time field in the parseStreamResponse generated as time.Now()
+			// because time field in the parseInstantResponse generated as time.Now()
 			if field.Name == gTimeField && field.Len() == 0 {
 				for _, f := range got.Fields {
 					if f.Name == gTimeField {
@@ -65,7 +73,7 @@ func Test_parseStreamResponse(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(got, want) {
-			t.Errorf("parseStreamResponse() = %#v, want %#v", got, want)
+			t.Errorf("parseInstantResponse() = %#v, want %#v", got, want)
 		}
 	}
 
@@ -678,6 +686,64 @@ func Test_parseStreamResponse(t *testing.T) {
 				"fluent.tag":     "2fa06040a011",
 				"severity":       "Unspecified",
 				"source":         "stdout",
+			}
+
+			b, _ = labelsToJSON(labels)
+			labelsField.Append(b)
+
+			frame := data.NewFrame("", timeFd, lineField, labelsField)
+
+			rsp := backend.DataResponse{}
+			frame.Meta = &data.FrameMeta{}
+			rsp.Frames = append(rsp.Frames, frame)
+
+			return rsp
+		},
+	}
+	f(o)
+
+	o = opts{
+		filename: "test-data/no_message_and_time_field_one_stream_is_empty",
+		want: func() backend.DataResponse {
+			labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+			labelsField.Name = gLabelsField
+
+			timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+			timeFd.Name = gTimeField
+
+			lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+			lineField.Name = gLineField
+
+			timeFd.Append(nowFunc())
+			timeFd.Append(nowFunc())
+			timeFd.Append(nowFunc())
+
+			lineField.Append("")
+
+			labels := data.Labels{
+				"logs":   "69275",
+				"az_id":  "use1-az2",
+				"source": "vector",
+				"vpc_id": "vpc",
+			}
+
+			b, _ := labelsToJSON(labels)
+			labelsField.Append(b)
+
+			lineField.Append("")
+
+			labels = data.Labels{
+				"logs":      "5022",
+				"namespace": "ops-monitoring-ns",
+			}
+
+			b, _ = labelsToJSON(labels)
+			labelsField.Append(b)
+
+			lineField.Append("")
+
+			labels = data.Labels{
+				"logs": "194",
 			}
 
 			b, _ = labelsToJSON(labels)

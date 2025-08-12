@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix an issue with missing `_msg`, `_time` fields in the response and when `_stream` field is empty. See [#560](https://github.com/VictoriaMetrics/VictoriaLogs/issues/560) 
+
 ## v0.19.2
 
 * BUGFIX: fix regression of the plugin that cause the plugin to not work with `field_values` and `field_names` queries. Fix comments after the plugin verification procedure.
