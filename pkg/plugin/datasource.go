@@ -509,6 +509,7 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	newReq.Header = di.grafanaSettings.CustomHeaders.Clone()
 	resp, err := di.httpClient.Do(newReq)
 	if err != nil {
 		if !isTrivialError(err) {
