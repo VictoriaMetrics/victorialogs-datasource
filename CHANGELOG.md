@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.19.3
+
 * BUGFIX: fix an issue with missing `_msg`, `_time` fields in the response and when `_stream` field is empty. See [#560](https://github.com/VictoriaMetrics/VictoriaLogs/issues/560) 
 * BUGFIX: fix an issue with the propagating `AccountID` and `ProjectID` headers in the datasource for the `field_values` and `field_names` API calls. See [#354](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/354).
 
