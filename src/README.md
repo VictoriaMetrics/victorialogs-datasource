@@ -140,6 +140,23 @@ Where:
 * `operator` is the comparison operator to use, such as `equals`, `notEquals`, `regex`, `lessThan`, `greaterThan`.
 * `enabled` is a boolean flag to enable or disable the rule. Defaults to `true` if omitted.
 
+## Derived Fields
+
+In VictoriaLogs datasource settings, you can configure fields that can be used to extract values from a log message 
+and create a link from its value.
+
+For example, if log entries have field `trace_id` then we can configure a Derived Field to make a link to Jaeger datasource
+for viewing an associated trace:
+
+<img alt="Derived fields configuration" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/derived_fields_cfg.png?raw=true">
+
+Once configured, in Explore mode or in Logs panel log entries with field `trace_id` will also get a link that would
+open a Jaeger datasource and search for the `trace_id` value:
+
+<img alt="Derived fields explore" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/derived_fields_explore.png?raw=true">
+
+Learn more about [Derived Fields in Grafana](https://grafana.com/docs/grafana/next/datasources/loki/configure-loki-data-source/#derived-fields).
+
 ## License
 
 This project is licensed under
