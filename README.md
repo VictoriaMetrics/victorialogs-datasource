@@ -1,3 +1,9 @@
+---
+build:
+  list: never
+  publishResources: false
+  render: never
+---
 # VictoriaLogs datasource for Grafana
 
 The VictoriaLogs datasource plugin allows you to query and visualize
