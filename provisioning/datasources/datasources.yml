@@ -1,10 +1,13 @@
 apiVersion: 1
-
 datasources:
-  - name: 'VictoriaLogs'
-    type: 'victoriametrics-logs-datasource'
+  # <string, required> Name of the VictoriaLogs datasource
+  # displayed in Grafana panels and queries.
+  - name: VictoriaLogs
+    # <string, required> Sets the data source type.
+    type: victoriametrics-logs-datasource
+    # <string, required> Sets the access mode, either
+    # proxy or direct (Server or Browser in the UI).
     access: proxy
-    isDefault: false
-    orgId: 1
-    version: 1
-    editable: true
+    # <string> Sets URL for sending queries to VictoriaLogs server.
+    # see https://docs.victoriametrics.com/victorialogs/querying/
+    url: http://victorialogs:9428
