@@ -17,6 +17,21 @@ The VictoriaLogs datasource plugin allows you to query and visualize
 
 Read more about plugin capabilities and application at [VictoriaLogs plugin page](https://grafana.com/grafana/plugins/victoriametrics-logs-datasource/).
 
+## Quick start
+
+To install plugin, try searching for `victorialogs` in Grafana's plugin list.
+For gitops follow [installation](#installation) instructions.
+
+Once installed, start exploring logs from [Grafana's Explore page](https://grafana.com/docs/grafana/latest/explore/get-started-with-explore/):
+
+![Grafana Explore](docs/assets/explore.webp)
+
+> To search for all logs simply use `*` as a query. See [LogsQL specification](https://docs.victoriametrics.com/victorialogs/logsql/). 
+
+* How to use plugin on [Grafana dashboards](https://github.com/VictoriaMetrics/victorialogs-datasource/tree/main/src#building-queries).
+* How to configure [log level rules](https://github.com/VictoriaMetrics/victorialogs-datasource/tree/main/src#log-level-rules).
+* [Demo dashboard](https://play-grafana.victoriametrics.com/d/be5zidev72m80f) built with VictoriaLogs plugin.
+
 ## Installation
 
 For detailed instructions on how to install the plugin in Grafana Cloud or locally,
