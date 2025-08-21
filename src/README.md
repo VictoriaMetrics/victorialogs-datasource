@@ -142,8 +142,7 @@ Where:
 
 ## Derived Fields
 
-In VictoriaLogs datasource settings, you can configure fields that can be used to extract values from a log message 
-and create a link from its value.
+In VictoriaLogs datasource settings, you can configure rules of extracting values from a log message to create a link with that value.
 
 For example, if log entries have field `trace_id` then we can configure a Derived Field to make a link to Jaeger datasource
 for viewing an associated trace:
@@ -154,6 +153,9 @@ Once configured, in Explore mode or in Logs panel log entries with field `trace_
 open a Jaeger datasource and search for the `trace_id` value:
 
 <img alt="Derived fields explore" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/derived_fields_explore.png?raw=true">
+
+If the trace ID is not stored in a separate field but in a log message itself, then use `Regex in log line` option
+to specify a regex expression for extracting the trace value from log message.
 
 Learn more about [Derived Fields in Grafana](https://grafana.com/docs/grafana/next/datasources/loki/configure-loki-data-source/#derived-fields).
 
