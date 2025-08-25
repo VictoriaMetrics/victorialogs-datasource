@@ -368,4 +368,104 @@ func TestParseStreamFields(t *testing.T) {
 		},
 	}
 	f(o)
+
+	// Escaped double-quotes
+	o = opts{
+		streamFields: `{_msg="\"",job="loki.source.journal.read"}`,
+		want: []StreamField{
+			{
+				Label: "_msg",
+				Value: `"`,
+			},{
+				Label: "job",
+				Value: "loki.source.journal.read",
+			},
+		},
+	}
+	f(o)
+
+	// Escaped double-quotes
+	o = opts{
+		streamFields: `{_msg="\"",job="loki.source.journal.read",name="value"}`,
+		want: []StreamField{
+			{
+				Label: "_msg",
+				Value: `"`,
+			},{
+				Label: "job",
+				Value: "loki.source.journal.read",
+			},{
+				Label: "name",
+				Value: "value",
+			},
+		},
+	}
+	f(o)
+
+	// Escaped backslash
+	o = opts{
+		streamFields: `{_msg="\\",job="loki.source.journal.read"}`,
+		want: []StreamField{
+			{
+				Label: "_msg",
+				Value: `\`,
+			},{
+				Label: "job",
+				Value: "loki.source.journal.read",
+			},
+		},
+	}
+	f(o)
+
+	// Escaped backslash
+	o = opts{
+		streamFields: `{_msg="\\",job="loki.source.journal.read",name="value"}`,
+		want: []StreamField{
+			{
+				Label: "_msg",
+				Value: `\`,
+			},{
+				Label: "job",
+				Value: "loki.source.journal.read",
+			},{
+				Label: "name",
+				Value: "value",
+			},
+		},
+	}
+	f(o)
+
+	// Escaped tab
+	o = opts{
+		streamFields: `{_msg="\thello",job="loki.source.journal.read"}`,
+		want: []StreamField{
+			{
+				Label: "_msg",
+				Value: "\thello",
+			},{
+				Label: "job",
+				Value: "loki.source.journal.read",
+			},
+		},
+	}
+	f(o)
+
+	// Escaped tab
+	o = opts{
+		streamFields: `{_msg="\thello",job="loki.source.journal.read",name="value"}`,
+		want: []StreamField{
+			{
+				Label: "_msg",
+				Value: "\thello",
+			},{
+				Label: "job",
+				Value: "loki.source.journal.read",
+			},{
+				Label: "name",
+				Value: "value",
+			},
+		},
+	}
+	f(o)
+
 }
