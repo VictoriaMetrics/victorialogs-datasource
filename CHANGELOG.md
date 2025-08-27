@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: upgrade Go builder from Go1.24.2 to Go1.25. See [Go1.25 release notes](https://tip.golang.org/doc/go1.25).
+
 ## v0.19.3
 
 * BUGFIX: fix an issue with missing `_msg`, `_time` fields in the response and when `_stream` field is empty. See [#560](https://github.com/VictoriaMetrics/VictoriaLogs/issues/560) 

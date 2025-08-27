@@ -587,7 +587,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					ftype = ftype.Elem()
 				}
 				if ftype.Kind() != reflect.Struct {
-					return nil, fmt.Errorf("option ,inline may only be used on a struct or map field: %+v", ftype.Kind())
+					return nil, errors.New("option ,inline may only be used on a struct or map field")
 				}
 				if reflect.PtrTo(ftype).Implements(unmarshalerType) {
 					inlineUnmarshalers = append(inlineUnmarshalers, []int{i})
@@ -615,7 +615,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					}
 				}
 			default:
-				return nil, fmt.Errorf("option ,inline may only be used on a struct or map field: %+v", field.Type.Kind())
+				return nil, errors.New("option ,inline may only be used on a struct or map field")
 			}
 			continue
 		}
