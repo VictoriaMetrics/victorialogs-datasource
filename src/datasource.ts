@@ -139,7 +139,7 @@ export class VictoriaLogsDatasource
           response,
           fixedRequest,
           this.derivedFields ?? [],
-          this.logLevelRules ?? []
+          this.getActiveLevelRules()
         ))
       );
   }
@@ -359,8 +359,8 @@ export class VictoriaLogsDatasource
         const totalSeconds = request.range.to.diff(request.range.from, "second");
         const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || "";
 
-        const fields = this.logLevelRules.filter(r => r.enabled !== false).map(r => r.field)
-        const uniqFields = Array.from(new Set(fields));
+        const fields = this.getActiveLevelRules().map(r => r.field)
+        const uniqFields = Array.from(new Set([...fields, "level"]));
 
         return {
           ...query,
@@ -408,6 +408,10 @@ export class VictoriaLogsDatasource
 
   getQueryDisplayText(query: Query): string {
     return (query.expr || '');
+  }
+
+  getActiveLevelRules(): LogLevelRule[] {
+    return (this.logLevelRules || []).filter(r => r.enabled !== false);
   }
 
   getLogRowContext = async (

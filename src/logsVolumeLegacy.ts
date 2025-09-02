@@ -16,7 +16,7 @@ import { BarAlignment, GraphDrawStyle, StackingMode } from "@grafana/schema";
 
 import { LOG_LEVEL_COLOR } from "./configuration/LogLevelRules/const";
 import { LogLevelRule } from "./configuration/LogLevelRules/types";
-import { resolveLogLevel } from "./configuration/LogLevelRules/utils";
+import { extractLevelFromLabels } from "./configuration/LogLevelRules/utils";
 import { VictoriaLogsDatasource } from "./datasource";
 import { Query } from "./types";
 
@@ -156,8 +156,8 @@ function aggregateFields(
  * Returns field configuration used to render logs volume bars
  */
 function getLogVolumeFieldConfig(level: LogLevel) {
-  const name = level;
-  const color = LOG_LEVEL_COLOR[level as LogLevel] || LOG_LEVEL_COLOR[LogLevel.unknown];
+  const name = LogLevel[level];
+  const color = LOG_LEVEL_COLOR[name] || LOG_LEVEL_COLOR[LogLevel.unknown];
   return {
     displayNameFromDS: name,
     color: {
@@ -180,30 +180,12 @@ function getLogVolumeFieldConfig(level: LogLevel) {
   };
 }
 
-function isValidLogLevel(level: string): boolean {
-  return Object.values(LogLevel).includes(level as LogLevel);
-}
-
 const extractLevel = (frame: DataFrame, rules: LogLevelRule[]): LogLevel => {
-  if (rules.length === 0) {
-    // If there are no rules, we don't need to add the level field
-    return LogLevel.unknown;
-  }
-
   const valueField = frame.fields.find(f => f.name === 'Value');
 
   if (!valueField?.labels) {
     return LogLevel.unknown;
   }
 
-  const hasInfoLabel = Object.entries(valueField.labels).some(([key, value]) => {
-    return key === 'level' && value !== undefined && value !== null && isValidLogLevel(value.toLowerCase());
-  })
-  if (hasInfoLabel) {
-    // If the labels field already has a 'level' label, we don't need to add the level field
-    return valueField.labels['level'] as LogLevel;
-  }
-
-
-  return resolveLogLevel(valueField.labels, rules);
+  return extractLevelFromLabels(valueField.labels, rules)
 }
