@@ -218,7 +218,7 @@ export class VictoriaLogsDatasource
     return value;
   }
 
-  interpolateVariablesInQueries(queries: Query[], scopedVars: ScopedVars): Query[] {
+  interpolateVariablesInQueries(queries: Query[], scopedVars: ScopedVars, filters?: AdHocVariableFilter[]): Query[] {
     let expandedQueries = queries;
     if (queries && queries.length) {
       expandedQueries = queries.map((query) => ({
@@ -226,6 +226,7 @@ export class VictoriaLogsDatasource
         datasource: this.getRef(),
         expr: this.templateSrv.replace(query.expr, scopedVars, this.interpolateQueryExpr),
         interval: this.templateSrv.replace(query.interval, scopedVars),
+        extraFilters: this.getExtraFilters(filters),
       }));
     }
     return expandedQueries;
