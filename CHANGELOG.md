@@ -7,6 +7,7 @@
 * BUGFIX: fix log level coloring when no custom rules are configured. See [#347](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/347).
 * BUGFIX: respect adhoc filters variables. See [#361](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/361)
 * BUGFIX: fix issue with concurrent map writes when performing multiple requests to the datasource. See [this issue](https://github.com/VictoriaMetrics/victoriametrics-datasource/issues/363)
+* BUGFIX: fix a parsing issue with quoted characters inside `_stream` fields. See [#365](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/365).
 
 ## v0.19.3
 

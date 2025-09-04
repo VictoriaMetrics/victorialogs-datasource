@@ -80,25 +80,30 @@ func splitStreamsToFields(streamFields string) []string {
 	var fields []string
 	var currentField strings.Builder
 	var inQuotes bool
+	var escaping bool
 	var expectingComma bool
 
 	for i := 0; i < len(streamFields); i++ {
 		char := streamFields[i]
 
 		if char == '"' {
-			inQuotes = !inQuotes
+			if !escaping {
+				inQuotes = !inQuotes
+			}
 			currentField.WriteByte(char)
 
 			// After closing quote, we should be expecting a comma for field separation
 			if !inQuotes {
 				expectingComma = true
 			}
+			escaping = false
 		} else if char == ',' && expectingComma {
 			// Only split on commas that follow a closing quote
 			field := strings.TrimSpace(currentField.String())
 			fields = append(fields, field)
 			currentField.Reset()
 			expectingComma = false
+			escaping = false
 		} else {
 			currentField.WriteByte(char)
 
@@ -107,6 +112,7 @@ func splitStreamsToFields(streamFields string) []string {
 			if expectingComma && char != ' ' {
 				expectingComma = false
 			}
+			escaping = char == '\\' && !escaping
 		}
 	}
 
