@@ -5,8 +5,8 @@
 * FEATURE: upgrade Go builder from Go1.24.2 to Go1.25. See [Go1.25 release notes](https://tip.golang.org/doc/go1.25).
 
 * BUGFIX: fix log level coloring when no custom rules are configured. See [#347](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/347).
-
 * BUGFIX: respect adhoc filters variables. See [#361](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/361)
+* BUGFIX: fix issue with concurrent map writes when performing multiple requests to the datasource. See [this issue](https://github.com/VictoriaMetrics/victoriametrics-datasource/issues/363)
 
 ## v0.19.3
 

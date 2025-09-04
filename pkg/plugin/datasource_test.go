@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -972,4 +973,32 @@ func TestDatasource_checkAlertingRequest(t *testing.T) {
 		headers: map[string]string{"SomeOtherHeader": "true"},
 	}
 	f(o)
+}
+
+func TestDatasourceQueryDataRace(t *testing.T) {
+	ctx := context.Background()
+	ds := NewDatasource()
+	pluginCtx := backend.PluginContext{
+		DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+			URL:      "http://localhost", // Use a valid test server if needed
+			JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+		},
+	}
+
+	var queries []backend.DataQuery
+	for i := 0; i < 20; i++ {
+		queries = append(queries, backend.DataQuery{
+			RefID:     fmt.Sprintf("A%d", i),
+			QueryType: instantQueryPath,
+			JSON:      []byte(`{"refId":"A","instant":true,"range":false,"expr":"sum(vm_http_request_total)"}`),
+		})
+	}
+
+	_, err := ds.QueryData(ctx, &backend.QueryDataRequest{
+		PluginContext: pluginCtx,
+		Queries:       queries,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }
