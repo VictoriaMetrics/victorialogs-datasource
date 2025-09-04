@@ -9,6 +9,7 @@
   "annotations": true,
   "streaming": true,
   "backend": true,
+  "multiValueFilterOperators": true,
   "executable": "victoriametrics_logs_backend_plugin",
   "queryOptions": {
     "maxDataPoints": true
