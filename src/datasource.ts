@@ -163,7 +163,7 @@ export class VictoriaLogsDatasource
 
     if ((isFilterFor && !hasFilter) || isFilterOut) {
       const operator = isFilterFor ? '=' : '!=';
-      expression = addLabelToQuery(expression, filter.options.key, value, operator);
+      expression = addLabelToQuery(expression, { key: filter.options.key, value, operator });
     }
 
     return { ...query, expr: expression };
@@ -199,8 +199,8 @@ export class VictoriaLogsDatasource
       return;
     }
 
-    const expr = adhocFilters.reduce((acc: string, { key, operator, value }: AdHocVariableFilter) => {
-      return addLabelToQuery(acc, key, value, operator);
+    const expr = adhocFilters.reduce((acc: string, filter: AdHocVariableFilter) => {
+      return addLabelToQuery(acc, filter);
     }, '');
 
     return returnVariables(expr);
@@ -441,7 +441,7 @@ export class VictoriaLogsDatasource
       streamId = transformedLabels[LABEL_STREAM_ID];
     }
 
-    return addLabelToQuery('', LABEL_STREAM_ID, streamId, '');
+    return addLabelToQuery('', { key: LABEL_STREAM_ID, value: streamId, operator: '' });
   };
 
   private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions): DataQueryRequest<Query> => {
