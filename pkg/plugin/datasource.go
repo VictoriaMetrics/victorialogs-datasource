@@ -269,6 +269,7 @@ func (d *Datasource) QueryData(ctx context.Context, req *backend.QueryDataReques
 	}
 
 	var wg sync.WaitGroup
+	var mu sync.Mutex
 	for _, q := range req.Queries {
 		rawQuery, err := getQueryFromRaw(q.JSON, forAlerting)
 		if err != nil {
@@ -279,7 +280,10 @@ func (d *Datasource) QueryData(ctx context.Context, req *backend.QueryDataReques
 		wg.Add(1)
 		go func(rawQuery *Query) {
 			defer wg.Done()
-			response.Responses[rawQuery.RefID] = di.query(ctx, rawQuery)
+			resp := di.query(ctx, rawQuery)
+			mu.Lock()
+			response.Responses[rawQuery.RefID] = resp
+			mu.Unlock()
 		}(rawQuery)
 	}
 	wg.Wait()

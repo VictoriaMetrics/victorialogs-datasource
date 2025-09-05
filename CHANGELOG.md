@@ -3,9 +3,13 @@
 ## tip
 
 * FEATURE: upgrade Go builder from Go1.24.2 to Go1.25. See [Go1.25 release notes](https://tip.golang.org/doc/go1.25).
+* FEATURE: add current version and changelog link to the Helpful links section.
 * FEATURE: add support for multi-value operators (`one of`, `not one of`) in Ad hoc filters (available since Grafana 11.3.x). See [#293](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/293).
 
 * BUGFIX: fix log level coloring when no custom rules are configured. See [#347](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/347).
+* BUGFIX: respect adhoc filters variables. See [#361](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/361)
+* BUGFIX: fix issue with concurrent map writes when performing multiple requests to the datasource. See [this issue](https://github.com/VictoriaMetrics/victoriametrics-datasource/issues/363)
+* BUGFIX: fix a parsing issue with quoted characters inside `_stream` fields. See [#365](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/365).
 
 ## v0.19.3
 

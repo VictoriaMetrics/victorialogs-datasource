@@ -1,6 +1,7 @@
 import React from "react";
 
-import { Stack, Text } from "@grafana/ui";
+import { usePluginContext } from "@grafana/data";
+import { Stack, Text } from '@grafana/ui';
 
 const tips = [
   {
@@ -18,24 +19,43 @@ const tips = [
   {
     title: "VictoriaMetrics",
     url: "https://victoriametrics.com/",
-  }
-]
+  },
+];
 
-export const HelpfulLinks = () => (
-  <Stack direction="column" gap={2}>
-    <div>
-      <Text variant="h4">Helpful links</Text>
-    </div>
+export const HelpfulLinks = () => {
+  const ctx = usePluginContext();
+  const version = ctx?.meta?.info?.version;
+  const changelogUrl = `https://github.com/VictoriaMetrics/victorialogs-datasource/releases/tag/v${version}`;
 
-    <div className="gf-form-group gf-form-inline markdown-html">
-      {tips.map(t => (
-        <a key={t.url} className="gf-form-label gf-form-label--dashlink"
-           href={t.url}
-           target="_blank"
-           rel="docs noreferrer">
-          {t.title}
-        </a>
-      ))}
-    </div>
-  </Stack>
-)
+  return (
+    <Stack direction="column" gap={2}>
+      <div>
+        <Text variant="h4">Helpful links</Text>
+      </div>
+
+      <div className="gf-form-group gf-form-inline markdown-html">
+        {version && (
+          <a
+            className="gf-form-label gf-form-label--dashlink"
+            href={changelogUrl}
+            target="_blank"
+            rel="docs noreferrer"
+          >
+            Release v{version}
+          </a>
+        )}
+        {tips.map((t) => (
+          <a
+            key={t.url}
+            className="gf-form-label gf-form-label--dashlink"
+            href={t.url}
+            target="_blank"
+            rel="docs noreferrer"
+          >
+            {t.title}
+          </a>
+        ))}
+      </div>
+    </Stack>
+  );
+};
