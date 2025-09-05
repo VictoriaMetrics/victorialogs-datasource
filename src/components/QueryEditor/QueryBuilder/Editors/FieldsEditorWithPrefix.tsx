@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { SelectableValue } from '@grafana/data';
 import { QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
-import { FormatOptionLabelMeta, MultiSelect } from '@grafana/ui';
+import { ActionMeta, FormatOptionLabelMeta, MultiSelect } from '@grafana/ui';
 
 import { quoteString, unquoteString } from '../utils/stringHandler';
 import { splitByUnescapedChar, SplitString, splitString } from '../utils/stringSplitter';
@@ -21,9 +21,14 @@ export default function FieldsEditorWithPrefix(props: QueryBuilderOperationParam
   const parsedValues = parseInputValues(str);
   const [values, setValues] = useState<FieldWithPrefix[]>(parsedValues);
 
-  const setFields = (values: FieldWithPrefix[]) => {
-    setValues(values);
-    const newValue = values.map((field) => {
+  const setFields = (newValues: FieldWithPrefix[], action?: ActionMeta) => {
+    if (action) {
+      if (action.action === "remove-value") {
+        newValues = values.filter((v) => v.name !== (action.removedValue as any).name);
+      }
+    }
+    setValues(newValues);
+    const newValue = newValues.map((field) => {
       if (field.isPrefix !== undefined) {
         return field.isPrefix ? `${quoteString(field.name)}*` : `${quoteString(field.name)}`;
       }
@@ -73,8 +78,8 @@ export default function FieldsEditorWithPrefix(props: QueryBuilderOperationParam
     setIsLoading(false);
   }
 
-  const handleChange = (values: SelectableValue<FieldWithPrefix>[]) => {
-    setFields(values.map((v) => v.value || v as FieldWithPrefix))
+  const handleChange = (values: SelectableValue<FieldWithPrefix>[], action: ActionMeta) => {
+    setFields(values.map((v) => v.value || v as FieldWithPrefix), action)
   }
 
   return (

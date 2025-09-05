@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { SelectableValue, toOption } from '@grafana/data';
 import { QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
-import { Stack, MultiSelect, RadioButtonGroup, InlineField, Select } from '@grafana/ui';
+import { Stack, MultiSelect, RadioButtonGroup, InlineField, Select, ActionMeta } from '@grafana/ui';
 
 import { FieldHits, FilterFieldType } from "../../../../types";
 import { getValuesFromBrackets } from '../utils/operationParser';
@@ -119,10 +119,15 @@ export default function StreamFieldEditor(props: QueryBuilderOperationParamEdito
     onChange(index, buildStreamFilterValue(value, [], valuesNotIn));
   };
 
-  const updateValues = (rawValues: SelectableValue<string>[]) => {
-    const values = rawValues.map(({ value = "" }) => value);
-    setValues(values);
-    onChange(index, buildStreamFilterValue(field, values, valuesNotIn));
+  const updateValues = (rawValues: SelectableValue<string>[], action: ActionMeta) => {
+    let newValues = rawValues.map(({ value = "" }) => value);
+    if (action) {
+      if (action.action === "remove-value") {
+        newValues = values.filter((v) => v !== (action.removedValue as SelectableValue<string>).value);
+      }
+    }
+    setValues(newValues);
+    onChange(index, buildStreamFilterValue(field, newValues, valuesNotIn));
   };
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<SelectableValue<string>[]>([]);

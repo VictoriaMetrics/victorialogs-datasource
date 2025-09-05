@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { SelectableValue } from '@grafana/data';
 import { QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
-import { MultiSelect } from '@grafana/ui';
+import { ActionMeta, MultiSelect } from '@grafana/ui';
 
 import { FilterFieldType, VisualQuery } from "../../../../types";
 import { getValuesFromBrackets } from '../utils/operationParser';
@@ -16,14 +16,19 @@ export default function UnpackedFieldsSelector(unpackOperation: "unpack_json" | 
     const str = splitString(String(value || ""));
     const [values, setValues] = useState<SelectableValue<string>[]>(toOption(getValuesFromBrackets(str)));
 
-    const setFields = (values: SelectableValue<string>[]) => {
-      setValues(values);
-      const newValue = values
+    const setFields = (newValues: SelectableValue<string>[], action: ActionMeta) => {
+      if (action) {
+        if (action.action === "remove-value") {
+          newValues = values.filter((v) => v.value !== (action.removedValue as SelectableValue<string>).value);
+        }
+      }
+      setValues(newValues);
+      const newValue = newValues
         .map(({ value = "" }) => value)
         .filter(Boolean)
         .map(quoteString)
         .join(", ");
-      if (values.length === 0) {
+      if (newValues.length === 0) {
         onChange(index, "");
       } else {
         onChange(index, newValue);

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { SelectableValue } from '@grafana/data';
 import { QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
-import { FormatOptionLabelMeta, Icon, MultiSelect } from '@grafana/ui';
+import { ActionMeta, FormatOptionLabelMeta, Icon, MultiSelect } from '@grafana/ui';
 
 import { getValue, quoteString, unquoteString } from '../utils/stringHandler';
 import { splitByUnescapedChar, SplitString, splitString } from '../utils/stringSplitter';
@@ -21,9 +21,14 @@ export default function SortedFieldsEditor(props: QueryBuilderOperationParamEdit
   const parsedValues = parseInputValues(str);
   const [values, setValues] = useState<FieldWithDirection[]>(parsedValues);
 
-  const setFields = (values: FieldWithDirection[]) => {
-    setValues(values);
-    const newValue = values.map((field) => {
+  const setFields = (newValues: FieldWithDirection[], action?: ActionMeta) => {
+    if (action) {
+      if (action.action === "remove-value") {
+        newValues = values.filter((v) => v.name !== (action.removedValue as any).name);
+      }
+    }
+    setValues(newValues);
+    const newValue = newValues.map((field) => {
       const isRaw = field.isDesc === undefined;
       if (isRaw) {
         return quoteString(field as unknown as string);
@@ -90,7 +95,7 @@ export default function SortedFieldsEditor(props: QueryBuilderOperationParamEdit
       loadingMessage="Loading labels"
       options={options}
       value={values}
-      onChange={(values) => setFields(values.map((v) => v.value || v as FieldWithDirection))}
+      onChange={(values, action) => setFields(values.map((v) => v.value || v as FieldWithDirection), action)}
       formatOptionLabel={handleFormatOptionLabel}
     />
   );

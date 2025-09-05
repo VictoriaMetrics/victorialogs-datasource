@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 
 import { SelectableValue, toOption } from '@grafana/data';
 import { OperationList, QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
-import { RadioButtonGroup, MultiSelect, Select } from '@grafana/ui';
+import { RadioButtonGroup, MultiSelect, Select, ActionMeta } from '@grafana/ui';
 
 import { VisualQuery } from '../../../../types';
 import { VictoriaLogsOperationId } from '../Operations';
@@ -115,8 +115,13 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
   })
   const [queryField, setQueryField] = useState<string>(fieldName);
 
-  const buildSubqueryValue = (values: SelectableValue[]) => {
-    const strValues = values.map(v => v.value).filter(Boolean);
+  const buildSubqueryValue = (newValues: SelectableValue[], action?: ActionMeta) => {
+    let strValues = newValues.map(v => v.value).filter(Boolean);
+    if (action) {
+      if (action.action === "remove-value") {
+        strValues = values.filter((v) => v !== (action.removedValue as SelectableValue<string>).value);
+      }
+    }
     setFilterValues(strValues);
     const valueExpr = "(" + strValues.map(value => {
       if (value.startsWith("$")) {
