@@ -1,14 +1,31 @@
-import { QueryBuilderOperationParamEditorProps } from "@grafana/plugin-ui";
+import { QueryBuilderOperation, QueryBuilderOperationParamEditorProps, VisualQueryModeller } from "@grafana/plugin-ui";
 import { getTemplateSrv } from "@grafana/runtime";
 
 import { VictoriaLogsDatasource } from "../../../../../datasource";
 import { FilterFieldType, VisualQuery } from "../../../../../types";
+import { VictoriaLogsQueryOperationCategory } from "../../VictoriaLogsQueryOperationCategory";
 
 export async function getVariableOptions() {
   return getTemplateSrv().getVariables().map((v: any) => ({
     value: "$" + v.name,
+    label: "$" + v.name,
     description: 'variable',
   }));
+}
+
+function startsWithFilterOperation(operations: QueryBuilderOperation[], queryModeller: VisualQueryModeller) {
+  if (operations.length === 0) {
+    return false;
+  }
+  const firstOp = operations[0];
+  const operation = queryModeller.getOperationDefinition(firstOp.id);
+  if (!operation) {
+    return false;
+  }
+  if (operation.category in [VictoriaLogsQueryOperationCategory.Filters, VictoriaLogsQueryOperationCategory.Operators, VictoriaLogsQueryOperationCategory.Special]) {
+    return true;
+  }
+  return false
 }
 
 export async function getFieldNameOptions(props: QueryBuilderOperationParamEditorProps) {
@@ -17,9 +34,13 @@ export async function getFieldNameOptions(props: QueryBuilderOperationParamEdito
   const operationIdx = operations.findIndex(op => op === operation);
   const prevOperations = operations.slice(0, operationIdx);
   const prevExpr = queryModeller.renderQuery({ operations: prevOperations, labels: [] });
-  let expr;
+  let expr = "";
   if (prevExpr.trim() !== "") {
-    expr = prevExpr;
+    const firstOpIsFilter = startsWithFilterOperation(operations, queryModeller);
+    if (firstOpIsFilter) {
+      expr = "_msg:* | ";
+    }
+    expr += prevExpr;
   } else {
     expr = "_msg:*";
   }
