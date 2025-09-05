@@ -396,6 +396,34 @@ export class OperationDefinitions {
         },
       },
       {
+        id: VictoriaLogsOperationId.Fields,
+        name: 'Fields',
+        params: [{
+          name: "Fields",
+          type: "string",
+          editor: FieldsEditorWithPrefix,
+        }],
+        alternativesKey: "reduce",
+        defaultParams: [""],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Pipes,
+        renderer: (model, def, innerExpr) => {
+          const fields = model.params[0] as string;
+          const expr = "fields " + fields;
+          return pipeExpr(innerExpr, expr);
+        },
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: (str: SplitString[]) => {
+          const length = str.length;
+          const fields = parsePrefixFieldList(str);
+          if (fields.length === 0) {
+            fields.push("");
+          }
+          const param = fields.join(", ");
+          return { params: [param], length: length - str.length };
+        },
+      },
+      {
         id: VictoriaLogsOperationId.DropEmptyFields,
         name: 'Drop empty fields',
         params: [],
@@ -609,43 +637,6 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         },
       },
       {
-        id: VictoriaLogsOperationId.Fields,
-        name: 'Fields',
-        params: [{
-          name: "Fields",
-          type: "string",
-          editor: FieldsEditorWithPrefix,
-        }],
-        alternativesKey: "reduce",
-        defaultParams: [""],
-        toggleable: true,
-        category: VictoriaLogsQueryOperationCategory.Pipes,
-        renderer: (model, def, innerExpr) => {
-          const fields = model.params[0] as string;
-          if (fields === "") {
-            return innerExpr;
-          }
-          const expr = "fields " + fields;
-          return pipeExpr(innerExpr, expr);
-        },
-        addOperationHandler: addVictoriaOperation,
-        splitStringByParams: (str: SplitString[]) => {
-          let length = str.length;
-          let fields = parsePrefixFieldList(str);
-          if (fields.length === 0) {
-            fields.push("");
-          }
-          let param = "";
-          for (let i = 0; i < fields.length; i++) {
-            param += quoteString(fields[i]);
-            if (i < fields.length - 1) {
-              param += ", ";
-            }
-          }
-          return { params: [param], length: length - str.length };
-        },
-      },
-      {
         id: VictoriaLogsOperationId.First,
         name: 'First',
         params: [{
@@ -664,7 +655,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           editor: FieldsEditor,
         }],
         alternativesKey: "reduce",
-        defaultParams: [0, "", false, ""],
+        defaultParams: [3, "", false, ""],
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Pipes,
         renderer: (model, def, innerExpr) => {
@@ -4310,9 +4301,9 @@ function parsePrefixFieldList(str: SplitString[]): string[] {
   while (str.length > 0) {
     if (str[0].type === "space" || str[0].type === "quote") {
       let value = str[0].value;
-      if (str.length > 0 && str[0].type === "quote") {
-        str.shift();
-        if (str[0].value === ",") {
+      if (str.length > 1 && str[0].type === "quote") {
+        if (str[1].value === "*") {
+          str.shift();
           value += "*";
         }
       }
