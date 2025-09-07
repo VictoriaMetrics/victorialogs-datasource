@@ -145,7 +145,7 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
     if (fieldName === "") {
       fieldName = stdFieldName;
     }
-    let queryExpr = "in( ";
+    let queryExpr = "( ";
     if (query !== "") {
       queryExpr += query + " | ";
     }
@@ -178,7 +178,8 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
   }
   const handleOpenFieldNameMenu = async () => {
     setIsLoading(true);
-    setOptions(await getFieldNameOptions(props));
+    const valueQueryProps = { ...props, query: selectQuery.visQuery };
+    setOptions(await getFieldNameOptions(valueQueryProps));
     setIsLoading(false);
   }
   return (

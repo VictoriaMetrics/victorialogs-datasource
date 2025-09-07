@@ -26,7 +26,7 @@ export default function UnpackedFieldsSelector(unpackOperation: "unpack_json" | 
       const newValue = newValues
         .map(({ value = "" }) => value)
         .filter(Boolean)
-        .map(quoteString)
+        .map(v => quoteString(v))
         .join(", ");
       if (newValues.length === 0) {
         onChange(index, "");

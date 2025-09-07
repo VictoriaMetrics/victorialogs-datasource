@@ -20,16 +20,18 @@ function mustQuote(str: string): boolean {
     if (keywords.includes(value)) {
         return true;
     }
-    const chars = [" ", "'", "\"", "`", ":", "=", "#", ">", "<", ",", "(", ")", "[", "]", "{", "}", "+", "-", "/", "%", "|", "&", "^", "~", "!", ";", "?", "@", "\\"];
+    const chars = [" ", "'", "\"", "`", ":", "=", "#", ">", "<", ",", "(", ")", "[", "]", "{", "}", "+", "-", "/", "%", "|", "&", "^", "~", "!", ";", "?", "@", "\\", "*"];
     if (chars.some(char => value.includes(char))) {
         return true;
     }
     return false;
 }
 
-export const quoteString = (str: string): string => {
-    if (!mustQuote(str)) {
-        return str;
+export const quoteString = (str: string, forceQuote?: boolean): string => {
+    if (!mustQuote(str) && !forceQuote) {
+        if (!(str.trim() === "" && forceQuote === false)) { // so that if forceQuote is false an empty string gets quoted
+            return str;
+        }
     }
     if (!str.includes("`")) {
         return `\`${str}\``;

@@ -22,7 +22,7 @@ function startsWithFilterOperation(operations: QueryBuilderOperation[], queryMod
   if (!operation) {
     return false;
   }
-  if (operation.category in [VictoriaLogsQueryOperationCategory.Filters, VictoriaLogsQueryOperationCategory.Operators, VictoriaLogsQueryOperationCategory.Special]) {
+  if ([VictoriaLogsQueryOperationCategory.Filters, VictoriaLogsQueryOperationCategory.Operators, VictoriaLogsQueryOperationCategory.Special].includes(operation.category as VictoriaLogsQueryOperationCategory)) {
     return true;
   }
   return false
@@ -32,12 +32,12 @@ export async function getFieldNameOptions(props: QueryBuilderOperationParamEdito
   const { datasource, timeRange, queryModeller, query, operation } = props;
   const operations = (query as VisualQuery).operations;
   const operationIdx = operations.findIndex(op => op === operation);
-  const prevOperations = operations.slice(0, operationIdx);
+  const prevOperations = operations.slice(0, (operationIdx === -1) ? operations.length : operationIdx);
   const prevExpr = queryModeller.renderQuery({ operations: prevOperations, labels: [] });
   let expr = "";
-  if (prevExpr.trim() !== "") {
+  if (prevExpr.trim() !== "" && prevExpr.trim() !== "\"\"") {
     const firstOpIsFilter = startsWithFilterOperation(operations, queryModeller);
-    if (firstOpIsFilter) {
+    if (!firstOpIsFilter) {
       expr = "_msg:* | ";
     }
     expr += prevExpr;

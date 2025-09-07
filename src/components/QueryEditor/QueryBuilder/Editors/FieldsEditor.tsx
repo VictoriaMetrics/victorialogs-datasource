@@ -18,7 +18,7 @@ export default function FieldsEditor(props: QueryBuilderOperationParamEditorProp
     if (action) {
       if (action.action === "remove-value") {
         const oldValues = getValuesFromBrackets(splitString(String(value || "")));
-        rawValues = oldValues.filter((v) => v !== action.removedValue);
+        rawValues = oldValues.filter((v) => v !== (action.removedValue as SelectableValue<string>).value);
       }
     }
     const newValue = rawValues.map((v) => quoteString(v)).join(", ");

@@ -72,8 +72,8 @@ export const splitString = (str: string): SplitString[] => {
     } else if (char === "`" && !inSingleQuote && !inDoubleQuote) {
       isEscaped = false;
       inBacktick = !inBacktick;
-      if (inSingleQuote && currentPart.trim() !== '') {
-        result.push({ type: "quote", value: currentPart.trim() });
+      if (inBacktick && currentPart.trim() !== '') {
+        result.push({ type: "space", value: currentPart.trim() });
         currentPart = '';
       }
       currentPart += char;
