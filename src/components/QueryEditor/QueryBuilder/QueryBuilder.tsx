@@ -9,34 +9,30 @@ import { useStyles2 } from "@grafana/ui";
 import { VictoriaLogsDatasource } from "../../../datasource";
 import { VisualQuery } from "../../../types";
 
-import { parseExprToVisualQuery } from "./QueryModeller";
 import { QueryModeller } from "./QueryModellerClass";
 
 interface Props {
-  queryExpr: string;
+  query: VisualQuery;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
-  onChange: (update: string) => void;
+  onChange: (update: VisualQuery) => void;
   onRunQuery: () => void;
 }
 
-const QueryBuilder = memo<Props>(({ datasource, queryExpr, onChange, onRunQuery, timeRange }) => {
+const QueryBuilder = memo<Props>(({ datasource, query, onChange, onRunQuery, timeRange }) => {
   const styles = useStyles2(getStyles);
   const queryModeller = useMemo(() => {
     return new QueryModeller([]);
   }, []);
-  const visQuery = useMemo(() => {
-    return parseExprToVisualQuery(queryExpr, "_msg", queryModeller).query;
-  }, [queryExpr, queryModeller]);
 
   const onVisQueryChange = (visQuery: VisualQuery) => {
     const expr = queryModeller.renderQuery(visQuery);
-    onChange(expr);
+    onChange({ ...visQuery, expr: expr });
   };
   return (
     <div className={styles.builderWrapper}>
       <OperationList
-        query={visQuery}
+        query={query}
         datasource={datasource as DataSourceApi}
         onChange={onVisQueryChange}
         timeRange={timeRange}
