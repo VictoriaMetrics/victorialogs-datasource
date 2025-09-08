@@ -92,6 +92,10 @@ function parseSubquery(value: string): { values: string[]; isQuery: boolean; que
   }
 }
 
+function isObj(v: unknown): v is { expr: string; visQuery: VisualQuery } {
+  return !!v && typeof v === "object" && "expr" in (v as any) && "visQuery" in (v as any);
+}
+
 export default function SubqueryEditor(props: QueryBuilderOperationParamEditorProps) {
   const { datasource, timeRange, onRunQuery, onChange, index, value, operation, queryModeller } = props;
   const paramLen = operation.params.length;
@@ -104,14 +108,20 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
   } else {
     stdFieldName = operation.params[0] as string;
   }
-  const parsedSubquery = useMemo(() => parseSubquery(String(value || "")), [value]);
+  const parsedSubquery = useMemo(() => {
+    if (isObj(value)) {
+      return parseSubquery(String(value.expr || ""))
+    } else {
+      return parseSubquery(String(value || ""))
+    }
+  }, [value]);
   const { values, isQuery, query: queryValue, fieldName } = parsedSubquery;
 
   const [filterValues, setFilterValues] = useState<string[]>(values);
   const [useQueryAsValue, setUseQueryAsValue] = useState<boolean>(isQuery);
   const [selectQuery, setSelectQuery] = useState<{ expr: string, visQuery: VisualQuery }>({
     expr: queryValue,
-    visQuery: parseExprToVisualQuery(queryValue).query
+    visQuery: isObj(value) ? value.visQuery : parseExprToVisualQuery(queryValue).query
   })
   const [queryField, setQueryField] = useState<string>(fieldName);
 
@@ -140,7 +150,8 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
     onChange(index, valueExpr);
   }
 
-  const buildSubquery = (query: string, fieldName: string, stdFieldName: string) => {
+  const buildSubquery = (visQuery: VisualQuery, fieldName: string, stdFieldName: string) => {
+    const query = visQuery.expr;
     fieldName = fieldName.trim();
     if (fieldName === "") {
       fieldName = stdFieldName;
@@ -150,13 +161,14 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
       queryExpr += query + " | ";
     }
     queryExpr += `fields ${quoteString(fieldName)})`;
-    onChange(index, queryExpr);
+    const next = { expr: queryExpr, visQuery };
+    onChange(index, next as unknown as string);
   }
 
   const onEditorChange = (query: VisualQuery) => {
-    const expr = buildVisualQueryToString(query);
-    buildSubquery(expr, queryField, stdFieldName);
-    setSelectQuery({ expr, visQuery: query })
+    query.expr = buildVisualQueryToString(query);
+    buildSubquery(query, queryField, stdFieldName);
+    setSelectQuery({ expr: query.expr, visQuery: query })
   };
   const [fieldNames, setFieldNames] = useState<SelectableValue<string>[]>([])
   const [isLoadingFieldNames, setIsLoadingFieldNames] = useState(false);
@@ -171,7 +183,8 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
   const onQueryValueToggle = (value: boolean) => {
     setUseQueryAsValue(value);
     if (value) {
-      buildSubquery("", queryField, stdFieldName)
+      // visQuery is empty here
+      buildSubquery(selectQuery.visQuery, queryField, stdFieldName)
     } else {
       buildSubqueryValue([]);
     }
@@ -221,7 +234,6 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
               queryModeller={queryModeller}
             />
             FieldName
-
             <Select<string>
               allowCustomValue={true}
               allowCreateWhileLoading={true}
@@ -230,7 +242,7 @@ export default function SubqueryEditor(props: QueryBuilderOperationParamEditorPr
               options={options}
               onChange={({ value = "" }) => {
                 setQueryField(value);
-                buildSubquery(selectQuery.expr, value, stdFieldName);
+                buildSubquery(selectQuery.visQuery, value, stdFieldName);
               }}
               value={toOption(queryField)}
               width="auto"

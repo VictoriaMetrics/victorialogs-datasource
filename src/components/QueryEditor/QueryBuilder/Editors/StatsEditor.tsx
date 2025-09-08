@@ -3,10 +3,14 @@ import React, { useMemo } from "react";
 import { OperationList, QueryBuilderOperation, QueryBuilderOperationParamEditorProps, VisualQueryModeller } from "@grafana/plugin-ui";
 
 import { VisualQuery } from "../../../../types";
-import { buildVisualQueryToString, createQueryModellerForCategories } from "../QueryModeller";
+import { createQueryModellerForCategories } from "../QueryModeller";
 import { VictoriaLogsQueryOperationCategory } from "../VictoriaLogsQueryOperationCategory";
 import { parseStatsOperation } from "../utils/operationParser";
 import { splitByUnescapedChar, splitString } from "../utils/stringSplitter";
+
+function isObj(v: unknown): v is { expr: string; visQuery: VisualQuery } {
+  return !!v && typeof v === "object" && "expr" in (v as any) && "visQuery" in (v as any);
+}
 
 export default function StatsEditor(props: QueryBuilderOperationParamEditorProps) {
   const { value, onChange, index, datasource, timeRange, onRunQuery, queryModeller } = props;
@@ -19,28 +23,15 @@ export default function StatsEditor(props: QueryBuilderOperationParamEditorProps
        count() if (PUT) puts,
        count() total
   */
-  const operations = useMemo(() => parseStatsValue(String(value || ""), queryModeller), [value, queryModeller]);
-  const expr = useMemo(() => {
-    return buildVisualQueryToString({
-      labels: [],
-      operations,
-      expr: "",
-    });
-  }, [operations]);
-  const visQuery = {
-    labels: [],
-    operations,
-    expr: expr,
-  };
+  const visQuery = useMemo(() => isObj(value) ? value.visQuery : parseStatsValue(String(value || ""), queryModeller), [value, queryModeller]);
+
   const queryStatsModeller = useMemo(() => {
     return createQueryModellerForCategories([VictoriaLogsQueryOperationCategory.Stats]);
   }, []);
   const onEditorChange = (query: VisualQuery) => {
-    const value = queryStatsModeller.renderOperations("", query.operations);
-    if (value === undefined) {
-      return;
-    }
-    onChange(index, value);
+    const expr = queryStatsModeller.renderOperations("", query.operations);
+    const next = { expr, visQuery: query };
+    onChange(index, next as unknown as string);
   }
   return (
     <OperationList
@@ -54,17 +45,16 @@ export default function StatsEditor(props: QueryBuilderOperationParamEditorProps
   )
 }
 
-function parseStatsValue(value: string, queryModeller: VisualQueryModeller) {
-  if (value === "") {
-    return [];
-  }
+function parseStatsValue(value: string, queryModeller: VisualQueryModeller): VisualQuery {
   let operations: QueryBuilderOperation[] = [];
-  let str = splitString(value);
-  for (const commaPart of splitByUnescapedChar(str, ",")) {
-    const operation = parseStatsOperation(commaPart, queryModeller);
-    if (operation) {
-      operations.push(operation.operation);
+  if (value !== "") {
+    let str = splitString(value);
+    for (const commaPart of splitByUnescapedChar(str, ",")) {
+      const operation = parseStatsOperation(commaPart, queryModeller);
+      if (operation) {
+        operations.push(operation.operation);
+      }
     }
   }
-  return operations;
+  return { operations, labels: [], expr: value };
 }

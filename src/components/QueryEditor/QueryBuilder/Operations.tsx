@@ -1447,14 +1447,13 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         category: VictoriaLogsQueryOperationCategory.Pipes,
         renderer: (model, def, innerExpr) => {
           const statsBy = model.params[0] as string;
-          const stats = model.params.slice(1).filter((v) => Boolean(v) || v === "");
+          const subqueryField = model.params[1] as unknown;
+          const subquery = (typeof subqueryField === "string") ? subqueryField : (subqueryField as { expr: string }).expr;
           let expr = "stats";
           if (statsBy !== "") {
             expr += ` by (${statsBy})`;
           }
-          if (stats.length > 0) {
-            expr += " " + stats.join(", ");
-          }
+          expr += " " + subquery;
           return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
@@ -3231,7 +3230,9 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Filters,
         renderer: (model, def, innerExpr) => {
-          const expr = `_stream_id:${model.params[0]}`;
+          const subqueryField = model.params[0] as unknown;
+          const subquery = (typeof subqueryField === "string") ? subqueryField : (subqueryField as { expr: string }).expr;
+          const expr = `_stream_id:${subquery}`;
           return pipeExpr(innerExpr, expr);
         },
         explainHandler: () => `[stream-id-filter](https://docs.victoriametrics.com/victorialogs/logsql/#_stream_id-filter)`,
@@ -3475,11 +3476,12 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         renderer: (model, def, innerExpr) => {
           let result = "";
           const fieldName = model.params[0] as string;
-          const matches = model.params[1] as string;
+          const subqueryField = model.params[1] as unknown;
+          const subquery = (typeof subqueryField === "string") ? subqueryField : (subqueryField as { expr: string }).expr;
           if (fieldName !== this.defaultField) {
             result = `${quoteString(fieldName)}:`;
           }
-          result += `in${matches}`;
+          result += `in${subquery}`;
           return pipeExpr(innerExpr, result);
         },
         addOperationHandler: addVictoriaOperation,
@@ -3511,11 +3513,13 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         category: VictoriaLogsQueryOperationCategory.Filters,
         renderer: (model, def, innerExpr) => {
           const field = model.params[0] as string;
+          const subqueryField = model.params[1] as unknown;
+          const subquery = (typeof subqueryField === "string") ? subqueryField : (subqueryField as { expr: string }).expr;
           let expr = "";
           if (field !== this.defaultField) {
             expr = `${quoteString(field)}:`;
           }
-          expr += "contains_all" + model.params[1];
+          expr += "contains_all" + subquery;
           return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
@@ -3547,11 +3551,13 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         category: VictoriaLogsQueryOperationCategory.Filters,
         renderer: (model, def, innerExpr) => {
           const field = model.params[0] as string;
+          const subqueryField = model.params[1] as unknown;
+          const subquery = (typeof subqueryField === "string") ? subqueryField : (subqueryField as { expr: string }).expr;
           let expr = "";
           if (field !== this.defaultField) {
             expr = `${quoteString(field)}:`;
           }
-          expr += "contains_any" + model.params[1];
+          expr += "contains_any" + subquery;
           return pipeExpr(innerExpr, expr);
         },
         addOperationHandler: addVictoriaOperation,
@@ -3961,7 +3967,8 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         category: VictoriaLogsQueryOperationCategory.Filters,
         renderer: (model, def, innerExpr) => {
           const field = model.params[0] as string;
-          const subquery = model.params[1] as string;
+          const subqueryField = model.params[1] as unknown;
+          const subquery = (typeof subqueryField === "string") ? subqueryField : (subqueryField as { expr: string }).expr;
           let expr = "";
           if (field !== this.defaultField) {
             expr = `${quoteString(field)}:`;

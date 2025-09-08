@@ -105,7 +105,7 @@ export class QueryModeller implements VictoriaVisualQueryModeller {
     return queryString.trim();
   }
 
-  renderQuery(query: VisualQuery, nested?: boolean): string {
+  renderQuery(query: { operations: QueryBuilderOperation[] }, nested?: boolean): string {
     const queryString = this.renderOperations("", query.operations);
     return queryString;
   }
