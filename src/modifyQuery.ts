@@ -1,3 +1,5 @@
+import { AdHocVariableFilter } from '@grafana/data';
+
 import {
   buildVisualQueryFromString,
   splitExpression
@@ -6,6 +8,7 @@ import { parseVisualQueryToString } from "./components/QueryEditor/QueryBuilder/
 import { FilterVisualQuery } from "./types";
 
 const operators = ["=", "!=", "=~", "!~", "<", ">"];
+const multiValueOperators = ["=|", "!=|" ]
 const streamKeys = ["_stream", "_stream_id"];
 
 export function queryHasFilter(query: string, key: string, value: string, operator?: string): boolean {
@@ -34,9 +37,28 @@ const getFilterInsertValueForStream = (key: string, value: string, operator: str
   return `${key}:${value}`;
 }
 
-export const addLabelToQuery = (query: string, key: string, value: string, operator: string): string => {
+const getMultiValueInsert = (key: string, values: string[], operator: string): string => {
+  const isExclude = operator === "!=|"
+
+  if (key === "_stream") {
+    const expr = values.map(v => `${key}: ${v}`).join(" OR ")
+    return isExclude ? `!(${expr})` : `(${expr})`;
+  }
+
+  const valuesStr = values.map(v => `"${v}"`).join(",");
+  const expr = `${key}:in(${valuesStr})`
+  return isExclude ? `!(${expr})` : expr;
+}
+
+export const addLabelToQuery = (query: string, filter: AdHocVariableFilter): string => {
+  const { key, value, values = [], operator } = filter;
   const [filters, ...pipes] = splitExpression(query)
-  const insertPart = getFilterInsertValue(key, value, operator)
+
+  const isMultiValue = multiValueOperators.includes(operator)
+  const insertPart = isMultiValue
+    ? getMultiValueInsert(key, values, operator)
+    : getFilterInsertValue(key, value, operator)
+
   const pipesPart = pipes?.length ? `| ${pipes.join(' | ')}` : ''
   return filters.length ? (`${filters} AND ${insertPart} ${pipesPart}`).trim() : (`${insertPart} ${pipesPart}`).trim()
 }
