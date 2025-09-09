@@ -390,22 +390,21 @@ type logStats struct {
 func (ls logStats) vectorDataFrames() (data.Frames, error) {
 	frames := make(data.Frames, len(ls.Result))
 	for i, res := range ls.Result {
-		f, err := strconv.ParseFloat(res.Value[1].(string), 64)
+		value := res.Value
+
+		ts, err := getTimestamp(value)
 		if err != nil {
-			return nil, fmt.Errorf("metric %v, unable to parse timestamp to float64 from %s: %w", res, res.Value[1], err)
+			return nil, fmt.Errorf("metric %v, error to get timestamp for vector response from the stats API: %w", res, err)
 		}
 
-		v, ok := res.Value[0].(float64)
-		if !ok {
-			return nil, fmt.Errorf("metric %v, unable to convert metrics value to float64 from %s", res, res.Value[0])
+		valuePtr, err := getFloatPtr(value)
+		if err != nil {
+			return nil, fmt.Errorf("metric %v, error to get float value for vector response from the stats API: %w", res, err)
 		}
 
-		seconds := int64(v)                                // get only seconds
-		nanoseconds := int64((v - float64(seconds)) * 1e9) // get only nanoseconds
-		ts := time.Unix(seconds, nanoseconds)
 		frames[i] = data.NewFrame("",
 			data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{ts}),
-			data.NewField(data.TimeSeriesValueFieldName, data.Labels(res.Labels), []float64{f}))
+			data.NewField(data.TimeSeriesValueFieldName, data.Labels(res.Labels), []*float64{valuePtr}))
 	}
 
 	return frames, nil
@@ -436,25 +435,24 @@ func (ls logStats) matrixDataFrames() (data.Frames, error) {
 	frames := make(data.Frames, len(ls.Result))
 	for i, res := range ls.Result {
 		timestamps := make([]time.Time, len(res.Values))
-		values := make([]float64, len(res.Values))
-		for j, value := range res.Values {
-			v, ok := value[0].(float64)
-			if !ok {
-				return nil, fmt.Errorf("metric %v, value: %v unable to parse timestamp to float64 from %s", res, value, value[0])
-			}
-			seconds := int64(v)                                // get only seconds
-			nanoseconds := int64((v - float64(seconds)) * 1e9) // get only nanoseconds
-			timestamps[j] = time.Unix(seconds, nanoseconds)
+		values := make([]*float64, len(res.Values))
 
-			f, err := strconv.ParseFloat(value[1].(string), 64)
+		for j, value := range res.Values {
+			t, err := getTimestamp(value)
 			if err != nil {
-				return nil, fmt.Errorf("metric %v, value: %v unable to convert metrics value to float64 from %s", res, value, value[1])
+				return nil, fmt.Errorf("metrics %v, error to get timestamp for matrix response from the stats API: %w", res, err)
 			}
-			values[j] = f
+			timestamps[j] = t
+
+			fPtr, err := getFloatPtr(value)
+			if err != nil {
+				return nil, fmt.Errorf("metrics %v, error to get float value for matrix response from the stats API: %w", res, err)
+			}
+			values[j] = fPtr
 		}
 
 		if len(values) < 1 || len(timestamps) < 1 {
-			return nil, fmt.Errorf("metric %v contains no values", res)
+			return nil, fmt.Errorf("log %v contains no values", res)
 		}
 
 		frames[i] = data.NewFrame("",
@@ -536,4 +534,35 @@ func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
 	}
 
 	return frames, nil
+}
+
+func getTimestamp(value Value) (time.Time, error) {
+	v, ok := value[0].(float64)
+	if !ok {
+		return time.Time{}, fmt.Errorf("value: %v unable to parse timestamp to float64 from %s", value, value[0])
+	}
+
+	seconds := int64(v)                                // get only seconds
+	nanoseconds := int64((v - float64(seconds)) * 1e9) // get only nanoseconds
+	t := time.Unix(seconds, nanoseconds)
+	return t, nil
+}
+
+func getFloatPtr(value Value) (*float64, error) {
+	f, ok := value[1].(string)
+	if !ok {
+		return nil, fmt.Errorf("value: %v unable to convert log value to string from %s", value, value[1])
+	}
+
+	var floatPtr *float64
+	if f == "" {
+		floatPtr = nil
+	} else {
+		flVal, err := strconv.ParseFloat(f, 64)
+		if err != nil {
+			return nil, fmt.Errorf("value: %v unable to parse log value to float64 from %s: %w", value, value[1], err)
+		}
+		floatPtr = utils.Ptr(flVal)
+	}
+	return floatPtr, nil
 }

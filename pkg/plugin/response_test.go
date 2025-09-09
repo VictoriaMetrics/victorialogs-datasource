@@ -13,6 +13,8 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/valyala/fastjson"
+
+	"github.com/VictoriaMetrics/victorialogs-datasource/pkg/utils"
 )
 
 func Test_parseInstantResponse(t *testing.T) {
@@ -798,6 +800,20 @@ func Test_getStatsResponse(t *testing.T) {
 				t.Fatalf("\n got value: %s, \n want value: %s", got, want)
 			}
 		}
+
+		if len(resp.Frames) == 0 && len(w.Frames) == 0 {
+			got, err := resp.MarshalJSON()
+			if err != nil {
+				t.Fatalf("error marshal response: %s", err)
+			}
+			want, err := w.MarshalJSON()
+			if err != nil {
+				t.Fatalf("error marshal want response: %s", err)
+			}
+			if !bytes.Equal(got, want) {
+				t.Fatalf("\n got value: %s, \n want value: %s", got, want)
+			}
+		}
 	}
 
 	// empty response
@@ -840,11 +856,11 @@ func Test_getStatsResponse(t *testing.T) {
 			frames := []*data.Frame{
 				data.NewFrame("legend ",
 					data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1730937600, 0)}),
-					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": "message"}, []float64{13377}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": "message"}, []*float64{utils.Ptr(float64(13377))}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
 				),
 				data.NewFrame("legend ",
 					data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1730937600, 0)}),
-					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": ""}, []float64{2078793288}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": ""}, []*float64{utils.Ptr(float64(2078793288))}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
 				),
 			}
 
@@ -868,7 +884,7 @@ func Test_getStatsResponse(t *testing.T) {
 			frames := []*data.Frame{
 				data.NewFrame("legend ",
 					data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1704067200, 0), time.Unix(1704088800, 0), time.Unix(1704110400, 0), time.Unix(1704132000, 0)}),
-					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": ""}, []float64{1311461, 1311601, 1310266, 1310875}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": ""}, []*float64{utils.Ptr(float64(1311461)), utils.Ptr(float64(1311601)), utils.Ptr(float64(1310266)), utils.Ptr(float64(1310875))}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
 				),
 			}
 
@@ -896,7 +912,7 @@ func Test_getStatsResponse(t *testing.T) {
 						time.Unix(1733187134, 0),
 						time.Unix(1733187134, 449999809),
 					}),
-					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)"}, []float64{58, 1}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)"}, []*float64{utils.Ptr(float64(58)), utils.Ptr(float64(1))}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
 				),
 			}
 			rsp := backend.DataResponse{}
@@ -947,11 +963,59 @@ func Test_getStatsResponse(t *testing.T) {
 			frames := []*data.Frame{
 				data.NewFrame("legend ",
 					data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1730937600, 0)}).SetConfig(&data.FieldConfig{Interval: 1000}),
-					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": "message"}, []float64{13377}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": "message"}, []*float64{utils.Ptr(float64(13377))}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
 				),
 				data.NewFrame("legend ",
 					data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1730937600, 0)}).SetConfig(&data.FieldConfig{Interval: 1000}),
-					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": ""}, []float64{2078793288}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": ""}, []*float64{utils.Ptr(float64(2078793288))}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+				),
+			}
+
+			rsp := backend.DataResponse{}
+			rsp.Frames = append(rsp.Frames, frames...)
+			return rsp
+		},
+	}
+	f(o)
+
+	// response with the empty value in the vector response
+	o = opts{
+		filename: "test-data/stats_empty_value_in_the_response",
+		q: &Query{
+			DataQuery: backend.DataQuery{
+				RefID: "A",
+			},
+			LegendFormat: "legend {{app}}",
+		},
+		want: func() backend.DataResponse {
+			frames := []*data.Frame{
+				data.NewFrame("legend ",
+					data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1756992432, 0)}),
+					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "p95"}, []*float64{nil}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
+				),
+			}
+
+			rsp := backend.DataResponse{}
+			rsp.Frames = append(rsp.Frames, frames...)
+			return rsp
+		},
+	}
+	f(o)
+
+	// response with the nil value in the vector response
+	o = opts{
+		filename: "test-data/stats_nil_value_in_the_response",
+		q: &Query{
+			DataQuery: backend.DataQuery{
+				RefID: "A",
+			},
+			LegendFormat: "legend {{app}}",
+		},
+		want: func() backend.DataResponse {
+			frames := []*data.Frame{
+				data.NewFrame("legend ",
+					data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1756992432, 0)}),
+					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "p95"}, []*float64{nil}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
 				),
 			}
 
