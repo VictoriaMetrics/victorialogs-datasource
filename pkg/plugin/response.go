@@ -392,14 +392,14 @@ func (ls logStats) vectorDataFrames() (data.Frames, error) {
 	for i, res := range ls.Result {
 		value := res.Value
 
-		ts, err := getTimestamp(value)
+		ts, err := getTimestamp(value[0])
 		if err != nil {
-			return nil, fmt.Errorf("metric %v, error to get timestamp for vector response from the stats API: %w", res, err)
+			return nil, fmt.Errorf("failed to parse timestamp for metric %v: %w", res, err)
 		}
 
-		valuePtr, err := getFloatPtr(value)
+		valuePtr, err := getFloatPtr(value[1])
 		if err != nil {
-			return nil, fmt.Errorf("metric %v, error to get float value for vector response from the stats API: %w", res, err)
+			return nil, fmt.Errorf("failed to parse float value for metric %v: %w", res, err)
 		}
 
 		frames[i] = data.NewFrame("",
@@ -438,15 +438,15 @@ func (ls logStats) matrixDataFrames() (data.Frames, error) {
 		values := make([]*float64, len(res.Values))
 
 		for j, value := range res.Values {
-			t, err := getTimestamp(value)
+			t, err := getTimestamp(value[0])
 			if err != nil {
-				return nil, fmt.Errorf("metrics %v, error to get timestamp for matrix response from the stats API: %w", res, err)
+				return nil, fmt.Errorf("failed to parse timestamp response for metric %v: %w", res, err)
 			}
 			timestamps[j] = t
 
-			fPtr, err := getFloatPtr(value)
+			fPtr, err := getFloatPtr(value[1])
 			if err != nil {
-				return nil, fmt.Errorf("metrics %v, error to get float value for matrix response from the stats API: %w", res, err)
+				return nil, fmt.Errorf("failed to parse float value response for metric %v: %w", res, err)
 			}
 			values[j] = fPtr
 		}
@@ -536,10 +536,10 @@ func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
 	return frames, nil
 }
 
-func getTimestamp(value Value) (time.Time, error) {
-	v, ok := value[0].(float64)
+func getTimestamp(value interface{}) (time.Time, error) {
+	v, ok := value.(float64)
 	if !ok {
-		return time.Time{}, fmt.Errorf("value: %v unable to parse timestamp to float64 from %s", value, value[0])
+		return time.Time{}, fmt.Errorf("failed to convert timestamp to float64 for value %v", value)
 	}
 
 	seconds := int64(v)                                // get only seconds
@@ -548,21 +548,21 @@ func getTimestamp(value Value) (time.Time, error) {
 	return t, nil
 }
 
-func getFloatPtr(value Value) (*float64, error) {
-	f, ok := value[1].(string)
+func getFloatPtr(value interface{}) (*float64, error) {
+	f, ok := value.(string)
 	if !ok {
-		return nil, fmt.Errorf("value: %v unable to convert log value to string from %s", value, value[1])
+		return nil, fmt.Errorf("unable to convert log value to string from %v", value)
 	}
 
-	var floatPtr *float64
 	if f == "" {
-		floatPtr = nil
-	} else {
-		flVal, err := strconv.ParseFloat(f, 64)
-		if err != nil {
-			return nil, fmt.Errorf("value: %v unable to parse log value to float64 from %s: %w", value, value[1], err)
-		}
-		floatPtr = utils.Ptr(flVal)
+		return nil, nil
 	}
+
+	flVal, err := strconv.ParseFloat(f, 64)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse log value to float64 from %v: %w", value, err)
+	}
+
+	floatPtr := utils.Ptr(flVal)
 	return floatPtr, nil
 }
