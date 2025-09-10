@@ -303,6 +303,11 @@ func (di *DatasourceInstance) streamQuery(ctx context.Context, request *backend.
 		return err
 	}
 
+	if r == nil {
+		// VictoriaLogs returned no data
+		return nil
+	}
+
 	defer func() {
 		if err := r.Close(); err != nil {
 			backend.Logger.Error("failed to close response body", "err", err.Error())
@@ -384,6 +389,12 @@ func (di *DatasourceInstance) datasourceQuery(ctx context.Context, q *Query, isS
 		}
 	}
 
+	// This is to handle cases where VictoriaLogs returns no data
+	// and avoid json decoding errors
+	if resp.ContentLength == 0 {
+		return nil, nil
+	}
+
 	return resp.Body, nil
 }
 
@@ -392,6 +403,11 @@ func (di *DatasourceInstance) query(ctx context.Context, q *Query) backend.DataR
 	r, err := di.datasourceQuery(ctx, q, false)
 	if err != nil {
 		return newResponseError(err, backend.StatusInternal)
+	}
+
+	if r == nil {
+		// VictoriaLogs returned no data
+		return backend.DataResponse{Frames: data.Frames{}}
 	}
 
 	defer func() {

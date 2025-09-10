@@ -10,6 +10,7 @@
 * BUGFIX: respect adhoc filters variables. See [#361](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/361)
 * BUGFIX: fix issue with concurrent map writes when performing multiple requests to the datasource. See [this issue](https://github.com/VictoriaMetrics/victoriametrics-datasource/issues/363)
 * BUGFIX: fix a parsing issue with quoted characters inside `_stream` fields. See [#365](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/365).
+* BUGFIX: fix an issue with parsing stats response when it can be empty or have empty string or `nil` as a value. See [#374](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/374).
 
 ## v0.19.3
 
