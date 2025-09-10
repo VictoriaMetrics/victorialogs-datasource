@@ -66,7 +66,7 @@ func GetTime(s string) (time.Time, error) {
 
 // ParseTime parses time s in different formats.
 //
-// See https://docs.victoriametrics.com/Single-server-VictoriaMetrics.html#timestamp-formats
+// See https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/#timestamp-formats
 //
 // It returns unix timestamp in seconds.
 func ParseTime(s string) (float64, error) {
@@ -82,7 +82,7 @@ const (
 
 // ParseTimeAt parses time s in different formats, assuming the given currentTimestamp.
 //
-// See https://docs.victoriametrics.com/Single-server-VictoriaMetrics.html#timestamp-formats
+// See https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/#timestamp-formats
 //
 // It returns unix timestamp in seconds.
 func ParseTimeAt(s string, currentTimestamp float64) (float64, error) {

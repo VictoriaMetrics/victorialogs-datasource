@@ -1,7 +1,7 @@
 # VictoriaLogs datasource for Grafana
 
 The VictoriaLogs Grafana plugin allows Grafana to query, visualize, 
-and interact with [VictoriaLogs](https://docs.victoriametrics.com/victorialogs),
+and interact with [VictoriaLogs](https://docs.victoriametrics.com/victorialogs/),
 a high-performance log storage and processing system.
 
 <img alt="Grafana Dashboard Screenshot" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/dashboard.png?raw=true">
