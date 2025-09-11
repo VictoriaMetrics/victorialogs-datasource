@@ -87,9 +87,10 @@ function fieldFromDerivedFieldConfig(derivedFieldConfigs: DerivedFieldConfig[]):
         // Will be filled out later
         title: derivedFieldConfig.urlDisplayLabel || '',
         url: '',
-        // This is hardcoded for Jaeger or Zipkin not way right now to specify datasource specific query object
         internal: {
-          query: { query: derivedFieldConfig.url, queryType: queryType(dsSettings?.type) },
+          // For internal links, always use ${__value.raw} regardless of config
+          // derivedFieldConfig.url is meant for external URLs, not internal query objects
+          query: { query: '${__value.raw}', queryType: queryType(dsSettings?.type) },
           datasourceUid: derivedFieldConfig.datasourceUid,
           datasourceName: dsSettings?.name ?? 'Data source not found',
         },
