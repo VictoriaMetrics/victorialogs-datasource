@@ -1002,3 +1002,59 @@ func TestDatasourceQueryDataRace(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestGetBaseVMUIURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		settings DataSourceInstanceSettings
+		want     string
+		wantErr  bool
+	}{
+		{
+			name: "Valid VMUIURL directly given",
+			settings: DataSourceInstanceSettings{
+				VMUIURL: "http://vmuiurl/vmui",
+			},
+			want:    "http://vmuiurl/vmui",
+			wantErr: false,
+		},
+		{
+			name: "Base URL with valid appended path",
+			settings: DataSourceInstanceSettings{
+				URL: "http://url",
+			},
+			want:    "http://url/select/vmui",
+			wantErr: false,
+		},
+		{
+			name: "Invalid base URL format",
+			settings: DataSourceInstanceSettings{
+				URL: ":/invalid-url",
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "Empty URLs",
+			settings: DataSourceInstanceSettings{
+				URL:     "",
+				VMUIURL: "",
+			},
+			want:    "",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getBaseVMUIURL(tt.settings)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getBaseVMUIURL() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("getBaseVMUIURL() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
