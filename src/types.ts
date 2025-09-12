@@ -17,6 +17,7 @@ export interface Options extends DataSourceJsonData {
   enableSecureSocksProxy?: boolean;
   logLevelRules?: LogLevelRule[];
   multitenancyHeaders?: MultitenancyHeaders;
+  vmuiUrl?: string;
 }
 
 export enum QueryDirection {
