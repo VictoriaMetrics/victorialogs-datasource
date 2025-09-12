@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: add run in vmui button. The VMUI URL can be configured in the datasource settings. If not specified, the datasource URL with the path `/select/vmui` will be used. See [#369](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/369).
+
 ## v0.20.0
 
 * FEATURE: upgrade Go builder from Go1.24.2 to Go1.25. See [Go1.25 release notes](https://tip.golang.org/doc/go1.25).

@@ -8,6 +8,8 @@ import { Options } from '../types';
 import { PropsConfigEditor } from "./ConfigEditor";
 import { getValueFromEventItem } from "./utils";
 
+export const getDefaultVmuiUrl = (serverUrl = "") => `${serverUrl.replace(/\/$/, "")}/select/vmui/#/`
+
 export const LogsSettings = (props: PropsConfigEditor) => {
   const { options, onOptionsChange } = props;
 
@@ -33,6 +35,21 @@ export const LogsSettings = (props: PropsConfigEditor) => {
               onChange={onChangeHandler('customQueryParameters', optionsWithHttpMethod, onOptionsChange)}
               spellCheck={false}
               placeholder="Example: max_source_resolution=5m&timeout=10"
+            />
+          </InlineField>
+        </div>
+        <div className="gf-form max-width-30">
+          <InlineField
+            label="Link on vmui"
+            labelWidth={28}
+            tooltip={<>The link you want to use when clicking the <code>Run in vmui</code> button</>}
+          >
+            <Input
+              className="width-25"
+              value={optionsWithHttpMethod.jsonData.vmuiUrl}
+              onChange={onChangeHandler('vmuiUrl', optionsWithHttpMethod, onOptionsChange)}
+              spellCheck={false}
+              placeholder={getDefaultVmuiUrl(optionsWithHttpMethod.url)}
             />
           </InlineField>
         </div>
