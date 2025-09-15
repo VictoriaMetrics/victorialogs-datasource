@@ -56,6 +56,7 @@ func NewDatasource() *Datasource {
 	mux.HandleFunc("/", ds.RootHandler)
 	mux.HandleFunc("/select/logsql/field_values", ds.VLAPIQuery)
 	mux.HandleFunc("/select/logsql/field_names", ds.VLAPIQuery)
+	mux.HandleFunc("/vmui", ds.VMUIQuery)
 	ds.CallResourceHandler = httpadapter.New(mux)
 	return &ds
 }
@@ -90,6 +91,15 @@ func newDatasourceInstance(ctx context.Context, settings backend.DataSourceInsta
 		return nil, err
 	}
 
+	var dstSettings DataSourceInstanceSettings
+	if dstSettings, err = buildDatasourceSettings(settings); err != nil {
+		return nil, fmt.Errorf("failed to copy datasource settings: %w", err)
+	}
+
+	if err := setVmuiURL(&dstSettings); err != nil {
+		return nil, fmt.Errorf("failed to set vmui url: %w", err)
+	}
+
 	grafanaSettings, err := NewGrafanaSettings(settings)
 	if err != nil {
 		logger.Error("error create a new GrafanaSettings: %w", err)
@@ -97,7 +107,7 @@ func newDatasourceInstance(ctx context.Context, settings backend.DataSourceInsta
 	}
 
 	return &DatasourceInstance{
-		settings:            settings,
+		settings:            dstSettings,
 		httpClient:          cl,
 		httpStreamingClient: strCl,
 		grafanaSettings:     grafanaSettings,
@@ -143,12 +153,20 @@ func NewGrafanaSettings(settings backend.DataSourceInstanceSettings) (*GrafanaSe
 // DatasourceInstance is an example datasource which can respond to data queries, reports
 // its health and has streaming skills.
 type DatasourceInstance struct {
-	settings backend.DataSourceInstanceSettings
+	settings DataSourceInstanceSettings
 
 	httpClient          *http.Client
 	httpStreamingClient *http.Client
 	grafanaSettings     *GrafanaSettings
 	liveModeResponses   sync.Map
+}
+
+type DataSourceInstanceSettings struct {
+	// URL is the configured URL of a data source instance (e.g. the URL of an API endpoint).
+	URL string `json:"URL,omitempty"`
+
+	// VMUIURL specifies the URL for the VictoriaMetrics UI, derived from the data source's base URL if not explicitly set.
+	VMUIURL string `json:"vmuiUrl,omitempty"`
 }
 
 // SubscribeStream called when a user tries to subscribe to a plugin/datasource
@@ -576,6 +594,69 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// VMUIQuery generates VMUI link to a native dashboard
+func (d *Datasource) VMUIQuery(rw http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	pluginCxt := backend.PluginConfigFromContext(ctx)
+
+	di, err := d.getInstance(ctx, pluginCxt)
+	if err != nil {
+		d.logger.Error("Error loading datasource", "error", err)
+		writeError(rw, http.StatusInternalServerError, err)
+		return
+	}
+
+	vmuiUrl, err := getBaseVMUIURL(di.settings)
+	if err != nil {
+		d.logger.Error("failed to build VMUI url", "error", err)
+		writeError(rw, http.StatusInternalServerError, err)
+		return
+	}
+
+	rw.Header().Add("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+
+	if _, err := fmt.Fprintf(rw, `{"vmuiURL": %q}`, vmuiUrl); err != nil {
+		d.logger.Warn("Error writing response", "error", err)
+	}
+}
+
+func getBaseVMUIURL(settings DataSourceInstanceSettings) (string, error) {
+	if len(settings.VMUIURL) > 0 {
+		return settings.VMUIURL, nil
+	}
+
+	if len(settings.URL) == 0 {
+		return "", fmt.Errorf("data source URL is not set")
+	}
+
+	vmuiUrl, err := newURL(settings.URL, "/select/vmui/", false)
+	if err != nil {
+		return "", err
+	}
+
+	return vmuiUrl.String(), nil
+}
+
+// newURL constructs a new URL by parsing the given urlStr, appending p to its path, and optionally truncating at /select/.
+// Returns the resulting URL or an error if parsing fails or urlStr is empty.
+func newURL(urlStr, p string, root bool) (*url.URL, error) {
+	if urlStr == "" {
+		return nil, fmt.Errorf("url can't be blank")
+	}
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse datasource url: %s", err)
+	}
+	if root {
+		if idx := strings.Index(u.Path, "/select/"); idx > 0 {
+			u.Path = u.Path[:idx]
+		}
+	}
+	u.Path = path.Join(u.Path, p)
+	return u, nil
+}
+
 // newHealthCheckErrorf returns a new *backend.CheckHealthResult with its status set to backend.HealthStatusError
 // and the specified message, which is formatted with Sprintf.
 func newHealthCheckErrorf(format string, args ...interface{}) *backend.CheckHealthResult {
@@ -647,4 +728,28 @@ func writeError(rw http.ResponseWriter, statusCode int, err error) {
 	if err != nil {
 		log.DefaultLogger.Warn("Error writing response")
 	}
+}
+
+func buildDatasourceSettings(settings backend.DataSourceInstanceSettings) (DataSourceInstanceSettings, error) {
+	var dstSettings DataSourceInstanceSettings
+
+	// get the VMUIURL from the settings
+	if err := json.Unmarshal(settings.JSONData, &dstSettings); err != nil {
+		return dstSettings, fmt.Errorf("failed to parse datasource JSONData settings: %w", err)
+	}
+	dstSettings.URL = settings.URL
+
+	return dstSettings, nil
+}
+
+func setVmuiURL(settings *DataSourceInstanceSettings) error {
+	if len(settings.VMUIURL) == 0 {
+		vmuiUrl, err := newURL(settings.URL, "/select/vmui/", false)
+		if err != nil {
+			return fmt.Errorf("failed to build VMUI url: %w", err)
+		}
+		settings.VMUIURL = vmuiUrl.String()
+	}
+
+	return nil
 }

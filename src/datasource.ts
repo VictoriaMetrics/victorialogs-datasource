@@ -194,14 +194,14 @@ export class VictoriaLogsDatasource
     };
   }
 
-  getExtraFilters(adhocFilters?: AdHocVariableFilter[]): string | undefined {
+  getExtraFilters(adhocFilters?: AdHocVariableFilter[], initialExpr = ''): string | undefined {
     if (!adhocFilters) {
       return;
     }
 
     const expr = adhocFilters.reduce((acc: string, filter: AdHocVariableFilter) => {
       return addLabelToQuery(acc, filter);
-    }, '');
+    }, initialExpr);
 
     return returnVariables(expr);
   }
