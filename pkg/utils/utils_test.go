@@ -586,6 +586,65 @@ func TestAddTimeFieldWithRange(t *testing.T) {
 | stats by (_time:1s) count()`,
 	}
 	f(o)
+
+	o = opts{
+		expr: `options(concurrency=2) _time:1d | count_uniq(user_id)`,
+		timeRange: backend.TimeRange{
+			From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+		},
+		want: `options(concurrency=2) _time:1d | count_uniq(user_id)`,
+	}
+	f(o)
+	o = opts{
+		expr: `options(concurrency=2) | count_uniq(user_id)`,
+		timeRange: backend.TimeRange{
+			From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+		},
+		want: `options(concurrency=2) _time:[1732320000, 1732492800] | count_uniq(user_id)`,
+	}
+	f(o)
+
+	o = opts{
+		expr: `options(time_offset=7d) error | stats count() as 'errors_7d_ago'`,
+		timeRange: backend.TimeRange{
+			From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+		},
+		want: `options(time_offset=7d) _time:[1732320000, 1732492800] error | stats count() as 'errors_7d_ago'`,
+	}
+	f(o)
+
+	o = opts{
+		expr: `options(time_offset=7d) _time:1h error | stats count() as 'errors_7d_ago'`,
+		timeRange: backend.TimeRange{
+			From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+		},
+		want: `options(time_offset=7d) _time:1h error | stats count() as 'errors_7d_ago'`,
+	}
+	f(o)
+
+	o = opts{
+		expr: `user_id:in(options(ignore_global_time_filter=true) _time:2024-12Z | keep user_id) | count()`,
+		timeRange: backend.TimeRange{
+			From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+		},
+		want: `user_id:in(options(ignore_global_time_filter=true) _time:2024-12Z | keep user_id) | count()`,
+	}
+	f(o)
+
+	o = opts{
+		expr: `user_id:in(options(ignore_global_time_filter=true) | keep user_id) | count()`,
+		timeRange: backend.TimeRange{
+			From: time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2024, 11, 25, 0, 0, 0, 0, time.UTC),
+		},
+		want: `user_id:in(options(ignore_global_time_filter=true) _time:[1732320000, 1732492800] | keep user_id) | count()`,
+	}
+	f(o)
 }
 
 func TestTryParseTimestampRFC3339NanoString_Success(t *testing.T) {
