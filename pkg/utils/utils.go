@@ -489,7 +489,7 @@ func CalculateStep(minInterval time.Duration, timeRange backend.TimeRange, maxDa
 	calculatedInterval := time.Duration(rangeValue / resolution)
 
 	if calculatedInterval < minInterval {
-		return roundInterval(minInterval)
+		return minInterval
 	}
 
 	return roundInterval(calculatedInterval)

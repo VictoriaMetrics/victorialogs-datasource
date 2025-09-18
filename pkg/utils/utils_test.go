@@ -281,100 +281,137 @@ func TestReplaceTemplateVariable(t *testing.T) {
 
 func Test_calculateStep(t *testing.T) {
 	type opts struct {
-		name         string
-		baseInterval time.Duration
-		timeRange    backend.TimeRange
-		resolution   int64
-		want         string
+		name          string
+		minInterval   time.Duration
+		timeRange     backend.TimeRange
+		maxDataPoints int64
+		want          string
 	}
 	f := func(opts opts) {
 		t.Helper()
-		if got := CalculateStep(opts.baseInterval, opts.timeRange, opts.resolution); got.String() != opts.want {
+		if got := CalculateStep(opts.minInterval, opts.timeRange, opts.maxDataPoints); got.String() != opts.want {
 			t.Errorf("calculateStep() = %v, want %v", got, opts.want)
 		}
 	}
 
 	// one month timerange and max point 43200 with 20 second base interval
 	o := opts{
-		baseInterval: 20 * time.Second,
+		minInterval: 20 * time.Second,
 		timeRange: backend.TimeRange{
 			From: time.Now().Add(-time.Hour * 24 * 30),
 			To:   time.Now(),
 		},
-		resolution: 43200,
-		want:       "1m0s",
+		maxDataPoints: 43200,
+		want:          "1m0s",
 	}
 	f(o)
 
 	// one month timerange interval max points 43200 with 1 second base interval
 	o = opts{
-		baseInterval: 1 * time.Second,
+		minInterval: 1 * time.Second,
 		timeRange: backend.TimeRange{
 			From: time.Now().Add(-time.Hour * 24 * 30),
 			To:   time.Now(),
 		},
-		resolution: 43200,
-		want:       "1m0s",
+		maxDataPoints: 43200,
+		want:          "1m0s",
 	}
 	f(o)
 
 	// one month timerange interval max points 10000 with 5 second base interval
 	o = opts{
-		baseInterval: 5 * time.Second,
+		minInterval: 5 * time.Second,
 		timeRange: backend.TimeRange{
 			From: time.Now().Add(-time.Hour * 24 * 30),
 			To:   time.Now(),
 		},
-		resolution: 10000,
-		want:       "5m0s",
+		maxDataPoints: 10000,
+		want:          "5m0s",
 	}
 	f(o)
 
 	// one month timerange interval max points 10000 with 5 second base interval
 	o = opts{
-		baseInterval: 5 * time.Second,
+		minInterval: 5 * time.Second,
 		timeRange: backend.TimeRange{
 			From: time.Now().Add(-time.Hour * 1),
 			To:   time.Now(),
 		},
-		resolution: 10000,
-		want:       "5s",
+		maxDataPoints: 10000,
+		want:          "5s",
 	}
 	f(o)
 
 	// one month timerange interval max points 10000 with 5 second base interval
 	o = opts{
-		baseInterval: 2 * time.Minute,
+		minInterval: 2 * time.Minute,
 		timeRange: backend.TimeRange{
 			From: time.Now().Add(-time.Hour * 1),
 			To:   time.Now(),
 		},
-		resolution: 10000,
-		want:       "2m0s",
+		maxDataPoints: 10000,
+		want:          "2m0s",
 	}
 	f(o)
 
-	// two days time range with minimal resolution
+	// two days time range with minimal maxDataPoints
 	o = opts{
-		baseInterval: 60 * time.Second,
+		minInterval: 60 * time.Second,
 		timeRange: backend.TimeRange{
 			From: time.Now().Add(-time.Hour * 2 * 24),
 			To:   time.Now(),
 		},
-		resolution: 100,
-		want:       "30m0s",
+		maxDataPoints: 100,
+		want:          "30m0s",
 	}
 	f(o)
 
-	// two days time range with minimal resolution
+	// two days time range with minimal maxDataPoints
 	o = opts{
-		baseInterval: 60 * time.Second,
+		minInterval: 60 * time.Second,
 		timeRange: backend.TimeRange{
 			From: time.Now().Add(-time.Hour * 24 * 90),
 			To:   time.Now(),
 		},
-		resolution: 100000,
-		want:       "1m0s",
+		maxDataPoints: 100000,
+		want:          "1m0s",
+	}
+	f(o)
+
+	// minInterval higher than calculatedInterval
+	o = opts{
+		minInterval: 2 * time.Second,
+		timeRange: backend.TimeRange{
+			From: time.Now(),
+			To:   time.Now().Add(1 * time.Second),
+		},
+		maxDataPoints: 1000,
+		want:          "2s",
+	}
+	f(o)
+
+	// zero maxDataPoints uses default maxDataPoints
+	o = opts{
+		minInterval: 1 * time.Second,
+		timeRange: backend.TimeRange{
+			From: time.Now(),
+			To:   time.Now().Add(time.Hour),
+		},
+		maxDataPoints: 0,
+		want:          "2s",
+	}
+	f(o)
+
+	// zero time range (From == To)
+	now := time.Now()
+	o = opts{
+		minInterval: 1 * time.Second,
+		timeRange: backend.TimeRange{
+			From: now,
+			To:   now,
+		},
+		maxDataPoints: 1000,
+		want:          "1s", // Should fallback to minInterval
 	}
 	f(o)
 }

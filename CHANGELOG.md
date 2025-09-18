@@ -5,6 +5,7 @@
 * FEATURE: add run in vmui button. The VMUI URL can be configured in the datasource settings. If not specified, the datasource URL with the path `/select/vmui` will be used. See [#369](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/369).
 
 * BUGFIX: fix unpredictable behavior when determining a `Max Data Points` option for a range query. See [#393](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/393).
+* BUGFIX: auto-calculate `step` param for a range queries consistently with other datasources. Before, `step` between datapoints on the graph could have use unexpected values depending on the time range. See [#390](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/390).
 * BUGFIX: fix an issue with the incorrect handling `option` field in the query for the `/stats` API. By the [documentation](https://docs.victoriametrics.com/victorialogs/logsql/#query-options) it should be passed at the beginning of LogsQL query. See [#389](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/389).
 
 ## v0.20.0
