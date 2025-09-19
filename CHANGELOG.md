@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.21.0
+
 * FEATURE: add run in vmui button. The VMUI URL can be configured in the datasource settings. If not specified, the datasource URL with the path `/select/vmui` will be used. See [#369](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/369).
 
 * BUGFIX: fix unpredictable behavior when determining a `Max Data Points` option for a range query. See [#393](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/393).
