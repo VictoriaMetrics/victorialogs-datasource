@@ -649,7 +649,6 @@ func hasTimeField(expr string) bool {
 	parts := strings.Split(expr, "|")
 	if len(parts) > 1 {
 		expr = parts[0]
-		return strings.Contains(expr, timeField+":")
 	}
 
 	return strings.Contains(expr, timeField+":")
