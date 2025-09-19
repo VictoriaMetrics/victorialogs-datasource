@@ -737,3 +737,51 @@ func TestTryParseTimestampRFC3339Nano_Failure(t *testing.T) {
 	// invalid second
 	f("2023-01-23T23:33:ssZ")
 }
+
+func TestRoundInterval(t *testing.T) {
+	type testCase struct {
+		name     string
+		input    time.Duration
+		expected time.Duration
+	}
+
+	cases := []testCase{
+		// Milliseconds rounding
+		{name: "Round to 1ms", input: 5 * time.Millisecond, expected: 1 * time.Millisecond},
+		{name: "Round to 10ms", input: 12 * time.Millisecond, expected: 10 * time.Millisecond},
+		{name: "Round to 20ms", input: 25 * time.Millisecond, expected: 20 * time.Millisecond},
+		{name: "Round to 50ms", input: 60 * time.Millisecond, expected: 50 * time.Millisecond},
+		{name: "Round to 100ms", input: 125 * time.Millisecond, expected: 100 * time.Millisecond},
+
+		// Seconds rounding
+		{name: "Round to 1s", input: 1*time.Second + 200*time.Millisecond, expected: 1 * time.Second},
+		{name: "Round to 2s", input: 3 * time.Second, expected: 2 * time.Second},
+		{name: "Round to 5s", input: 6 * time.Second, expected: 5 * time.Second},
+		{name: "Round to 10s", input: 12 * time.Second, expected: 10 * time.Second},
+		{name: "Round to 15s", input: 17 * time.Second, expected: 15 * time.Second},
+
+		// Minutes rounding
+		{name: "Round to 1m", input: 70 * time.Second, expected: 1 * time.Minute},
+		{name: "Round to 2m", input: 125 * time.Second, expected: 2 * time.Minute},
+		{name: "Round to 30m", input: 40 * time.Minute, expected: 30 * time.Minute},
+		{name: "Round to 1h", input: 75 * time.Minute, expected: 1 * time.Hour},
+		{name: "Round to 2h", input: 2*time.Hour + 30*time.Minute, expected: 3 * time.Hour},
+
+		// Large intervals
+		{name: "Round to 6h", input: 7 * time.Hour, expected: 6 * time.Hour},
+		{name: "Round to 12h", input: 14 * time.Hour, expected: 12 * time.Hour},
+		{name: "Round to 12h", input: 20 * time.Hour, expected: 12 * time.Hour},
+		{name: "Round to 7d", input: 8 * 24 * time.Hour, expected: 7 * 24 * time.Hour},
+		{name: "Round to 30d", input: 31 * 24 * time.Hour, expected: 30 * 24 * time.Hour},
+		{name: "Round to 1y", input: 400 * 24 * time.Hour, expected: 365 * 24 * time.Hour},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := roundInterval(tc.input)
+			if result != tc.expected {
+				t.Errorf("roundInterval(%v) = %v; want %v", tc.input, result, tc.expected)
+			}
+		})
+	}
+}
