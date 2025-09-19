@@ -613,6 +613,11 @@ func roundInterval(interval time.Duration) time.Duration {
 	}
 }
 
+// Regex to find options(...) and insert time field after the closing parenthesis
+var (
+	optionRe = regexp.MustCompile(`(options\s*\(.*?\))(\s*|$)`)
+)
+
 // AddTimeFieldWithRange adds time field with range to the query
 func AddTimeFieldWithRange(expr string, timeRange backend.TimeRange) string {
 	if expr == "" {
@@ -624,7 +629,16 @@ func AddTimeFieldWithRange(expr string, timeRange backend.TimeRange) string {
 	}
 
 	timeRangeStr := timeRangeToString(timeRange)
-	return fmt.Sprintf("%s:%s %s", timeField, timeRangeStr, expr)
+	timeFieldWithRange := fmt.Sprintf("%s:%s", timeField, timeRangeStr)
+
+	expr = strings.TrimSpace(expr)
+
+	if optionRe.MatchString(expr) {
+		return optionRe.ReplaceAllString(expr, fmt.Sprintf("$1 %s$2", timeFieldWithRange))
+	}
+
+	// No options block, add time field at the beginning
+	return fmt.Sprintf("%s %s", timeFieldWithRange, expr)
 }
 
 func timeRangeToString(timeRange backend.TimeRange) string {
@@ -635,8 +649,7 @@ func hasTimeField(expr string) bool {
 	parts := strings.Split(expr, "|")
 	if len(parts) > 1 {
 		expr = parts[0]
-		return strings.Contains(expr, timeField)
 	}
 
-	return strings.Contains(expr, timeField)
+	return strings.Contains(expr, timeField+":")
 }
