@@ -4,7 +4,7 @@ The [VictoriaLogs Grafana plugin](https://grafana.com/grafana/plugins/victoriame
 to query, visualize, and interact with [VictoriaLogs](https://docs.victoriametrics.com/victorialogs/),
 a high-performance log storage and processing system.
 
-<img alt="Grafana Dashboard Screenshot" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/dashboard.png?raw=true">
+<img alt="Grafana Dashboard Screenshot" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/dashboard.png?raw=true">
 
 ## Capabilities
 
@@ -148,7 +148,7 @@ Where:
 Tempo, Jaeger, and Zipkin data sources support [Trace to logs](https://grafana.com/docs/grafana/latest/explore/trace-integration/#trace-to-logs)
 feature for navigating from a span in a trace directly to logs relevant for that span. _(Supported since Grafana v12.2.0)_.
 
-<img alt="Derived fields configuration" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/trace_to_logs.png?raw=true">
+<img alt="Derived fields configuration" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/trace_to_logs.png?raw=true">
 
 An example of the correlation query in traces datasource is the following:
 ```
@@ -172,7 +172,7 @@ In VictoriaLogs datasource settings, you can configure rules of extracting value
 For example, if log entries have field `trace_id` then we can configure a Derived Field to make a link to Jaeger datasource
 for viewing an associated trace:
 
-<img alt="Derived fields configuration" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/derived_fields_cfg.png?raw=true">
+<img alt="Derived fields configuration" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/derived_fields_cfg.png?raw=true">
 
 Once configured, in Explore mode or in Logs panel log entries with field `trace_id` will also get a link that would
 open a Jaeger datasource and search for the `trace_id` value:
