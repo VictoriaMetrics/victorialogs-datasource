@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - .github/workflows/docs.yaml
-      - README.md
+      - src/README.md
       - docs/**
 
 jobs:
