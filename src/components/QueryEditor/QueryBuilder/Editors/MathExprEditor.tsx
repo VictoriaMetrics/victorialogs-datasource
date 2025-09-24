@@ -2,10 +2,10 @@ import React, { useState } from "react";
 
 import { SelectableValue } from "@grafana/data";
 import { QueryBuilderOperationParamEditorProps, toOption } from "@grafana/plugin-ui";
-import { Input, Select } from "@grafana/ui";
+import { InlineField, Input, Select } from "@grafana/ui";
 
-import { quoteString, unquoteString, getValue } from "../utils/stringHandler";
-import { SplitString, splitString } from "../utils/stringSplitter";
+import { quoteString, getValue } from "../utils/stringHandler";
+import { buildSplitString, SplitString, splitString } from "../utils/stringSplitter";
 
 import { getFieldNameOptions } from "./utils/editorHelper";
 
@@ -33,16 +33,18 @@ export default function MathExprEditor(props: QueryBuilderOperationParamEditorPr
         placeholder="Enter math expression"
       />
       <div style={{ padding: '6px 0 8px 0px' }}>as</div>
-      <Select<string>
-        allowCustomValue={true}
-        allowCreateWhileLoading={true}
-        isLoading={isLoading}
-        onOpenMenu={handleOpenMenu}
-        options={options}
-        onChange={({ value = "" }) => updateValue(expr, value)}
-        value={toOption(resultField)}
-        width="auto"
-      />
+      <InlineField>
+        <Select<string>
+          allowCustomValue={true}
+          allowCreateWhileLoading={true}
+          isLoading={isLoading}
+          onOpenMenu={handleOpenMenu}
+          options={options}
+          onChange={({ value = "" }) => updateValue(expr, value)}
+          value={toOption(resultField)}
+          width="auto"
+        />
+      </InlineField>
     </>
   )
 }
@@ -51,23 +53,15 @@ function parseExpr(str: SplitString[]): string {
   if (str.length === 0) {
     return "";
   }
-  const token = str[0];
-  let expr = "";
-  switch (token.type) {
-    case "quote":
-      expr = unquoteString(token.value);
+  let token = str[0];
+  let i = 0;
+  while (i < str.length && (token = str[i])) {
+    if (token.type === "space" && token.value === "as") {
       break;
-    case "space":
-      expr = token.value;
-      break;
-    case "bracket":
-      expr = token.raw_value;
-      break;
-    default:
-      return "";
+    }
+    i++;
   }
-  str.shift();
-  return expr;
+  return buildSplitString(str.splice(0, i));
 }
 
 function parseMathExprValue(value: string) {

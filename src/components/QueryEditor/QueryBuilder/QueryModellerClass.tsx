@@ -119,5 +119,8 @@ function checkIsFilter(def: VictoriaQueryBuilderOperationDefinition | undefined)
   if (!def) {
     return false;
   }
-  return def.category === VictoriaLogsQueryOperationCategory.Filters || def.category === VictoriaLogsQueryOperationCategory.Operators;
+  if (def.category === VictoriaLogsQueryOperationCategory.Filters || def.category === VictoriaLogsQueryOperationCategory.Operators) {
+    return true;
+  }
+  return def.id === VictoriaLogsOperationId.FieldContainsAnyValueFromVariable;
 }
