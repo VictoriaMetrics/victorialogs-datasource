@@ -73,6 +73,7 @@ export enum VictoriaLogsOperationId {
   Fields = 'fields',
   First = 'first',
   Format = 'format',
+  GenerateSequence = 'generate_sequence',
   Join = 'join',
   JsonArrayLen = 'json_array_len',
   Hash = 'hash',
@@ -738,6 +739,35 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           }
           return { params, length: length - str.length };
         },
+      },
+      {
+        id: VictoriaLogsOperationId.GenerateSequence,
+        name: 'Generate sequence',
+        params: [{
+          name: "Number of rows",
+          type: "number",
+        }],
+        defaultParams: [10],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Pipes,
+        renderer: (model, def, innerExpr) => {
+          const numRows = model.params[0] as number;
+          let expr = `generate_sequence ${numRows}`;
+          return pipeExpr(innerExpr, expr);
+        },
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: (str: SplitString[]) => {
+          let length = str.length;
+          let params: [number] = [10];
+          if (str.length > 0) {
+            const number = parseNumber(str[0], undefined);
+            if (number !== undefined) {
+              params[0] = number;
+              str.shift();
+            }
+          }
+          return { params, length: length - str.length };
+        }
       },
       {
         id: VictoriaLogsOperationId.Join,
