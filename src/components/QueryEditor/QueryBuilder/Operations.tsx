@@ -84,6 +84,7 @@ export enum VictoriaLogsOperationId {
   Offset = 'offset',
   PackJSON = 'pack_json',
   PackLogfmt = 'pack_logfmt',
+  QueryStats = 'query_stats',
   Rename = 'rename',
   Replace = 'replace',
   ReplaceRegexp = 'replace_regexp',
@@ -1143,6 +1144,21 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         },
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: this.parsePackPipe,
+      }, {
+        id: VictoriaLogsOperationId.QueryStats,
+        name: 'Query stats',
+        params: [],
+        alternativesKey: "debug",
+        defaultParams: [],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Pipes,
+        renderer: (model, def, innerExpr) => {
+          return pipeExpr(innerExpr, "query_stats");
+        },
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: (str: SplitString[]) => {
+          return { params: [], length: 0 };
+        }
       },
       {
         id: VictoriaLogsOperationId.Rename,
