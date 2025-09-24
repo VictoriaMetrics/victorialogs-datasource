@@ -140,6 +140,30 @@ Where:
 * `operator` is the comparison operator to use, such as `equals`, `notEquals`, `regex`, `lessThan`, `greaterThan`.
 * `enabled` is a boolean flag to enable or disable the rule. Defaults to `true` if omitted.
 
+## Correlations
+
+### Trace to logs
+
+Tempo, Jaeger, and Zipkin data sources support [Trace to logs](https://grafana.com/docs/grafana/latest/explore/trace-integration/#trace-to-logs)
+feature for navigating from a span in a trace directly to logs relevant for that span. 
+
+<img alt="Derived fields configuration" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/trace_to_logs.png?raw=true">
+
+An example of the correlation query in traces datasource is the following:
+```
+trace_id:="${__trace.traceId}" AND span_id:="${__trace.spanId}"
+```
+
+### Log to metrics
+
+Log to traces correlation is possible via Derived Fields functionality. But for it to work log entries and time series
+in metrics datasource should share common labels that could be used as filters. See example of building logs to metrics
+correlation in [this issue](https://github.com/VictoriaMetrics/VictoriaMetrics/issues/9592#issuecomment-3202104607).
+
+### Log to traces
+
+Log to traces correlation is possible via Derived Fields functionality. See its description in the sections below.
+
 ## Derived Fields
 
 In VictoriaLogs datasource settings, you can configure rules of extracting values from a log message to create a link with that value.
