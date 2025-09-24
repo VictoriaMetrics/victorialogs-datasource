@@ -90,6 +90,7 @@ export enum VictoriaLogsOperationId {
   Sort = 'sort',
   Stats = 'stats',
   StreamContext = 'stream_context',
+  TimeAdd = 'time_add',
   Top = 'top',
   Union = 'union',
   Uniq = 'uniq',
@@ -1543,6 +1544,59 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           }
           return { params: [before, after, time_window], length: length - str.length };
         },
+      },
+      {
+        id: VictoriaLogsOperationId.TimeAdd,
+        name: 'Time add',
+        params: [{
+          name: "Duration",
+          type: "string",
+        }, {
+          name: "Field",
+          type: "string",
+          editor: FieldEditor,
+        }],
+        alternativesKey: "time",
+        defaultParams: ["1h", ""],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Pipes,
+        renderer: (model, def, innerExpr) => {
+          const duration = model.params[0] as string;
+          const field = model.params[1] as string;
+          let expr = `time_add ${duration}`;
+          if (field !== "") {
+            expr += ` at ${quoteString(field)}`;
+          }
+          return pipeExpr(innerExpr, expr);
+        },
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: (str: SplitString[]) => {
+          const length = str.length;
+          const params: [string, string] = ["1h", ""];
+          if (str.length > 0) {
+            if (str[0].type === "quote") {
+              params[0] = str[0].value;
+              str.shift();
+            } else if (str[0].type === "space") {
+              params[0] = str[0].value;
+              str.shift();
+              if (str.length > 0 && params[0] === "-") {
+                params[0] += str[0].value;
+                str.shift();
+              }
+            } else {
+              return { params, length: length - str.length };
+            }
+            if (str.length > 0 && str[0].type === "space" && str[0].value === "at") {
+              str.shift();
+              if (str.length > 0 && isValue(str[0])) {
+                params[1] = getValue(str[0]);
+                str.shift();
+              }
+            }
+          }
+          return { params, length: length - str.length };
+        }
       },
       {
         id: VictoriaLogsOperationId.Top,
