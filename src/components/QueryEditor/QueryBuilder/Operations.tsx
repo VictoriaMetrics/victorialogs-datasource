@@ -2708,31 +2708,61 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         name: "Query concurrency",
         type: "number",
       }, {
-        name: "Ignore globel time filter",
+        name: "Parallel readers",
+        type: "number",
+      }, {
+        name: "Ignore global time filter",
+        type: "boolean",
+      }, {
+        name: "Time offset",
+        type: "string",
+      }, {
+        name: "Allow partial response",
         type: "boolean",
       }],
-      defaultParams: [0, false],
+      defaultParams: [0, 0, false, "", false],
       toggleable: true,
       category: VictoriaLogsQueryOperationCategory.Special,
       renderer: (model, def, innerExpr) => {
         const queryConcurrency = model.params[0] as number;
-        const ignoreGlobalTimeFilter = model.params[1] as boolean;
+        const parallelReaders = model.params[1] as number;
+        const ignoreGlobalTimeFilter = model.params[2] as boolean;
+        const timeOffset = model.params[3] as string;
+        const allowPartialResponse = model.params[4] as boolean;
         let expr = "options(";
         if (queryConcurrency > 0) {
           expr += "concurrency=" + queryConcurrency;
         }
+        if (parallelReaders > 0) {
+          if (expr.length > 8) {
+            expr += ", ";
+          }
+          expr += "parallel_readers=" + parallelReaders;
+        }
         if (ignoreGlobalTimeFilter) {
-          if (queryConcurrency > 0) {
-            expr += ",";
+          if (expr.length > 8) {
+            expr += ", ";
           }
           expr += "ignore_global_time_filter=true";
+        }
+        if (timeOffset !== "") {
+          if (expr.length > 8) {
+            expr += ", ";
+          }
+          expr += "time_offset=" + timeOffset;
+        }
+        if (allowPartialResponse) {
+          if (expr.length > 8) {
+            expr += ", ";
+          }
+          expr += "allow_partial_response=true";
         }
         expr += ")";
         return pipeExpr(innerExpr, expr);
       },
       addOperationHandler: addVictoriaOperation,
       splitStringByParams: (str: SplitString[]) => {
-        let params: [number, boolean] = [0, false];
+        const params: [number, number, boolean, string, boolean] = [0, 0, false, "", false];
         if (str.length > 0) {
           if (str[0].value === "options") {
             str.shift();
@@ -2745,14 +2775,30 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
                 if (parts.length === 2) {
                   params[0] = parseInt(parts[1], 10);
                 }
+              } else if (trimmedValue.startsWith("parallel_readers")) {
+                const parts = trimmedValue.split("=");
+                if (parts.length === 2) {
+                  params[1] = parseInt(parts[1], 10);
+                }
               } else if (trimmedValue.startsWith("ignore_global_time_filter")) {
-                if (trimmedValue.endsWith("=true")) {
-                  params[1] = true;
-                } else if (trimmedValue.endsWith("=false")) {
-                  params[1] = false;
+                if (trimmedValue.endsWith("true")) {
+                  params[2] = true;
+                } else if (trimmedValue.endsWith("false")) {
+                  params[2] = false;
+                }
+              } else if (trimmedValue.startsWith("time_offset")) {
+                const parts = trimmedValue.split("=");
+                if (parts.length === 2) {
+                  params[3] = parts[1];
+                }
+              } else if (trimmedValue.startsWith("allow_partial_response")) {
+                if (trimmedValue.endsWith("true")) {
+                  params[4] = true;
+                } else if (trimmedValue.endsWith("false")) {
+                  params[4] = false;
                 }
               }
-            };
+            }
             str.shift();
           }
         }
