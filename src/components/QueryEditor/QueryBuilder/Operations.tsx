@@ -90,6 +90,7 @@ export enum VictoriaLogsOperationId {
   ReplaceRegexp = 'replace_regexp',
   Sample = 'sample',
   Sort = 'sort',
+  Split = 'split',
   Stats = 'stats',
   StreamContext = 'stream_context',
   TimeAdd = 'time_add',
@@ -1477,6 +1478,70 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           }
           return { params: result, length: length - str.length };
         },
+      }, {
+        id: VictoriaLogsOperationId.Split,
+        name: 'Split',
+        params: [{
+          name: "Seperator",
+          type: "string",
+        }, {
+          name: "src field",
+          type: "string",
+          editor: FieldEditor,
+        },
+        {
+          name: "dst field",
+          type: "string",
+          editor: FieldEditor,
+        }],
+        defaultParams: [",", "_msg", "_msg"],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Pipes,
+        renderer: (model, def, innerExpr) => {
+          const seperator = model.params[0] as string;
+          const srcField = model.params[1] as string;
+          const dstField = model.params[2] as string;
+          let expr = `split ${quoteString(seperator, false)}`
+          if (srcField !== "_msg") {
+            expr += ` at ${quoteString(srcField)}`
+          }
+          if (dstField !== "_msg") {
+            expr += ` as ${quoteString(dstField)}`;
+          }
+          return pipeExpr(innerExpr, expr);
+        },
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: (str: SplitString[]) => {
+          let length = str.length;
+          let params: [string, string, string] = [",", "_msg", "_msg"];
+          if (str.length > 0) {
+            if (isValue(str[0])) {
+              params[0] = getValue(str[0]);
+              str = str.slice(1);
+            } else {
+              return { params, length: length - str.length };
+            }
+            if (str.length >= 2) {
+              if (str[0].type === "space" && str[0].value === "from") {
+                str.shift();
+                if (isValue(str[0])) {
+                  params[1] = getValue(str[0]);
+                  str.shift();
+                }
+              }
+            }
+            if (str.length >= 2) {
+              if (str[0].type === "space" && str[0].value === "as") {
+                str.shift();
+                if (isValue(str[0])) {
+                  params[2] = getValue(str[0]);
+                  str.shift();
+                }
+              }
+            }
+          }
+          return { params, length: length - str.length };
+        }
       },
       {
         id: VictoriaLogsOperationId.Stats,
