@@ -145,7 +145,7 @@ Where:
 ### Trace to logs
 
 Tempo, Jaeger, and Zipkin data sources support [Trace to logs](https://grafana.com/docs/grafana/latest/explore/trace-integration/#trace-to-logs)
-feature for navigating from a span in a trace directly to logs relevant for that span. 
+feature for navigating from a span in a trace directly to logs relevant for that span. _(Supported since Grafana v12.2.0)_.
 
 <img alt="Derived fields configuration" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/trace_to_logs.png?raw=true">
 
