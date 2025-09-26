@@ -1,12 +1,13 @@
 {
   "extends": ["@grafana/eslint-config"],
   "root": true,
-  "plugins": ["@emotion", "lodash", "jest", "import"],
+  "plugins": ["@emotion", "lodash", "jest", "import", "unused-imports"],
   "settings": {
     "import/internal-regex": "^(src/)|(@grafana)",
     "import/external-module-folders": ["node_modules", ".yarn"]
   },
   "rules": {
+    "unused-imports/no-unused-imports": "error",
     "react/prop-types": "off",
     "@emotion/jsx-import": "error",
     "object-curly-spacing": [2, "always"],

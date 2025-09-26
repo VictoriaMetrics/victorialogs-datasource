@@ -15,6 +15,7 @@ import { QueryEditorModeToggle } from "./QueryBuilder/QueryEditorModeToggle";
 import { parseExprToVisualQuery } from "./QueryBuilder/QueryModeller";
 import QueryCodeEditor from "./QueryCodeEditor";
 import { QueryEditorOptions } from "./QueryEditorOptions";
+import VmuiLink from "./VmuiLink";
 import { changeEditorMode, getQueryWithDefaults } from "./state";
 
 const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
@@ -69,6 +70,11 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       <div className={styles.wrapper}>
         <EditorHeader>
           {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType} />)}
+          <VmuiLink
+            query={query}
+            panelData={data}
+            datasource={datasource}
+          />
           <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange} />
           {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
             <Button

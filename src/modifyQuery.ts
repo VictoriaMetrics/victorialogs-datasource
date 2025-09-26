@@ -1,7 +1,9 @@
+import { AdHocVariableFilter } from '@grafana/data';
 import { QueryBuilderOperation } from "@grafana/plugin-ui";
 
 import { VictoriaLogsOperationId } from "./components/QueryEditor/QueryBuilder/Operations";
 import { buildVisualQueryToString, parseExprToVisualQuery } from "./components/QueryEditor/QueryBuilder/QueryModeller";
+import { quoteString } from './components/QueryEditor/QueryBuilder/utils/stringHandler';
 import { LABEL_STREAM_ID } from "./datasource";
 
 const operators = ["=", "!=", "=~", "!~", "<", ">"];
@@ -34,6 +36,7 @@ const getFilterInsertValueForStream = (key: string, value: string, operator: str
 }
 
 const valueOperations = [
+  VictoriaLogsOperationId.MultiExact,
   VictoriaLogsOperationId.Exact,
   VictoriaLogsOperationId.Regexp,
   VictoriaLogsOperationId.RangeComparison,
@@ -48,13 +51,15 @@ function getType(operator: string | undefined, key: string): ValueOperationType 
 function getType(operator: string | undefined, key: string): ValueOperationType | typeof valueOperations {
   if (key === LABEL_STREAM_ID) {
     return VictoriaLogsOperationId.StreamId;
-  } else if (key === "_stream") {
+  } else if (key === "_stream") { // can't merge two stream values
     return VictoriaLogsOperationId.Stream;
   }
   if (!operator) {
     return valueOperations;
   }
-  if (operator.endsWith("=")) {
+  if (operator.endsWith("|")) { // !=| or =|
+    return VictoriaLogsOperationId.MultiExact;
+  } else if (operator.endsWith("=")) {
     return VictoriaLogsOperationId.Exact;
   } else if (operator.endsWith("~")) {
     return VictoriaLogsOperationId.Regexp;
@@ -65,7 +70,8 @@ function getType(operator: string | undefined, key: string): ValueOperationType 
   }
 }
 
-export const addLabelToQuery = (query: string, key: string, value: string, operator: string): string => {
+export const addLabelToQuery = (query: string, filter: AdHocVariableFilter): string => {
+  const { key, value, values = [], operator } = filter;
   const type = getType(operator, key);
   const visQuery = parseExprToVisualQuery(query).query;
   if (type === VictoriaLogsOperationId.Exact) {
@@ -92,16 +98,22 @@ export const addLabelToQuery = (query: string, key: string, value: string, opera
       params: [key, operator, value],
     });
   } else if (type === VictoriaLogsOperationId.StreamId) {
-    const notEqual = operator === "!=";
+    const notEqual = operator.startsWith("!");
     if (notEqual) {
       visQuery.operations.push({
         id: VictoriaLogsOperationId.NOT,
         params: [],
       });
     }
+    let stream_value = ""
+    if (values.length > 0) {
+      stream_value = "in(" + values.join(",") + ")"
+    } else {
+      stream_value = value
+    }
     visQuery.operations.push({
       id: VictoriaLogsOperationId.StreamId,
-      params: [value],
+      params: [stream_value],
     });
   } else if (type === VictoriaLogsOperationId.Stream) {
     const notEqual = operator === "!=";
@@ -115,8 +127,22 @@ export const addLabelToQuery = (query: string, key: string, value: string, opera
       id: VictoriaLogsOperationId.Stream,
       params: [value.slice(1, -1)],
     });
+  } else if (type === VictoriaLogsOperationId.MultiExact) {
+    const isExclude = operator === "!=|"
+    if (isExclude) {
+      visQuery.operations.push({
+        id: VictoriaLogsOperationId.NOT,
+        params: [],
+      });
+    }
+    const multi_exact_values = "(" + values.map(v => quoteString(v)).join(",") + ")";
+    visQuery.operations.push({
+      id: VictoriaLogsOperationId.MultiExact,
+      params: [key, multi_exact_values],
+    });
   }
-  return buildVisualQueryToString(visQuery);
+  const expr = buildVisualQueryToString(visQuery);
+  return expr;
 }
 
 function filterOut(op: QueryBuilderOperation, key: string, value: string, operator?: string): boolean {

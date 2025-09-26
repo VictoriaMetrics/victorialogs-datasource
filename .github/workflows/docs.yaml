@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - .github/workflows/docs.yaml
-      - README.md
+      - src/README.md
       - docs/**
 
 jobs:
@@ -45,7 +45,7 @@ jobs:
           export TARGET="../__vm-docs/content/victorialogs-grafana-datasource"
           rm -rf ${TARGET}
           cp -r docs ${TARGET}
-          cp README.md ${TARGET}/
+          cp src/README.md ${TARGET}/
           sed -i '/VictoriaLogs datasource for Grafana/g' ${TARGET}/README.md
           sed -i 's|docs/assets/|grafana-datasource/assets/|g' ${TARGET}/README.md
           echo "SHORT_SHA=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_OUTPUT

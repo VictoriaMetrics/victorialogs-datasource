@@ -1,0 +1,2 @@
+{"_time": "2025-07-08T09:16:54.721591656Z","_stream_id": "1","_stream": "{container.id=\"1\",container.name=\"1\"}","_msg": "some new message","container.id": "1","container.name": "1","fluent.tag": "2fa06040a011","severity": "Unspecified","source": "stdout"}
+{"_time": "2025-07-08T09:16:54.734626217Z","_stream_id": "2","_stream": "{container.id=\"2\",container.name=\"2\"}","container.id": "2","container.name": "2","fluent.tag": "2fa06040a011","severity": "Unspecified","source": "stdout"}

@@ -1,4 +1,4 @@
-import { cloneDeep, defaults } from 'lodash';
+import { cloneDeep } from 'lodash';
 import { lastValueFrom, merge, Observable } from "rxjs";
 import { map } from 'rxjs/operators';
 
@@ -29,10 +29,8 @@ import {
   toUtc,
 } from '@grafana/data';
 import {
-  BackendSrvRequest,
+  config,
   DataSourceWithBackend,
-  FetchResponse,
-  getBackendSrv,
   getGrafanaLiveSrv,
   getTemplateSrv,
   TemplateSrv,
@@ -57,7 +55,6 @@ import {
   QueryBuilderLimits,
   QueryFilterOptions,
   QueryType,
-  RequestArguments,
   SupportingQueryType,
   ToggleFilterAction,
   VariableQuery,
@@ -115,7 +112,7 @@ export class VictoriaLogsDatasource
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-    const queries = request.targets.filter(q => q.expr).map((q) => {
+    const queries = request.targets.filter(q => q.expr || config.publicDashboardAccessToken !== '').map((q) => {
       return {
         ...q,
         maxLines: q.maxLines ?? this.maxLines,
@@ -142,7 +139,7 @@ export class VictoriaLogsDatasource
           response,
           fixedRequest,
           this.derivedFields ?? [],
-          this.logLevelRules ?? []
+          this.getActiveLevelRules()
         ))
       );
   }
@@ -166,7 +163,7 @@ export class VictoriaLogsDatasource
 
     if ((isFilterFor && !hasFilter) || isFilterOut) {
       const operator = isFilterFor ? '=' : '!=';
-      expression = addLabelToQuery(expression, filter.options.key, value, operator);
+      expression = addLabelToQuery(expression, { key: filter.options.key, value, operator });
     }
 
     return { ...query, expr: expression };
@@ -197,14 +194,14 @@ export class VictoriaLogsDatasource
     };
   }
 
-  getExtraFilters(adhocFilters?: AdHocVariableFilter[]): string | undefined {
+  getExtraFilters(adhocFilters?: AdHocVariableFilter[], initialExpr = ''): string | undefined {
     if (!adhocFilters) {
       return;
     }
-    
-    const expr = adhocFilters.reduce((acc: string, { key, operator, value }: AdHocVariableFilter) => {
-      return addLabelToQuery(acc, key, value, operator);
-    }, '');
+
+    const expr = adhocFilters.reduce((acc: string, filter: AdHocVariableFilter) => {
+      return addLabelToQuery(acc, filter);
+    }, initialExpr);
 
     return returnVariables(expr);
   }
@@ -221,48 +218,18 @@ export class VictoriaLogsDatasource
     return value;
   }
 
-  async metadataRequest({ url, params, options }: RequestArguments) {
-    return await lastValueFrom(
-      this._request({
-        url: `/api/datasources/proxy/${this.id}/${url.replace(/^\//, '')}`,
-        params,
-        options: { method: 'GET', hideFromInspector: true, ...options },
-      })
-    )
-  }
-
-  _request<T = any>({ url, params = {}, options: overrides }: RequestArguments): Observable<FetchResponse<T>> {
-    const queryUrl = url.startsWith(`/api/datasources/proxy/${this.id}`) ? url : `${this.url}/${url}`;
-
-    const options: BackendSrvRequest = defaults(overrides, {
-      url: queryUrl,
-      method: this.httpMethod,
-      headers: { ...this.getMultitenancyHeaders() },
-      credentials: this.basicAuth || this.withCredentials ? 'include' : 'same-origin',
-    });
-
-    for (const [key, value] of this.customQueryParameters) {
-      if (params[key] == null) {
-        params[key] = value;
-      }
+  interpolateVariablesInQueries(queries: Query[], scopedVars: ScopedVars, filters?: AdHocVariableFilter[]): Query[] {
+    let expandedQueries = queries;
+    if (queries && queries.length) {
+      expandedQueries = queries.map((query) => ({
+        ...query,
+        datasource: this.getRef(),
+        expr: this.templateSrv.replace(query.expr, scopedVars, this.interpolateQueryExpr),
+        interval: this.templateSrv.replace(query.interval, scopedVars),
+        extraFilters: this.getExtraFilters(filters),
+      }));
     }
-
-    if (options.method === 'GET' && Object.keys(params).length) {
-      const searchParams = new URLSearchParams(params);
-      const separator = options.url.search(/\?/) >= 0 ? '&' : '?'
-      options.url += separator + searchParams.toString()
-    }
-
-    if (options.method !== 'GET') {
-      options.headers!['Content-Type'] = 'application/x-www-form-urlencoded';
-      options.data = params;
-    }
-
-    if (this.basicAuth) {
-      options.headers!.Authorization = this.basicAuth;
-    }
-
-    return getBackendSrv().fetch<T>(options);
+    return expandedQueries;
   }
 
   async metricFindQuery(
@@ -348,7 +315,7 @@ export class VictoriaLogsDatasource
         addr: {
           scope: LiveChannelScope.DataSource,
           namespace: this.uid,
-          path: `${request.requestId}/${query.refId}`, // this will allow each new query to create a new connection
+          path: `${request.requestId}/${query.refId}`,
           data: {
             ...query,
           },
@@ -393,8 +360,8 @@ export class VictoriaLogsDatasource
         const totalSeconds = request.range.to.diff(request.range.from, "second");
         const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || "";
 
-        const fields = this.logLevelRules.filter(r => r.enabled !== false).map(r => r.field)
-        const uniqFields = Array.from(new Set(fields));
+        const fields = this.getActiveLevelRules().map(r => r.field)
+        const uniqFields = Array.from(new Set([...fields, "level"]));
 
         return {
           ...query,
@@ -444,6 +411,10 @@ export class VictoriaLogsDatasource
     return (query.expr || '');
   }
 
+  getActiveLevelRules(): LogLevelRule[] {
+    return (this.logLevelRules || []).filter(r => r.enabled !== false);
+  }
+
   getLogRowContext = async (
     row: LogRowModel,
     options?: LogRowContextOptions,
@@ -470,7 +441,7 @@ export class VictoriaLogsDatasource
       streamId = transformedLabels[LABEL_STREAM_ID];
     }
 
-    return addLabelToQuery('', LABEL_STREAM_ID, streamId, '');
+    return addLabelToQuery('', { key: LABEL_STREAM_ID, value: streamId, operator: '' });
   };
 
   private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions): DataQueryRequest<Query> => {
@@ -514,17 +485,5 @@ export class VictoriaLogsDatasource
         };
 
     return { ...timeRange, raw: timeRange };
-  }
-
-  getMultitenancyHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {};
-    if (this.multitenancyHeaders) {
-      for (const [key, value] of Object.entries(this.multitenancyHeaders)) {
-        if (value) {
-          headers[key] = value;
-        }
-      }
-    }
-    return headers;
   }
 }

@@ -32,6 +32,8 @@ const (
 	logsVisualisation = "logs"
 )
 
+var nowFunc = time.Now
+
 // parseStreamResponse reads data from the reader and collects
 // fields and frame with necessary information
 func parseInstantResponse(reader io.Reader) backend.DataResponse {
@@ -96,6 +98,12 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 			for _, field := range stf {
 				labels[field.Label] = field.Value
 			}
+			if !value.Exists(messageField) && len(stf) > 0 {
+				lineField.Append("")
+			}
+			if !value.Exists(timeField) && !value.Exists(messageField) && len(stf) == 0 {
+				lineField.Append("")
+			}
 		}
 
 		obj, err := value.Object()
@@ -130,7 +138,7 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 
 	// Grafana expects time field to be always non-empty.
 	if timeFd.Len() == 0 {
-		now := time.Now()
+		now := nowFunc()
 		for i := 0; i < lineField.Len(); i++ {
 			timeFd.Append(now)
 		}
@@ -244,7 +252,7 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 
 		// Grafana expects time field to be always non-empty.
 		if timeFd.Len() == 0 {
-			now := time.Now()
+			now := nowFunc()
 			for i := 0; i < lineField.Len(); i++ {
 				timeFd.Append(now)
 			}
@@ -382,22 +390,21 @@ type logStats struct {
 func (ls logStats) vectorDataFrames() (data.Frames, error) {
 	frames := make(data.Frames, len(ls.Result))
 	for i, res := range ls.Result {
-		f, err := strconv.ParseFloat(res.Value[1].(string), 64)
+		value := res.Value
+
+		ts, err := getTimestamp(value[0])
 		if err != nil {
-			return nil, fmt.Errorf("metric %v, unable to parse timestamp to float64 from %s: %w", res, res.Value[1], err)
+			return nil, fmt.Errorf("failed to parse timestamp for metric %v: %w", res, err)
 		}
 
-		v, ok := res.Value[0].(float64)
-		if !ok {
-			return nil, fmt.Errorf("metric %v, unable to convert metrics value to float64 from %s", res, res.Value[0])
+		valuePtr, err := getFloatPtr(value[1])
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse float value for metric %v: %w", res, err)
 		}
 
-		seconds := int64(v)                                // get only seconds
-		nanoseconds := int64((v - float64(seconds)) * 1e9) // get only nanoseconds
-		ts := time.Unix(seconds, nanoseconds)
 		frames[i] = data.NewFrame("",
 			data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{ts}),
-			data.NewField(data.TimeSeriesValueFieldName, data.Labels(res.Labels), []float64{f}))
+			data.NewField(data.TimeSeriesValueFieldName, data.Labels(res.Labels), []*float64{valuePtr}))
 	}
 
 	return frames, nil
@@ -428,25 +435,24 @@ func (ls logStats) matrixDataFrames() (data.Frames, error) {
 	frames := make(data.Frames, len(ls.Result))
 	for i, res := range ls.Result {
 		timestamps := make([]time.Time, len(res.Values))
-		values := make([]float64, len(res.Values))
-		for j, value := range res.Values {
-			v, ok := value[0].(float64)
-			if !ok {
-				return nil, fmt.Errorf("metric %v, value: %v unable to parse timestamp to float64 from %s", res, value, value[0])
-			}
-			seconds := int64(v)                                // get only seconds
-			nanoseconds := int64((v - float64(seconds)) * 1e9) // get only nanoseconds
-			timestamps[j] = time.Unix(seconds, nanoseconds)
+		values := make([]*float64, len(res.Values))
 
-			f, err := strconv.ParseFloat(value[1].(string), 64)
+		for j, value := range res.Values {
+			t, err := getTimestamp(value[0])
 			if err != nil {
-				return nil, fmt.Errorf("metric %v, value: %v unable to convert metrics value to float64 from %s", res, value, value[1])
+				return nil, fmt.Errorf("failed to parse timestamp response for metric %v: %w", res, err)
 			}
-			values[j] = f
+			timestamps[j] = t
+
+			fPtr, err := getFloatPtr(value[1])
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse float value response for metric %v: %w", res, err)
+			}
+			values[j] = fPtr
 		}
 
 		if len(values) < 1 || len(timestamps) < 1 {
-			return nil, fmt.Errorf("metric %v contains no values", res)
+			return nil, fmt.Errorf("log %v contains no values", res)
 		}
 
 		frames[i] = data.NewFrame("",
@@ -528,4 +534,35 @@ func (hr *HitsResponse) getDataFrames() (data.Frames, error) {
 	}
 
 	return frames, nil
+}
+
+func getTimestamp(value interface{}) (time.Time, error) {
+	v, ok := value.(float64)
+	if !ok {
+		return time.Time{}, fmt.Errorf("failed to convert timestamp to float64 for value %v", value)
+	}
+
+	seconds := int64(v)                                // get only seconds
+	nanoseconds := int64((v - float64(seconds)) * 1e9) // get only nanoseconds
+	t := time.Unix(seconds, nanoseconds)
+	return t, nil
+}
+
+func getFloatPtr(value interface{}) (*float64, error) {
+	f, ok := value.(string)
+	if !ok {
+		return nil, fmt.Errorf("unable to convert log value to string from %v", value)
+	}
+
+	if f == "" {
+		return nil, nil
+	}
+
+	flVal, err := strconv.ParseFloat(f, 64)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse log value to float64 from %v: %w", value, err)
+	}
+
+	floatPtr := utils.Ptr(flVal)
+	return floatPtr, nil
 }

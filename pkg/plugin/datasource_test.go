@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,22 +17,25 @@ import (
 )
 
 func TestQueryData(t *testing.T) {
-	ds := Datasource{
-		grafanaSettings: &GrafanaSettings{
-			HTTPMethod:    "",
-			QueryParams:   "",
-			CustomHeaders: nil,
+	mux := http.NewServeMux()
+	ctx := context.Background()
+	ds := NewDatasource()
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	pluginCtx := backend.PluginContext{
+		DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+			URL:      srv.URL,
+			JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
 		},
 	}
 
-	resp, err := ds.QueryData(
-		context.Background(),
-		&backend.QueryDataRequest{
-			Queries: []backend.DataQuery{
-				{RefID: "A", JSON: []byte(`{"expr":"*", "intervalMs":5000, "maxDataPoints":984, "maxLines":1000, "queryType":"instant", "refId":"A"}`)},
-			},
+	resp, err := ds.QueryData(ctx, &backend.QueryDataRequest{
+		PluginContext: pluginCtx,
+		Queries: []backend.DataQuery{
+			{RefID: "A", JSON: []byte(`{"expr":"*", "intervalMs":5000, "maxDataPoints":984, "maxLines":1000, "queryType":"instant", "refId":"A"}`)},
 		},
-	)
+	})
 	if err != nil {
 		t.Error(err)
 	}
@@ -93,20 +97,16 @@ func TestDatasourceQueryRequest(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	settings := backend.DataSourceInstanceSettings{
-		URL:      srv.URL,
-		JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+	d := NewDatasource()
+	pluginCtx := backend.PluginContext{
+		DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+			URL:      srv.URL,
+			JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+		},
 	}
-
-	instance, err := NewDatasource(ctx, settings)
-	if err != nil {
-		t.Fatalf("unexpected %s", err)
-	}
-
-	datasource := instance.(*Datasource)
-
 	expErr := func(ctx context.Context, err string) {
-		rsp, gotErr := datasource.QueryData(ctx, &backend.QueryDataRequest{
+		rsp, gotErr := d.QueryData(ctx, &backend.QueryDataRequest{
+			PluginContext: pluginCtx,
 			Queries: []backend.DataQuery{
 				{
 					RefID:     "A",
@@ -156,12 +156,14 @@ func TestDatasourceQueryRequest(t *testing.T) {
 	if err := json.Unmarshal(queryJSON, &q); err != nil {
 		t.Fatalf("error parse query %s", err)
 	}
-	rsp, gotErr := datasource.QueryData(ctx, &backend.QueryDataRequest{Queries: []backend.DataQuery{
-		{
-			RefID: "A",
-			JSON:  queryJSON,
+	rsp, gotErr := d.QueryData(ctx, &backend.QueryDataRequest{
+		PluginContext: pluginCtx,
+		Queries: []backend.DataQuery{
+			{
+				RefID: "A",
+				JSON:  queryJSON,
+			},
 		},
-	},
 	})
 	if gotErr != nil {
 		t.Fatalf("unexpected %s", gotErr)
@@ -236,13 +238,15 @@ func TestDatasourceQueryRequest(t *testing.T) {
 	if err := json.Unmarshal(queryJSON, &q); err != nil {
 		t.Fatalf("error parse query %s", err)
 	}
-	rsp, gotErr = datasource.QueryData(ctx, &backend.QueryDataRequest{Queries: []backend.DataQuery{
-		{
-			RefID:     "A",
-			QueryType: instantQueryPath,
-			JSON:      queryJSON,
+	rsp, gotErr = d.QueryData(ctx, &backend.QueryDataRequest{
+		PluginContext: pluginCtx,
+		Queries: []backend.DataQuery{
+			{
+				RefID:     "A",
+				QueryType: instantQueryPath,
+				JSON:      queryJSON,
+			},
 		},
-	},
 	})
 	if gotErr != nil {
 		t.Fatalf("unexpected %s", gotErr)
@@ -337,20 +341,16 @@ func TestDatasourceQueryRequestWithRetry(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	settings := backend.DataSourceInstanceSettings{
-		URL:      srv.URL,
-		JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+	d := NewDatasource()
+	pluginCtx := backend.PluginContext{
+		DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+			URL:      srv.URL,
+			JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+		},
 	}
-
-	instance, err := NewDatasource(ctx, settings)
-	if err != nil {
-		t.Fatalf("unexpected %s", err)
-	}
-
-	datasource := instance.(*Datasource)
-
 	expErr := func(err string) {
-		rsp, gotErr := datasource.QueryData(ctx, &backend.QueryDataRequest{
+		rsp, gotErr := d.QueryData(ctx, &backend.QueryDataRequest{
+			PluginContext: pluginCtx,
 			Queries: []backend.DataQuery{
 				{
 					RefID: "A",
@@ -381,7 +381,8 @@ func TestDatasourceQueryRequestWithRetry(t *testing.T) {
 	}
 
 	expValue := func(v string) {
-		rsp, gotErr := datasource.QueryData(ctx, &backend.QueryDataRequest{
+		rsp, gotErr := d.QueryData(ctx, &backend.QueryDataRequest{
+			PluginContext: pluginCtx,
 			Queries: []backend.DataQuery{
 				{
 					RefID: "A",
@@ -502,25 +503,24 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	settings := backend.DataSourceInstanceSettings{
-		URL:      srv.URL,
-		JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
-	}
-
-	instance, err := NewDatasource(ctx, settings)
-	if err != nil {
-		t.Fatalf("unexpected %s", err)
-	}
-
-	datasource := instance.(*Datasource)
+	d := NewDatasource()
 	packetSender := &mockStreamSender{packets: []json.RawMessage{}}
 	sender := backend.NewStreamSender(packetSender)
-	ch := make(chan *data.Frame)
-	datasource.liveModeResponses.Store("request_id/ref_id", ch)
+	pluginCtx := backend.PluginContext{
+		DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+			URL:      srv.URL,
+			JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+		},
+	}
 	expErr := func(ctx context.Context, e string) {
 		_ = packetSender.Reset()
-		err := datasource.RunStream(ctx, &backend.RunStreamRequest{
-			Path: "request_id/ref_id",
+		_, _ = d.SubscribeStream(ctx, &backend.SubscribeStreamRequest{
+			PluginContext: pluginCtx,
+			Path:          "request_id/ref_id",
+		})
+		err := d.RunStream(ctx, &backend.RunStreamRequest{
+			PluginContext: pluginCtx,
+			Path:          "request_id/ref_id",
 			Data: json.RawMessage(`
 {
   "datasource": {
@@ -693,25 +693,19 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	settings := backend.DataSourceInstanceSettings{
-		URL:      srv.URL,
-		JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
-	}
-
-	instance, err := NewDatasource(ctx, settings)
-	if err != nil {
-		t.Fatalf("unexpected %s", err)
-	}
-
-	datasource := instance.(*Datasource)
+	d := NewDatasource()
 	packetSender := &mockStreamSender{packets: []json.RawMessage{}}
 	sender := backend.NewStreamSender(packetSender)
-	ch := make(chan *data.Frame)
-	datasource.liveModeResponses.Store("request_id/ref_id", ch)
-
+	pluginCtx := backend.PluginContext{
+		DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+			URL:      srv.URL,
+			JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+		},
+	}
 	expErr := func(e string) {
-		err := datasource.RunStream(ctx, &backend.RunStreamRequest{
-			Path: "request_id/ref_id",
+		err := d.RunStream(ctx, &backend.RunStreamRequest{
+			PluginContext: pluginCtx,
+			Path:          "request_id/ref_id",
 			Data: json.RawMessage(`
 	{
 	  "datasource": {
@@ -736,8 +730,13 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 
 	expValue := func() {
 		_ = packetSender.Reset()
-		err := datasource.RunStream(ctx, &backend.RunStreamRequest{
-			Path: "request_id/ref_id",
+		_, _ = d.SubscribeStream(ctx, &backend.SubscribeStreamRequest{
+			PluginContext: pluginCtx,
+			Path:          "request_id/ref_id",
+		})
+		err := d.RunStream(ctx, &backend.RunStreamRequest{
+			PluginContext: pluginCtx,
+			Path:          "request_id/ref_id",
 			Data: json.RawMessage(`
 {
   "datasource": {
@@ -883,23 +882,22 @@ func TestDatasourceStreamTailProcess(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	settings := backend.DataSourceInstanceSettings{
-		URL:      srv.URL,
-		JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
-	}
-
-	instance, err := NewDatasource(ctx, settings)
-	if err != nil {
-		t.Fatalf("unexpected %s", err)
-	}
-
-	datasource := instance.(*Datasource)
+	d := NewDatasource()
 	packetSender := &mockStreamSender{packets: []json.RawMessage{}}
 	sender := backend.NewStreamSender(packetSender)
-	ch := make(chan *data.Frame)
-	datasource.liveModeResponses.Store("request_id/ref_id", ch)
-	if err := datasource.RunStream(ctx, &backend.RunStreamRequest{
-		Path: "request_id/ref_id",
+	pluginCtx := backend.PluginContext{
+		DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+			URL:      srv.URL,
+			JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+		},
+	}
+	_, _ = d.SubscribeStream(ctx, &backend.SubscribeStreamRequest{
+		PluginContext: pluginCtx,
+		Path:          "request_id/ref_id",
+	})
+	if err := d.RunStream(ctx, &backend.RunStreamRequest{
+		PluginContext: pluginCtx,
+		Path:          "request_id/ref_id",
 		Data: json.RawMessage(`
 {
   "datasource": {
@@ -927,53 +925,135 @@ func TestDatasourceStreamTailProcess(t *testing.T) {
 }
 
 func TestDatasource_checkAlertingRequest(t *testing.T) {
-	tests := []struct {
-		name    string
+	type opts struct {
 		headers map[string]string
 		want    bool
 		wantErr bool
+	}
+	f := func(opts opts) {
+		t.Helper()
+		got, err := checkAlertingRequest(opts.headers)
+		if (err != nil) != opts.wantErr {
+			t.Errorf("checkAlertingRequest() error = %v, wantErr %v", err, opts.wantErr)
+			return
+		}
+		if got != opts.want {
+			t.Errorf("checkAlertingRequest() got = %v, want %v", got, opts.want)
+		}
+	}
+
+	// no alerting header
+	o := opts{
+		headers: map[string]string{},
+	}
+	f(o)
+
+	// alerting header
+	o = opts{
+		headers: map[string]string{"FromAlert": "true"},
+		want:    true,
+	}
+	f(o)
+
+	// invalid alerting header
+	o = opts{
+		headers: map[string]string{"FromAlert": "invalid"},
+		wantErr: true,
+	}
+	f(o)
+
+	// false alerting header
+	o = opts{
+		headers: map[string]string{"FromAlert": "false"},
+	}
+	f(o)
+
+	// irrelevant header
+	o = opts{
+		headers: map[string]string{"SomeOtherHeader": "true"},
+	}
+	f(o)
+}
+
+func TestDatasourceQueryDataRace(t *testing.T) {
+	ctx := context.Background()
+	ds := NewDatasource()
+	pluginCtx := backend.PluginContext{
+		DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+			URL:      "http://localhost", // Use a valid test server if needed
+			JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+		},
+	}
+
+	var queries []backend.DataQuery
+	for i := 0; i < 20; i++ {
+		queries = append(queries, backend.DataQuery{
+			RefID:     fmt.Sprintf("A%d", i),
+			QueryType: instantQueryPath,
+			JSON:      []byte(`{"refId":"A","instant":true,"range":false,"expr":"sum(vm_http_request_total)"}`),
+		})
+	}
+
+	_, err := ds.QueryData(ctx, &backend.QueryDataRequest{
+		PluginContext: pluginCtx,
+		Queries:       queries,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestGetBaseVMUIURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		settings DataSourceInstanceSettings
+		want     string
+		wantErr  bool
 	}{
 		{
-			name:    "no alerting header",
-			headers: map[string]string{},
-			want:    false,
+			name: "Valid VMUIURL directly given",
+			settings: DataSourceInstanceSettings{
+				VMUIURL: "http://vmuiurl/vmui",
+			},
+			want:    "http://vmuiurl/vmui",
 			wantErr: false,
 		},
 		{
-			name:    "alerting header",
-			headers: map[string]string{"FromAlert": "true"},
-			want:    true,
+			name: "Base URL with valid appended path",
+			settings: DataSourceInstanceSettings{
+				URL: "http://url",
+			},
+			want:    "http://url/select/vmui",
 			wantErr: false,
 		},
 		{
-			name:    "invalid alerting header",
-			headers: map[string]string{"FromAlert": "invalid"},
-			want:    false,
+			name: "Invalid base URL format",
+			settings: DataSourceInstanceSettings{
+				URL: ":/invalid-url",
+			},
+			want:    "",
 			wantErr: true,
 		},
 		{
-			name:    "false alerting header",
-			headers: map[string]string{"FromAlert": "false"},
-			want:    false,
-			wantErr: false,
-		},
-		{
-			name:    "irrelevant header",
-			headers: map[string]string{"SomeOtherHeader": "true"},
-			want:    false,
-			wantErr: false,
+			name: "Empty URLs",
+			settings: DataSourceInstanceSettings{
+				URL:     "",
+				VMUIURL: "",
+			},
+			want:    "",
+			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := &Datasource{}
-			got, err := d.checkAlertingRequest(tt.headers)
+			got, err := getBaseVMUIURL(tt.settings)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("checkAlertingRequest() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("getBaseVMUIURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("checkAlertingRequest() got = %v, want %v", got, tt.want)
+				t.Errorf("getBaseVMUIURL() = %v, want %v", got, tt.want)
 			}
 		})
 	}

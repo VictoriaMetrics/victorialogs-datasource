@@ -1,20 +1,30 @@
 package main
 
 import (
-	"os"
-
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 
 	"github.com/VictoriaMetrics/victorialogs-datasource/pkg/plugin"
 )
 
-func main() {
-	backend.Logger.Debug("Starting VictoriaLogs datasource backend ...")
+// VL_PLUGIN_ID describes plugin name that matches Grafana plugin naming convention
+const VL_PLUGIN_ID = "victoriametrics-logs-datasource"
 
-	if err := datasource.Manage("victoriametrics-logs-datasource", plugin.NewDatasource, datasource.ManageOpts{}); err != nil {
-		log.DefaultLogger.Error("Failed to process VictoriaLogs datasource backend: %s", err.Error())
-		os.Exit(1)
+func main() {
+	backend.SetupPluginEnvironment(VL_PLUGIN_ID)
+
+	pluginLogger := log.New()
+	ds := plugin.NewDatasource()
+
+	pluginLogger.Info("Starting VL datasource")
+
+	err := backend.Manage(VL_PLUGIN_ID, backend.ServeOpts{
+		CallResourceHandler: ds,
+		QueryDataHandler:    ds,
+		CheckHealthHandler:  ds,
+		StreamHandler:       ds,
+	})
+	if err != nil {
+		pluginLogger.Error("Error starting VL datasource", "error", err.Error())
 	}
 }

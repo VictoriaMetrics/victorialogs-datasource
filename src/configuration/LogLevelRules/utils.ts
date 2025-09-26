@@ -1,9 +1,22 @@
 // utils/logLevel.ts
-import { LogLevel } from '@grafana/data';
+import { Labels, LogLevel } from '@grafana/data';
 
 import { LogLevelRule, LogLevelRuleType } from "./types";
 
-export const resolveLogLevel = (log: Record<string, any>, rules: LogLevelRule[]): LogLevel => {
+const isValidLogLevel = (level: string): boolean => Object.keys(LogLevel).includes(level as LogLevel);
+
+export const extractLevelFromLabels = (labels: Labels, rules: LogLevelRule[]): LogLevel => {
+  const hasInfoLabel = Object.entries(labels).some(([key, value]) => {
+    return key === 'level' && value !== undefined && value !== null && isValidLogLevel(value.toLowerCase());
+  })
+
+  const levelByLabel = hasInfoLabel ? labels['level'].toLowerCase() as LogLevel : null
+  const levelByRule = rules.length ? resolveLogLevel(labels, rules) : null
+
+  return levelByRule || levelByLabel || LogLevel.unknown;
+}
+
+const resolveLogLevel = (log: Record<string, any>, rules: LogLevelRule[]) => {
   for (const rule of rules) {
     if (rule.enabled === false) {
       continue;
@@ -52,5 +65,5 @@ export const resolveLogLevel = (log: Record<string, any>, rules: LogLevelRule[])
     }
   }
 
-  return LogLevel.unknown;
+  return null;
 }

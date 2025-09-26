@@ -1,0 +1,3 @@
+{"logs": "69275","_stream": "{az_id=\"use1-az2\",source=\"vector\",vpc_id=\"vpc\"}"}
+{"logs": "5022","_stream": "{namespace=\"ops-monitoring-ns\"}"}
+{"logs": "194","_stream": "{}"}

@@ -1,10 +1,10 @@
 # VictoriaLogs datasource for Grafana
 
-The VictoriaLogs Grafana plugin allows Grafana to query, visualize, 
-and interact with [VictoriaLogs](https://docs.victoriametrics.com/victorialogs),
+The [VictoriaLogs Grafana plugin](https://grafana.com/grafana/plugins/victoriametrics-logs-datasource/) allows Grafana 
+to query, visualize, and interact with [VictoriaLogs](https://docs.victoriametrics.com/victorialogs/),
 a high-performance log storage and processing system.
 
-<img alt="Grafana Dashboard Screenshot" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/dashboard.png?raw=true">
+<img alt="Grafana Dashboard Screenshot" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/dashboard.png?raw=true">
 
 ## Capabilities
 
@@ -19,6 +19,7 @@ Try it at [VictoriaMetrics playground](https://play-grafana.victoriametrics.com/
 ## Installation
 
 For detailed instructions on how to install the plugin on Grafana Cloud or locally, please checkout the [Plugin installation docs](https://grafana.com/docs/grafana/latest/plugins/installation/).
+For installation options in Docker or Kubernetes refer to [these docs](https://github.com/VictoriaMetrics/victorialogs-datasource?tab=readme-ov-file#installation).
 
 ### Manual configuration via UI
 
@@ -139,6 +140,49 @@ Where:
 * `level` is the log level to assign if the condition matches. Valid values: `critical`, `error`, `warning`, `info`, `debug`, `trace`, `unknown`.
 * `operator` is the comparison operator to use, such as `equals`, `notEquals`, `regex`, `lessThan`, `greaterThan`.
 * `enabled` is a boolean flag to enable or disable the rule. Defaults to `true` if omitted.
+
+## Correlations
+
+### Trace to logs
+
+Tempo, Jaeger, and Zipkin data sources support [Trace to logs](https://grafana.com/docs/grafana/latest/explore/trace-integration/#trace-to-logs)
+feature for navigating from a span in a trace directly to logs relevant for that span. _(Supported since Grafana v12.2.0)_.
+
+<img alt="Derived fields configuration" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/trace_to_logs.png?raw=true">
+
+An example of the correlation query in traces datasource is the following:
+```
+trace_id:="${__trace.traceId}" AND span_id:="${__trace.spanId}"
+```
+
+### Log to metrics
+
+Log to traces correlation is possible via Derived Fields functionality. But for it to work log entries and time series
+in metrics datasource should share common labels that could be used as filters. See example of building logs to metrics
+correlation in [this issue](https://github.com/VictoriaMetrics/VictoriaMetrics/issues/9592#issuecomment-3202104607).
+
+### Log to traces
+
+Log to traces correlation is possible via Derived Fields functionality. See its description in the sections below.
+
+## Derived Fields
+
+In VictoriaLogs datasource settings, you can configure rules of extracting values from a log message to create a link with that value.
+
+For example, if log entries have field `trace_id` then we can configure a Derived Field to make a link to Jaeger datasource
+for viewing an associated trace:
+
+<img alt="Derived fields configuration" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/derived_fields_cfg.png?raw=true">
+
+Once configured, in Explore mode or in Logs panel log entries with field `trace_id` will also get a link that would
+open a Jaeger datasource and search for the `trace_id` value:
+
+<img alt="Derived fields explore" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/derived_fields_explore.png?raw=true">
+
+If the trace ID is not stored in a separate field but in a log message itself, then use `Regex in log line` option
+to specify a regex expression for extracting the trace value from log message.
+
+Learn more about [Derived Fields in Grafana](https://grafana.com/docs/grafana/next/datasources/loki/configure-loki-data-source/#derived-fields).
 
 ## License
 

@@ -18,6 +18,7 @@ export interface Options extends DataSourceJsonData {
   enableSecureSocksProxy?: boolean;
   logLevelRules?: LogLevelRule[];
   multitenancyHeaders?: MultitenancyHeaders;
+  vmuiUrl?: string;
 }
 
 export enum QueryDirection {
@@ -43,19 +44,17 @@ export enum QueryEditorMode {
   Code = 'code',
 }
 
-export interface QueryFromSchema extends DataQuery {
+export interface Query extends DataQuery {
   editorMode?: QueryEditorMode;
   expr: string;
   legendFormat?: string;
   maxLines?: number;
   step?: string;
   extraFilters?: string;
-}
-
-export interface Query extends QueryFromSchema {
   direction?: QueryDirection;
   supportingQueryType?: SupportingQueryType;
   queryType?: QueryType;
+  interval?: string; // for /select/logsql/query
   fields?: string[]; // groups the results by the specified field value for /select/logsql/hits
 }
 
@@ -94,6 +93,10 @@ export interface RequestArguments {
   url: string;
   params?: Record<string, string>;
   options?: Partial<BackendSrvRequest>;
+}
+
+export interface FieldHitsResponse {
+  values: FieldHits[];
 }
 
 export interface FieldHits {

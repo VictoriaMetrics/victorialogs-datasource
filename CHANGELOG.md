@@ -2,6 +2,47 @@
 
 ## tip
 
+## v0.21.0
+
+* FEATURE: add run in vmui button. The VMUI URL can be configured in the datasource settings. If not specified, the datasource URL with the path `/select/vmui` will be used. See [#369](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/369).
+
+* BUGFIX: fix unpredictable behavior when determining a `Max Data Points` option for a range query. See [#393](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/393).
+* BUGFIX: respect user-specified `Min Interval` for a range queries. Before, the interval could have been rounded to smaller values and result in unexpected distance between datapoints on graph. See [#390](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/390).
+* BUGFIX: fix an issue with the incorrect handling `option` field in the query for the `/stats` API. By the [documentation](https://docs.victoriametrics.com/victorialogs/logsql/#query-options) it should be passed at the beginning of LogsQL query. See [#389](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/389).
+
+## v0.20.0
+
+* FEATURE: upgrade Go builder from Go1.24.2 to Go1.25. See [Go1.25 release notes](https://tip.golang.org/doc/go1.25).
+* FEATURE: add current version and changelog link to the Helpful links section.
+* FEATURE: add support for multi-value operators (`one of`, `not one of`) in Ad hoc filters (available since Grafana 11.3.x). See [#293](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/293).
+
+* BUGFIX: fix log level coloring when no custom rules are configured. See [#347](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/347).
+* BUGFIX: respect adhoc filters variables. See [#361](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/361)
+* BUGFIX: fix issue with concurrent map writes when performing multiple requests to the datasource. See [#363](https://github.com/VictoriaMetrics/victoriametrics-datasource/issues/363)
+* BUGFIX: fix a parsing issue with quoted characters inside `_stream` fields. See [#365](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/365).
+* BUGFIX: fix an issue with parsing stats response when it can be empty or have empty string or `nil` as a value. See [#374](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/374).
+
+## v0.19.3
+
+* BUGFIX: fix an issue with missing `_msg`, `_time` fields in the response and when `_stream` field is empty. See [#560](https://github.com/VictoriaMetrics/VictoriaLogs/issues/560) 
+* BUGFIX: fix an issue with the propagating `AccountID` and `ProjectID` headers in the datasource for the `field_values` and `field_names` API calls. See [#354](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/354).
+
+## v0.19.2
+
+* BUGFIX: fix regression of the plugin that cause the plugin to not work with `field_values` and `field_names` queries. Fix comments after the plugin verification procedure.
+
+## v0.19.1
+
+* BUGFIX: upgrade `jest` library version to fix vulnerability warning.
+
+## v0.19.0
+
+* BREAKING: increase minimum required Grafana version to `>=10.4.0` to ensure compatibility with [`@grafana/plugin-ui`](https://github.com/grafana/plugin-ui). This drops support for older Grafana versions.
+
+* BUGFIX: fix an issue with missing `_msg` field in the response. If `_msg` field is missed in the response now always returned as an empty string. See [#330](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/330).
+* BUGFIX: fix an issue with parsing of the `_stream` field that contains commas in its value. Previously, commas in the `_stream` field values were incorrectly processed, leading to parsing errors. This has been fixed to properly handle complex string values with commas. See [#334](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/334).
+* BUGFIX: fix an issue with parsing timestamp from the `_time` field if it contains nanosecond precision. Now, the plugin correctly handles timestamps with nanosecond precision in the `_time` field and do not round it, ensuring accurate time representation in logs. See [#340](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/340)
+
 ## v0.18.1
 
 * BUGFIX: fix an issue when the additional `level` label was added if the logs level rules aren't configured. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/319).
