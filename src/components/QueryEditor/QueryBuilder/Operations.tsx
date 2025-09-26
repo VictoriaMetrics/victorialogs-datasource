@@ -1,3 +1,4 @@
+// LogsQL version v1.34.0
 import React, { FunctionComponent, useMemo, useState } from 'react';
 
 import { DataSourceApi } from '@grafana/data';
@@ -37,11 +38,15 @@ export enum VictoriaLogsOperationId {
   WeekRange = 'week_range',
   Stream = 'stream',
   StreamId = 'stream_id',
+  PatternMatch = 'pattern_match',
+  Substring = 'substring',
   RangeComparison = 'range_comparison',
   Exact = 'exact',
   MultiExact = 'multi_exact',
   ContainsAll = 'contains_all',
   ContainsAny = 'contains_any',
+  EqualsCommonCase = 'equals_common_case',
+  ContainsCommonCase = 'contains_common_case',
   Sequence = 'seq',
   Regexp = 'regexp',
   Range = 'range',
@@ -88,13 +93,16 @@ export enum VictoriaLogsOperationId {
   Rename = 'rename',
   Replace = 'replace',
   ReplaceRegexp = 'replace_regexp',
+  RunningStats = 'running_stats',
   Sample = 'sample',
+  SetStreamFields = "set_stream_fields",
   Sort = 'sort',
   Split = 'split',
   Stats = 'stats',
   StreamContext = 'stream_context',
   TimeAdd = 'time_add',
   Top = 'top',
+  TotalStats = 'total_stats',
   Union = 'union',
   Uniq = 'uniq',
   UnpackJson = 'unpack_json',
@@ -202,6 +210,25 @@ export class OperationDefinitions {
 
   all(): VictoriaQueryBuilderOperationDefinition[] {
     return this.operationDefinitions;
+  }
+
+  getTotalStatsOperationDefinitions(): VictoriaQueryBuilderOperationDefinition[] {
+    const list: VictoriaQueryBuilderOperationDefinition[] = [];
+    for (const op of this.operationDefinitions) {
+      if ([
+        VictoriaLogsOperationId.Count,
+        VictoriaLogsOperationId.Max,
+        VictoriaLogsOperationId.Min,
+        VictoriaLogsOperationId.Sum
+      ].includes(op.id as VictoriaLogsOperationId)) {
+        list.push(op);
+      }
+    }
+    return list;
+  }
+
+  getRunningStatsOperationDefinitions(): VictoriaQueryBuilderOperationDefinition[] {
+    return this.getTotalStatsOperationDefinitions();
   }
 
   getConditionalEditor() {
@@ -972,7 +999,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         name: 'Limit',
         params: [{
           name: "Number of rows",
-          type: "string",
+          type: "number",
         }],
         alternativesKey: "reduce",
         defaultParams: [10],
@@ -1366,6 +1393,24 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         },
       },
       {
+        id: VictoriaLogsOperationId.RunningStats,
+        name: 'Running stats',
+        params: [{
+          name: "Stats by",
+          type: "string",
+        }, {
+          name: "Stats",
+          type: "string",
+          editor: StatsEditor("running"),
+        }],
+        defaultParams: ["", ""],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Pipes,
+        renderer: renderStatsPipe,
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: parseStatsPipe,
+      },
+      {
         id: VictoriaLogsOperationId.Sample,
         name: 'Sample',
         params: [{
@@ -1384,6 +1429,42 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
           return { params: [parseNumber(str[0], 1)], length: 1 };
+        },
+      },
+      {
+        id: VictoriaLogsOperationId.SetStreamFields,
+        name: 'Set stream fields',
+        params: [{
+          name: "Fields",
+          type: "string",
+          editor: FieldsEditor,
+        }, {
+          name: "Condition",
+          type: "string",
+          editor: this.conditionalEditor,
+        }],
+        defaultParams: ["", ""],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Pipes,
+        renderer: (model, def, innerExpr) => {
+          const fields = model.params[0] as string;
+          const condition = model.params[1] as string;
+          let expr = "set_stream_fields";
+          if (condition !== "") {
+            expr += ` if (${condition})`;
+          }
+          if (fields !== "") {
+            expr += ` ${fields}`;
+          }
+          return pipeExpr(innerExpr, expr);
+        },
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: (str: SplitString[]) => {
+          const length = str.length;
+          const params: [string, string] = ["", ""];
+          params[1] = getConditionFromString(str);
+          params[0] = buildSplitString(str);
+          return { params, length: length };
         },
       },
       {
@@ -1552,38 +1633,14 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         }, {
           name: "Stats",
           type: "string",
-          editor: StatsEditor,
+          editor: StatsEditor("stats"),
         }],
         defaultParams: ["", ""],
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Pipes,
-        renderer: (model, def, innerExpr) => {
-          const statsBy = model.params[0] as string;
-          const subqueryField = model.params[1] as unknown;
-          const subquery = (typeof subqueryField === "string") ? subqueryField : (subqueryField as { expr: string }).expr;
-          let expr = "stats";
-          if (statsBy !== "") {
-            expr += ` by (${statsBy})`;
-          }
-          expr += " " + subquery;
-          return pipeExpr(innerExpr, expr);
-        },
+        renderer: renderStatsPipe,
         addOperationHandler: addVictoriaOperation,
-        splitStringByParams: (str: SplitString[]) => {
-          let params: string[] = [""];
-          let length = str.length;
-          if (str.length > 0) { // check for stats by fields
-            if (str[0].type === "space" && str[0].value === "by") { // optional
-              str.shift();
-            }
-            if (str[0].type === "bracket" && str[0].prefix === "") {
-              params[0] = str[0].raw_value.slice(1, -1);
-              str = str.slice(1);
-            }
-          }
-          params[1] = buildSplitString(str);
-          return { params, length: length }; // everything of str
-        },
+        splitStringByParams: parseStatsPipe,
       },
       {
         id: VictoriaLogsOperationId.StreamContext,
@@ -1814,6 +1871,24 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         },
       },
       {
+        id: VictoriaLogsOperationId.TotalStats,
+        name: 'Total stats',
+        params: [{
+          name: "Stats by",
+          type: "string",
+        }, {
+          name: "Stats",
+          type: "string",
+          editor: StatsEditor("total"),
+        }],
+        defaultParams: ["", ""],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Pipes,
+        renderer: renderStatsPipe,
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: parseStatsPipe,
+      },
+      {
         id: VictoriaLogsOperationId.Union,
         name: 'Union',
         params: [{
@@ -1832,6 +1907,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         addOperationHandler: addVictoriaOperation,
         splitStringByParams: (str: SplitString[]) => {
           let query = "";
+          const length = str.length;
           if (str.length > 0) {
             if (str[0].type === "bracket") {
               query = str[0].raw_value.slice(1, -1);
@@ -2407,6 +2483,10 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           type: "string",
           editor: FieldsEditorWithPrefix,
         }, {
+          name: "Sort by",
+          type: "string",
+          editor: SortedFieldsEditor,
+        }, {
           name: "Limit",
           type: "string",
           editor: NumberEditor,
@@ -2420,12 +2500,12 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           editor: this.conditionalEditor,
         }],
         alternativesKey: "stats",
-        defaultParams: ["", 0, "", ""],
+        defaultParams: ["", "", 0, "", ""],
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Stats,
-        renderer: renderStatsOperation(true),
+        renderer: renderStatsOperation(true, true),
         addOperationHandler: addVictoriaOperation,
-        splitStringByParams: parseStatsOperation(true),
+        splitStringByParams: parseStatsOperation(true, true),
       },
       {
         id: VictoriaLogsOperationId.Max,
@@ -2521,7 +2601,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           editor: this.conditionalEditor,
         }],
         alternativesKey: "stats",
-        defaultParams: ["5", "", "", ""],
+        defaultParams: [5, "", "", ""],
         toggleable: true,
         category: VictoriaLogsQueryOperationCategory.Stats,
         renderer: (model, def, innerExpr) => {
@@ -2873,6 +2953,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
       },
       addOperationHandler: addVictoriaOperation,
       splitStringByParams: (str: SplitString[]) => {
+        const length = str.length;
         const params: [number, number, boolean, string, boolean] = [0, 0, false, "", false];
         if (str.length > 0) {
           if (str[0].value === "options") {
@@ -2913,7 +2994,7 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
             str.shift();
           }
         }
-        return { params, length: str.length };
+        return { params, length: length - str.length };
       },
     }, {
       id: VictoriaLogsOperationId.FieldContainsAnyValueFromVariable,
@@ -3079,6 +3160,59 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
       }
     }
     return { fromField, fields, resultPrefix, keepOriginalFields, skipEmptyResults, offset, length: strLen - str.length };
+  }
+
+  parseCommonCase(str: SplitString[], fieldName?: string): { params: QueryBuilderOperationParamValue[], length: number } {
+    const length = str.length;
+    const params: string[] = [fieldName || this.defaultField];
+    if (str.length > 0) {
+      if (str[0].type === "space" && (str[0].value === "equals_common_case" || str[0].value === "contains_common_case")) {
+        str = str.slice(1);
+        if (str[0].type === "bracket") {
+          params.push(...getValuesFromBrackets(str[0].value));
+          str.shift();
+        }
+      } else if (str[0].type === "bracket" && (str[0].prefix === "equals_common_case" || str[0].prefix === "contains_common_case")) {
+        if (str[0].type === "bracket") {
+          params.push(...getValuesFromBrackets(str[0].value));
+          str.shift();
+        }
+      }
+    }
+    if (params.length === 1) {
+      params.push("");
+    }
+    return {
+      params, length: length - str.length
+    }
+  }
+
+  renderCommonCase(model: QueryBuilderOperation, def: QueryBuilderOperationDefinition, innerExpr: string) {
+    const field = model.params[0] as string;
+    const params = model.params.slice(1).filter((v) => Boolean(v) || v === "") as string[];
+    let expr = "";
+    if (field !== this.defaultField) {
+      expr = `${quoteString(field)}:`;
+    }
+    if (params.length > 0) {
+      let values = "";
+      for (let i = 0; i < params.length; i++) {
+        let value = params[i];
+        if (value.startsWith("$") || value === "*") {
+          value = value;
+        } else {
+          value = quoteString(value, false);
+        }
+        values += value;
+        if (i < params.length - 1) {
+          values += ", ";
+        }
+      }
+      expr += model.id + `(${values})`;
+    } else {
+      expr += model.id + `("")`;
+    }
+    return pipeExpr(innerExpr, expr);
   }
 
   getFilterDefinitions(): VictoriaQueryBuilderOperationDefinition[] {
@@ -3526,6 +3660,110 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
         },
       },
       {
+        id: VictoriaLogsOperationId.PatternMatch,
+        name: 'Pattern match',
+        params: [{
+          name: "Field",
+          type: "string",
+          editor: FieldEditor,
+        }, {
+          name: "Pattern",
+          type: "string",
+          placeholder: "<pattern>"
+        }, {
+          name: "Full match",
+          type: "boolean",
+        }],
+        defaultParams: [this.defaultField, "", false],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Filters,
+        renderer: (model, def, innerExpr) => {
+          const field = model.params[0] as string;
+          const pattern = model.params[1] as string;
+          const fullMatch = model.params[2] as boolean;
+          let expr = "";
+          if (field !== this.defaultField) {
+            expr = `${quoteString(field)}:`;
+          }
+          if (fullMatch) {
+            expr += "pattern_match_full"
+          } else {
+            expr += "pattern_match"
+          }
+          expr += `(${quoteString(pattern, true)})`;
+          return pipeExpr(innerExpr, expr);
+        },
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: (str: SplitString[], fieldName?: string) => {
+          const length = str.length;
+          const params: [string, string, boolean] = [fieldName || this.defaultField, "", false];
+          if (str.length > 0) {
+            if (str[0].type === "space") {
+              params[2] = str[0].value === "pattern_match_full";
+              str = str.slice(1);
+            } else if (str[0].type === "bracket") {
+              params[2] = str[0].prefix === "pattern_match_full";
+            } else {
+              return { params, length: length - str.length };
+            }
+            if (str.length > 0 && str[0].type === "bracket") {
+              params[1] = (str[0].value.length && isValue(str[0].value[0])) ? getValue(str[0].value[0]) : "";
+              str.shift();
+            }
+          }
+          return { params, length: length - str.length };
+        },
+      },
+      {
+        id: VictoriaLogsOperationId.Substring,
+        name: 'Substring',
+        params: [{
+          name: "Field",
+          type: "string",
+          editor: FieldEditor,
+        }, {
+          name: "Substring",
+          type: "string",
+        }],
+        defaultParams: [this.defaultField, ""],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Filters,
+        renderer: (model, def, innerExpr) => {
+          const field = model.params[0] as string;
+          const substr = model.params[1] as string;
+          let expr = "";
+          if (field !== this.defaultField) {
+            expr = `${quoteString(field)}:`;
+          }
+          if (substr.startsWith("$")) {
+            expr += `*${substr}*`;
+          } else if (substr === "") {
+            expr += '*""*';
+          } else {
+            expr += `*${quoteString(substr)}*`;
+          }
+          return pipeExpr(innerExpr, expr);
+        },
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: (str: SplitString[]) => {
+          let length = str.length;
+          let params: [string, string] = [this.defaultField, ""];
+          if (str.length > 2 && str[0].value === "*" && str[1].type === "quote" && str[2].value === "*") {
+            params[1] = getValue(str[1]);
+            str = str.slice(3);
+          } else if (str.length > 0) {
+            if (str[0].type === "space") {
+              const value = str[0].value;
+              if (value.startsWith("*") && value.endsWith("*")) {
+                params[1] = value.slice(1, -1);
+                str.shift();
+              }
+            }
+          }
+          return { params, length: length - str.length };
+        }
+      },
+      {
         id: VictoriaLogsOperationId.RangeComparison,
         name: 'Range comparison',
         params: [{
@@ -3781,6 +4019,46 @@ Where text1, … textN+1 is arbitrary non-empty text, which matches as is to the
           }
           return { params, length: length - str.length };
         },
+      },
+      {
+        id: VictoriaLogsOperationId.EqualsCommonCase,
+        name: 'Equals common case',
+        params: [{
+          name: "Field",
+          type: "string",
+          editor: FieldEditor,
+        }, {
+          name: "Value",
+          type: "string",
+          restParam: true,
+        }],
+        alternativesKey: "commonCase",
+        defaultParams: [this.defaultField, ""],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Filters,
+        renderer: (...args) => this.renderCommonCase(...args),
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: (...args) => this.parseCommonCase(...args),
+      },
+      {
+        id: VictoriaLogsOperationId.ContainsCommonCase,
+        name: 'Contains common case',
+        params: [{
+          name: "Field",
+          type: "string",
+          editor: FieldEditor,
+        }, {
+          name: "Value",
+          type: "string",
+          restParam: true,
+        }],
+        alternativesKey: "commonCase",
+        defaultParams: [this.defaultField, ""],
+        toggleable: true,
+        category: VictoriaLogsQueryOperationCategory.Filters,
+        renderer: (...args) => this.renderCommonCase(...args),
+        addOperationHandler: addVictoriaOperation,
+        splitStringByParams: (...args) => this.parseCommonCase(...args),
       },
       {
         id: VictoriaLogsOperationId.Sequence,
@@ -4306,9 +4584,37 @@ function parseFirstLastPipe(str: SplitString[]) {
   return { params, length: length - str.length };
 }
 
+function parseStatsPipe(str: SplitString[]) {
+  const params: string[] = [""];
+  const length = str.length;
+  if (str.length > 0) { // check for stats by fields
+    if (str[0].type === "space" && str[0].value === "by") { // optional
+      str.shift();
+    }
+    if (str[0].type === "bracket" && str[0].prefix === "") {
+      params[0] = str[0].raw_value.slice(1, -1);
+      str = str.slice(1);
+    }
+  }
+  params[1] = buildSplitString(str);
+  return { params, length: length }; // everything of str
+}
+
+function renderStatsPipe(model: QueryBuilderOperation, def: QueryBuilderOperationDefinition, innerExpr: string): string {
+  const statsBy = model.params[0] as string;
+  const subqueryField = model.params[1] as unknown;
+  const subquery = (typeof subqueryField === "string") ? subqueryField : (subqueryField as { expr: string }).expr;
+  let expr = model.id;
+  if (statsBy !== "") {
+    expr += ` by (${statsBy})`;
+  }
+  expr += " " + subquery;
+  return pipeExpr(innerExpr, expr);
+}
+
 function parseLenPipe(str: SplitString[], fnName: string) {
-  let length = str.length;
-  let params: [string, string] = ["", ""];
+  const length = str.length;
+  const params: [string, string] = ["", ""];
   if (str.length >= 2) {
     let value;
     if (str[0].type === "bracket" && str[0].prefix === fnName) {
@@ -4356,21 +4662,26 @@ function getFieldValue(str: SplitString[], defaultValue = ""): string {
   return value;
 }
 
-function renderStatsOperation(hasLimit = false) {
+function renderStatsOperation(hasLimit = false, sortBy = false) {
   function renderStatsOperation(model: QueryBuilderOperation, def: QueryBuilderOperationDefinition, innerExpr: string): string {
     const fields = model.params[0] as string;
-    let Limit = 0;
+    const operation = model.id;
+    let expr = `${operation}(${fields})`;
     let offset = 1;
+    if (sortBy) {
+      const sortByFields = model.params[offset++] as string;
+      if (sortByFields !== "") {
+        expr += ` sort by (${sortByFields})`;
+      }
+    }
     if (hasLimit) {
-      Limit = model.params[offset++] as number;
+      const Limit = model.params[offset++] as number;
+      if (Limit > 0) {
+        expr += ` limit ${Limit}`;
+      }
     }
     const resultField = model.params[offset++] as string;
     const condition = model.params[offset] as string;
-    const operation = model.id;
-    let expr = `${operation}(${fields})`;
-    if (Limit > 0) {
-      expr += ` limit ${Limit}`;
-    }
     if (condition !== "") {
       expr += ` if (${condition})`;
     }
@@ -4384,12 +4695,23 @@ function renderStatsOperation(hasLimit = false) {
 
 type StatsParamsWithoutLimit = [field: string, resultField: string, condition: string];
 type StatsParamsWithLimit = [field: string, limit: number, resultField: string, condition: string];
+type StatsParamsWithoutLimitWithSort = [field: string, sortBy: string, resultField: string, condition: string];
+type StatsParamsWithLimitWithSort = [field: string, sortBy: string, limit: number, resultField: string, condition: string];
 
 type StatsParamsParseFnWithLimit = (str: SplitString[]) => { params: StatsParamsWithLimit, length: number };
 type StatsParamsParseFnWithoutLimit = (str: SplitString[]) => { params: StatsParamsWithoutLimit, length: number };
+type StatsParamsParseFnWithLimitWithSort = (str: SplitString[]) => { params: StatsParamsWithLimitWithSort, length: number };
+type StatsParamsParseFnWithoutLimitWithSort = (str: SplitString[]) => { params: StatsParamsWithoutLimitWithSort, length: number };
 
-function parseStatsOperationWithLimit(str: SplitString[]) {
-  let params: StatsParamsWithLimit = ["", 0, "", ""];
+function parseStatsOperationWithLimit(str: SplitString[], sortBy: true): { params: StatsParamsWithLimitWithSort, length: number }
+function parseStatsOperationWithLimit(str: SplitString[], sortBy: false): { params: StatsParamsWithLimit, length: number }
+function parseStatsOperationWithLimit(str: SplitString[], sortBy = false) {
+  let params: StatsParamsWithLimitWithSort | StatsParamsWithLimit;
+  if (sortBy) {
+    params = ["", "", 0, "", ""];
+  } else {
+    params = ["", 0, "", ""];
+  }
   const length = str.length;
   if (str.length > 0) {
     if (str[0].type === "space") {
@@ -4398,27 +4720,47 @@ function parseStatsOperationWithLimit(str: SplitString[]) {
     if (str[0].type === "bracket") {
       params[0] = str[0].raw_value.slice(1, -1);
       str.shift();
+    }
+    let offset = 1;
+    if (sortBy && str.length > 0) {
+      if (str[0].type === "space" && str[0].value === "sort") {
+        str = str.slice(1);
+        if (str.length > 0 && str[0].type === "space" && str[0].value === "by") {
+          str = str.slice(1);
+          if (str.length > 0 && str[0].type === "bracket") {
+            params[offset++] = buildSplitString(str[0].value);
+            str.shift();
+          }
+        }
+      }
     }
     if (str.length > 0) {
       if (str[0].type === "space" && str[0].value === "limit") {
         str.shift();
         if (str.length > 0) {
-          params[1] = parseNumber(str[0], 0);
+          params[offset++] = parseNumber(str[0], 0);
           str.shift();
         }
       }
     }
-    params[3] = getConditionFromString(str);
+    params[offset + 1] = getConditionFromString(str);
     if (str.length > 0 && str[0].value === "as") {
       str.shift();
     }
-    params[2] = getFieldValue(str);
+    params[offset] = getFieldValue(str);
   }
   return { params, length: length - str.length };
 }
 
-function parseStatsOperationWithoutLimit(str: SplitString[]) {
-  let params: StatsParamsWithoutLimit = ["", "", ""];
+function parseStatsOperationWithoutLimit(str: SplitString[], sortBy: false): { params: StatsParamsWithoutLimitWithSort, length: number }
+function parseStatsOperationWithoutLimit(str: SplitString[], sortBy: true): { params: StatsParamsWithoutLimit, length: number }
+function parseStatsOperationWithoutLimit(str: SplitString[], sortBy: boolean) {
+  let params: StatsParamsWithoutLimit | StatsParamsWithoutLimitWithSort;
+  if (sortBy) {
+    params = ["", "", "", ""];
+  } else {
+    params = ["", "", ""];
+  }
   const length = str.length;
   if (str.length > 0) {
     if (str[0].type === "space") {
@@ -4428,24 +4770,47 @@ function parseStatsOperationWithoutLimit(str: SplitString[]) {
       params[0] = str[0].raw_value.slice(1, -1);
       str.shift();
     }
-    params[2] = getConditionFromString(str);
+    let offset = 1;
+    if (sortBy && str.length > 0) {
+      if (str[0].type === "space" && str[0].value === "sort") {
+        str = str.slice(1);
+        if (str.length > 0 && str[0].type === "space" && str[0].value === "by") {
+          str = str.slice(1);
+          if (str.length > 0 && str[0].type === "bracket") {
+            params[offset++] = buildSplitString(str[0].value);
+            str.shift();
+          }
+        }
+      }
+    }
+    params[offset + 1] = getConditionFromString(str);
     if (str.length > 0 && str[0].value === "as") {
       str.shift();
     }
-    params[1] = getFieldValue(str);
+    params[offset] = getFieldValue(str);
   }
   return { params, length: length - str.length };
 }
 
+function parseStatsOperation(hasLimit: true, sortBy: true): StatsParamsParseFnWithLimitWithSort;
+function parseStatsOperation(hasLimit: false, sortBy: true): StatsParamsParseFnWithoutLimitWithSort;
+function parseStatsOperation(hasLimit: true, sortBy: false): StatsParamsParseFnWithLimit;
+function parseStatsOperation(hasLimit: false, sortBy: false): StatsParamsParseFnWithoutLimit;
 function parseStatsOperation(hasLimit: true): StatsParamsParseFnWithLimit;
 function parseStatsOperation(hasLimit: false): StatsParamsParseFnWithoutLimit;
 
-function parseStatsOperation(hasLimit: boolean): StatsParamsParseFnWithLimit | StatsParamsParseFnWithoutLimit {
-  if (hasLimit) {
-    return parseStatsOperationWithLimit;
-  } else {
-    return parseStatsOperationWithoutLimit;
+function parseStatsOperation(hasLimit: boolean, sortBy = false): StatsParamsParseFnWithLimitWithSort | StatsParamsParseFnWithoutLimitWithSort | StatsParamsParseFnWithLimit | StatsParamsParseFnWithoutLimit {
+  if (hasLimit && sortBy === true) {
+    return (str: SplitString[]) => parseStatsOperationWithLimit(str, true);
   }
+  if (hasLimit && sortBy === false) {
+    return (str: SplitString[]) => parseStatsOperationWithLimit(str, false);
+  }
+  if (!hasLimit && sortBy === true) {
+    return (str: SplitString[]) => parseStatsOperationWithoutLimit(str, true);
+  }
+  // !hasLimit && sortBy === false
+  return (str: SplitString[]) => parseStatsOperationWithoutLimit(str, false);
 }
 
 function getFieldList(str: SplitString[]) {

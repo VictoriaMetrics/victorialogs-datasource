@@ -203,17 +203,30 @@ export const parseOperation = (str: SplitString[], onlyFilters: boolean, queryMo
         if (str[0].value === "=" || (str.length > 1 && str[0].value === "!" && str[1].value === "=")) {
             return getOperationFromId(queryModeller, VictoriaLogsOperationId.Exact, str, fieldName);
         }
+        if (str[0].type === "space" && str[0].value.startsWith("*")) {
+            if (str.length > 2 && str[0].value === "*" && str[1].type === "quote" && str[2].value === "*") {
+                return getOperationFromId(queryModeller, VictoriaLogsOperationId.Substring, str, fieldName);
+            }
+            if (str.length > 0) {
+                const value = str[0].value
+                if (value.length > 1 && value.startsWith("*") && value.endsWith("*")) {
+                    return getOperationFromId(queryModeller, VictoriaLogsOperationId.Substring, str, fieldName);
+                }
+            }
+        }
 
         const functionName = getFunctionName(str);
         if (functionName !== "") {
             // Filters
-            const filterOperationIds = ["day_range", "week_range", "contains_all", "contains_any", "seq", "range", "ipv4_range", "string_range", "len_range", "value_type", "eq_field", "le_field", "lt_field"];
+            const filterOperationIds = ["pattern_match", "day_range", "week_range", "contains_all", "contains_any", "seq", "range", "ipv4_range", "string_range", "len_range", "value_type", "eq_field", "le_field", "lt_field", "equals_common_case", "contains_common_case"];
             if (filterOperationIds.includes(functionName.toLowerCase())) {
                 return getOperationFromId(queryModeller, functionName.toLowerCase() as VictoriaLogsOperationId, str, fieldName);
             } else if (functionName.toLowerCase() === "in") {
                 return getOperationFromId(queryModeller, VictoriaLogsOperationId.MultiExact, str, fieldName);
             } else if (functionName.toLowerCase() === "options" && !onlyFilters) {
                 return getOperationFromId(queryModeller, VictoriaLogsOperationId.Options, str, fieldName);
+            } else if (functionName.toLowerCase() === "pattern_match_full") {
+                return getOperationFromId(queryModeller, VictoriaLogsOperationId.PatternMatch, str, fieldName);
             }
         }
         if (str[0].type === "space" && [">", "<"].includes(str[0].value.slice(0, 1))) {
