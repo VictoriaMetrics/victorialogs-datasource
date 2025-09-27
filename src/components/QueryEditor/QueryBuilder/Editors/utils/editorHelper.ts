@@ -3,6 +3,7 @@ import { getTemplateSrv } from "@grafana/runtime";
 
 import { VictoriaLogsDatasource } from "../../../../../datasource";
 import { FilterFieldType, VisualQuery } from "../../../../../types";
+import { buildVisualQueryToString } from "../../QueryModeller";
 import { VictoriaLogsQueryOperationCategory } from "../../VictoriaLogsQueryOperationCategory";
 
 export async function getVariableOptions() {
@@ -33,7 +34,7 @@ export async function getFieldNameOptions(props: QueryBuilderOperationParamEdito
   const operations = (query as VisualQuery).operations;
   const operationIdx = operations.findIndex(op => op === operation);
   const prevOperations = operations.slice(0, (operationIdx === -1) ? operations.length : operationIdx);
-  const prevExpr = queryModeller.renderQuery({ operations: prevOperations, labels: [] });
+  const prevExpr = buildVisualQueryToString({ operations: prevOperations, labels: [], expr: "" });
   let expr = "";
   if (prevExpr.trim() !== "" && prevExpr.trim() !== "\"\"") {
     const firstOpIsFilter = startsWithFilterOperation(operations, queryModeller);
@@ -61,11 +62,11 @@ export async function getFieldNameOptions(props: QueryBuilderOperationParamEdito
 }
 
 export async function getFieldValueOptions(props: QueryBuilderOperationParamEditorProps, fieldName: string, suffixQuery = "") {
-  const { datasource, timeRange, queryModeller, query, operation } = props;
+  const { datasource, timeRange, query, operation } = props;
   const operations = (query as VisualQuery).operations;
   const operationIdx = operations.findIndex(op => op === operation);
   const prevOperations = operations.slice(0, operationIdx);
-  const prevExpr = queryModeller.renderQuery({ operations: prevOperations, labels: [] });
+  const prevExpr = buildVisualQueryToString({ operations: prevOperations, labels: [], expr: "" });
   let expr;
   if (prevExpr.trim() !== "") {
     expr = prevExpr;
