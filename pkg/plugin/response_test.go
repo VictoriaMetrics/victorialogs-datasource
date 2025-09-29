@@ -54,27 +54,17 @@ func Test_parseInstantResponse(t *testing.T) {
 
 		got := resp.Frames[0]
 		want := w.Frames[0]
-		expFieldsLen := got.Fields[0].Len()
-		for j, field := range want.Fields {
-			// if time field is empty, fill it with the value from the response
-			// because time field in the parseInstantResponse generated as time.Now()
-			if field.Name == gTimeField && field.Len() == 0 {
-				for _, f := range got.Fields {
-					if f.Name == gTimeField {
-						want.Fields[j] = f
-					}
-				}
-			}
-
-			// all fields within response should have equal length
-			gf := got.Fields[j]
-			if gf.Len() != expFieldsLen {
-				t.Fatalf("expected all fields to have equal length %d; got %d instead for field %q",
-					expFieldsLen, gf.Len(), gf.Name)
-			}
+		// this marshal operation catch errors like different field numbers
+		gb, err := got.MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal got frame to JSON: %s", err)
+		}
+		wb, err := want.MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal want frame to JSON: %s", err)
 		}
 
-		if !reflect.DeepEqual(got, want) {
+		if !bytes.Equal(gb, wb) {
 			t.Errorf("parseInstantResponse() = %#v, want %#v", got, want)
 		}
 	}
@@ -145,7 +135,7 @@ func Test_parseInstantResponse(t *testing.T) {
 
 			timeFd.Append(time.Date(2024, 02, 20, 00, 00, 00, 0, time.UTC))
 
-			lineField.Append("{}")
+			lineField.Append("")
 
 			labels := data.Labels{}
 
@@ -246,6 +236,9 @@ func Test_parseInstantResponse(t *testing.T) {
 			timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
 			timeFd.Name = gTimeField
 
+			timeFd.Append(now)
+			timeFd.Append(now)
+
 			lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 			lineField.Name = gLineField
 
@@ -286,6 +279,8 @@ func Test_parseInstantResponse(t *testing.T) {
 
 			timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
 			timeFd.Name = gTimeField
+
+			timeFd.Append(now)
 
 			lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 			lineField.Name = gLineField
@@ -444,6 +439,8 @@ func Test_parseInstantResponse(t *testing.T) {
 
 			timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
 			timeFd.Name = gTimeField
+
+			timeFd.Append(now)
 
 			lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 			lineField.Name = gLineField
@@ -746,6 +743,52 @@ func Test_parseInstantResponse(t *testing.T) {
 
 			labels = data.Labels{
 				"logs": "194",
+			}
+
+			b, _ = labelsToJSON(labels)
+			labelsField.Append(b)
+
+			frame := data.NewFrame("", timeFd, lineField, labelsField)
+
+			rsp := backend.DataResponse{}
+			frame.Meta = &data.FrameMeta{}
+			rsp.Frames = append(rsp.Frames, frame)
+
+			return rsp
+		},
+	}
+	f(o)
+
+	o = opts{
+		filename: "test-data/empty_stream_with_empty_msg_field",
+		want: func() backend.DataResponse {
+			labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
+			labelsField.Name = gLabelsField
+
+			timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
+			timeFd.Name = gTimeField
+
+			lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+			lineField.Name = gLineField
+
+			timeFd.Append(time.Date(2025, 9, 23, 14, 26, 33, 559652000, time.UTC))
+			timeFd.Append(time.Date(2025, 9, 23, 14, 26, 33, 559441000, time.UTC))
+
+			lineField.Append("2025-09-23 14:26:33.559569822  172.16.0.110 - - [23/Sep/2025:14:26:33 +0000] \"GET /health HTTP/1.1\" 200 10168 \"-\" \"kube-probe/1.34\" ")
+
+			labels := data.Labels{
+				"_stream_id":                "00000000000000000899b9a9578ea0f11a8a45c1b4cc8e34",
+				"kubernetes.container_name": "frigate",
+				"stream":                    "stdout",
+			}
+
+			b, _ := labelsToJSON(labels)
+			labelsField.Append(b)
+
+			lineField.Append("")
+
+			labels = data.Labels{
+				"_stream_id": "0000000000000000e934a84adb05276890d7f7bfcadabe92",
 			}
 
 			b, _ = labelsToJSON(labels)
