@@ -26,7 +26,7 @@ export const checkLegacyMultiExact = (str: SplitString[]): boolean => {
     }
     str = str.slice(2);
     if (!str.length || str[0].type !== "space" || str[0].value.toLowerCase() !== "or") {
-      break;
+      return false;
     }
     str = str.slice(1);
   }
