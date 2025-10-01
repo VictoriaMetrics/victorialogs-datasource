@@ -107,18 +107,19 @@ const parseValue = (value: SplitString[]): FieldWithPrefix => {
   if (value.length === 0 || value[0].type === "bracket") {
     return { name: '', isPrefix: false };
   }
+
   if (value[0].type === "quote") {
     const { type, value: secondValue } = value[1] || {};
     const isPrefix = type === "space" && secondValue === "*";
     return { name: unquoteString(value[0].value), isPrefix };
-  } else {
-    const fieldValue = value[0].value;
-    const isPrefix = fieldValue.endsWith("*");
-    return {
-      name: isPrefix ? fieldValue.slice(0, -1) : fieldValue,
-      isPrefix,
-    };
   }
+
+  const fieldValue = value[0].value;
+  const isPrefix = fieldValue.endsWith("*");
+  return {
+    name: isPrefix ? fieldValue.slice(0, -1) : fieldValue,
+    isPrefix,
+  };
 }
 
 const parseInputValues = (str: SplitString[]): FieldWithPrefix[] => {
