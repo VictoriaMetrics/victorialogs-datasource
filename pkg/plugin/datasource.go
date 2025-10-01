@@ -56,6 +56,9 @@ func NewDatasource() *Datasource {
 	mux.HandleFunc("/", ds.RootHandler)
 	mux.HandleFunc("/select/logsql/field_values", ds.VLAPIQuery)
 	mux.HandleFunc("/select/logsql/field_names", ds.VLAPIQuery)
+	mux.HandleFunc("/select/logsql/streams", ds.VLAPIQuery)
+	mux.HandleFunc("/select/logsql/stream_field_names", ds.VLAPIQuery)
+	mux.HandleFunc("/select/logsql/stream_field_values", ds.VLAPIQuery)
 	mux.HandleFunc("/vmui", ds.VMUIQuery)
 	ds.CallResourceHandler = httpadapter.New(mux)
 	return &ds
