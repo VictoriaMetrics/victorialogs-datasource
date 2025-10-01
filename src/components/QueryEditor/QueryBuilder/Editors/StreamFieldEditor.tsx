@@ -4,14 +4,20 @@ import { SelectableValue, toOption } from '@grafana/data';
 import { QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
 import { Stack, MultiSelect, RadioButtonGroup, InlineField, Select, ActionMeta } from '@grafana/ui';
 
-import { FieldHits, FilterFieldType } from "../../../../types";
+import { FilterFieldType } from "../../../../types";
 import { getValuesFromBrackets } from '../utils/operationParser';
 import { getValue, isValue, quoteString } from '../utils/stringHandler';
 import { splitByUnescapedPipe, SplitString, splitString } from '../utils/stringSplitter';
 
+import { getFieldOptions } from './utils/editorHelper';
+
 export function parseNonBraketValue(value: SplitString[]): { label: string, not_in: boolean, values: string[] } {
   let label = getValue(value[0]);
-  value.shift();
+  if (["=", "!", "~"].includes(label)) {
+    label = "";
+  } else {
+    value.shift();
+  }
   let is_regex = false;
   let not_in = false;
   let values: string[] = [];
@@ -20,9 +26,13 @@ export function parseNonBraketValue(value: SplitString[]): { label: string, not_
     if (value[0].value === "!") {
       not_in = true;
       value = value.slice(1);
-      if (value[0] && value[0].value === "~") {
-        is_regex = true;
-        value.shift();
+      if (value[0]) {
+        if (value[0].value === "~") {
+          is_regex = true;
+          value.shift();
+        } else if (value[0].value === "=") {
+          value.shift();
+        }
       }
     } else if (value[0].value === "not_in") {
       not_in = true;
@@ -102,7 +112,7 @@ function buildStreamFilterValue(label: string, values: string[], not_in: boolean
 }
 
 export default function StreamFieldEditor(props: QueryBuilderOperationParamEditorProps) {
-  const { value, onChange, index, datasource, timeRange } = props;
+  const { value, onChange, index } = props;
 
   const initialStreamSelector = parseStreamFilterValue(String(value || ""));
   const [field, setField] = useState<string>(initialStreamSelector.label);
@@ -134,35 +144,17 @@ export default function StreamFieldEditor(props: QueryBuilderOperationParamEdito
 
   const handleOpenNamesMenu = async () => {
     setIsLoading(true);
-    const streamFieldNames = await datasource.languageProvider?.getFieldList({
-      type: FilterFieldType.StreamFieldNames,
-      timeRange,
-    });
-    const options = streamFieldNames.map(({ value, hits }: FieldHits) => ({
-      value: value,
-      label: value || " ",
-      description: `hits: ${hits}`,
-    }));
+    const options = await getFieldOptions(props, FilterFieldType.StreamFieldNames);
     setOptions(options);
     setIsLoading(false);
   }
 
   const handleOpenValuesMenu = async () => {
-
     if (field === "") {
       return;
     }
     setIsLoadingLabelValues(true);
-    const streamFieldNames = await datasource.languageProvider?.getFieldList({
-      type: FilterFieldType.StreamFieldValues,
-      field,
-      timeRange,
-    });
-    const options = streamFieldNames.map(({ value, hits }: FieldHits) => ({
-      value: value,
-      label: value || " ",
-      description: `hits: ${hits}`,
-    }));
+    const options = await getFieldOptions(props, FilterFieldType.StreamFieldValues, "", field);
     setLabelValues(options);
     setIsLoadingLabelValues(false);
   }

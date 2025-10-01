@@ -61,14 +61,23 @@ export async function getFieldNameOptions(props: QueryBuilderOperationParamEdito
   return [...options, ...await getVariableOptions()];
 }
 
-export async function getFieldValueOptions(props: QueryBuilderOperationParamEditorProps, fieldName: string, suffixQuery = "") {
-  const { datasource, timeRange, query, operation } = props;
+export async function getFieldOptions(props: QueryBuilderOperationParamEditorProps, fieldType: FilterFieldType, suffixQuery = "", fieldName?: string) {
+  if (fieldName === undefined || fieldName.trim() === "") {
+    if (fieldType === FilterFieldType.FieldValue || fieldType === FilterFieldType.StreamFieldValues) {
+      throw new Error("fieldName is required for FieldValue and StreamFieldValues fieldType");
+    }
+  }
+  const { datasource, timeRange, query, operation, queryModeller } = props;
   const operations = (query as VisualQuery).operations;
   const operationIdx = operations.findIndex(op => op === operation);
-  const prevOperations = operations.slice(0, operationIdx);
+  const prevOperations = operations.slice(0, (operationIdx === -1) ? operations.length : operationIdx);
   const prevExpr = buildVisualQueryToString({ operations: prevOperations, labels: [], expr: "" });
   let expr;
-  if (prevExpr.trim() !== "") {
+  if (prevExpr.trim() !== "" && prevExpr.trim() !== "\"\"") {
+    const firstOpIsFilter = startsWithFilterOperation(operations, queryModeller);
+    if (!firstOpIsFilter) {
+      expr = "_msg:* | ";
+    }
     expr = prevExpr;
   } else {
     expr = "_msg:*";
@@ -79,10 +88,10 @@ export async function getFieldValueOptions(props: QueryBuilderOperationParamEdit
   const replacedExpr = (datasource as VictoriaLogsDatasource).interpolateString(expr);
   let options = [];
   try {
-    options = await datasource.languageProvider?.getFieldList({ query: replacedExpr, timeRange, type: FilterFieldType.FieldValue, field: fieldName });
+    options = await datasource.languageProvider?.getFieldList({ query: replacedExpr, timeRange, type: fieldType, field: fieldName });
   } catch (e) {
     console.warn("Error fetching field names", e, "query", replacedExpr);
-    options = await datasource.languageProvider?.getFieldList({ timeRange, type: FilterFieldType.FieldValue, field: fieldName });
+    options = await datasource.languageProvider?.getFieldList({ timeRange, type: fieldType, field: fieldName });
   }
   options = options.map(({ value, hits }: { value: string; hits: number }) => ({
     value,
@@ -90,6 +99,10 @@ export async function getFieldValueOptions(props: QueryBuilderOperationParamEdit
     description: `hits: ${hits}`,
   }));
   return [...options, ...await getVariableOptions()];
+}
+
+export async function getFieldValueOptions(props: QueryBuilderOperationParamEditorProps, fieldName: string, suffixQuery = "") {
+  return getFieldOptions(props, FilterFieldType.FieldValue, suffixQuery, fieldName);
 }
 
 export async function getValueTypeOptions(props: QueryBuilderOperationParamEditorProps) {
