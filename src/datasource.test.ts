@@ -219,7 +219,7 @@ describe('VictoriaLogsDatasource', () => {
         { key: 'key2', operator: '!=', value: 'value2' },
       ];
       const result = ds.getExtraFilters(filters);
-      expect(result).toBe('key1:="value1" AND key2:!="value2"');
+      expect(result).toBe('key1:=value1 key2:!=value2');
     });
   });
 });
