@@ -1,0 +1,350 @@
+name: PR Build on Command
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  check-permissions:
+    name: Check permissions and validate
+    if: |
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/build')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      is-authorized: ${{ steps.check.outputs.authorized }}
+      pr-number: ${{ steps.pr.outputs.number }}
+      pr-ref: ${{ steps.pr.outputs.ref }}
+      pr-sha: ${{ steps.pr.outputs.sha }}
+      pr-repo: ${{ steps.pr.outputs.repo }}
+      pr-is-fork: ${{ steps.pr.outputs.is-fork }}
+    steps:
+      - name: Check if user is team member
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const actor = context.actor;
+            const org = context.repo.owner;
+            const team = 'development';
+            
+            console.log(`🔍 Checking if ${actor} is member of ${org}/${team}`);
+            
+            try {
+              const { data: membership } = await github.rest.teams.getMembershipForUserInOrg({
+                org: org,
+                team_slug: team,
+                username: actor
+              });
+            
+              const isAuthorized = membership.state === 'active';
+              console.log(`✅ User ${actor} membership status: ${membership.state}`);
+              core.setOutput('authorized', isAuthorized);
+            
+              if (!isAuthorized) {
+                await github.rest.reactions.createForIssueComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: context.payload.comment.id,
+                  content: 'confused'
+                });
+            
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: `❌ @${actor} You don't have permission to trigger builds.\n\nOnly members of the \`${org}/${team}\` team can use the \`/build\` command.`
+                });
+              } else {
+                await github.rest.reactions.createForIssueComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: context.payload.comment.id,
+                  content: 'rocket'
+                });
+              }
+            } catch (error) {
+              if (error.status === 404) {
+                console.log(`❌ User ${actor} is not a member of team ${org}/${team}`);
+                core.setOutput('authorized', false);
+            
+                await github.rest.reactions.createForIssueComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: context.payload.comment.id,
+                  content: 'confused'
+                });
+            
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: `❌ @${actor} You don't have permission to trigger builds.\n\nOnly members of the \`${org}/${team}\` team can use the \`/build\` command.`
+                });
+              } else {
+                console.error(`Error checking team membership: ${error.message}`);
+                core.setFailed(`Failed to check team membership: ${error.message}`);
+              }
+            }
+
+      - name: Get PR details
+        id: pr
+        if: steps.check.outputs.authorized == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const isFork = pr.data.head.repo.full_name !== context.repo.owner + '/' + context.repo.repo;
+            
+            core.setOutput('number', context.issue.number);
+            core.setOutput('ref', pr.data.head.ref);
+            core.setOutput('sha', pr.data.head.sha);
+            core.setOutput('repo', pr.data.head.repo.full_name);
+            core.setOutput('is-fork', isFork);
+            
+            console.log(`📝 PR Details:`);
+            console.log(`   Number: ${context.issue.number}`);
+            console.log(`   Ref: ${pr.data.head.ref}`);
+            console.log(`   SHA: ${pr.data.head.sha}`);
+            console.log(`   Repo: ${pr.data.head.repo.full_name}`);
+            console.log(`   Is Fork: ${isFork}`);
+
+  build-preview:
+    name: Build preview
+    needs: check-permissions
+    if: needs.check-permissions.outputs.is-authorized == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Add build started comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const isFork = '${{ needs.check-permissions.outputs.pr-is-fork }}' === 'true';
+            const sourceInfo = isFork 
+              ? `**Source:** Fork (\`${{ needs.check-permissions.outputs.pr-repo }}\`)`
+              : `**Source:** Branch (\`${{ needs.check-permissions.outputs.pr-ref }}\`)`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.check-permissions.outputs.pr-number }},
+              body: `## 🚀 Build Started
+            
+                  **PR:** #${{ needs.check-permissions.outputs.pr-number }}
+                  ${sourceInfo}
+                  **Triggered by:** @${{ github.actor }}
+                  
+                  [⏳ View build progress](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+              `
+            });
+
+      - name: Check out PR code
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ needs.check-permissions.outputs.pr-repo }}
+          ref: ${{ needs.check-permissions.outputs.pr-ref }}
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          check-latest: true
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'yarn'
+
+      - name: Setup node caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.cache
+            **/node_modules
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build plugin
+        run: make vl-plugin-check
+
+      - name: Generate version tag
+        run: |
+          export PKG_VERSION="$(node -p "require('./package.json').version")"
+          export SHORT_SHA="${{ needs.check-permissions.outputs.pr-sha }}"
+          export SHORT_SHA="${SHORT_SHA:0:7}"
+          export BUILD_TIME="$(date +%Y%m%d-%H%M%S)"
+          export PKG_TAG="v${PKG_VERSION}-pr${{ needs.check-permissions.outputs.pr-number }}-${BUILD_TIME}-${SHORT_SHA}"
+          echo "PKG_TAG=$PKG_TAG" >> $GITHUB_ENV
+          echo "PKG_VERSION=$PKG_VERSION" >> $GITHUB_ENV
+          echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
+          echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_ENV
+          echo "Building preview version: $PKG_TAG"
+
+      - name: List build artifacts
+        id: artifacts
+        run: |
+          echo "### 📦 Build Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`${{ env.PKG_TAG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**PR:** #${{ needs.check-permissions.outputs.pr-number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ needs.check-permissions.outputs.pr-sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          
+          for file in dist/*.zip; do
+            if [ -f "$file" ]; then
+              SIZE=$(ls -lh "$file" | awk '{print $5}')
+              FILENAME=$(basename "$file")
+              echo "| \`$FILENAME\` | $SIZE |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: victoriametrics-logs-datasource-pr${{ needs.check-permissions.outputs.pr-number }}-${{ env.BUILD_TIME }}
+          path: |
+            dist/*.zip
+            dist/*.zip.md5
+          retention-days: 14
+          if-no-files-found: error
+          compression-level: 6
+
+      - name: Generate artifact attestation
+        id: attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/victoriametrics-logs-datasource-*.zip
+
+      - name: Post build results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            const isFork = '${{ needs.check-permissions.outputs.pr-is-fork }}' === 'true';
+            const sourceInfo = isFork 
+              ? `**Source:** Fork (\`${{ needs.check-permissions.outputs.pr-repo }}\`)`
+              : `**Source:** Branch (\`${{ needs.check-permissions.outputs.pr-ref }}\`)`;
+            
+            // Read artifact files
+            const distPath = 'dist';
+            let filesList = '';
+            try {
+              const files = fs.readdirSync(distPath).filter(f => f.endsWith('.zip'));
+              filesList = files.map(f => {
+                const stats = fs.statSync(path.join(distPath, f));
+                const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+                return `- 📦 \`${f}\` (${sizeMB} MB)`;
+              }).join('\n');
+            } catch (error) {
+              filesList = '- No build artifacts found';
+            }
+            
+            const comment = `## ✅ Preview Build Completed!
+            
+              **Version:** \`${{ env.PKG_TAG }}\`  
+              **PR:** #${{ needs.check-permissions.outputs.pr-number }}  
+              ${sourceInfo}  
+              **Commit:** \`${{ needs.check-permissions.outputs.pr-sha }}\`  
+              **Triggered by:** @${{ github.actor }}
+
+              ### 📦 Build Artifacts
+              ${filesList}
+              
+              ### 📥 Download
+              [⬇️ Download from Actions Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+              
+              **Artifact name:** \`victoriametrics-logs-datasource-pr${{ needs.check-permissions.outputs.pr-number }}-${{ env.BUILD_TIME }}\`
+              
+              ### 🔐 Attestation
+              Build provenance attestation: [View details](${{ steps.attestation.outputs.attestation-url }})
+              
+              <details>
+              <summary>🧪 How to test this build</summary>
+              
+              1. Download the artifact from the Actions run link above
+              2. Unzip the downloaded file
+              3. Copy the plugin to your Grafana plugins directory:
+                 \`\`\`bash
+                 # Local Grafana
+                 unzip victoriametrics-logs-datasource-*.zip
+                 cp -r victoriametrics-logs-datasource /var/lib/grafana/plugins/
+              
+                 # Docker Grafana
+                 docker cp victoriametrics-logs-datasource grafana:/var/lib/grafana/plugins/
+                 \`\`\`
+              4. Restart Grafana:
+                 \`\`\`bash
+                 # Systemd
+                 sudo systemctl restart grafana-server
+              
+                 # Docker
+                 docker restart grafana
+                 \`\`\`
+              5. Verify the plugin in Grafana: **Configuration** → **Plugins**
+              
+              </details>
+              
+              <details>
+              <summary>📋 Build Details</summary>
+              
+              - **Workflow:** [${{ github.workflow }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+              - **Branch:** \`${{ needs.check-permissions.outputs.pr-ref }}\`
+              - **Is Fork:** ${isFork ? '✅ Yes' : '❌ No'}
+              - **Retention:** 14 days
+              
+              </details>
+              
+              ---
+              
+              > ⚠️ **Note:** This is a preview build for testing only. Artifacts will be automatically deleted after 14 days.
+                          `;
+                          
+                          await github.rest.issues.createComment({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            issue_number: ${{ needs.check-permissions.outputs.pr-number }},
+                            body: comment
+                          });
+              
+                    - name: Post failure comment
+                      if: failure()
+                      uses: actions/github-script@v7
+                      with:
+                        script: |
+                          await github.rest.issues.createComment({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            issue_number: ${{ needs.check-permissions.outputs.pr-number }},
+                            body: `## ❌ Build Failed
+                            
+              **PR:** #${{ needs.check-permissions.outputs.pr-number }}
+              **Triggered by:** @${{ github.actor }}
+              
+              [🔍 View error logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+              `
+            });
