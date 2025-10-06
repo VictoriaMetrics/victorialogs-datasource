@@ -35,6 +35,7 @@ const ConfigEditor = (props: PropsConfigEditor) => {
 
   return (
     <>
+      <h1>Hello action</h1>
       <HelpfulLinks/>
       <DataSourceHttpSettings
         defaultUrl="http://localhost:9428"
