@@ -128,14 +128,15 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: ${{ needs.check-permissions.outputs.pr-number }},
-              body: `## 🚀 Build Started
-            
-                  **PR:** #${{ needs.check-permissions.outputs.pr-number }}
-                  ${sourceInfo}
-                  **Triggered by:** @${{ github.actor }}
-                  
-                  [⏳ View build progress](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-              `
+              body: `
+                ## 🚀 Build Started
+                
+                **PR:** #${{ needs.check-permissions.outputs.pr-number }}
+                ${sourceInfo}
+                **Triggered by:** @${{ github.actor }}
+                
+                [⏳ View build progress](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+                `
             });
 
       - name: Check out PR code
@@ -251,14 +252,15 @@ jobs:
               filesList = '- No build artifacts found';
             }
             
-            const comment = `## ✅ Preview Build Completed!
-            
+            const comment = `
+              ## ✅ Preview Build Completed!
+              
               **Version:** \`${{ env.PKG_TAG }}\`  
               **PR:** #${{ needs.check-permissions.outputs.pr-number }}  
               ${sourceInfo}  
               **Commit:** \`${{ needs.check-permissions.outputs.pr-sha }}\`  
               **Triggered by:** @${{ github.actor }}
-
+              
               ### 📦 Build Artifacts
               ${filesList}
               
@@ -309,29 +311,30 @@ jobs:
               ---
               
               > ⚠️ **Note:** This is a preview build for testing only. Artifacts will be automatically deleted after 14 days.
-                          `;
-                          
-                          await github.rest.issues.createComment({
-                            owner: context.repo.owner,
-                            repo: context.repo.repo,
-                            issue_number: ${{ needs.check-permissions.outputs.pr-number }},
-                            body: comment
-                          });
-              
-                    - name: Post failure comment
-                      if: failure()
-                      uses: actions/github-script@v7
-                      with:
-                        script: |
-                          await github.rest.issues.createComment({
-                            owner: context.repo.owner,
-                            repo: context.repo.repo,
-                            issue_number: ${{ needs.check-permissions.outputs.pr-number }},
-                            body: `## ❌ Build Failed
-                            
-              **PR:** #${{ needs.check-permissions.outputs.pr-number }}
-              **Triggered by:** @${{ github.actor }}
-              
-              [🔍 View error logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(${{ needs.check-permissions.outputs.pr-number }}),
+              body: comment
+            });
+
+      - name: Post failure comment
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(${{ needs.check-permissions.outputs.pr-number }}),
+              body: `
+                ## ❌ Build Failed
+            
+                **PR:** #${{ needs.check-permissions.outputs.pr-number }}
+                **Triggered by:** @${{ github.actor }}
+                
+                [🔍 View error logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
               `
             });
