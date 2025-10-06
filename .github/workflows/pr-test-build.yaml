@@ -316,7 +316,7 @@ jobs:
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: ${{ needs.check-permissions.outputs.pr-number }},
+              issue_number: Number(${{ needs.check-permissions.outputs.pr-number }}),
               body: comment
             });
 
@@ -328,7 +328,7 @@ jobs:
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: ${{ needs.check-permissions.outputs.pr-number }},
+              issue_number: Number(${{ needs.check-permissions.outputs.pr-number }}),
               body: `
                 ## ❌ Build Failed
             
