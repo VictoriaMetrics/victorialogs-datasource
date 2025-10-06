@@ -173,6 +173,8 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build plugin
+        env:
+          GRAFANA_ACCESS_POLICY_TOKEN: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
         run: make vl-plugin-check
 
       - name: Generate version tag
@@ -216,6 +218,7 @@ jobs:
           path: |
             dist/*.zip
             dist/*.zip.md5
+            dist/*_checksums_*.txt
           retention-days: 14
           if-no-files-found: error
           compression-level: 6
@@ -242,11 +245,22 @@ jobs:
             const distPath = 'dist';
             let filesList = '';
             try {
-              const files = fs.readdirSync(distPath).filter(f => f.endsWith('.zip'));
+              const files = fs.readdirSync(distPath).filter(f => 
+                f.endsWith('.zip') || f.endsWith('.tar.gz')
+              );
+              
               filesList = files.map(f => {
                 const stats = fs.statSync(path.join(distPath, f));
                 const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
-                return `- 📦 \`${f}\` (${sizeMB} MB)`;
+                const checksumFile = f.endsWith('.zip') 
+                  ? f.replace('.zip', '_checksums_zip.txt')
+                  : f.replace('.tar.gz', '_checksums_tar.gz.txt');
+                const hasChecksum = fs.existsSync(path.join(distPath, checksumFile));
+                
+                const badges = ['🔐 Signed'];
+                if (hasChecksum) badges.push('✓ SHA1');
+                
+                return `- 📦 \`${f}\` (${sizeMB} MB) ${badges.join(' ')}`;
               }).join('\n');
             } catch (error) {
               filesList = '- No build artifacts found';
