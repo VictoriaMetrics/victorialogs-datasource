@@ -8,6 +8,7 @@ const replaceMock = jest.fn().mockImplementation((a: string) => a);
 
 const templateSrvStub = {
   replace: replaceMock,
+  getVariables: jest.fn().mockReturnValue([]),
 } as unknown as TemplateSrv;
 
 beforeEach(() => {
@@ -44,6 +45,10 @@ describe('VictoriaLogsDatasource', () => {
 
     it('should return a number for numeric value', () => {
       expect(ds.interpolateQueryExpr(1000 as any, customVariable)).toEqual(1000);
+    });
+
+    it('should return a value escaped by stringify for one array element', () => {
+      expect(ds.interpolateQueryExpr(['arg // for &  test " this string ` end test'] as any, customVariable)).toEqual("arg // for &  test \" this string ` end test");
     });
   });
 
@@ -90,6 +95,7 @@ describe('VictoriaLogsDatasource', () => {
       const scopedVars = {};
       const templateSrvMock = {
         replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -105,6 +111,7 @@ describe('VictoriaLogsDatasource', () => {
       };
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', '"bar"')),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -121,6 +128,7 @@ describe('VictoriaLogsDatasource', () => {
       const replaceValue = `$_StartMultiVariable_${scopedVars.var.value.join("_separator_")}_EndMultiVariable`
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', replaceValue)),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -136,6 +144,7 @@ describe('VictoriaLogsDatasource', () => {
       };
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', '("foo" OR "bar")')),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -151,6 +160,7 @@ describe('VictoriaLogsDatasource', () => {
       };
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', '"0.0.0.0:3000"')),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -166,6 +176,7 @@ describe('VictoriaLogsDatasource', () => {
       };
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', '("http://localhost:3001/" OR "http://192.168.50.60:3000/foo")')),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -181,6 +192,7 @@ describe('VictoriaLogsDatasource', () => {
       };
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', '')),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -197,6 +209,7 @@ describe('VictoriaLogsDatasource', () => {
       };
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var1', '"foo"').replace('$var2', '"bar"')),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
