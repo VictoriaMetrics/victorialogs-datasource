@@ -214,11 +214,11 @@ export class VictoriaLogsDatasource
       return JSON.stringify(value);
     }
 
-    if (Array.isArray(value) && value.length > 1) {
+    if (Array.isArray(value)) {
       return value.length > 1 ? `$_StartMultiVariable_${value.join("_separator_")}_EndMultiVariable` : value[0] || "";
     }
 
-    return JSON.stringify(value[0]);
+    return value;
   }
 
   interpolateVariablesInQueries(queries: Query[], scopedVars: ScopedVars, filters?: AdHocVariableFilter[]): Query[] {
