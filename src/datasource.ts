@@ -254,7 +254,7 @@ export class VictoriaLogsDatasource
       type: FilterFieldType.FieldName,
       timeRange: options?.timeRange,
       limit: DEFAULT_FIELD_DISPLAY_VALUES_LIMIT,
-    })
+    }, this.customQueryParameters)
     return list
       ? list.map(({ value }) => ({ text: value || " " }))
       : []
@@ -266,7 +266,7 @@ export class VictoriaLogsDatasource
       timeRange: options.timeRange,
       limit: DEFAULT_FIELD_DISPLAY_VALUES_LIMIT,
       field: options.key,
-    })
+    }, this.customQueryParameters)
     return list
       ? list.map(({ value }) => ({ text: value || " " }))
       : []
@@ -301,7 +301,7 @@ export class VictoriaLogsDatasource
       field: query.field,
       query: query.query,
       limit: query.limit,
-    });
+    }, this.customQueryParameters);
     return (list ? list.map(({ value }) => ({ text: value })) : [])
   }
 

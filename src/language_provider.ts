@@ -38,13 +38,18 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     return Promise.all([]);
   };
 
-  async getFieldList(options: FetchFieldsOptions): Promise<FieldHits[]> {
+  async getFieldList(options: FetchFieldsOptions, customParams?: URLSearchParams): Promise<FieldHits[]> {
     if (options.type === FilterFieldType.FieldValue && !options.field) {
       console.warn('getFieldList: field is required for FieldValue type');
       return [];
     }
 
     const urlParams = new URLSearchParams();
+    if (customParams) {
+      for (const [key, value] of customParams) {
+          urlParams.append(key, value);
+      }
+    }
     urlParams.append('query', options.query || '*');
 
     const timeRange = this.getTimeRangeParams(options.timeRange);
