@@ -1,9 +1,10 @@
-import  { AdHocVariableFilter } from '@grafana/data';
+import { AdHocVariableFilter } from '@grafana/data';
 import { TemplateSrv } from "@grafana/runtime";
 
 import { createDatasource } from "./__mocks__/datasource";
+import { VARIABLE_ALL_VALUE } from "./constants";
 import { VictoriaLogsDatasource } from "./datasource";
- 
+
 const replaceMock = jest.fn().mockImplementation((a: string) => a);
 
 const templateSrvStub = {
@@ -172,7 +173,10 @@ describe('VictoriaLogsDatasource', () => {
 
     it('should correctly substitute an array of URLs into an OR expression', () => {
       const scopedVars = {
-        var: { text: 'http://localhost:3001/,http://192.168.50.60:3000/foo', value: ['http://localhost:3001/', 'http://192.168.50.60:3000/foo'] },
+        var: {
+          text: 'http://localhost:3001/,http://192.168.50.60:3000/foo',
+          value: ['http://localhost:3001/', 'http://192.168.50.60:3000/foo']
+        },
       };
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', '("http://localhost:3001/" OR "http://192.168.50.60:3000/foo")')),
@@ -234,5 +238,33 @@ describe('VictoriaLogsDatasource', () => {
       const result = ds.getExtraFilters(filters);
       expect(result).toBe('key1:="value1" AND key2:!="value2"');
     });
+  });
+
+  describe('interpolateString', () => {
+    it('should interpolate string with all and multi values', () => {
+      const scopedVars = {};
+      const variables = [
+        {
+          name: 'var1',
+          current: [{ value: "foo" }, { value: "bar" }],
+          multi: true,
+          type: "query",
+          query: {
+            type: "fieldValue"
+          }
+        }, {
+          name: 'var2',
+          current: { value: VARIABLE_ALL_VALUE },
+          multi: false,
+        }
+      ];
+      const templateSrvMock = {
+        replace: jest.fn(() => 'foo: in($_StartMultiVariable_foo_separator_bar_EndMultiVariable) bar: in(*)'),
+        getVariables: jest.fn().mockReturnValue(variables),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const result = ds.interpolateString('foo: $var1 bar: $var2', scopedVars);
+      expect(result).toStrictEqual('foo: in(\"foo\",\"bar\") bar: in(*)');
+    })
   });
 });
