@@ -35,6 +35,7 @@ import { DataQuery } from "@grafana/schema";
 import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
 import { LogLevelRule } from "./configuration/LogLevelRules/types";
+import { VARIABLE_ALL_VALUE } from "./constants";
 import { escapeLabelValueInSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
 import { LOGS_VOLUME_BARS, queryLogsVolume } from "./logsVolumeLegacy";
@@ -208,10 +209,7 @@ export class VictoriaLogsDatasource
 
   interpolateQueryExpr(value: any, _variable: any) {
     if (typeof value === 'string') {
-      if(!value) {
-        return value;
-      }
-      return JSON.stringify(value);
+      return value ? JSON.stringify(value) : value;
     }
 
     if (Array.isArray(value)) {
@@ -275,12 +273,12 @@ export class VictoriaLogsDatasource
       : []
   }
 
-  isAllOption(variable: TypedVariableModel) {
-    return Boolean('current' in variable && variable?.current?.value
-      && (
-        Array.isArray(variable?.current?.value) && variable?.current?.value.includes('$__all')
-        || variable?.current?.value === '$__all'
-      ));
+  isAllOption(variable: TypedVariableModel): boolean {
+    const value = 'current' in variable && variable?.current?.value;
+    if (!value) {
+      return false;
+    }
+    return Array.isArray(value) ? value.includes(VARIABLE_ALL_VALUE) : value === VARIABLE_ALL_VALUE;
   }
 
   replaceOperatorsToInForMultiQueryVariables(expr: string,) {
