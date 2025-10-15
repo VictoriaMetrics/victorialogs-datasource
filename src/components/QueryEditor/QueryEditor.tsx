@@ -67,7 +67,6 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     runQuery();
   }, [runQuery, varRegExp]);
 
-  console.log(varRegExp);
   return (
     <>
       <ConfirmModal
