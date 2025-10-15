@@ -83,7 +83,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
           timeRange: range,
           limit,
           query: getTemplateSrv().replace(queryFilter),
-        });
+        }, datasource.customQueryParameters);
 
         const result = list
           ? list.map(({ value, hits }) => ({

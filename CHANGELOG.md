@@ -2,7 +2,8 @@
 
 ## tip
 
-* BUGFIX: fix an issue with parsings of the logs lines when in the logs line empty `_stream` and missed `_msg` fields. See [#330](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/330)
+* BUGFIX: fix an issue with parsings of the logs lines when in the logs line empty `_stream` and missed `_msg` fields. See [#330](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/330).
+* BUGFIX: fix applying `Custom query parameters` when querying from Grafana variables. See [#405](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/405).
 
 ## v0.21.0
 

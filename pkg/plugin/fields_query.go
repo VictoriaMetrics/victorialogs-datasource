@@ -8,11 +8,12 @@ import (
 )
 
 type FieldsQuery struct {
-	Query string `json:"query"`
-	Limit string `json:"limit"`
-	Start string `json:"start"`
-	End   string `json:"end"`
-	Field string `json:"field"`
+	Query        string `json:"query"`
+	Limit        string `json:"limit"`
+	Start        string `json:"start"`
+	End          string `json:"end"`
+	Field        string `json:"field"`
+	ExtraFilters string `json:"extra_filters"`
 }
 
 // getFieldsQueryFromRaw parses the field values query json from the raw message.
@@ -40,6 +41,9 @@ func (fv *FieldsQuery) queryParams() url.Values {
 	}
 	if fv.Field != "" {
 		params.Set("field", fv.Field)
+	}
+	if fv.ExtraFilters != "" {
+		params.Set("extra_filters", fv.ExtraFilters)
 	}
 	return params
 }

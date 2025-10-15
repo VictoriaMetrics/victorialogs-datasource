@@ -72,7 +72,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
     const filtersWithoutCurrent = deleteByIndexPath(query.filters, indexPath)
     const currentOperator = query.filters.operators[indexPath[0] - 1] || "AND"
     const filters = currentOperator === "AND" ? filterVisualQueryToString(filtersWithoutCurrent, true) : ""
-    const list = await datasource.languageProvider?.getFieldList({ type, timeRange, field, limit, query: filters });
+    const list = await datasource.languageProvider?.getFieldList({ type, timeRange, field, limit, query: filters }, datasource.customQueryParameters);
     const result = list ? list.map(({ value, hits }) => ({
       value,
       label: value || " ",
