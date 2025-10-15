@@ -124,19 +124,21 @@ jobs:
               ? `**Source:** Fork (\`${{ needs.check-permissions.outputs.pr-repo }}\`)`
               : `**Source:** Branch (\`${{ needs.check-permissions.outputs.pr-ref }}\`)`;
             
+            const comment = `
+              ## 🚀 Build Started
+          
+              **PR:** #${{ needs.check-permissions.outputs.pr-number }}
+              ${sourceInfo}
+              **Triggered by:** @${{ github.actor }}
+          
+              [⏳ View build progress](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+            
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: ${{ needs.check-permissions.outputs.pr-number }},
-              body: `
-                ## 🚀 Build Started
-                
-                **PR:** #${{ needs.check-permissions.outputs.pr-number }}
-                ${sourceInfo}
-                **Triggered by:** @${{ github.actor }}
-                
-                [⏳ View build progress](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-                `
+              body: comment
             });
 
       - name: Check out PR code

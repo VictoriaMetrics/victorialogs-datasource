@@ -1,10 +1,11 @@
 import { css } from "@emotion/css";
 import { isEqual } from 'lodash';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { CoreApp, GrafanaTheme2, LoadingState } from '@grafana/data';
 import { Button, ConfirmModal, useStyles2 } from '@grafana/ui';
 
+import { getQueryExprVariableRegExp } from "../../LogsQL/regExpOperator";
 import { isExprHasStatsPipeFunctions } from "../../LogsQL/statsPipeFunctions";
 import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from "../../types";
 import QueryEditorStatsWarn from "../QueryEditorStatsWarn";
@@ -14,14 +15,16 @@ import { QueryBuilderContainer } from "./QueryBuilder/QueryBuilderContainer";
 import { QueryEditorModeToggle } from "./QueryBuilder/QueryEditorModeToggle";
 import { buildVisualQueryFromString } from "./QueryBuilder/utils/parseFromString";
 import QueryCodeEditor from "./QueryCodeEditor";
+import { QueryEditorHelp } from "./QueryEditorHelp";
 import { QueryEditorOptions } from "./QueryEditorOptions";
+import QueryEditorVariableRegexpError from "./QueryEditorVariableRegexpError";
 import VmuiLink from "./VmuiLink";
 import { changeEditorMode, getQueryWithDefaults } from "./state";
 
 const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const styles = useStyles2(getStyles);
 
-  const { onChange, onRunQuery, data, app, queries, datasource, range: timeRange } = props;
+  const { onChange, onRunQuery: runQuery, data, app, queries, datasource, range: timeRange } = props;
   const [dataIsStale, setDataIsStale] = useState(false);
   const [parseModalOpen, setParseModalOpen] = useState(false);
 
@@ -29,6 +32,9 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const editorMode = query.editorMode!;
   const isStatsQuery = query.queryType === QueryType.Stats || query.queryType === QueryType.StatsRange;
   const showStatsWarn = isStatsQuery && !isExprHasStatsPipeFunctions(query.expr || '');
+  const  varRegExp= useMemo(() => {
+    return getQueryExprVariableRegExp(query.expr)?.[0] || null;
+  }, [query.expr]);
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
       if (newEditorMode === QueryEditorMode.Builder) {
@@ -54,6 +60,13 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     onChange(query);
   };
 
+  const onRunQuery = useCallback(() => {
+    if(varRegExp) {
+      return;
+    }
+    runQuery();
+  }, [runQuery, varRegExp]);
+
   return (
     <>
       <ConfirmModal
@@ -70,6 +83,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       <div className={styles.wrapper}>
         <EditorHeader>
           {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType}/>)}
+          <QueryEditorHelp />
           <VmuiLink
             query={query}
             panelData={data}
@@ -100,6 +114,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
           ) : (
             <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true}/>
           )}
+          {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} />)}
           <QueryEditorOptions
             query={query}
             onChange={onChange}

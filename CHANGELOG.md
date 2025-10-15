@@ -2,7 +2,8 @@
 
 ## tip
 
-* BUGFIX: fix an issue with parsings of the logs lines when in the logs line empty `_stream` and missed `_msg` fields. See [#330](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/330)
+* BUGFIX: fix an issue with parsings of the logs lines when in the logs line empty `_stream` and missed `_msg` fields. See [#330](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/330).
+* BUGFIX: fix interpolation of multi-value query variables by mapping `filerName:$filterVar` and `filerName:$filterVar` to the `filerName:in("v1", ..., "vN")`, also supports negative operators and stream tags(`{tag = $var}` to `{tag in($var)}`). Disallow interpolation in regexp with variables (e.g., `field:~$var`). See [#238](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/238).
 
 ## v0.21.0
 
