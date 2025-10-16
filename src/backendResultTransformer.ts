@@ -47,6 +47,12 @@ function addLevelField(frame: DataFrame, rules: LogLevelRule[]): DataFrame {
   const levelValues: LogLevel[] = Array.from({ length: rows }, (_, idx) => {
     const labels = (labelsField?.values[idx] ?? {}) as Record<string, any>;
     const level = extractLevelFromLabels(labels, rules);
+
+    // save the original level if it's different from the extracted one to show original values
+    if (level !== labels.level) {
+      labels.__orig_level = labels.level;
+    }
+
     // delete level label to avoid duplication, level is now a separate field
     delete labels.level;
     return level;
