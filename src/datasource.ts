@@ -1,6 +1,5 @@
 import { cloneDeep } from 'lodash';
-import { lastValueFrom, merge, Observable } from "rxjs";
-import { map } from 'rxjs/operators';
+import { lastValueFrom, map, merge, Observable } from "rxjs";
 
 import {
   AdHocVariableFilter,
@@ -12,8 +11,8 @@ import {
   DataSourceGetTagValuesOptions,
   DataSourceInstanceSettings,
   DataSourceWithLogsContextSupport,
-  Labels,
   DEFAULT_FIELD_DISPLAY_VALUES_LIMIT,
+  Labels,
   LegacyMetricFindQueryOptions,
   LiveChannelScope,
   LoadingState,
@@ -28,13 +27,7 @@ import {
   TimeRange,
   toUtc,
 } from '@grafana/data';
-import {
-  config,
-  DataSourceWithBackend,
-  getGrafanaLiveSrv,
-  getTemplateSrv,
-  TemplateSrv,
-} from '@grafana/runtime';
+import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, TemplateSrv, } from '@grafana/runtime';
 import { DataQuery } from "@grafana/schema";
 
 import { transformBackendResult } from "./backendResultTransformer";
@@ -43,8 +36,10 @@ import { LogLevelRule } from "./configuration/LogLevelRules/types";
 import { escapeLabelValueInSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
 import { LOGS_VOLUME_BARS, queryLogsVolume } from "./logsVolumeLegacy";
-import { addLabelToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
+import { addLabelToQuery, addSortPipeToExpr, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
 import { returnVariables } from "./parsingUtils";
+import { storeKeys } from "./store/constants";
+import store from "./store/store";
 import {
   DerivedFieldConfig,
   FilterActionType,
@@ -112,9 +107,12 @@ export class VictoriaLogsDatasource
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
+    const sortOrder = store.get(storeKeys.LOGS_SORT_ORDER);
     const queries = request.targets.filter(q => q.expr || config.publicDashboardAccessToken !== '').map((q) => {
       return {
         ...q,
+        // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
+        expr: addSortPipeToExpr(q.expr, sortOrder),
         maxLines: q.maxLines ?? this.maxLines,
       }
     });

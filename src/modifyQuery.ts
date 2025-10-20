@@ -8,7 +8,7 @@ import { parseVisualQueryToString } from "./components/QueryEditor/QueryBuilder/
 import { FilterVisualQuery } from "./types";
 
 const operators = ["=", "!=", "=~", "!~", "<", ">"];
-const multiValueOperators = ["=|", "!=|" ]
+const multiValueOperators = ["=|", "!=|"]
 const streamKeys = ["_stream", "_stream_id"];
 
 export function queryHasFilter(query: string, key: string, value: string, operator?: string): boolean {
@@ -102,4 +102,18 @@ const recursiveRemove = (filters: FilterVisualQuery, keyValue: string): boolean 
   }
 
   return removed;
+}
+
+export const logsSortOrders = {
+  asc: "Ascending",
+  desc: "Descending"
+};
+
+export const addSortPipeToExpr = (expr: string, sortDirection: string) => {
+  if (sortDirection !== logsSortOrders.asc) {
+    return expr;
+  }
+  const exprContainsSort = /\|\s*sort\s*by\s*\(/i.test(expr); // checks for existing sort pipe `sort by (`
+  const sortPipe = 'sort by (_time) asc';
+  return exprContainsSort ? expr : `${expr} | ${sortPipe}`;
 }

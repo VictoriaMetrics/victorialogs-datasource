@@ -1,4 +1,4 @@
-import { addLabelToQuery, removeLabelFromQuery } from './modifyQuery';
+import { addLabelToQuery, addSortPipeToExpr, logsSortOrders, removeLabelFromQuery } from './modifyQuery';
 
 describe('modifyQuery', () => {
   describe('addLabelToQuery', () => {
@@ -72,6 +72,29 @@ describe('modifyQuery', () => {
       const value = 'qux';
       const result = removeLabelFromQuery(query, key, value);
       expect(result).toBe('foo: bar AND (quux:"corge")');
+    });
+  });
+
+  describe('addSortPipeToExpr', () => {
+    it('should add a sort pipe if sortDirection equals logsSortOrders.asc', () => {
+      const expr = 'foo: bar';
+      const sortDirection = logsSortOrders.asc;
+      const result = addSortPipeToExpr(expr, sortDirection);
+      expect(result).toBe('foo: bar | sort by (_time) asc');
+    });
+
+    it('should not add a sort pipe if sortDirection does not equal logsSortOrders.asc', () => {
+      const expr = 'foo: bar';
+      const sortDirection = logsSortOrders.desc;
+      const result = addSortPipeToExpr(expr, sortDirection);
+      expect(result).toBe('foo: bar');
+    });
+
+    it('should not duplicate the sort pipe if expr already contains "sort by"', () => {
+      const expr = 'foo: bar | sort by (_time) asc';
+      const sortDirection = logsSortOrders.asc;
+      const result = addSortPipeToExpr(expr, sortDirection);
+      expect(result).toBe('foo: bar | sort by (_time) asc');
     });
   });
 });

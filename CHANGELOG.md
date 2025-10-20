@@ -3,6 +3,7 @@
 ## tip
 
 * BUGFIX: fix setting `extra_stream_filters` param to `Custom query parameters`. See [this comment](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/405#issuecomment-3420418177).
+* BUGFIX: add `sort by (_time) asc/desc` pipe if logs are sorted in asc/desc order. In versions of grafana below `12.x.x`, you need to manually run the query if the sorting has been changed. See [#379](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/379).
 
 ## v0.21.1
 
