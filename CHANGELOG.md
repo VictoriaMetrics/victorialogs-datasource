@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix setting `extra_stream_filters` param to `Custom query parameters`. See [this comment](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/405#issuecomment-3420418177).
+
 ## v0.21.1
 
 * BUGFIX: fix an issue with parsings of the logs lines when in the logs line empty `_stream` and missed `_msg` fields. See [#330](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/330).
