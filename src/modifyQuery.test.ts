@@ -1,4 +1,5 @@
-import { addLabelToQuery, addSortPipeToExpr, logsSortOrders, removeLabelFromQuery } from './modifyQuery';
+import { addLabelToQuery, addSortPipeToQuery, logsSortOrders, removeLabelFromQuery } from './modifyQuery';
+import { Query, QueryType } from "./types";
 
 describe('modifyQuery', () => {
   describe('addLabelToQuery', () => {
@@ -77,24 +78,43 @@ describe('modifyQuery', () => {
 
   describe('addSortPipeToExpr', () => {
     it('should add a sort pipe if sortDirection equals logsSortOrders.asc', () => {
-      const expr = 'foo: bar';
+      const query = {
+        expr: 'foo: bar',
+        queryType: QueryType.Instant
+      } as Query;
       const sortDirection = logsSortOrders.asc;
-      const result = addSortPipeToExpr(expr, sortDirection);
+      const result = addSortPipeToQuery(query, sortDirection);
       expect(result).toBe('foo: bar | sort by (_time) asc');
     });
 
-    it('should not add a sort pipe if sortDirection does not equal logsSortOrders.asc', () => {
-      const expr = 'foo: bar';
+    it('should add a sort pipe if sortDirection equals logsSortOrders.desc', () => {
+      const query = {
+        expr: 'foo: bar',
+        queryType: QueryType.Instant
+      } as Query;
       const sortDirection = logsSortOrders.desc;
-      const result = addSortPipeToExpr(expr, sortDirection);
-      expect(result).toBe('foo: bar');
+      const result = addSortPipeToQuery(query, sortDirection);
+      expect(result).toBe('foo: bar | sort by (_time) desc');
     });
 
     it('should not duplicate the sort pipe if expr already contains "sort by"', () => {
-      const expr = 'foo: bar | sort by (_time) asc';
+      const query = {
+        expr: 'foo: bar | sort by (_time) asc',
+        queryType: QueryType.Instant
+      } as Query;
       const sortDirection = logsSortOrders.asc;
-      const result = addSortPipeToExpr(expr, sortDirection);
+      const result = addSortPipeToQuery(query, sortDirection);
       expect(result).toBe('foo: bar | sort by (_time) asc');
+    });
+
+    it('should not add a sort pipe if query type does not equal QueryType.Instant', () => {
+      const query = {
+        expr: 'foo: bar',
+        queryType: QueryType.Stats
+      } as Query;
+      const sortDirection = logsSortOrders.asc;
+      const result = addSortPipeToQuery(query, sortDirection);
+      expect(result).toBe('foo: bar');
     });
   });
 });

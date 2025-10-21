@@ -36,7 +36,7 @@ import { LogLevelRule } from "./configuration/LogLevelRules/types";
 import { escapeLabelValueInSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
 import { LOGS_VOLUME_BARS, queryLogsVolume } from "./logsVolumeLegacy";
-import { addLabelToQuery, addSortPipeToExpr, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
+import { addLabelToQuery, addSortPipeToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
 import { returnVariables } from "./parsingUtils";
 import { storeKeys } from "./store/constants";
 import store from "./store/store";
@@ -112,7 +112,7 @@ export class VictoriaLogsDatasource
       return {
         ...q,
         // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
-        expr: addSortPipeToExpr(q.expr, sortOrder),
+        expr: addSortPipeToQuery(q, sortOrder),
         maxLines: q.maxLines ?? this.maxLines,
       }
     });
