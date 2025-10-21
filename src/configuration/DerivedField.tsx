@@ -130,6 +130,7 @@ export const DerivedField = (props: Props) => {
                 </Field>
                 <Field label="">
                     <Button
+                        aria-label="Remove field"
                         variant="destructive"
                         title="Remove field"
                         icon="times"

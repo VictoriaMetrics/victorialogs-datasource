@@ -6,6 +6,8 @@ import { CoreApp, GrafanaTheme2, LoadingState } from '@grafana/data';
 import { Button, ConfirmModal, useStyles2 } from '@grafana/ui';
 
 import { isExprHasStatsPipeFunctions } from "../../LogsQL/statsPipeFunctions";
+import { storeKeys } from "../../store/constants";
+import store from "../../store/store";
 import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from "../../types";
 import QueryEditorStatsWarn from "../QueryEditorStatsWarn";
 
@@ -53,6 +55,15 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     }
     onChange(query);
   };
+
+  useEffect(() => {
+    // grafana with a version below 12 doesn't support subscribe function on store
+    if ('subscribe' in store) {
+      store.subscribe(storeKeys.LOGS_SORT_ORDER, () => {
+        onRunQuery();
+      });
+    }
+  }, [onRunQuery]);
 
   return (
     <>

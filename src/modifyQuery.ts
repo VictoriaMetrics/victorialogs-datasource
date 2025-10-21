@@ -5,10 +5,10 @@ import {
   splitExpression
 } from "./components/QueryEditor/QueryBuilder/utils/parseFromString";
 import { parseVisualQueryToString } from "./components/QueryEditor/QueryBuilder/utils/parseToString";
-import { FilterVisualQuery } from "./types";
+import { FilterVisualQuery, Query, QueryType } from "./types";
 
 const operators = ["=", "!=", "=~", "!~", "<", ">"];
-const multiValueOperators = ["=|", "!=|" ]
+const multiValueOperators = ["=|", "!=|"]
 const streamKeys = ["_stream", "_stream_id"];
 
 export function queryHasFilter(query: string, key: string, value: string, operator?: string): boolean {
@@ -102,4 +102,19 @@ const recursiveRemove = (filters: FilterVisualQuery, keyValue: string): boolean 
   }
 
   return removed;
+}
+
+export const logsSortOrders = {
+  asc: "Ascending",
+  desc: "Descending"
+};
+
+export const addSortPipeToQuery = ({ expr, queryType }: Query, sortDirection: string) => {
+  // if a query is not 'Raw logs' do not add sort pipe
+  if (queryType !== QueryType.Instant) {
+    return expr;
+  }
+  const exprContainsSort = /\|\s*sort\s*by\s*\(/i.test(expr); // checks for existing sort pipe `sort by (`
+  const sortPipe = `sort by (_time) ${sortDirection === logsSortOrders.asc ? 'asc' : 'desc'}`;
+  return exprContainsSort ? expr : `${expr} | ${sortPipe}`;
 }

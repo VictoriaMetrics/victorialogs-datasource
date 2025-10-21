@@ -129,6 +129,7 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
               </div>
 
               <Button
+                aria-label="Remove rule"
                 variant={"secondary"}
                 onClick={() => removeRule(index)}
                 icon="times"
