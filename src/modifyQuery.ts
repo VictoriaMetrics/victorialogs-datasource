@@ -110,10 +110,7 @@ export const logsSortOrders = {
 };
 
 export const addSortPipeToExpr = (expr: string, sortDirection: string) => {
-  if (sortDirection !== logsSortOrders.asc) {
-    return expr;
-  }
   const exprContainsSort = /\|\s*sort\s*by\s*\(/i.test(expr); // checks for existing sort pipe `sort by (`
-  const sortPipe = 'sort by (_time) asc';
+  const sortPipe = `sort by (_time) ${sortDirection === logsSortOrders.asc ? 'asc' : 'desc'}`;
   return exprContainsSort ? expr : `${expr} | ${sortPipe}`;
 }
