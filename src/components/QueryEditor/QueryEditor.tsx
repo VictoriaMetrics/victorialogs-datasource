@@ -69,7 +69,6 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     runQuery();
   }, [runQuery, varRegExp]);
 
-  console.log(varRegExp);
   useEffect(() => {
     // grafana with a version below 12 doesn't support subscribe function on store
     if ('subscribe' in store) {
