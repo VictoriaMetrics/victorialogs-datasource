@@ -20,12 +20,14 @@ import {
   LogRowContextQueryDirection,
   LogRowModel,
   MetricFindValue,
+  QueryVariableModel,
   rangeUtil,
   ScopedVars,
   SupplementaryQueryOptions,
   SupplementaryQueryType,
   TimeRange,
   toUtc,
+  TypedVariableModel,
 } from '@grafana/data';
 import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, TemplateSrv, } from '@grafana/runtime';
 import { DataQuery } from "@grafana/schema";
@@ -33,11 +35,12 @@ import { DataQuery } from "@grafana/schema";
 import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
 import { LogLevelRule } from "./configuration/LogLevelRules/types";
+import { VARIABLE_ALL_VALUE } from "./constants";
 import { escapeLabelValueInSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
 import { LOGS_VOLUME_BARS, queryLogsVolume } from "./logsVolumeLegacy";
 import { addLabelToQuery, addSortPipeToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
-import { returnVariables } from "./parsingUtils";
+import { replaceOperatorWithIn, returnVariables } from "./parsingUtils";
 import { storeKeys } from "./store/constants";
 import store from "./store/store";
 import {
@@ -206,10 +209,10 @@ export class VictoriaLogsDatasource
 
   interpolateQueryExpr(value: any, _variable: any) {
     if (typeof value === 'string') {
-      return value;
+      return value ? JSON.stringify(value) : value;
     }
 
-    if (Array.isArray(value) && value.length > 1) {
+    if (Array.isArray(value)) {
       return value.length > 1 ? `$_StartMultiVariable_${value.join("_separator_")}_EndMultiVariable` : value[0] || "";
     }
 
@@ -270,15 +273,37 @@ export class VictoriaLogsDatasource
       : []
   }
 
+  isAllOption(variable: TypedVariableModel): boolean {
+    const value = 'current' in variable && variable?.current?.value;
+    if (!value) {
+      return false;
+    }
+    return Array.isArray(value) ? value.includes(VARIABLE_ALL_VALUE) : value === VARIABLE_ALL_VALUE;
+  }
+
+  replaceOperatorsToInForMultiQueryVariables(expr: string,) {
+    const variables = this.templateSrv.getVariables();
+    const fieldValuesVariables = variables.filter(v => v.type === 'query' && v.query.type === 'fieldValue' && v.multi || this.isAllOption(v)) as QueryVariableModel[];
+    let result = expr;
+    for (let variable of fieldValuesVariables) {
+      result = replaceOperatorWithIn(result, variable.name);
+      if (this.isAllOption(variable)) {
+        result = result.replace(`$${variable.name}`, '*');
+      }
+    }
+    return result;
+  }
+
   interpolateString(string: string, scopedVars?: ScopedVars) {
-    const expr = this.templateSrv.replace(string, scopedVars, this.interpolateQueryExpr);
+    const exprWithReplacedOperators = this.replaceOperatorsToInForMultiQueryVariables(string);
+    const expr = this.templateSrv.replace(exprWithReplacedOperators, scopedVars, this.interpolateQueryExpr);
     return this.replaceMultiVariables(expr)
   }
 
   private replaceMultiVariables(input: string): string {
     const multiVariablePattern = /["']?\$_StartMultiVariable_(.+?)_EndMultiVariable["']?/g;
 
-    return input.replace(multiVariablePattern, (match, valueList, offset) => {
+    return input.replace(multiVariablePattern, (match, valueList: string, offset) => {
       const values = valueList.split('_separator_');
 
       const precedingChars = input.slice(0, offset).replace(/\s+/g, '').slice(-3);
@@ -286,7 +311,7 @@ export class VictoriaLogsDatasource
       if (precedingChars.includes("~")) {
         return `"(${values.join("|")})"`;
       } else if (precedingChars.includes("in(")) {
-        return values.join(",");
+        return values.map(value => JSON.stringify(value)).join(",");
       }
       return values.join(" OR ");
     });
