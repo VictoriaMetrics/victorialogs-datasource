@@ -1,3 +1,5 @@
+import dayjs from "dayjs";
+
 import {
   DataFrame,
   DataQueryError,
@@ -16,6 +18,7 @@ import { makeTableFrames } from './makeTableFrames';
 import { getHighlighterExpressionsFromQuery } from './queryUtils';
 import { dataFrameHasError } from './responseUtils';
 import { DerivedFieldConfig, Query, QueryType } from './types';
+import { getMillisecondsFromDuration } from "./utils/timeUtils";
 
 const ANNOTATIONS_REF_ID = 'Anno';
 
@@ -140,9 +143,75 @@ function processMetricInstantFrames(frames: DataFrame[]): DataFrame[] {
   return frames.length > 0 ? makeTableFrames(frames) : [];
 }
 
-function processMetricRangeFrames(frames: DataFrame[]): DataFrame[] {
+const fillTimestampsWithNullValues = (fields: Field[], timestamps: number[]) => {
+  const timestampValueMap = new Map();
+  fields[0].values.forEach((ts, idx) => {
+    timestampValueMap.set(ts, fields[1].values[idx] || null);
+  })
+
+  return timestamps.map(t => timestampValueMap.get(t) || null);
+};
+
+const generateTimestampsWithStep = (firstNotNullTimestampMs: number, startMs: number, endMs: number, stepMs: number) => {
+  const firstNotNullTimestamp = dayjs(firstNotNullTimestampMs);
+  const start = dayjs(startMs);
+  const end = dayjs(endMs);
+  const result: number[] = [];
+  const stepsToFirstTimestamp = Math.ceil(start.diff(firstNotNullTimestamp, "milliseconds") / stepMs);
+  let firstTimestamp = firstNotNullTimestamp.add(stepsToFirstTimestamp * stepMs, "milliseconds");
+
+  // If the first timestamp is before 'start', set it to 'start'
+  if (firstTimestamp.isBefore(start)) {
+    firstTimestamp = start.clone();
+  }
+
+  // Calculate the total number of steps from 'firstTimestamp' to 'end'
+  const totalSteps = Math.floor(end.diff(firstTimestamp, "milliseconds") / stepMs);
+
+  for (let i = 0; i <= totalSteps; i++) {
+    const t = firstTimestamp.add(i * stepMs, "milliseconds");
+    result.push(t.valueOf());
+  }
+
+  return result;
+};
+
+const fillFrameWithNullValues = (frame: DataFrame, query: Query, startMs: number, endMs: number): DataFrame => {
+  if (!query.step) {
+    return frame;
+  }
+
+  const timestamps = frame.fields.find(f => f.type === FieldType.time)?.values as number[];
+  const firstTimestamp = timestamps?.[0];
+  const stepMs = getMillisecondsFromDuration(query.step);
+  const timestampsWithNullValues = generateTimestampsWithStep(firstTimestamp, startMs, endMs, stepMs);
+  const values = fillTimestampsWithNullValues(frame.fields, timestampsWithNullValues);
+  return {
+    ...frame,
+    fields: [{
+      ...frame.fields[0],
+      values: timestampsWithNullValues,
+    }, {
+      ...frame.fields[1],
+      values: values,
+    }]
+  }
+}
+
+function getQueryMap(queries: Query[]) {
+  return new Map(queries.map((query) => [query.refId, query]));
+}
+
+function processMetricRangeFrames(frames: DataFrame[], queries: Query[], startTime: number, endTime: number): DataFrame[] {
   const meta: QueryResultMeta = { preferredVisualisationType: 'graph' };
-  return frames.map((frame) => setFrameMeta(frame, meta));
+  const queryMap = getQueryMap(queries);
+
+  return frames.map((frame) => {
+    const query = queryMap.get(frame.refId || '');
+    // need to fill missing timestamps with null values, so grafana can render the graph properly
+    const frameWithNullValues = query ? fillFrameWithNullValues(frame, query, startTime, endTime) : frame;
+    return setFrameMeta(frameWithNullValues, meta);
+  });
 }
 
 // we split the frames into 3 groups, because we will handle
@@ -202,7 +271,7 @@ function improveError(error: DataQueryError | undefined, queryMap: Map<string, Q
 
 export function transformBackendResult(
   response: DataQueryResponse,
-  request: DataQueryRequest,
+  request: DataQueryRequest<Query>,
   derivedFieldConfigs: DerivedFieldConfig[],
   logLevelRules: LogLevelRule[],
 ): DataQueryResponse {
@@ -230,7 +299,7 @@ export function transformBackendResult(
     ...rest,
     errors: improvedErrors as DataQueryError[],
     data: [
-      ...processMetricRangeFrames(metricRangeFrames),
+      ...processMetricRangeFrames(metricRangeFrames, request.targets, request.range.from.valueOf(), request.range.to.valueOf()),
       ...processMetricInstantFrames(metricInstantFrames),
       ...processStreamsFrames(streamsFrames, queryMap, derivedFieldConfigs, logLevelRules),
     ],

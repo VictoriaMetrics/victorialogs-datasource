@@ -2,7 +2,7 @@ import { DataQueryRequest, DataQueryResponse, LogLevel } from "@grafana/data";
 
 import { transformBackendResult } from './backendResultTransformer';
 import { LogLevelRule, LogLevelRuleType } from "./configuration/LogLevelRules/types";
-import { DerivedFieldConfig } from './types';
+import { DerivedFieldConfig, Query, QueryType } from './types';
 
 describe('transformBackendResult', () => {
   const labels = [
@@ -170,7 +170,7 @@ describe('transformBackendResult', () => {
       "panelName": "New panel",
       "panelPluginId": "table",
       "dashboardTitle": "double label info"
-    } as unknown as DataQueryRequest;
+    } as unknown as DataQueryRequest<Query>;
     const derivedFieldConfigs: DerivedFieldConfig[] = [];
     const logLevelRules: LogLevelRule[] = [];
     const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
@@ -315,7 +315,7 @@ describe('transformBackendResult', () => {
       "panelName": "New panel",
       "panelPluginId": "table",
       "dashboardTitle": "double label info"
-    } as unknown as DataQueryRequest;
+    } as unknown as DataQueryRequest<Query>;
     const derivedFieldConfigs: DerivedFieldConfig[] = [];
     const logLevelRules: LogLevelRule[] = [{
       enabled: true,
@@ -335,4 +335,117 @@ describe('transformBackendResult', () => {
       LogLevel.critical,
     ]);
   });
+
+  describe('processMetricInstantFrames', () => {
+    it('should fill with null values skipped timestamps', () => {
+      const refId = 'A'
+      const response = {
+        "data": [
+          {
+            "refId": refId,
+            "meta": {
+              "typeVersion": [
+                0,
+                0
+              ]
+            },
+            "fields": [
+              {
+                "name": "Time",
+                "type": "time",
+                "typeInfo": {
+                  "frame": "time.Time"
+                },
+                "config": {},
+                "values": [
+                  10,
+                  20,
+                  40,
+                  50,
+                  90,
+                ],
+                "entities": {},
+              },
+              {
+                "name": "Line",
+                "type": "number",
+                "typeInfo": {
+                  "frame": "string"
+                },
+                "config": {},
+                "values": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                ],
+                "entities": {}
+              },
+            ],
+            "length": 5
+          }
+        ],
+        "state": "Done"
+      } as DataQueryResponse;
+      const request = {
+        "app": "dashboard",
+        "requestId": "SQR100",
+        "timezone": "browser",
+        "range": {
+          "to": "1970-01-01T00:00:00.101Z", //  101ms
+          "from": "1970-01-01T00:00:00.005Z", //  5ms
+          "raw": {
+            "from": "now-6h",
+            "to": "now"
+          }
+        },
+        "interval": "20s",
+        "intervalMs": 20000,
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-logs-datasource",
+              "uid": "bexw8wod6s4jke"
+            },
+            "editorMode": "code",
+            "expr": "*",
+            "queryType": QueryType.StatsRange,
+            "refId": refId,
+            "maxLines": 1000,
+            step: "10ms",
+          }
+        ],
+        "maxDataPoints": 913,
+        "scopedVars": {
+          "__sceneObject": {
+            "text": "__sceneObject"
+          },
+          "__interval": {
+            "text": "20s",
+            "value": "20s"
+          },
+          "__interval_ms": {
+            "text": "20000",
+            "value": 20000
+          }
+        },
+        "startTime": 1760599682628,
+        "rangeRaw": {
+          "from": "now-6h",
+          "to": "now"
+        },
+        "dashboardUID": "886b7b9f-97a7-47ee-93b6-9ec7342f6d3e",
+        "panelId": 1,
+        "panelName": "New panel",
+        "panelPluginId": "table",
+        "dashboardTitle": "double label info"
+      } as unknown as DataQueryRequest<Query>;
+      const derivedFieldConfigs: DerivedFieldConfig[] = [];
+      const logLevelRules: LogLevelRule[] = [];
+      const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
+      expect(result.data[0].fields[0].values).toStrictEqual([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
+      expect(result.data[0].fields[1].values).toStrictEqual([1, 2, null, 3, 4, null, null, null, 5, null]);
+    });
+  })
 });
