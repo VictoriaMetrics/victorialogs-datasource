@@ -4,6 +4,7 @@
 
 * BUGFIX: fix setting `extra_stream_filters` param to `Custom query parameters`. See [this comment](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/405#issuecomment-3420418177).
 * BUGFIX: add `sort by (_time) asc/desc` pipe if logs are sorted in asc/desc order. In versions of grafana below `12.x.x`, you need to manually run the query if the sorting has been changed. See [#379](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/379).
+* fix the issue of overwriting the `level` label. Set the calculated level into a `detected_level` label, which is supported only in Grafana version 11.0.8 and above.
 
 ## v0.21.1
 

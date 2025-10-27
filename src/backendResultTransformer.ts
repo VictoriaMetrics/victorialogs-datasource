@@ -6,7 +6,6 @@ import {
   Field,
   FieldType,
   isDataFrame,
-  LogLevel,
   QueryResultMeta,
 } from '@grafana/data';
 
@@ -22,7 +21,12 @@ const ANNOTATIONS_REF_ID = 'Anno';
 
 enum FrameField {
   Labels = 'labels',
-  Level = 'level'
+  /**
+   * The name of the label that is added to the log line to indicate the calculated log level according to the log level rules
+   * Grafana supports only `detected_level` and `level` label names. Apps often use 'level' for the log level,
+   * so to avoid duplication and confusion of overwritten 'level' labels, we use 'detected_level' instead.
+   * */
+  DetectedLevel = 'detected_level'
 }
 
 function isMetricFrame(frame: DataFrame): boolean {
@@ -44,22 +48,13 @@ function addLevelField(frame: DataFrame, rules: LogLevelRule[]): DataFrame {
   const rows = frame.length ?? frame.fields[0]?.values.length ?? 0;
   const labelsField = frame.fields.find(f => f.name === FrameField.Labels);
 
-  const levelValues: LogLevel[] = Array.from({ length: rows }, (_, idx) => {
+  const levelValues = Array.from({ length: rows }, (_, idx) => {
     const labels = (labelsField?.values[idx] ?? {}) as Record<string, any>;
-    const level = extractLevelFromLabels(labels, rules);
-
-    // save the original level if it's different from the extracted one to show original values
-    if (level !== labels.level) {
-      labels.__orig_level = labels.level;
-    }
-
-    // delete level label to avoid duplication, level is now a separate field
-    delete labels.level;
-    return level;
+    return extractLevelFromLabels(labels, rules);
   });
 
-  const levelField: Field<LogLevel> = {
-    name: FrameField.Level,
+  const levelField: Field = {
+    name: FrameField.DetectedLevel,
     type: FieldType.string,
     config: {},
     values: levelValues,

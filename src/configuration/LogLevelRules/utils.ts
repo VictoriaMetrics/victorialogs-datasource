@@ -13,7 +13,7 @@ export const extractLevelFromLabels = (labels: Labels, rules: LogLevelRule[]): L
   const levelByLabel = hasInfoLabel ? labels['level'].toLowerCase() as LogLevel : null
   const levelByRule = rules.length ? resolveLogLevel(labels, rules) : null
 
-  return levelByRule || levelByLabel || LogLevel.unknown;
+  return levelByLabel || levelByRule || LogLevel.unknown;
 }
 
 const resolveLogLevel = (log: Record<string, any>, rules: LogLevelRule[]) => {

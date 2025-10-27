@@ -173,9 +173,9 @@ describe('transformBackendResult', () => {
     } as unknown as DataQueryRequest;
     const derivedFieldConfigs: DerivedFieldConfig[] = [];
     const logLevelRules: LogLevelRule[] = [];
-    const resultLabels = labels.map(({ level, ...rest }) => rest);
     const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
-    expect(result.data[0].fields[2].values).toStrictEqual(resultLabels);
+    expect(result.data[0].fields[2].values).toStrictEqual(labels);
+    expect(result.data[0].fields[3].name).toStrictEqual('detected_level')
     expect(result.data[0].fields[3].values).toStrictEqual([
       "info",
       "error",
@@ -185,7 +185,16 @@ describe('transformBackendResult', () => {
       "trace",
     ]);
   });
-  it('should parse level according to rules and left the origin level labels', () => {
+  it('should parse level according to rules, apply the origin level labels then rule labels', () => {
+    const extendedLabels = labels.map((l, index) => {
+      if(index > 2) {
+        return {
+          ...l,
+          level: 'Custom unknown level'
+        }
+      }
+      return l;
+    });
     const response = {
       "data": [
         {
@@ -246,7 +255,7 @@ describe('transformBackendResult', () => {
                 "frame": "json.RawMessage"
               },
               "config": {},
-              "values": labels,
+              "values": extendedLabels,
               "entities": {}
             }
           ],
@@ -315,16 +324,12 @@ describe('transformBackendResult', () => {
       value: 'dev',
       level: LogLevel.critical
     }];
-    const resultLabels = labels.map(({ level, ...rest }) => ({
-      ...rest,
-      __orig_level: level,
-    }));
     const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
-    expect(result.data[0].fields[2].values).toStrictEqual(resultLabels);
+    expect(result.data[0].fields[2].values).toStrictEqual(extendedLabels);
     expect(result.data[0].fields[3].values).toStrictEqual([
-      LogLevel.critical,
-      LogLevel.critical,
-      LogLevel.critical,
+      LogLevel.info,
+      LogLevel.error,
+      LogLevel.unknown,
       LogLevel.critical,
       LogLevel.critical,
       LogLevel.critical,
