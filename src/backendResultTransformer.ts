@@ -145,9 +145,9 @@ function processMetricInstantFrames(frames: DataFrame[]): DataFrame[] {
 
 const fillTimestampsWithNullValues = (fields: Field[], timestamps: number[]) => {
   const timestampValueMap = new Map();
-  fields[0].values.forEach((ts, idx) => {
+  fields[0]?.values.forEach((ts, idx) => {
     timestampValueMap.set(ts, fields[1].values[idx] || null);
-  })
+  });
 
   return timestamps.map(t => timestampValueMap.get(t) || null);
 };
@@ -183,6 +183,10 @@ const fillFrameWithNullValues = (frame: DataFrame, query: Query, startMs: number
 
   const timestamps = frame.fields.find(f => f.type === FieldType.time)?.values as number[];
   const firstTimestamp = timestamps?.[0];
+  if (!firstTimestamp) {
+    return frame;
+  }
+
   const stepMs = getMillisecondsFromDuration(query.step);
   const timestampsWithNullValues = generateTimestampsWithStep(firstTimestamp, startMs, endMs, stepMs);
   const values = fillTimestampsWithNullValues(frame.fields, timestampsWithNullValues);
