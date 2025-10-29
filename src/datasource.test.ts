@@ -1,13 +1,15 @@
-import  { AdHocVariableFilter } from '@grafana/data';
+import { AdHocVariableFilter } from '@grafana/data';
 import { TemplateSrv } from "@grafana/runtime";
 
 import { createDatasource } from "./__mocks__/datasource";
+import { VARIABLE_ALL_VALUE } from "./constants";
 import { VictoriaLogsDatasource } from "./datasource";
- 
+
 const replaceMock = jest.fn().mockImplementation((a: string) => a);
 
 const templateSrvStub = {
   replace: replaceMock,
+  getVariables: jest.fn().mockReturnValue([]),
 } as unknown as TemplateSrv;
 
 beforeEach(() => {
@@ -44,6 +46,10 @@ describe('VictoriaLogsDatasource', () => {
 
     it('should return a number for numeric value', () => {
       expect(ds.interpolateQueryExpr(1000 as any, customVariable)).toEqual(1000);
+    });
+
+    it('should return a value escaped by stringify for one array element', () => {
+      expect(ds.interpolateQueryExpr(['arg // for &  test " this string ` end test'] as any, customVariable)).toEqual("arg // for &  test \" this string ` end test");
     });
   });
 
@@ -90,6 +96,7 @@ describe('VictoriaLogsDatasource', () => {
       const scopedVars = {};
       const templateSrvMock = {
         replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -105,6 +112,7 @@ describe('VictoriaLogsDatasource', () => {
       };
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', '"bar"')),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -121,6 +129,7 @@ describe('VictoriaLogsDatasource', () => {
       const replaceValue = `$_StartMultiVariable_${scopedVars.var.value.join("_separator_")}_EndMultiVariable`
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', replaceValue)),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -136,6 +145,7 @@ describe('VictoriaLogsDatasource', () => {
       };
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', '("foo" OR "bar")')),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -151,6 +161,7 @@ describe('VictoriaLogsDatasource', () => {
       };
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', '"0.0.0.0:3000"')),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -162,10 +173,14 @@ describe('VictoriaLogsDatasource', () => {
 
     it('should correctly substitute an array of URLs into an OR expression', () => {
       const scopedVars = {
-        var: { text: 'http://localhost:3001/,http://192.168.50.60:3000/foo', value: ['http://localhost:3001/', 'http://192.168.50.60:3000/foo'] },
+        var: {
+          text: 'http://localhost:3001/,http://192.168.50.60:3000/foo',
+          value: ['http://localhost:3001/', 'http://192.168.50.60:3000/foo']
+        },
       };
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', '("http://localhost:3001/" OR "http://192.168.50.60:3000/foo")')),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -181,6 +196,7 @@ describe('VictoriaLogsDatasource', () => {
       };
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', '')),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -197,6 +213,7 @@ describe('VictoriaLogsDatasource', () => {
       };
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var1', '"foo"').replace('$var2', '"bar"')),
+        getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
@@ -221,5 +238,33 @@ describe('VictoriaLogsDatasource', () => {
       const result = ds.getExtraFilters(filters);
       expect(result).toBe('key1:="value1" AND key2:!="value2"');
     });
+  });
+
+  describe('interpolateString', () => {
+    it('should interpolate string with all and multi values', () => {
+      const scopedVars = {};
+      const variables = [
+        {
+          name: 'var1',
+          current: [{ value: "foo" }, { value: "bar" }],
+          multi: true,
+          type: "query",
+          query: {
+            type: "fieldValue"
+          }
+        }, {
+          name: 'var2',
+          current: { value: VARIABLE_ALL_VALUE },
+          multi: false,
+        }
+      ];
+      const templateSrvMock = {
+        replace: jest.fn(() => 'foo: in($_StartMultiVariable_foo_separator_bar_EndMultiVariable) bar: in(*)'),
+        getVariables: jest.fn().mockReturnValue(variables),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const result = ds.interpolateString('foo: $var1 bar: $var2', scopedVars);
+      expect(result).toStrictEqual('foo: in(\"foo\",\"bar\") bar: in(*)');
+    })
   });
 });
