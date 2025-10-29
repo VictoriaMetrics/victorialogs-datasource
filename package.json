@@ -82,7 +82,6 @@
     "@lezer/common": "^1.2.1",
     "@lezer/lr": "^1.4.1",
     "@types/semver": "^7.7.0",
-    "dayjs": "^1.11.18",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-jest": "^28.6.0",
     "eslint-plugin-lodash": "^7.4.0",

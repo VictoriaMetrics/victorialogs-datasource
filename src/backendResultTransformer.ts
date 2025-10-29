@@ -1,4 +1,3 @@
-import dayjs from "dayjs";
 
 import {
   DataFrame,
@@ -153,23 +152,20 @@ const fillTimestampsWithNullValues = (fields: Field[], timestamps: number[]) => 
 };
 
 const generateTimestampsWithStep = (firstNotNullTimestampMs: number, startMs: number, endMs: number, stepMs: number) => {
-  const firstNotNullTimestamp = dayjs(firstNotNullTimestampMs);
-  const start = dayjs(startMs);
-  const end = dayjs(endMs);
   const result: number[] = [];
-  const stepsToFirstTimestamp = Math.ceil(start.diff(firstNotNullTimestamp, "milliseconds") / stepMs);
-  let firstTimestamp = firstNotNullTimestamp.add(stepsToFirstTimestamp * stepMs, "milliseconds");
+  const stepsToFirstTimestamp = Math.ceil((startMs - firstNotNullTimestampMs) / stepMs);
+  let firstTimestampMs = firstNotNullTimestampMs + (stepsToFirstTimestamp * stepMs);
 
   // If the first timestamp is before 'start', set it to 'start'
-  if (firstTimestamp.isBefore(start)) {
-    firstTimestamp = start.clone();
+  if (firstTimestampMs < startMs) {
+    firstTimestampMs = startMs;
   }
 
   // Calculate the total number of steps from 'firstTimestamp' to 'end'
-  const totalSteps = Math.floor(end.diff(firstTimestamp, "milliseconds") / stepMs);
+  const totalSteps = Math.floor((endMs - firstTimestampMs)/stepMs);
 
   for (let i = 0; i <= totalSteps; i++) {
-    const t = firstTimestamp.add(i * stepMs, "milliseconds");
+    const t = firstTimestampMs + (i * stepMs);
     result.push(t.valueOf());
   }
 
