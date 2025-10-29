@@ -6,6 +6,7 @@
 * BUGFIX: add `sort by (_time) asc/desc` pipe if logs are sorted in asc/desc order. In versions of grafana below `12.x.x`, you need to manually run the query if the sorting has been changed. See [#379](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/379).
 * BUGFIX: fix the issue of overwriting the `level` label. Set the calculated level into a `detected_level` label, which is supported only in Grafana version 11.0.8 and above. See [#425](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/425).
 * BUGFIX: fix interpolation of multi-value query variables by mapping `filterName:$filterVar` and `filterName:=$filterVar` to the `filerName:in("v1", ..., "vN")`. Support negative operators and stream tags(`{tag = $var}` to `{tag in($var)}`). Disallow interpolation in regexp with variables (e.g., `field:~$var`). See [#238](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/238).
+* BUGFIX: fix rendering the graph with stats range queries by filling missing timestamps with null values. See [#421](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/421).
 
 ## v0.21.1
 
