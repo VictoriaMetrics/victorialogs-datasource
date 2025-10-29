@@ -1,5 +1,5 @@
 
-import { DataQueryRequest, DataQueryResponse, LogLevel } from "@grafana/data";
+import { DataQueryRequest, DataQueryResponse, dateTime, LogLevel } from "@grafana/data";
 
 import { transformBackendResult } from './backendResultTransformer';
 import { LogLevelRule, LogLevelRuleType } from "./configuration/LogLevelRules/types";
@@ -394,8 +394,8 @@ describe('transformBackendResult', () => {
       "requestId": "SQR100",
       "timezone": "browser",
       "range": {
-        "to": "1970-01-01T00:00:00.101Z", //  101ms
-        "from": "1970-01-01T00:00:00.005Z", //  5ms
+        "to": dateTime("1970-01-01T00:00:00.101Z"), //  101ms
+        "from": dateTime("1970-01-01T00:00:00.005Z"), //  5ms
         "raw": {
           "from": "now-6h",
           "to": "now"
