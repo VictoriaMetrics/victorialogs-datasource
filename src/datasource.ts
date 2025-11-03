@@ -35,7 +35,7 @@ import { DataQuery } from "@grafana/schema";
 import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
 import { LogLevelRule } from "./configuration/LogLevelRules/types";
-import { VARIABLE_ALL_VALUE } from "./constants";
+import { TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from "./constants";
 import { escapeLabelValueInSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
 import { LOGS_VOLUME_BARS, queryLogsVolume } from "./logsVolumeLegacy";
@@ -278,7 +278,12 @@ export class VictoriaLogsDatasource
     if (!value) {
       return false;
     }
-    return Array.isArray(value) ? value.includes(VARIABLE_ALL_VALUE) : value === VARIABLE_ALL_VALUE;
+
+    if (typeof value === 'string') {
+      return value === VARIABLE_ALL_VALUE || value === TEXT_FILTER_ALL_VALUE;
+    }
+
+    return Array.isArray(value) ? value.includes(VARIABLE_ALL_VALUE) : false;
   }
 
   replaceOperatorsToInForMultiQueryVariables(expr: string,) {

@@ -573,13 +573,16 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-	reader := io.Reader(resp.Body)
+	defer resp.Body.Close()
+
+	reader := resp.Body
 	if resp.Header.Get("Content-Encoding") == "gzip" {
 		reader, err = gzip.NewReader(reader)
 		if err != nil {
 			writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to create gzip reader: %w", err))
 			return
 		}
+		defer reader.Close()
 	}
 
 	bodyBytes, err := io.ReadAll(reader)
@@ -587,7 +590,6 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to read http response body: %w", err))
 		return
 	}
-	defer resp.Body.Close()
 
 	rw.Header().Add("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)

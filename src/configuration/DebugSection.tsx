@@ -1,5 +1,6 @@
 import React, { ReactNode, useState } from 'react';
 
+import { textUtil } from "@grafana/data";
 import { getTemplateSrv } from '@grafana/runtime';
 import { InlineField, TextArea } from '@grafana/ui';
 
@@ -53,7 +54,7 @@ const DebugFields = ({ fields }: DebugFieldItemProps) => {
                 if (field.error && field.error instanceof Error) {
                     value = field.error.message;
                 } else if (field.href) {
-                    value = <a href={field.href}>{value}</a>;
+                    value = <a href={textUtil.sanitizeUrl(field.href)}>{value}</a>;
                 }
                 return (
                     <tr key={`${field.name}=${field.value}`}>
@@ -93,6 +94,7 @@ function makeDebugFields(derivedFields: DerivedFieldConfig[], debugText: string)
                             text: 'Raw value',
                         },
                     });
+                    href = textUtil.sanitizeUrl(href);
                 }
                 const debugFiled: DebugField = {
                     name: field.name,

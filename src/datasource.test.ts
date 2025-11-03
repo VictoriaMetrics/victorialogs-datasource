@@ -2,7 +2,7 @@ import { AdHocVariableFilter } from '@grafana/data';
 import { TemplateSrv } from "@grafana/runtime";
 
 import { createDatasource } from "./__mocks__/datasource";
-import { VARIABLE_ALL_VALUE } from "./constants";
+import { TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from "./constants";
 import { VictoriaLogsDatasource } from "./datasource";
 
 const replaceMock = jest.fn().mockImplementation((a: string) => a);
@@ -265,6 +265,37 @@ describe('VictoriaLogsDatasource', () => {
       const ds = createDatasource(templateSrvMock);
       const result = ds.interpolateString('foo: $var1 bar: $var2', scopedVars);
       expect(result).toStrictEqual('foo: in(\"foo\",\"bar\") bar: in(*)');
+    })
+
+    it('should not escape the * in the text filter ', () => {
+      const scopedVars = {};
+      const variables = [
+        {
+          name: 'var1',
+          current: [{ value: "foo" }, { value: "bar" }],
+          multi: true,
+          type: "query",
+          query: {
+            type: "fieldValue"
+          }
+        }, {
+          name: 'var2',
+          current: { value: VARIABLE_ALL_VALUE },
+          multi: false,
+        },
+        {
+          name: 'var3',
+          current: { value: TEXT_FILTER_ALL_VALUE },
+          multi: false,
+        }
+      ];
+      const templateSrvMock = {
+        replace: jest.fn((a) => a), // return the input string
+        getVariables: jest.fn().mockReturnValue(variables),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const result = ds.interpolateString('foo: $var1 bar: $var2 | $var3', scopedVars);
+      expect(result).toStrictEqual('foo:in($var1) bar:in(*) | *');
     })
   });
 });
