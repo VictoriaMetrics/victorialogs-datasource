@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.21.3
+
 * BUGFIX: sanitize URLs to prevent potential security issues, properly close gzip reader to prevent resource leaks, fix text filter interpolation for `*` character. See pr [#429](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/429).
 
 ## v0.21.2
