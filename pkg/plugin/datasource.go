@@ -575,15 +575,14 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	reader := io.Reader(resp.Body)
+	reader := resp.Body
 	if resp.Header.Get("Content-Encoding") == "gzip" {
-		gzipReader, err := gzip.NewReader(reader)
+		reader, err = gzip.NewReader(reader)
 		if err != nil {
 			writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to create gzip reader: %w", err))
 			return
 		}
-		defer gzipReader.Close()
-		reader = gzipReader
+		defer reader.Close()
 	}
 
 	bodyBytes, err := io.ReadAll(reader)
