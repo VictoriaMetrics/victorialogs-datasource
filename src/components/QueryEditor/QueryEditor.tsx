@@ -26,7 +26,7 @@ import { changeEditorMode, getQueryWithDefaults } from "./state";
 const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const styles = useStyles2(getStyles);
 
-  const { onChange, onRunQuery: runQuery, data, app, queries, datasource, range: timeRange } = props;
+  const { onChange, onRunQuery, data, app, queries, datasource, range: timeRange } = props;
   const [dataIsStale, setDataIsStale] = useState(false);
   const [parseModalOpen, setParseModalOpen] = useState(false);
 
@@ -61,13 +61,6 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     }
     onChange(query);
   };
-
-  const onRunQuery = useCallback(() => {
-    if(varRegExp) {
-      return;
-    }
-    runQuery();
-  }, [runQuery, varRegExp]);
 
   useEffect(() => {
     // grafana with a version below 12 doesn't support subscribe function on store
@@ -125,7 +118,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
           ) : (
             <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true}/>
           )}
-          {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} />)}
+          {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange}/>)}
           <QueryEditorOptions
             query={query}
             onChange={onChange}

@@ -40,6 +40,7 @@ import { escapeLabelValueInSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
 import { LOGS_VOLUME_BARS, queryLogsVolume } from "./logsVolumeLegacy";
 import { addLabelToQuery, addSortPipeToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
+import { removeDoubleQuotesAroundVar } from "./parsing";
 import { replaceOperatorWithIn, returnVariables } from "./parsingUtils";
 import { storeKeys } from "./store/constants";
 import store from "./store/store";
@@ -286,14 +287,21 @@ export class VictoriaLogsDatasource
     return Array.isArray(value) ? value.includes(VARIABLE_ALL_VALUE) : false;
   }
 
-  replaceOperatorsToInForMultiQueryVariables(expr: string,) {
+  replaceAllOption(queryExpr: string, variableName: string, regExpAllValue: string): string {
+    queryExpr = queryExpr.replace(`~"$${variableName}"`, `~"${regExpAllValue}"` || '~".*"');
+    queryExpr = queryExpr.replace(`$${variableName}`, '*');
+    return queryExpr;
+  }
+
+  replaceOperatorsToInForMultiQueryVariables(expr: string) {
     const variables = this.templateSrv.getVariables();
     const fieldValuesVariables = variables.filter(v => v.type === 'query' && v.query.type === 'fieldValue' && v.multi || this.isAllOption(v)) as QueryVariableModel[];
     let result = expr;
     for (let variable of fieldValuesVariables) {
+      result = removeDoubleQuotesAroundVar(result, variable.name);
       result = replaceOperatorWithIn(result, variable.name);
       if (this.isAllOption(variable)) {
-        result = result.replace(`$${variable.name}`, '*');
+        result = this.replaceAllOption(result, variable.name, variable.allValue || '.*');
       }
     }
     return result;

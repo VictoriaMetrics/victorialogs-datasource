@@ -1,24 +1,32 @@
 import { css } from "@emotion/css";
-import React from 'react';
+import React, { useCallback } from 'react';
 
 import { GrafanaTheme2 } from "@grafana/data";
-import { Badge, useTheme2 } from "@grafana/ui";
+import { Badge, TextLink, useTheme2 } from "@grafana/ui";
 
 import { replaceRegExpOperatorToOperator } from "../../LogsQL/regExpOperator";
-
+import { Query } from "../../types";
 
 interface Props {
   regExp: string;
+  query: Query;
+  onChange: (query: Query) => void;
 }
 
-const QueryEditorVariableRegexpError = ({ regExp }: Props) => {
+const QueryEditorVariableRegexpError = ({ regExp, query, onChange }: Props) => {
   const theme = useTheme2();
   const styles = getStyles(theme);
   const fixedFilter = replaceRegExpOperatorToOperator(regExp);
+  const onApply = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const queryExpr = replaceRegExpOperatorToOperator(query.expr);
+    onChange({ ...query, expr: queryExpr });
+  }, [onChange, query])
 
   const text = (
     <div>
-      Regexp operator `~` cannot be used with variables in `{regExp}`. Use exact match operator `:` (e.g. `{fixedFilter}`) or use non variable in regexp instead.
+      Regexp operator `~` cannot be used with variables in `{regExp}`. Use word filter operator `:` (e.g. `{fixedFilter}`)
+      or use non variable in regexp instead. <TextLink onClick={onApply} href={""}>Apply fix</TextLink>
     </div>
   )
 
