@@ -139,5 +139,21 @@ describe('regExpOperator', () => {
       const result = replaceRegExpOperatorToOperator('field.name.with.dots:~$variable');
       expect(result).toEqual('field.name.with.dots:$variable');
     });
+
+    it('should replace all regexp vars', () => {
+      const result = replaceRegExpOperatorToOperator('field.name.with.dots1:~$variable field.name.with.dots2:~$variable | field.name.with.dots3:~$variable field.name.with.dots4:~variable field.name.with.dots3:$variable');
+      expect(result).toEqual('field.name.with.dots1:$variable field.name.with.dots2:$variable | field.name.with.dots3:$variable field.name.with.dots4:~variable field.name.with.dots3:$variable');
+    });
+
+    it('should replace all regexp vars with new lines', () => {
+      const result = replaceRegExpOperatorToOperator(`kubernetes.pod_namespace:~"$namespace" kubernetes.pod_name:~"$pod" 
+                                                                          | stats by(kubernetes.pod_name) count() 
+                                                                          | count()`
+      );
+      expect(result).toEqual(`kubernetes.pod_namespace:"$namespace" kubernetes.pod_name:"$pod" 
+                                                                          | stats by(kubernetes.pod_name) count() 
+                                                                          | count()`
+      );
+    });
   });
 });
