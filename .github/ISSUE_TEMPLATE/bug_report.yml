@@ -1,0 +1,57 @@
+name: Bug report
+description: Create a report to help us improve
+labels: [bug, vl-datasource]
+body:
+  - type: textarea
+    id: describe-the-bug
+    attributes:
+      label: Describe the bug
+      description: |
+        A clear and concise description of what the bug is.
+      placeholder: |
+        When I do `A` plugin datasource does `B`. I expect it to do `C`.
+    validations:
+      required: true
+  - type: textarea
+    id: to-reproduce
+    attributes:
+      label: To Reproduce
+      description: |
+        Steps to reproduce the behavior.
+      placeholder: |
+        Steps to reproduce the behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: version
+    attributes:
+      label: Versions of VictoriaLogs datasource and VictoriaLogs backend
+      description: |
+        Please provide the version of VictoriaLogs datasource plugin and VictoriaLogs backend you are using.
+        Also provide the version of Grafana you are using and version of the vmauth if it is used.
+    validations:
+      required: true
+  - type: textarea
+    id: playground
+    attributes:
+      label: Link to dashboard in Victoria Metrics [playground](https://play-grafana.victoriametrics.com)
+      description: |
+        If possible, please provide a link to a VictoriaMetrics grafana playground with minimal reproducible example.
+    validations:
+      required: false
+  - type: textarea
+    id: dashboard-json
+    attributes:
+      label: Please provide dashboard JSON if it is possible
+      description: |
+        Please provide dashboard JSON if it is possible and does not contain any sensitive data.
+    validations:
+      required: false
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional information
+      placeholder: |
+        Additional information that doesn't fit elsewhere
+    validations:
+      required: false
