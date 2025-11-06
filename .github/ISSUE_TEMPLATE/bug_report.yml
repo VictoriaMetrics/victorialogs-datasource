@@ -34,9 +34,9 @@ body:
   - type: textarea
     id: playground
     attributes:
-      label: Link to dashboard in Victoria Metrics [playground](https://play-grafana.victoriametrics.com)
+      label: Link to dashboard in Victoria Metrics
       description: |
-        If possible, please provide a link to a VictoriaMetrics grafana playground with minimal reproducible example.
+        If possible, please provide a link to a VictoriaMetrics [playground](https://play-grafana.victoriametrics.com) with minimal reproducible example.
     validations:
       required: false
   - type: textarea
