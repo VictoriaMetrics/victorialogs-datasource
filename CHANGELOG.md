@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.21.4
+
 * BUGFIX: fix backward compatibility with queries containing regexp variables. Error in queries with regexp variables has been replaced with a warning with quick fix action. See [#432](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/432).
 
 ## v0.21.3
