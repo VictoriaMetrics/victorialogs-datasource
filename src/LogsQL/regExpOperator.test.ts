@@ -3,7 +3,22 @@ import { getQueryExprVariableRegExp, replaceRegExpOperatorToOperator } from './r
 
 describe('regExpOperator', () => {
   describe('getQueryExprVariableRegExp', () => {
-    it('should fing fieldName:~$var', () => {
+    it('should not find regexp var', () => {
+      const result = getQueryExprVariableRegExp('"fieldName":~"var.*"');
+      expect(result?.[0]).toBeUndefined();
+    });
+
+    it('should not find regexp var with spaces', () => {
+      const result = getQueryExprVariableRegExp(' "fieldName":~"var.*" ');
+      expect(result?.[0]).toBeUndefined();
+    });
+
+    it('should find fieldName:~$var with doublequotes', () => {
+      const result = getQueryExprVariableRegExp('fieldName:~"$var"');
+      expect(result?.[0]).toEqual('fieldName:~"$var"');
+    });
+
+    it('should find fieldName:~$var', () => {
       const result = getQueryExprVariableRegExp(' fieldName:~$var ');
       expect(result?.[0]).toEqual(' fieldName:~$var');
     });
