@@ -1,4 +1,3 @@
-
 import {
   DataFrame,
   DataQueryError,
@@ -8,6 +7,7 @@ import {
   FieldType,
   isDataFrame,
   QueryResultMeta,
+  DataFrameType
 } from '@grafana/data';
 
 import { LogLevelRule } from "./configuration/LogLevelRules/types";
@@ -39,10 +39,14 @@ function isMetricFrame(frame: DataFrame): boolean {
 function setFrameMeta(frame: DataFrame, meta: QueryResultMeta): DataFrame {
   const { meta: oldMeta, ...rest } = frame;
   // meta maybe be undefined, we need to handle that
-  const newMeta = { ...oldMeta, ...meta };
+  const newMeta = { ...oldMeta, ...meta, };
   return {
     ...rest,
-    meta: newMeta,
+    meta: {
+      ...newMeta,
+      typeVersion: [0, 1],
+      type: DataFrameType.TimeSeriesMulti
+    },
   };
 }
 
@@ -162,7 +166,7 @@ const generateTimestampsWithStep = (firstNotNullTimestampMs: number, startMs: nu
   }
 
   // Calculate the total number of steps from 'firstTimestamp' to 'end'
-  const totalSteps = Math.floor((endMs - firstTimestampMs)/stepMs);
+  const totalSteps = Math.floor((endMs - firstTimestampMs) / stepMs);
 
   for (let i = 0; i <= totalSteps; i++) {
     const t = firstTimestampMs + (i * stepMs);
