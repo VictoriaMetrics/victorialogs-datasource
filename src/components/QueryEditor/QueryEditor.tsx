@@ -21,6 +21,8 @@ import { QueryEditorHelp } from "./QueryEditorHelp";
 import { QueryEditorOptions } from "./QueryEditorOptions";
 import QueryEditorVariableRegexpError from "./QueryEditorVariableRegexpError";
 import VmuiLink from "./VmuiLink";
+import { EXPLORE_GRAPH_STYLES } from "./constants";
+import { useDefaultExploreGraph } from "./hooks/useDefaultExploreGraph";
 import { changeEditorMode, getQueryWithDefaults } from "./state";
 
 const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
@@ -29,12 +31,13 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const { onChange, onRunQuery, data, app, queries, datasource, range: timeRange } = props;
   const [dataIsStale, setDataIsStale] = useState(false);
   const [parseModalOpen, setParseModalOpen] = useState(false);
+  useDefaultExploreGraph(app, EXPLORE_GRAPH_STYLES.BARS);
 
   const query = getQueryWithDefaults(props.query, app, data?.request?.panelPluginId);
   const editorMode = query.editorMode!;
   const isStatsQuery = query.queryType === QueryType.Stats || query.queryType === QueryType.StatsRange;
   const showStatsWarn = isStatsQuery && !isExprHasStatsPipeFunctions(query.expr || '');
-  const  varRegExp= useMemo(() => {
+  const varRegExp = useMemo(() => {
     return getQueryExprVariableRegExp(query.expr)?.[0] || null;
   }, [query.expr]);
 

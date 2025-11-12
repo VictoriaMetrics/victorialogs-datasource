@@ -58,6 +58,7 @@ import {
   ToggleFilterAction,
   VariableQuery,
 } from './types';
+import { getMillisecondsFromDuration } from "./utils/timeUtils";
 import { VariableSupport } from "./variableSupport/VariableSupport";
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
@@ -121,16 +122,15 @@ export class VictoriaLogsDatasource
       }
     });
 
-    const fixedRequest: DataQueryRequest<Query> = {
-      ...request,
-      targets: queries,
-    };
+    // if step is defined, use it as the request interval to set the width of bars correctly
+    request.intervalMs = queries[0]?.step ? getMillisecondsFromDuration(queries[0]?.step) : request.intervalMs;
+    request.targets = queries;
 
-    if (fixedRequest.liveStreaming) {
-      return this.runLiveQueryThroughBackend(fixedRequest);
+    if (request.liveStreaming) {
+      return this.runLiveQueryThroughBackend(request);
     }
 
-    return this.runQuery(fixedRequest);
+    return this.runQuery(request);
   }
 
   runQuery(fixedRequest: DataQueryRequest<Query>) {
