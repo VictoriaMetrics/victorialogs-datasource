@@ -1,7 +1,7 @@
 /**
  * Regular expression for matching variables in a query expression -> filterName:~"$VariableName"
  * */
-const variableRegExpPattern = /(^|\||\s)([^\s:~]+)\s*:\s*~\s*(?:"(\$[A-Za-z0-9_.-]+)"|(\$[A-Za-z0-9_.-]+)|"([^"]+)"|([^\s|]+))(?=\s|\||$)/;
+const variableRegExpPattern = /(^|\||\s)([^\s:~]+)\s*:\s*~\s*(?:"(\$[A-Za-z0-9_.-]+)"|(\$[A-Za-z0-9_.-]+))(?=\s|\||$)/;
 
 export function getQueryExprVariableRegExp(queryExpr: string) {
   return new RegExp(variableRegExpPattern).exec(queryExpr);

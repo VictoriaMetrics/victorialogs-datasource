@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix an issue where a warning was displayed when using the regexp operator not with a variable. See [#438](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/438).
+
 ## v0.21.4
 
 * BUGFIX: fix backward compatibility with queries containing regexp variables. Error in queries with regexp variables has been replaced with a warning with quick fix action. See [#432](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/432).
