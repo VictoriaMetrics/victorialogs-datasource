@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/docs.yaml
       - src/README.md
+      - src/_index.md
       - docs/**
 
 jobs:
@@ -47,8 +48,8 @@ jobs:
           cp -r docs ${TARGET}
           cp src/_index.md ${TARGET}/
           cat src/README.md >> ${TARGET}/_index.md
-          sed -i '/VictoriaLogs datasource for Grafana/g' ${TARGET}/README.md
-          sed -i 's|docs/assets/|grafana-datasource/assets/|g' ${TARGET}/README.md
+          sed -i '/VictoriaLogs datasource for Grafana/g' ${TARGET}/_index.md
+          sed -i 's|docs/assets/|grafana-datasource/assets/|g' ${TARGET}/_index.md
           echo "SHORT_SHA=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_OUTPUT
         working-directory: __vl-datasource
 
