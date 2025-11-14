@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.22.0
+
 * FEATURE: add bars as the default type of visualization for explore mode. Adjust the width of the bars to match the step size. See [#420](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/420).
 
 * BUGFIX: fix an issue where a warning was displayed when using the regexp operator not with a variable. See [#438](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/438).
