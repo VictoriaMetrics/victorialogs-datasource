@@ -49,7 +49,7 @@ describe('VictoriaLogsDatasource', () => {
     });
 
     it('should return a value escaped by stringify for one array element', () => {
-      expect(ds.interpolateQueryExpr(['arg // for &  test " this string ` end test'] as any, customVariable)).toEqual("arg // for &  test \" this string ` end test");
+      expect(ds.interpolateQueryExpr(['arg // for &  test " this string ` end test'] as any, customVariable)).toEqual("$_StartMultiVariable_arg // for &  test \" this string ` end test_EndMultiVariable");
     });
   });
 
