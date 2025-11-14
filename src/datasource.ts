@@ -210,11 +210,11 @@ export class VictoriaLogsDatasource
 
   interpolateQueryExpr(value: any, _variable: any) {
     if (typeof value === 'string') {
-      return value ? JSON.stringify(value) : value;
+      return value ? `${JSON.stringify(value)}` : value;
     }
 
     if (Array.isArray(value)) {
-      return value.length > 1 ? `$_StartMultiVariable_${value.join("_separator_")}_EndMultiVariable` : value[0] || "";
+      return value.length > 0 ? `$_StartMultiVariable_${value.join("_separator_")}_EndMultiVariable` : "";
     }
 
     return value;
@@ -288,8 +288,8 @@ export class VictoriaLogsDatasource
   }
 
   replaceAllOption(queryExpr: string, variableName: string, regExpAllValue: string): string {
-    queryExpr = queryExpr.replace(`~"$${variableName}"`, `~"${regExpAllValue}"` || '~".*"');
-    queryExpr = queryExpr.replace(`$${variableName}`, '*');
+    queryExpr = queryExpr.replaceAll(`~"$${variableName}"`, `~"${regExpAllValue}"` || '~".*"');
+    queryExpr = queryExpr.replaceAll(`$${variableName}`, '*');
     return queryExpr;
   }
 
