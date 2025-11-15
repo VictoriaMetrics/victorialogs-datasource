@@ -1,7 +1,34 @@
 services:
+  # Generate some logs for testing, in JSON format
+  flog-json:
+    image: mingrammer/flog:latest
+    command: ["flog", "-f", "json", "--number", "36000", "--sleep", "100ms"]
+  # Run Grafana Alloy to collect logs from Docker and forward them to VictoriaLogs
+  alloy:
+    image: grafana/alloy:latest
+    privileged: true
+    ports:
+      - 12345:12345
+      - 4317:4317
+      - 4318:4318
+    volumes:
+      - ./.alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /proc:/rootproc:ro
+      - /var/run/docker.sock.raw:/var/run/docker.sock
+      - /sys:/sys:ro
+      - /:/rootfs:ro
+      - /dev/disk/:/dev/disk:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    devices:
+      - /dev/kmsg
   socks-proxy:
     image: serjs/go-socks5-proxy
     restart: always
+    environment:
+      REQUIRE_AUTH: "false"
   victorialogs:
     image: victoriametrics/victoria-logs:v1.26.0
     ports:
