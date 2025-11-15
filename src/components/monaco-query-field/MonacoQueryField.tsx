@@ -1,12 +1,16 @@
 import { css } from '@emotion/css';
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useLatest } from 'react-use';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
-import { useTheme2, ReactMonacoEditor, monacoTypes } from '@grafana/ui';
+import { useTheme2, ReactMonacoEditor, monacoTypes, Monaco } from '@grafana/ui';
+
+import { languageConfiguration, monarchlanguage } from '../../language';
 
 import { Props } from './MonacoQueryFieldProps';
+import { CompletionDataProvider } from './completion/CompletionDataProvider';
+import { getCompletionProvider, getSuggestOptions } from './completion/completionUtils';
 
 const options: monacoTypes.editor.IStandaloneEditorConstructionOptions = {
   codeLens: false,
@@ -35,6 +39,7 @@ const options: monacoTypes.editor.IStandaloneEditorConstructionOptions = {
     horizontalScrollbarSize: 0,
   },
   scrollBeyondLastLine: false,
+  suggest: getSuggestOptions(),
   suggestFontSize: 12,
   wordWrap: 'on',
 };
@@ -47,6 +52,25 @@ const options: monacoTypes.editor.IStandaloneEditorConstructionOptions = {
 //    you do a scroll-movement in the editor, and it will scroll the content by a couple pixels
 //    up & down. this we want to avoid)
 const EDITOR_HEIGHT_OFFSET = 2;
+
+// we must only run the lang-setup code once
+let LANGUAGE_SETUP_STARTED = false;
+const LANG_ID = 'victorialogs-logsql';
+
+function ensureVictoriaLogsLogsQL(monaco: Monaco) {
+  if (LANGUAGE_SETUP_STARTED === false) {
+    LANGUAGE_SETUP_STARTED = true;
+    monaco.languages.register({ id: LANG_ID });
+
+    monaco.languages.setMonarchTokensProvider(LANG_ID, monarchlanguage);
+    monaco.languages.setLanguageConfiguration(LANG_ID, {
+      ...languageConfiguration,
+      wordPattern: /(-?\d*\.\d\w*)|([^`~!#%^&*()+\[{\]}\\|;:',.<>\/?\s]+)/g,
+      // Default:  /(-?\d*\.\d\w*)|([^`~!#%^&*()\-=+\[{\]}\\|;:'",.<>\/?\s]+)/g
+      // Removed `"`, `=`, and `-`, from the exclusion list, so now the completion provider can decide to overwrite any matching words, or just insert text at the cursor
+    });
+  }
+}
 
 const getStyles = (theme: GrafanaTheme2, placeholder: string) => {
   return {
@@ -67,33 +91,66 @@ const getStyles = (theme: GrafanaTheme2, placeholder: string) => {
 const MonacoQueryField = (props: Props) => {
   // we need only one instance of `overrideServices` during the lifetime of the react component
   const containerRef = useRef<HTMLDivElement>(null);
-  const { onBlur, onRunQuery, initialValue, placeholder, readOnly } = props;
+  const { onBlur, onRunQuery, initialValue, placeholder, readOnly, history, timeRange, datasource } = props;
 
   const onRunQueryRef = useLatest(onRunQuery);
   const onBlurRef = useLatest(onBlur);
+  const historyRef = useLatest(history);
+  const langProviderRef = useLatest(datasource.languageProvider);
+  const completionDataProviderRef = useRef<CompletionDataProvider | null>(null);
+  const autocompleteCleanupCallback = useRef<(() => void) | null>(null);
 
   const theme = useTheme2();
   const styles = getStyles(theme, placeholder);
 
+  useEffect(() => {
+    // when we unmount, we unregister the autocomplete-function, if it was registered
+    return () => {
+      autocompleteCleanupCallback.current?.();
+    };
+  }, []);
+
   return (
-    <div
-      aria-label={selectors.components.QueryField.container}
-      className={styles.container}
-      ref={containerRef}
-    >
+    <div aria-label={selectors.components.QueryField.container} className={styles.container} ref={containerRef}>
       <ReactMonacoEditor
-        options={{
-          ...options,
-          readOnly
-        }}
-        language="promql"
+        options={{ ...options, readOnly }}
+        language={LANG_ID}
         value={initialValue}
+        beforeMount={(monaco) => {
+          ensureVictoriaLogsLogsQL(monaco);
+        }}
         onMount={(editor, monaco) => {
           // we setup on-blur
           editor.onDidBlurEditorWidget(() => {
             onBlurRef.current(editor.getValue());
           });
 
+          const dataProvider = new CompletionDataProvider(langProviderRef.current!, historyRef, timeRange);
+          completionDataProviderRef.current = dataProvider;
+          const completionProvider = getCompletionProvider(monaco, dataProvider);
+
+          // completion-providers in monaco are not registered directly to editor-instances,
+          // they are registered to languages. this makes it hard for us to have
+          // separate completion-providers for every query-field-instance
+          // (but we need that, because they might connect to different datasources).
+          // the trick we do is, we wrap the callback in a "proxy",
+          // and in the proxy, the first thing is, we check if we are called from
+          // "our editor instance", and if not, we just return nothing. if yes,
+          // we call the completion-provider.
+          const filteringCompletionProvider: monacoTypes.languages.CompletionItemProvider = {
+            ...completionProvider,
+            provideCompletionItems: (model, position, context, token) => {
+              // if the model-id does not match, then this call is from a different editor-instance,
+              // not "our instance", so return nothing
+              if (editor.getModel()?.id !== model.id) {
+                return { suggestions: [] };
+              }
+              return completionProvider.provideCompletionItems(model, position, context, token);
+            },
+          };
+          const { dispose } = monaco.languages.registerCompletionItemProvider(LANG_ID, filteringCompletionProvider);
+
+          autocompleteCleanupCallback.current = dispose;
           const updateElementHeight = () => {
             const containerDiv = containerRef.current;
             if (containerDiv !== null) {
@@ -110,10 +167,10 @@ const MonacoQueryField = (props: Props) => {
 
           // handle: shift + enter
           editor.addAction({
-            id: "execute-shift-enter",
-            label: "Execute",
+            id: 'execute-shift-enter',
+            label: 'Execute',
             keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.Enter],
-            run: () => onRunQueryRef.current(editor.getValue() || "")
+            run: () => onRunQueryRef.current(editor.getValue() || ''),
           });
 
           /* Something in this configuration of monaco doesn't bubble up [mod]+K, which the
@@ -127,13 +184,8 @@ const MonacoQueryField = (props: Props) => {
             const placeholderDecorators = [
               {
                 range: new monaco.Range(1, 1, 1, 1),
-                contents: [
-                  { value: "**bold** _italics_ regular `code`" }
-                ],
-                options: {
-                  className: styles.placeholder,
-                  isWholeLine: true,
-                },
+                contents: [{ value: '**bold** _italics_ regular `code`' }],
+                options: { className: styles.placeholder, isWholeLine: true },
               },
             ];
 
