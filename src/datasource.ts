@@ -226,7 +226,7 @@ export class VictoriaLogsDatasource
       expandedQueries = queries.map((query) => ({
         ...query,
         datasource: this.getRef(),
-        expr: this.templateSrv.replace(query.expr, scopedVars, this.interpolateQueryExpr),
+        expr: this.interpolateString(query.expr, scopedVars),
         interval: this.templateSrv.replace(query.interval, scopedVars),
         extraFilters: this.getExtraFilters(filters),
       }));
