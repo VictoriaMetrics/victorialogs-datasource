@@ -32,6 +32,7 @@ import {
 import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, TemplateSrv, } from '@grafana/runtime';
 import { DataQuery } from "@grafana/schema";
 
+import { isRegExpOperatorInLastFilter } from "./LogsQL/regExpOperator";
 import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
 import { LogLevelRule } from "./configuration/LogLevelRules/types";
@@ -210,7 +211,7 @@ export class VictoriaLogsDatasource
 
   interpolateQueryExpr(value: any, _variable: any) {
     if (typeof value === 'string') {
-      return value ? `${JSON.stringify(value)}` : value;
+      value = [value];
     }
 
     if (Array.isArray(value)) {
@@ -340,15 +341,16 @@ export class VictoriaLogsDatasource
   }
 
   private replaceMultiVariables(input: string): string {
-    const multiVariablePattern = /["']?\$_StartMultiVariable_(.+?)_EndMultiVariable["']?/g;
+    const multiVariablePattern = /\$_StartMultiVariable_(.+?)_EndMultiVariable?/g;
 
     return input.replace(multiVariablePattern, (match, valueList: string, offset) => {
       const values = valueList.split('_separator_');
 
-      const precedingChars = input.slice(0, offset).replace(/\s+/g, '').slice(-3);
+      const queryBeforeOffset = input.slice(0, offset);
+      const precedingChars = queryBeforeOffset.replace(/\s+/g, '').slice(-3);
 
-      if (precedingChars.includes("~")) {
-        return `"(${values.join("|")})"`;
+      if (isRegExpOperatorInLastFilter(queryBeforeOffset)) {
+        return `(${values.join("|")})`;
       } else if (precedingChars.includes("in(")) {
         return values.map(value => JSON.stringify(value)).join(",");
       }

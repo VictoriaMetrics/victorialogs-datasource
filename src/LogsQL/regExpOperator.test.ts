@@ -1,4 +1,8 @@
-import { getQueryExprVariableRegExp, replaceRegExpOperatorToOperator } from './regExpOperator';
+import {
+  getQueryExprVariableRegExp,
+  isRegExpOperatorInLastFilter,
+  replaceRegExpOperatorToOperator
+} from './regExpOperator';
 
 
 describe('regExpOperator', () => {
@@ -169,6 +173,81 @@ describe('regExpOperator', () => {
                                                                           | stats by(kubernetes.pod_name) count() 
                                                                           | count()`
       );
+    });
+  });
+
+  describe('lookRegExpOperatorBehind', () => {
+    it('should return false for an empty string', () => {
+      const result = isRegExpOperatorInLastFilter('');
+      expect(result).toBeFalsy()
+    });
+
+    it('should return false for a string without regexp operator', () => {
+      const result = isRegExpOperatorInLastFilter('fieldName:value');
+      expect(result).toBeFalsy();
+    });
+
+    it('should return true for a string with :~ inside double quotes', () => {
+      const result = isRegExpOperatorInLastFilter('fieldName:~"');
+      expect(result).toBeTruthy();
+    });
+
+    it('should return true for a string with :~ with double quotes', () => {
+      const result = isRegExpOperatorInLastFilter('fieldName:~"(?i)');
+      expect(result).toBeTruthy();
+    });
+
+    it('should return false for multiple pipes and valid :~ operator but in previous filter', () => {
+      const result = isRegExpOperatorInLastFilter('someField:value | anotherField:~"$var" | moreField:"');
+      expect(result).toBeFalsy();
+    });
+
+    it('should return false for a string with a pipe before any :~ operator', () => {
+      const result = isRegExpOperatorInLastFilter('someField:~value | anotherField:value');
+      expect(result).toBeFalsy();
+    });
+
+    it('should return true for :~ operator with multiple spaces and double quotes', () => {
+      const result = isRegExpOperatorInLastFilter('fieldName :    ~    ".*');
+      expect(result).toBeTruthy();
+    });
+
+    it('should return true for a valid :~ operator at the end of the string', () => {
+      const result = isRegExpOperatorInLastFilter('someField:value | fieldName:~"var regexp');
+      expect(result).toBeTruthy();
+    });
+
+    it('should return false for :~ operator when not preceded by : or =', () => {
+      const result = isRegExpOperatorInLastFilter('fieldName~"$var"');
+      expect(result).toBeFalsy();
+    });
+
+    it('should return false for a string with a missing ~ operator after :', () => {
+      const result = isRegExpOperatorInLastFilter('fieldName:"$var"');
+      expect(result).toBeFalsy();
+    });
+
+    it('should return true when operator is preceded by = (e.g., =~)', () => {
+      const result = isRegExpOperatorInLastFilter('someField =~"val');
+      expect(result).toBeTruthy();
+    });
+
+    it('should return false for a string where :~ is outside double quotes', () => {
+      const result = isRegExpOperatorInLastFilter('fieldName:~$var anotherField:value');
+      expect(result).toBeFalsy();
+    });
+
+    it('should true for stream filter', () => {
+      const result = isRegExpOperatorInLastFilter('{"stream"="stdout" name=~".*n');
+      expect(result).toBeTruthy();
+    });
+
+    it('should return false if regesp filter on another line', () => {
+      const result = isRegExpOperatorInLastFilter(`
+        filterName1!:~"$filter"
+         filtername2='somevalue'
+      `);
+      expect(result).toBeFalsy();
     });
   });
 });
