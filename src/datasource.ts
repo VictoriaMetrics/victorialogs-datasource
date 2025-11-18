@@ -300,12 +300,15 @@ export class VictoriaLogsDatasource
   replaceAllOption(queryExpr: string, variable: QueryVariableModel): string {
     const variableName = variable.name;
 
+    // Check if the variable is modified to filter values with query | regexp | allowCustomValue.
+    // In this case, we need to use a list of options for allValue and regexpAllValue
+    const isModifiedAllOption = variable.query?.query || variable.allowCustomValue || variable.regex;
     let allValue = variable.allValue;
     let regexpAllValue = variable.allValue;
-    if (!allValue && variable.query.query) {
+    if (!allValue && isModifiedAllOption) {
       const values = variable.options.map(option => option.value).flat(1);
       allValue = values.map(value => `"${value}"`).join(',');
-      regexpAllValue = values.join('|');
+      regexpAllValue = `(${values.join('|')})`;
     } else if (!allValue) {
       allValue = '*';
       regexpAllValue = '.*';
