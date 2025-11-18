@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix an interpolating query with multivariables when going to the "explore" page. See [#380](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/380).
+
 ## v0.22.0
 
 * FEATURE: add bars as the default type of visualization for explore mode. Adjust the width of the bars to match the step size. See [#420](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/420).
