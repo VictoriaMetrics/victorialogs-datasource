@@ -287,9 +287,32 @@ export class VictoriaLogsDatasource
     return Array.isArray(value) ? value.includes(VARIABLE_ALL_VALUE) : false;
   }
 
-  replaceAllOption(queryExpr: string, variableName: string, regExpAllValue: string): string {
-    queryExpr = queryExpr.replaceAll(`~"$${variableName}"`, `~"${regExpAllValue}"` || '~".*"');
-    queryExpr = queryExpr.replaceAll(`$${variableName}`, '*');
+  /**
+   * Replaces all occurrences of a variable in the query expression with the following priority:
+   *  1. Custom All Value
+   *  2. list of variables (if query defined)
+   *  3. default '*' and '.*' for regex
+   *
+   * @param {string} queryExpr - The query expression where the variable needs to be replaced.
+   * @param {QueryVariableModel} variable - The variable model containing the variable name, options, and allValue.
+   * @return {string} - The modified query expression with the variable replaced by its corresponding values or patterns.
+   */
+  replaceAllOption(queryExpr: string, variable: QueryVariableModel): string {
+    const variableName = variable.name;
+
+    let allValue = variable.allValue;
+    let regexpAllValue = variable.allValue;
+    if (!allValue && variable.query.query) {
+      const values = variable.options.map(option => option.value).flat(1);
+      allValue = values.map(value => `"${value}"`).join(',');
+      regexpAllValue = values.join('|');
+    } else if (!allValue) {
+      allValue = '*';
+      regexpAllValue = '.*';
+    }
+
+    queryExpr = queryExpr.replaceAll(`~"$${variableName}"`, `~"${regexpAllValue}"`);
+    queryExpr = queryExpr.replaceAll(`$${variableName}`, allValue);
     return queryExpr;
   }
 
@@ -301,7 +324,7 @@ export class VictoriaLogsDatasource
       result = removeDoubleQuotesAroundVar(result, variable.name);
       result = replaceOperatorWithIn(result, variable.name);
       if (this.isAllOption(variable)) {
-        result = this.replaceAllOption(result, variable.name, variable.allValue || '.*');
+        result = this.replaceAllOption(result, variable);
       }
     }
     return result;

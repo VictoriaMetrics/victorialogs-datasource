@@ -3,6 +3,7 @@
 ## tip
 
 * BUGFIX: fix an interpolating query with multivariables when going to the "explore" page. See [#380](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/380).
+* BUGFIX: fix an issue where `*` was used instead of a variable with the selected `All` value. Now the priority is as follows: first, the `allValue` value is used, which is defined in the variable settings, if there is no such value and there is a `query` in the variable setting to filter the values, then the list of return values is used, if there is no query, then `*` is used for normal filters and `.*` for regexp filters. See [#452](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/452).
 
 ## v0.22.0
 
