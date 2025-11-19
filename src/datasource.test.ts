@@ -1,4 +1,4 @@
-import { AdHocVariableFilter } from '@grafana/data';
+import { AdHocVariableFilter, QueryVariableModel } from '@grafana/data';
 import { TemplateSrv } from "@grafana/runtime";
 
 import { createDatasource } from "./__mocks__/datasource";
@@ -297,5 +297,85 @@ describe('VictoriaLogsDatasource', () => {
       const result = ds.interpolateString('foo: $var1 bar: $var2 | $var3', scopedVars);
       expect(result).toStrictEqual('foo:in($var1) bar:in(*) | *');
     })
+  });
+
+  describe('replaceAllOption', () => {
+    it('should replace variables with custom allValue', () => {
+      const queryExpr = 'namespace: $namespace';
+      const variable: QueryVariableModel = {
+        name: 'namespace',
+        allValue: 'all_namespaces',
+        options: [],
+      } as any;
+
+      const result = ds.replaceAllOption(queryExpr, variable);
+      expect(result).toBe('namespace: all_namespaces');
+    });
+
+    it('should use options list if allValue is not provided and allowCustomValue', () => {
+      const queryExpr = 'namespace:~"$namespace"';
+      const variable = {
+        name: 'namespace',
+        allValue: null,
+        allowCustomValue: true,
+        options: [{ value: 'ns1' }, { value: 'ns2' }],
+      } as any;
+
+      const result = ds.replaceAllOption(queryExpr, variable);
+      expect(result).toBe('namespace:~"(ns1|ns2)"');
+    });
+
+    it('should use options list if allValue is not provided and query defined', () => {
+      const queryExpr = 'namespace:~"$namespace"';
+      const variable = {
+        name: 'namespace',
+        allValue: null,
+        options: [{ value: 'ns1' }, { value: 'ns2' }],
+        query: {
+          query: 'filter'
+        }
+      } as any;
+
+      const result = ds.replaceAllOption(queryExpr, variable);
+      expect(result).toBe('namespace:~"(ns1|ns2)"');
+    });
+
+    it('should use default wildcard if allValue and options are missing', () => {
+      const queryExpr = 'namespace:~"$namespace"';
+      const variable = {
+        name: 'namespace',
+        allValue: null,
+        options: [],
+      } as any;
+
+      const result = ds.replaceAllOption(queryExpr, variable);
+      expect(result).toBe('namespace:~".*"');
+    });
+
+    it('should replace variables when regex and allowCustomValue are enabled', () => {
+      const queryExpr = 'namespace:~"$namespace"';
+      const variable = {
+        name: 'namespace',
+        allValue: null,
+        allowCustomValue: true,
+        regex: true,
+        options: [{ value: 'ns1' }, { value: 'ns2' }],
+      } as any;
+
+      const result = ds.replaceAllOption(queryExpr, variable);
+      expect(result).toBe('namespace:~"(ns1|ns2)"');
+    });
+
+    it('should replace multiple occurrences of the same variable', () => {
+      const queryExpr = 'namespace:$namespace AND pod:$namespace';
+      const variable = {
+        name: 'namespace',
+        allValue: 'all_namespaces',
+        options: [],
+      } as any;
+
+      const result = ds.replaceAllOption(queryExpr, variable);
+      expect(result).toBe('namespace:all_namespaces AND pod:all_namespaces');
+    });
   });
 });
