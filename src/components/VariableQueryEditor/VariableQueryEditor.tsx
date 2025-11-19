@@ -2,7 +2,6 @@ import { debounce } from "lodash";
 import React, { FormEvent, useEffect, useState } from 'react';
 
 import { DEFAULT_FIELD_DISPLAY_VALUES_LIMIT, QueryEditorProps, SelectableValue } from '@grafana/data';
-import { getTemplateSrv } from "@grafana/runtime";
 import { InlineField, InlineFieldRow, Input, Select } from "@grafana/ui";
 
 import { VictoriaLogsDatasource } from "../../datasource";
@@ -82,7 +81,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
           type: FilterFieldType.FieldName,
           timeRange: range,
           limit,
-          query: getTemplateSrv().replace(queryFilter),
+          query: datasource.interpolateString(queryFilter),
         }, datasource.customQueryParameters);
 
         const result = list
