@@ -242,12 +242,22 @@ describe('regExpOperator', () => {
       expect(result).toBeTruthy();
     });
 
-    it('should return false if regesp filter on another line', () => {
+    it('should return false if regexp filter on another line', () => {
       const result = isRegExpOperatorInLastFilter(`
         filterName1!:~"$filter"
          filtername2='somevalue'
       `);
       expect(result).toBeFalsy();
+    });
+
+    it('should return true if regexp filter contain |', () => {
+      const result = isRegExpOperatorInLastFilter(`filterName1:~"(a|b)$filter`);
+      expect(result).toBeTruthy();
+    });
+
+    it('should return true if regexp filter contain escaping double quotes', () => {
+      const result = isRegExpOperatorInLastFilter(`filterName1:~ "\\"([^\\"]*)\\"$filter`);
+      expect(result).toBeTruthy();
     });
   });
 });
