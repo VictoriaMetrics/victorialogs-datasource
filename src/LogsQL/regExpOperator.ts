@@ -19,3 +19,86 @@ export function replaceRegExpOperatorToOperator(queryExpr: string, operator = ':
     return match;
   });
 }
+
+
+/**
+ * Checks if a character at a given position is a non-escaped quote.
+ */
+function isNonEscapedQuote(queryExpr: string, index: number): boolean {
+  return queryExpr[index] === '"' && queryExpr[index - 1] !== '\\';
+}
+
+/**
+ * Skips whitespace characters and returns the next non-whitespace index.
+ */
+function skipWhitespace(queryExpr: string, startIndex: number): number {
+  let index = startIndex;
+  while (index < queryExpr.length && queryExpr[index] === ' ') {
+    index++;
+  }
+  return index;
+}
+
+/**
+ * Checks if a regexp operator (~) follows the current position.
+ */
+function hasRegExpOperator(queryExpr: string, operatorIndex: number, isInQuotedSection: boolean): boolean {
+  if (isInQuotedSection) {
+    return false;
+  }
+
+  const nextIndex = skipWhitespace(queryExpr, operatorIndex + 1);
+  return nextIndex < queryExpr.length && queryExpr[nextIndex] === '~';
+}
+
+/**
+ * Determines if the last filter in a query expression contains a regular expression operator.
+ * The method checks for specific operator patterns, such as `:~` or `=~`, within the context
+ * of the last logical filter in the provided query.
+ *
+ * @param {string} queryExpr - The query expression to be analyzed. It is the last part of the query before the multivariable expression
+ *                              e.g. 'anotherFilter:value filterName:~"(a|b)_StartMultiVariable_filterValue_EndMultiVariable"| anotherFilter2:value | filterName2:value2'
+ *                                    ^------------------------------------^
+ * @return {boolean} Returns true if a regular expression operator exists in the last filter of the query expression; otherwise, false.
+ */
+export function isRegExpOperatorInLastFilter(queryExpr: string): boolean {
+  let isInQuotedSection = true; // we always start inside the double quotes, so set it to true
+  const operatorChars = [':', '='];
+  let hasFoundOperator = false;
+
+  for (let i = queryExpr.length - 1; i >= 0; i--) {
+    const char = queryExpr[i];
+
+    if (isNonEscapedQuote(queryExpr, i)) {
+      // If we encounter a double quote and it's not inside a variable, return false
+      if (!isInQuotedSection) {
+        return false;
+      }
+      isInQuotedSection = false;
+      continue;
+    }
+
+    // Skip spaces
+    if (char === ' ') {
+      if (hasFoundOperator) {
+        return false;
+      }
+      continue;
+    }
+
+    // Stop if we encounter a pipe character
+    if (char === '|' && !isInQuotedSection) {
+      return false;
+    }
+
+    // Check for regexp operator pattern (:~ or =~)
+    if (operatorChars.includes(char)) {
+      if (hasRegExpOperator(queryExpr, i, isInQuotedSection)) {
+        return true;
+      }
+      hasFoundOperator = true;
+    }
+  }
+
+  return false;
+}
