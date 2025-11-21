@@ -18,6 +18,7 @@ const QueryField: React.FC<QueryFieldProps> = (
     history,
     onRunQuery,
     onChange,
+    datasource,
     'data-testid': dataTestId
   }) => {
 
@@ -35,6 +36,7 @@ const QueryField: React.FC<QueryFieldProps> = (
           <MonacoQueryFieldWrapper
             runQueryOnBlur={false}
             history={history ?? []}
+            datasource={datasource}
             onChange={onChangeQuery}
             onRunQuery={onRunQuery}
             initialValue={query.expr ?? ''}
