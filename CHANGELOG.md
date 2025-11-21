@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix an issue where an empty textbox variable was incorrectly interpolated. See [#454](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/454).
+
 ## v0.22.1
 
 * BUGFIX: fix an interpolating query with multivariables when going to the "explore" page. See [#380](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/380).

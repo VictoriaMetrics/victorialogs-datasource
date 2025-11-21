@@ -210,7 +210,7 @@ export class VictoriaLogsDatasource
   }
 
   interpolateQueryExpr(value: any, _variable: any) {
-    if (typeof value === 'string') {
+    if (typeof value === 'string' && value) {
       value = [value];
     }
 
