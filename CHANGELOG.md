@@ -3,6 +3,7 @@
 ## tip
 
 * BUGFIX: fix an issue where an empty textbox variable was incorrectly interpolated. See [#454](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/454).
+* BUGFIX: fix an issue where live tailing logs in Grafana's explore page does not work. See [#460](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/460).
 
 ## v0.22.1
 
