@@ -59,6 +59,7 @@ import {
   ToggleFilterAction,
   VariableQuery,
 } from './types';
+import { replaceAllOptionInQuery } from "./utils/replaceAllOptionInQuery";
 import { getMillisecondsFromDuration } from "./utils/timeUtils";
 import { VariableSupport } from "./variableSupport/VariableSupport";
 
@@ -288,38 +289,6 @@ export class VictoriaLogsDatasource
     return Array.isArray(value) ? value.includes(VARIABLE_ALL_VALUE) : false;
   }
 
-  /**
-   * Replaces all occurrences of a variable in the query expression with the following priority:
-   *  1. Custom All Value
-   *  2. list of variables (if query defined)
-   *  3. default '*' and '.*' for regex
-   *
-   * @param {string} queryExpr - The query expression where the variable needs to be replaced.
-   * @param {QueryVariableModel} variable - The variable model containing the variable name, options, and allValue.
-   * @return {string} - The modified query expression with the variable replaced by its corresponding values or patterns.
-   */
-  replaceAllOption(queryExpr: string, variable: QueryVariableModel): string {
-    const variableName = variable.name;
-
-    // Check if the variable is modified to filter values with query | regexp | allowCustomValue.
-    // In this case, we need to use a list of options for allValue and regexpAllValue
-    const isModifiedAllOption = variable.query?.query || variable.allowCustomValue || variable.regex;
-    let allValue = variable.allValue;
-    let regexpAllValue = variable.allValue;
-    if (!allValue && isModifiedAllOption) {
-      const values = variable.options.map(option => option.value).flat(1);
-      allValue = values.map(value => `"${value}"`).join(',');
-      regexpAllValue = `(${values.join('|')})`;
-    } else if (!allValue) {
-      allValue = '*';
-      regexpAllValue = '.*';
-    }
-
-    queryExpr = queryExpr.replaceAll(`~"$${variableName}"`, `~"${regexpAllValue}"`);
-    queryExpr = queryExpr.replaceAll(`$${variableName}`, allValue);
-    return queryExpr;
-  }
-
   replaceOperatorsToInForMultiQueryVariables(expr: string) {
     const variables = this.templateSrv.getVariables();
     const fieldValuesVariables = variables.filter(v => v.type === 'query' && v.query.type === 'fieldValue' && v.multi || this.isAllOption(v)) as QueryVariableModel[];
@@ -328,7 +297,7 @@ export class VictoriaLogsDatasource
       result = removeDoubleQuotesAroundVar(result, variable.name);
       result = replaceOperatorWithIn(result, variable.name);
       if (this.isAllOption(variable)) {
-        result = this.replaceAllOption(result, variable);
+        result = replaceAllOptionInQuery(result, variable);
       }
     }
     return result;
