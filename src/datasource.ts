@@ -118,7 +118,7 @@ export class VictoriaLogsDatasource
       return {
         ...q,
         // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
-        expr: addSortPipeToQuery(q, sortOrder),
+        expr: addSortPipeToQuery(q, sortOrder, request.liveStreaming),
         maxLines: q.maxLines ?? this.maxLines,
       }
     });
