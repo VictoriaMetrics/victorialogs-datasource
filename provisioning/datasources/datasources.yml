@@ -11,3 +11,9 @@ datasources:
     # <string> Sets URL for sending queries to VictoriaLogs server.
     # see https://docs.victoriametrics.com/victorialogs/querying/
     url: http://victorialogs:9428
+    jsonData:
+      # Multitenancy settings, see https://docs.victoriametrics.com/victorialogs/#multitenancy
+      # to use the multitenancy uncomment lines below: AccountID and ProjectID
+      multitenancyHeaders:
+        #AccountID: 0
+        #ProjectID: 0
