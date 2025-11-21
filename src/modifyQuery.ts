@@ -109,9 +109,9 @@ export const logsSortOrders = {
   desc: "Descending"
 };
 
-export const addSortPipeToQuery = ({ expr, queryType }: Query, sortDirection: string) => {
-  // if a query is not 'Raw logs' do not add sort pipe
-  if (queryType !== QueryType.Instant) {
+export const addSortPipeToQuery = ({ expr, queryType }: Query, sortDirection: string, isLiveStreaming = false) => {
+  // if a query is not 'Raw logs' or is a live stream, don't add sort pipe
+  if (queryType !== QueryType.Instant || isLiveStreaming) {
     return expr;
   }
   const exprContainsSort = /\|\s*sort\s*by\s*\(/i.test(expr); // checks for existing sort pipe `sort by (`
