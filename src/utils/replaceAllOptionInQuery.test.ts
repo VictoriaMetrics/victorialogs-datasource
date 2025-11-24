@@ -25,7 +25,7 @@ describe('replaceAllOptionInQuery', () => {
     } as any;
 
     const result = replaceAllOptionInQuery(queryExpr, variable);
-    expect(result).toBe('namespace:~"(ns1|ns2)"');
+    expect(result).toBe('namespace:~"(\"ns1\"|\"ns2\")"');
   });
 
   it('should use options list if allValue is not provided and query defined', () => {
@@ -40,7 +40,7 @@ describe('replaceAllOptionInQuery', () => {
     } as any;
 
     const result = replaceAllOptionInQuery(queryExpr, variable);
-    expect(result).toBe('namespace:~"(ns1|ns2)"');
+    expect(result).toBe('namespace:~"(\"ns1\"|\"ns2\")"');
   });
 
   it('should use default wildcard if allValue and options are missing', () => {
@@ -66,7 +66,7 @@ describe('replaceAllOptionInQuery', () => {
     } as any;
 
     const result = replaceAllOptionInQuery(queryExpr, variable);
-    expect(result).toBe('namespace:~"(ns1|ns2)"');
+    expect(result).toBe('namespace:~"(\"ns1\"|\"ns2\")"');
   });
 
   it('should replace multiple occurrences of the same variable', () => {
@@ -103,5 +103,29 @@ describe('replaceAllOptionInQuery', () => {
 
     const result = replaceAllOptionInQuery(queryExpr, variable);
     expect(result).toBe('namespace:~".*" pod:in(*)');
+  });
+
+  it('should change only foo as word', () => {
+    const queryExpr = 'namespace:in($foo) pod:in($foobar)';
+    const variable = {
+      name: 'foo',
+      allValue: '*',
+      options: [],
+    } as any;
+
+    const result = replaceAllOptionInQuery(queryExpr, variable);
+    expect(result).toBe('namespace:in(*) pod:in($foobar)');
+  });
+
+  it('should change only foo as word in regexp', () => {
+    const queryExpr = 'namespace:~"$foo" pod:~"$foobar"';
+    const variable = {
+      name: 'foo',
+      allValue: '*',
+      options: [],
+    } as any;
+
+    const result = replaceAllOptionInQuery(queryExpr, variable);
+    expect(result).toBe('namespace:~".*" pod:~"$foobar"');
   });
 });

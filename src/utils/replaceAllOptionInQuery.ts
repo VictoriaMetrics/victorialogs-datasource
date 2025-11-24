@@ -18,8 +18,11 @@ export function replaceAllOptionInQuery(queryExpr: string, variable: QueryVariab
   const allValue = normalizeAllValue(computeAllValue(variable));
   const regexpAllValue = normalizeRegexpAllValue(computeRegexpAllValue(variable));
 
-  queryExpr = queryExpr.replaceAll(`~"$${variableName}"`, `~"${regexpAllValue}"`);
-  queryExpr = queryExpr.replaceAll(`$${variableName}`, allValue);
+  const regexpPattern = new RegExp(`~"\\$${variableName}\\b"`, 'g');
+  const variablePattern = new RegExp(`\\$${variableName}\\b`, 'g');
+  
+  queryExpr = queryExpr.replace(regexpPattern, `~"${regexpAllValue}"`);
+  queryExpr = queryExpr.replace(variablePattern, allValue);
   return queryExpr;
 }
 
@@ -51,7 +54,7 @@ function computeRegexpAllValue(variable: QueryVariableModel): string {
 
   if (hasModifiedAllOption(variable)) {
     const values = extractOptionValues(variable);
-    return `(${values.join('|')})`;
+    return `(${values.map(value => `\"${value}\"`).join('|')})`;
   }
 
   return DEFAULT_REGEXP_ALL_VALUE;
