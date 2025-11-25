@@ -61,7 +61,7 @@ describe('buildVisualQueryFromString', () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  it('should reset errors for empty queries', () => {
+  it('should reset errors for non empty queries', () => {
     const expr = '*';
     const result = buildVisualQueryFromString(expr);
     expect(result.errors).toHaveLength(0);

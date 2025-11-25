@@ -1,7 +1,7 @@
 import { css } from '@emotion/css';
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useState } from 'react';
 import * as React from 'react';
-import { usePrevious } from 'react-use';
+
 
 import { GrafanaTheme2, DataSourceInstanceSettings, VariableSuggestion } from '@grafana/data';
 import { DataSourcePicker } from '@grafana/runtime';
@@ -56,18 +56,8 @@ export const DerivedField = (props: Props) => {
     const { value, onChange, onDelete, suggestions, className, validateName } = props;
     const styles = useStyles2(getStyles);
     const [showInternalLink, setShowInternalLink] = useState(!!value.datasourceUid);
-    const previousUid = usePrevious(value.datasourceUid);
     const [fieldType, setFieldType] = useState<MatcherType>(value.matcherType ?? 'regex');
-
-    // Force internal link visibility change if uid changed outside of this component.
-    useEffect(() => {
-        if (!previousUid && value.datasourceUid && !showInternalLink) {
-            setShowInternalLink(true);
-        }
-        if (previousUid && !value.datasourceUid && showInternalLink) {
-            setShowInternalLink(false);
-        }
-    }, [previousUid, value.datasourceUid, showInternalLink]);
+    const isVisibleInternalLink = showInternalLink && !!value.datasourceUid;
 
     const handleChange = (field: keyof typeof value) => (event: React.ChangeEvent<HTMLInputElement>) => {
         onChange({
@@ -143,9 +133,9 @@ export const DerivedField = (props: Props) => {
             </div>
 
             <div className="gf-form">
-                <Field label={showInternalLink ? 'Query' : 'URL'} className={styles.urlField}>
+                <Field label={isVisibleInternalLink ? 'Query' : 'URL'} className={styles.urlField}>
                     <DataLinkInput
-                        placeholder={showInternalLink ? '${__value.raw}' : 'http://example.com/${__value.raw}'}
+                        placeholder={isVisibleInternalLink ? '${__value.raw}' : 'http://example.com/${__value.raw}'}
                         value={value.url || ''}
                         onChange={(newValue) =>
                             onChange({
@@ -172,7 +162,7 @@ export const DerivedField = (props: Props) => {
             <div className="gf-form">
                 <Field label="Internal link" className={styles.internalLink}>
                     <Switch
-                        value={showInternalLink}
+                        value={isVisibleInternalLink}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => {
                             const { checked } = e.currentTarget;
                             if (!checked) {
@@ -186,7 +176,7 @@ export const DerivedField = (props: Props) => {
                     />
                 </Field>
 
-                {showInternalLink && (
+                {isVisibleInternalLink && (
                     <Field label="" className={styles.dataSource}>
                         <DataSourcePicker
                             tracing={true}

@@ -45,17 +45,17 @@ function makeTableFrame(instantMetricFrames: DataFrame[], refId: string): DataFr
     const timeArray = timeField.values;
     const valueArray = valueField.values;
 
-    for (let x of timeArray) {
+    for (const x of timeArray) {
       tableTimeField.values.push(x);
     }
 
-    for (let x of valueArray) {
+    for (const x of valueArray) {
       tableValueField.values.push(x);
     }
 
     const labels = valueField.labels ?? {};
 
-    for (let f of labelFields) {
+    for (const f of labelFields) {
       const text = labels[f.name] ?? '';
       // we insert the labels as many times as we have values
       for (let i = 0; i < valueArray.length; i++) {

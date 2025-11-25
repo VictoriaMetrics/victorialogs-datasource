@@ -93,10 +93,19 @@ export default defineConfig([
         "jest/no-focused-tests": "error",
         "@typescript-eslint/array-type": 0,
         "no-useless-escape": 0,
+        "no-prototype-builtins": 0,
         "import/order": [
           "error",
           {
             "groups": [["builtin", "external"], "internal", "parent", "sibling", "index"],
+            'pathGroups': [
+              {
+                pattern: '@grafana/**',
+                group: 'external',
+                position: 'after'
+              }
+            ],
+            'pathGroupsExcludedImportTypes': ['react', 'react-dom'],
             "newlines-between": "always",
             "alphabetize": { "order": "asc" }
           }

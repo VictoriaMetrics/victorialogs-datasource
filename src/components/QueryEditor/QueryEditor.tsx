@@ -55,6 +55,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDataIsStale(false);
   }, [data]);
 

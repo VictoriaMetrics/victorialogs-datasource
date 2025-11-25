@@ -85,7 +85,7 @@ const splitByTopLevelParentheses = (input: string) => {
   let level = 0;
   let current = '';
 
-  for (let char of input) {
+  for (const char of input) {
     if (char === '(') {
       if (level === 0 && current.trim() !== '') {
         result.push(current.trim());

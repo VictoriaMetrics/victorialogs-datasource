@@ -30,7 +30,6 @@ import {
   TypedVariableModel,
 } from '@grafana/data';
 import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, TemplateSrv, } from '@grafana/runtime';
-import { DataQuery } from "@grafana/schema";
 
 import { isRegExpOperatorInLastFilter } from "./LogsQL/regExpOperator";
 import { transformBackendResult } from "./backendResultTransformer";
@@ -174,7 +173,7 @@ export class VictoriaLogsDatasource
   }
 
   queryHasFilter(query: Query, filter: QueryFilterOptions): boolean {
-    let expression = query.expr ?? '';
+    const expression = query.expr ?? '';
     return queryHasFilter(expression, filter.key, filter.value, "=");
   }
 
@@ -293,7 +292,7 @@ export class VictoriaLogsDatasource
     const variables = this.templateSrv.getVariables();
     const fieldValuesVariables = variables.filter(v => v.type === 'query' && v.query.type === 'fieldValue' && v.multi || this.isAllOption(v)) as QueryVariableModel[];
     let result = expr;
-    for (let variable of fieldValuesVariables) {
+    for (const variable of fieldValuesVariables) {
       result = removeDoubleQuotesAroundVar(result, variable.name);
       result = replaceOperatorWithIn(result, variable.name);
       if (this.isAllOption(variable)) {
@@ -389,7 +388,7 @@ export class VictoriaLogsDatasource
 
   getSupplementaryQuery(options: SupplementaryQueryOptions, query: Query, request: DataQueryRequest<Query>): Query | undefined {
     switch (options.type) {
-      case SupplementaryQueryType.LogsVolume:
+      case SupplementaryQueryType.LogsVolume: {
         const totalSeconds = request.range.to.diff(request.range.from, "second");
         const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || "";
 
@@ -404,7 +403,7 @@ export class VictoriaLogsDatasource
           refId: `${REF_ID_STARTER_LOG_VOLUME}${query.refId}`,
           supportingQueryType: SupportingQueryType.LogsVolume,
         };
-
+      }
       case SupplementaryQueryType.LogsSample:
         return {
           ...query,
@@ -451,7 +450,6 @@ export class VictoriaLogsDatasource
   getLogRowContext = async (
     row: LogRowModel,
     options?: LogRowContextOptions,
-    query?: DataQuery
   ): Promise<{ data: DataFrame[] }> => {
     const contextRequest = this.makeLogContextDataRequest(row, options);
     return lastValueFrom(this.runQuery(contextRequest));

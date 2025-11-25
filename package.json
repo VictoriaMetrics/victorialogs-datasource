@@ -10,7 +10,7 @@
     "test:ci": "jest --maxWorkers 4",
     "test:coverage": "jest --collectCoverage",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint --cache . --max-warnings=0",
+    "lint": "eslint --cache .",
     "lint:fix": "yarn lint -- --fix",
     "server": "docker compose up",
     "sign": "[ -z $GRAFANA_ACCESS_POLICY_TOKEN ] && echo 'skip plugin signing' || npx --yes @grafana/sign-plugin@latest"

@@ -18,7 +18,7 @@ import { TenantSettings } from "./TenantSettings";
 
 export type PropsConfigEditor = DataSourcePluginOptionsEditorProps<Options>;
 
-const makeJsonUpdater = <T extends any>(field: keyof Options) =>
+const makeJsonUpdater = <T,>(field: keyof Options) =>
   (options: DataSourceSettings<Options>, value: T): DataSourceSettings<Options> => ({
     ...options,
     jsonData: {

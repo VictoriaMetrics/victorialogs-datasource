@@ -122,7 +122,7 @@ function detectStreamOperator(queryExpr: string, endOperatorPos: number, rightSp
  */
 function detectOperator(queryExpr: string, varIndex: number): OperatorInfo {
   const rightSpaces = countLeftSpaces(queryExpr, varIndex);
-  let endOperatorPos = varIndex - rightSpaces;
+  const endOperatorPos = varIndex - rightSpaces;
 
   // for operator "!=" | "="
   const streamOperator = detectStreamOperator(queryExpr, endOperatorPos, rightSpaces);
