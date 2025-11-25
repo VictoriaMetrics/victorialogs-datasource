@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.22.2
+
 * BUGFIX: fix an issue where an empty textbox variable was incorrectly interpolated. See [#454](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/454).
 * BUGFIX: fix a `glob` package vulnerability [CVE-2025-64756](https://github.com/advisories/GHSA-5j98-mcp5-4vw2).
 * BUGFIX: fix an issue where live tailing logs in Grafana's explore page does not work. See [#460](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/460).
