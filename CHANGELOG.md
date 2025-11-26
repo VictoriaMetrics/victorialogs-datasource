@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix an issue where `_msg` was incorrectly parsed to `detected_level` label according to `Log Level rules`. See [#465](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/465).
+
 ## v0.22.2
 
 * BUGFIX: fix an issue where an empty textbox variable was incorrectly interpolated. See [#454](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/454).

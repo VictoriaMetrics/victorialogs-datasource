@@ -1,13 +1,13 @@
 import {
   DataFrame,
+  DataFrameType,
   DataQueryError,
   DataQueryRequest,
   DataQueryResponse,
   Field,
   FieldType,
   isDataFrame,
-  QueryResultMeta,
-  DataFrameType
+  QueryResultMeta
 } from '@grafana/data';
 
 import { LogLevelRule } from "./configuration/LogLevelRules/types";
@@ -23,6 +23,7 @@ const ANNOTATIONS_REF_ID = 'Anno';
 
 enum FrameField {
   Labels = 'labels',
+  Line = 'Line',
   /**
    * The name of the label that is added to the log line to indicate the calculated log level according to the log level rules
    * Grafana supports only `detected_level` and `level` label names. Apps often use 'level' for the log level,
@@ -52,11 +53,14 @@ function setFrameMeta(frame: DataFrame, meta: QueryResultMeta): DataFrame {
 
 function addLevelField(frame: DataFrame, rules: LogLevelRule[]): DataFrame {
   const rows = frame.length ?? frame.fields[0]?.values.length ?? 0;
+  const lineField = frame.fields.find(f => f.name === FrameField.Line);
   const labelsField = frame.fields.find(f => f.name === FrameField.Labels);
 
   const levelValues = Array.from({ length: rows }, (_, idx) => {
     const labels = (labelsField?.values[idx] ?? {}) as Record<string, any>;
-    return extractLevelFromLabels(labels, rules);
+    const msg = lineField?.values[idx] ?? '';
+    const labelsWithMsg = { ...labels, _msg: msg };
+    return extractLevelFromLabels(labelsWithMsg, rules);
   });
 
   const levelField: Field = {
