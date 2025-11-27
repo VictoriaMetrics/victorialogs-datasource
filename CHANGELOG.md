@@ -3,6 +3,7 @@
 ## tip
 
 * BUGFIX: fix an issue where `_msg` was incorrectly parsed to `detected_level` label according to `Log Level rules`. See [#465](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/465).
+* BUGFIX: fix an issue where the `Logs panel` shows an empty view when infinite scrolling at the bottom. See [#466](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/466).
 
 ## v0.22.2
 

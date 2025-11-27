@@ -1,6 +1,5 @@
 import {
-  DataFrame,
-  DataFrameType,
+  DataFrame, DataFrameType,
   DataQueryError,
   DataQueryRequest,
   DataQueryResponse,
@@ -46,7 +45,6 @@ function setFrameMeta(frame: DataFrame, meta: QueryResultMeta): DataFrame {
     meta: {
       ...newMeta,
       typeVersion: [0, 1],
-      type: DataFrameType.TimeSeriesMulti
     },
   };
 }
@@ -135,7 +133,7 @@ function processStreamFrame(
   const frameWithLevel = addLevelField(frameWithMeta, logLevelRules);
 
   const derivedFields = getDerivedFields(frameWithLevel, derivedFieldConfigs);
-  const baseFields = getStreamFields(frameWithLevel.fields, transformLabels)
+  const baseFields = getStreamFields(frameWithLevel.fields, transformLabels);
 
   return {
     ...frameWithLevel,
@@ -211,7 +209,7 @@ function getQueryMap(queries: Query[]) {
 }
 
 function processMetricRangeFrames(frames: DataFrame[], queries: Query[], startTime: number, endTime: number): DataFrame[] {
-  const meta: QueryResultMeta = { preferredVisualisationType: 'graph' };
+  const meta: QueryResultMeta = { preferredVisualisationType: 'graph', type: DataFrameType.TimeSeriesMulti };
   const queryMap = getQueryMap(queries);
 
   return frames.map((frame) => {
