@@ -24,9 +24,8 @@ async function getLabelFieldOptions(props: GetLabelFieldOptionsProps): Promise<S
   const { timeRange, queryModeller, datasource, labels, fieldType, fieldName } = props;
   const expr = queryModeller.renderLabels(labels);
   const replacedExpr = datasource.interpolateString(expr);
-  let options = [];
-  options = await datasource.languageProvider?.getFieldList({ query: replacedExpr, timeRange: timeRange, type: fieldType, field: fieldName }) || [];
-  options = options.map(({ value, hits }: { value: string; hits: number }) => ({
+  const fieldList = (await datasource.languageProvider?.getFieldList({ query: replacedExpr, timeRange: timeRange, type: fieldType, field: fieldName })) || [];
+  const options = fieldList.map(({ value, hits }) => ({
     value,
     label: value || " ",
     description: `hits: ${hits}`,
@@ -37,10 +36,7 @@ async function getLabelFieldOptions(props: GetLabelFieldOptionsProps): Promise<S
 
 function getPrevLabels(labels: QueryBuilderLabelFilter[], forLabel: Partial<QueryBuilderLabelFilter>): QueryBuilderLabelFilter[] {
   const idx = labels.findIndex(label => label === forLabel);
-  if (idx === -1) {
-    return labels;
-  }
-  return labels.slice(0, idx);
+  return idx === -1 ? labels : labels.slice(0, idx);
 }
 
 interface Props {

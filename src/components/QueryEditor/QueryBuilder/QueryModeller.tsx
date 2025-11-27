@@ -145,11 +145,13 @@ export const parseExprToVisualQuery = (expr: string, defaultField = "_msg", quer
       }
       lastOpWasOperator = false;
     }
-    if (beforeFirstPipe && operationList.length > 0) {
-      if (!operationList.some(op => !opIsLabelFilter(op, operationQueryModeller))) {
-        labels.push(...convertOpsToLabelFilters(operationList))
-        operationList = [];
-      }
+    if (
+      beforeFirstPipe &&
+      operationList.length > 0 &&
+      operationList.every(op => opIsLabelFilter(op, operationQueryModeller))
+    ) {
+      labels.push(...convertOpsToLabelFilters(operationList))
+      operationList = [];
     }
     beforeFirstPipe = false;
   }

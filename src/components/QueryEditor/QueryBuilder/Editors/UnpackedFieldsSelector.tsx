@@ -4,6 +4,7 @@ import { SelectableValue } from '@grafana/data';
 import { QueryBuilderOperationParamEditorProps } from '@grafana/plugin-ui';
 import { ActionMeta, MultiSelect } from '@grafana/ui';
 
+import { VictoriaLogsDatasource } from '../../../../datasource';
 import { FilterFieldType, VisualQuery } from "../../../../types";
 import { getValuesFromBrackets } from '../utils/operationParser';
 import { quoteString } from '../utils/stringHandler';
@@ -50,12 +51,12 @@ export default function UnpackedFieldsSelector(unpackOperation: "unpack_json" | 
         prevExpr = "*";
       }
       const queryExpr = prevExpr + unpackedQuery;
-      let options = await datasource.languageProvider?.getFieldList({ query: queryExpr, timeRange, type: FilterFieldType.FieldName });
-      options = options ? options.map(({ value, hits }: { value: string; hits: number }) => ({
+      const fieldList = (await (datasource as VictoriaLogsDatasource).languageProvider?.getFieldList({ query: queryExpr, timeRange, type: FilterFieldType.FieldName })) || [];
+      const options = fieldList.map(({ value, hits }) => ({
         value: value.replace(/^(result_)/, ""),
         label: value.replace(/^(result_)/, "") || " ",
         description: `hits: ${hits}`,
-      })) : []
+      }));
       setOptions(options);
       setIsLoading(false);
     }

@@ -2,7 +2,7 @@ import { QueryBuilderOperation, QueryBuilderOperationParamEditorProps, VisualQue
 import { getTemplateSrv } from "@grafana/runtime";
 
 import { VictoriaLogsDatasource } from "../../../../../datasource";
-import { FilterFieldType, VisualQuery } from "../../../../../types";
+import { FieldHits, FilterFieldType, VisualQuery } from "../../../../../types";
 import { buildVisualQueryToString } from "../../QueryModeller";
 import { VictoriaLogsQueryOperationCategory } from "../../VictoriaLogsQueryOperationCategory";
 
@@ -58,14 +58,14 @@ export async function getFieldOptions(props: QueryBuilderOperationParamEditorPro
     expr += " | " + suffixQuery;
   }
   const replacedExpr = (datasource as VictoriaLogsDatasource).interpolateString(expr);
-  let options = [];
+  let fieldList: FieldHits[] = [];
   try {
-    options = await datasource.languageProvider?.getFieldList({ query: replacedExpr, timeRange, type: fieldType, field: fieldName });
+    fieldList = (await (datasource as VictoriaLogsDatasource).languageProvider?.getFieldList({ query: replacedExpr, timeRange, type: fieldType, field: fieldName })) || [];
   } catch (e) {
     console.warn("Error fetching field names", e, "query", replacedExpr);
-    options = await datasource.languageProvider?.getFieldList({ timeRange, type: fieldType, field: fieldName });
+    fieldList = (await (datasource as VictoriaLogsDatasource).languageProvider?.getFieldList({ timeRange, type: fieldType, field: fieldName })) || [];
   }
-  options = options.map(({ value, hits }: { value: string; hits: number }) => ({
+  const options = fieldList.map(({ value, hits }) => ({
     value,
     label: value || " ",
     description: `hits: ${hits}`,

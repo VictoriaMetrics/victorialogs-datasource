@@ -107,12 +107,8 @@ export class QueryModeller implements VictoriaVisualQueryModeller {
   }
 
   renderQuery(query: { operations: QueryBuilderOperation[], labels?: QueryBuilderLabelFilter[] }, nested?: boolean): string {
-    let queryString = ""
-    if (query.labels) {
-      queryString = this.renderLabels(query.labels);
-    }
-    queryString = this.renderOperations(queryString, query.operations);
-    return queryString;
+    const base = query.labels ? this.renderLabels(query.labels) : ""
+    return this.renderOperations(base, query.operations);
   }
 
   renderLabels(labels: QueryBuilderLabelFilter[]): string {
