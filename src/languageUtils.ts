@@ -25,3 +25,41 @@ export function escapeLabelValueInSelector(labelValue: string, selector?: string
     ? escapeLabelValueInRegexSelector(labelValue)
     : escapeLabelValueInExactSelector(labelValue);
 }
+
+function isLogLineJSON(msg: string): boolean {
+  try {
+    const parsed = JSON.parse(msg);
+    return typeof parsed === 'object' && parsed !== null;
+  } catch (e) {
+    return false;
+  }
+}
+const LOGFMT_REGEXP = /(?:^|\s)([\w\(\)\[\]\{\}]+)=(""|(?:".*?[^\\]"|[^"\s]\S*))/;
+
+function isLogLineLogfmt(msg: string): boolean {
+  return LOGFMT_REGEXP.test(msg);
+}
+
+export function extractLogParserFromSample(sample: Record<string, unknown>[]): {
+  hasLogfmt: boolean;
+  hasJSON: boolean;
+} {
+  if (sample.length === 0) {
+    return { hasJSON: false, hasLogfmt: false };
+  }
+
+  let hasJSON = false;
+  let hasLogfmt = false;
+
+  sample.forEach((line) => {
+    const msg: string = line['_msg'] as string;
+    if (isLogLineJSON(msg)) {
+      hasJSON = true;
+    }
+    if (isLogLineLogfmt(msg)) {
+      hasLogfmt = true;
+    }
+  });
+
+  return { hasLogfmt, hasJSON };
+}
