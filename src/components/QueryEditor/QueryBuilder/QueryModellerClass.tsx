@@ -4,6 +4,7 @@ import { VisualQuery } from "../../../types";
 
 import { VictoriaLogsOperationId, VictoriaQueryBuilderOperationDefinition, OperationDefinitions } from "./Operations";
 import { VictoriaLogsQueryOperationCategory } from "./VictoriaLogsQueryOperationCategory";
+import { quoteString } from "./utils/stringHandler";
 
 declare abstract class VictoriaVisualQueryModeller implements VisualQueryModeller {
   innerQueryPlaceholder: string;
@@ -105,13 +106,27 @@ export class QueryModeller implements VictoriaVisualQueryModeller {
     return queryString.trim();
   }
 
-  renderQuery(query: { operations: QueryBuilderOperation[] }, nested?: boolean): string {
-    const queryString = this.renderOperations("", query.operations);
+  renderQuery(query: { operations: QueryBuilderOperation[], labels?: QueryBuilderLabelFilter[] }, nested?: boolean): string {
+    let queryString = ""
+    if (query.labels) {
+      queryString = this.renderLabels(query.labels);
+    }
+    queryString = this.renderOperations(queryString, query.operations);
     return queryString;
   }
 
   renderLabels(labels: QueryBuilderLabelFilter[]): string {
-    return '';
+    let expr = "";
+    for (const label of labels) {
+      if (expr !== "") {
+        expr += " ";
+      }
+      if (label.label !== "_msg") {
+        expr += quoteString(label.label) + ":"
+      }
+      expr += label.op + quoteString(label.value);
+    }
+    return expr;
   }
 }
 

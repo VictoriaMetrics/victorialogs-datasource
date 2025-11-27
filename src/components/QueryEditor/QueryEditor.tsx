@@ -96,6 +96,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
               onChange={onChangeInternal}
               onRunQuery={props.onRunQuery}
               timeRange={timeRange}
+              enableLabelFilters={true}
             />
           ) : (
             <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />

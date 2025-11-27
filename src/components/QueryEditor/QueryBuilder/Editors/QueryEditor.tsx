@@ -19,6 +19,7 @@ export default function QueryEditor(props: QueryBuilderOperationParamEditorProps
         onChange={onVisQueryChange}
         onRunQuery={onRunQuery}
         timeRange={timeRange}
+        enableLabelFilters={false}
       />
     </InlineField>
   )

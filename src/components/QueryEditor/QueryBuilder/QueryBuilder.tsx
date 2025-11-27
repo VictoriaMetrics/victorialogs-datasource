@@ -1,15 +1,47 @@
 
-import { css } from "@emotion/css";
 import React, { memo, useMemo } from 'react';
 
-import { GrafanaTheme2, TimeRange, DataSourceApi } from "@grafana/data";
-import { OperationList } from '@grafana/plugin-ui';
-import { useStyles2 } from "@grafana/ui";
+import { TimeRange, DataSourceApi, SelectableValue } from "@grafana/data";
+import { EditorRow, LabelFilters, OperationList, OperationsEditorRow, QueryBuilderLabelFilter } from '@grafana/plugin-ui';
 
 import { VictoriaLogsDatasource } from "../../../datasource";
-import { VisualQuery } from "../../../types";
+import { FilterFieldType, VisualQuery } from "../../../types";
 
+import { getVariableOptions } from "./Editors/utils/editorHelper";
 import { QueryModeller } from "./QueryModellerClass";
+
+
+type GetLabelFieldOptionsProps = {
+  timeRange?: TimeRange;
+  queryModeller: QueryModeller;
+  datasource: VictoriaLogsDatasource;
+  labels: QueryBuilderLabelFilter[];
+  fieldType: FilterFieldType;
+  fieldName?: string;
+}
+
+async function getLabelFieldOptions(props: GetLabelFieldOptionsProps): Promise<SelectableValue[]> {
+  const { timeRange, queryModeller, datasource, labels, fieldType, fieldName } = props;
+  const expr = queryModeller.renderLabels(labels);
+  const replacedExpr = datasource.interpolateString(expr);
+  let options = [];
+  options = await datasource.languageProvider?.getFieldList({ query: replacedExpr, timeRange: timeRange, type: fieldType, field: fieldName }) || [];
+  options = options.map(({ value, hits }: { value: string; hits: number }) => ({
+    value,
+    label: value || " ",
+    description: `hits: ${hits}`,
+  }));
+  options.push(...await getVariableOptions())
+  return options;
+}
+
+function getPrevLabels(labels: QueryBuilderLabelFilter[], forLabel: Partial<QueryBuilderLabelFilter>): QueryBuilderLabelFilter[] {
+  const idx = labels.findIndex(label => label === forLabel);
+  if (idx === -1) {
+    return labels;
+  }
+  return labels.slice(0, idx);
+}
 
 interface Props {
   query: VisualQuery;
@@ -17,10 +49,10 @@ interface Props {
   timeRange?: TimeRange;
   onChange: (update: VisualQuery) => void;
   onRunQuery: () => void;
+  enableLabelFilters: boolean;
 }
 
-const QueryBuilder = memo<Props>(({ datasource, query, onChange, onRunQuery, timeRange }) => {
-  const styles = useStyles2(getStyles);
+const QueryBuilder = memo<Props>(({ datasource, query, onChange, onRunQuery, timeRange, enableLabelFilters }) => {
   const queryModeller = useMemo(() => {
     return new QueryModeller([]);
   }, []);
@@ -29,30 +61,50 @@ const QueryBuilder = memo<Props>(({ datasource, query, onChange, onRunQuery, tim
     const expr = queryModeller.renderQuery(visQuery);
     onChange({ ...visQuery, expr: expr });
   };
+  const onChangeLabels = (labels: QueryBuilderLabelFilter[]) => {
+    const expr = queryModeller.renderQuery({ operations: query.operations, labels });
+    onChange({ ...query, expr, labels });
+  };
+  const onGetLabelNames = async (forLabel: Partial<QueryBuilderLabelFilter>) => {
+    const prevLabels = getPrevLabels(query.labels, forLabel);
+    return await getLabelFieldOptions({ timeRange, queryModeller, datasource, labels: prevLabels, fieldType: FilterFieldType.FieldName });
+  };
+  const onGetLabelValues = async (forLabel: Partial<QueryBuilderLabelFilter>) => {
+    if (!forLabel.label) {
+      return await getVariableOptions();
+    }
+    const prevLabels = getPrevLabels(query.labels, forLabel);
+    return await getLabelFieldOptions({ timeRange, queryModeller, datasource, labels: prevLabels, fieldType: FilterFieldType.FieldValue, fieldName: forLabel.label });
+  };
   return (
-    <div className={styles.builderWrapper}>
-      <OperationList
-        query={query}
-        datasource={datasource as DataSourceApi}
-        onChange={onVisQueryChange}
-        timeRange={timeRange}
-        onRunQuery={onRunQuery}
-        queryModeller={queryModeller}
-      />
+    <div>
+      {enableLabelFilters &&
+        <EditorRow>
+          <LabelFilters
+            onGetLabelNames={(forLabel: Partial<QueryBuilderLabelFilter>) =>
+              onGetLabelNames(forLabel)
+            }
+            onGetLabelValues={(forLabel: Partial<QueryBuilderLabelFilter>) =>
+              onGetLabelValues(forLabel)
+            }
+            labelsFilters={query.labels}
+            onChange={onChangeLabels}
+          />
+        </EditorRow>
+      }
+      <OperationsEditorRow>
+        <OperationList
+          query={query}
+          datasource={datasource as DataSourceApi}
+          onChange={onVisQueryChange}
+          timeRange={timeRange}
+          onRunQuery={onRunQuery}
+          queryModeller={queryModeller}
+        />
+      </OperationsEditorRow>
     </div>
   )
 });
-
-const getStyles = (theme: GrafanaTheme2) => {
-  return {
-    builderWrapper: css`
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: ${theme.spacing(1)};
-    `,
-  };
-};
 
 QueryBuilder.displayName = 'QueryBuilder';
 

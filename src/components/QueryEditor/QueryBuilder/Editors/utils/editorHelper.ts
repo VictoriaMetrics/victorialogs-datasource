@@ -1,4 +1,4 @@
-import { QueryBuilderOperation, QueryBuilderOperationParamEditorProps, VisualQueryModeller } from "@grafana/plugin-ui";
+import { QueryBuilderOperation, QueryBuilderOperationParamEditorProps, VisualQueryModeller, QueryBuilderLabelFilter } from "@grafana/plugin-ui";
 import { getTemplateSrv } from "@grafana/runtime";
 
 import { VictoriaLogsDatasource } from "../../../../../datasource";
@@ -14,7 +14,10 @@ export async function getVariableOptions() {
   }));
 }
 
-function startsWithFilterOperation(operations: QueryBuilderOperation[], queryModeller: VisualQueryModeller) {
+function startsWithFilterOperation(labels: QueryBuilderLabelFilter[], operations: QueryBuilderOperation[], queryModeller: VisualQueryModeller) {
+  if (labels.length > 0) {
+    return true;
+  }
   if (operations.length === 0) {
     return false;
   }
@@ -29,38 +32,6 @@ function startsWithFilterOperation(operations: QueryBuilderOperation[], queryMod
   return false
 }
 
-export async function getFieldNameOptions(props: QueryBuilderOperationParamEditorProps) {
-  const { datasource, timeRange, queryModeller, query, operation } = props;
-  const operations = (query as VisualQuery).operations;
-  const operationIdx = operations.findIndex(op => op === operation);
-  const prevOperations = operations.slice(0, (operationIdx === -1) ? operations.length : operationIdx);
-  const prevExpr = buildVisualQueryToString({ operations: prevOperations, labels: [], expr: "" });
-  let expr = "";
-  if (prevExpr.trim() !== "" && prevExpr.trim() !== "\"\"") {
-    const firstOpIsFilter = startsWithFilterOperation(operations, queryModeller);
-    if (!firstOpIsFilter) {
-      expr = "_msg:* | ";
-    }
-    expr += prevExpr;
-  } else {
-    expr = "_msg:*";
-  }
-  const replacedExpr = (datasource as VictoriaLogsDatasource).interpolateString(expr);
-  let options = [];
-  try {
-    options = await datasource.languageProvider?.getFieldList({ query: replacedExpr, timeRange, type: FilterFieldType.FieldName });
-  } catch (e) {
-    console.warn("Error fetching field names", e, "query", replacedExpr);
-    options = await datasource.languageProvider?.getFieldList({ timeRange, type: FilterFieldType.FieldName });
-  }
-  options = options.map(({ value, hits }: { value: string; hits: number }) => ({
-    value,
-    label: value || " ",
-    description: `hits: ${hits}`,
-  }));
-  return [...options, ...await getVariableOptions()];
-}
-
 export async function getFieldOptions(props: QueryBuilderOperationParamEditorProps, fieldType: FilterFieldType, suffixQuery = "", fieldName?: string) {
   if (fieldName === undefined || fieldName.trim() === "") {
     if (fieldType === FilterFieldType.FieldValue || fieldType === FilterFieldType.StreamFieldValues) {
@@ -69,12 +40,13 @@ export async function getFieldOptions(props: QueryBuilderOperationParamEditorPro
   }
   const { datasource, timeRange, query, operation, queryModeller } = props;
   const operations = (query as VisualQuery).operations;
+  const labels = query.labels;
   const operationIdx = operations.findIndex(op => op === operation);
   const prevOperations = operations.slice(0, (operationIdx === -1) ? operations.length : operationIdx);
-  const prevExpr = buildVisualQueryToString({ operations: prevOperations, labels: [], expr: "" });
+  const prevExpr = buildVisualQueryToString({ operations: prevOperations, labels, expr: "" });
   let expr;
   if (prevExpr.trim() !== "" && prevExpr.trim() !== "\"\"") {
-    const firstOpIsFilter = startsWithFilterOperation(operations, queryModeller);
+    const firstOpIsFilter = startsWithFilterOperation(labels, operations, queryModeller);
     if (!firstOpIsFilter) {
       expr = "_msg:* | ";
     }
@@ -99,6 +71,10 @@ export async function getFieldOptions(props: QueryBuilderOperationParamEditorPro
     description: `hits: ${hits}`,
   }));
   return [...options, ...await getVariableOptions()];
+}
+
+export async function getFieldNameOptions(props: QueryBuilderOperationParamEditorProps) {
+  return getFieldOptions(props, FilterFieldType.FieldName);
 }
 
 export async function getFieldValueOptions(props: QueryBuilderOperationParamEditorProps, fieldName: string, suffixQuery = "") {

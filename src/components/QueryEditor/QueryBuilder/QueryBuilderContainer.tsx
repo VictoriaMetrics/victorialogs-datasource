@@ -16,16 +16,17 @@ export interface Props<Q extends { expr: string;[key: string]: any } = { expr: s
   onChange: (update: Q) => void;
   onRunQuery: () => void;
   timeRange?: TimeRange;
+  enableLabelFilters: boolean;
 }
 
 export function QueryBuilderContainer<Q extends { expr: string;[key: string]: any } = { expr: string;[key: string]: any }>(props: Props<Q>) {
   const styles = useStyles2(getStyles);
 
-  const { query, onChange, onRunQuery, datasource, timeRange } = props;
+  const { query, onChange, onRunQuery, datasource, timeRange, enableLabelFilters } = props;
 
   const visQuery = useMemo(() => {
-    return parseExprToVisualQuery(query.expr).query;
-  }, [query.expr]);
+    return parseExprToVisualQuery(query.expr, "_msg", undefined, enableLabelFilters).query;
+  }, [query.expr, enableLabelFilters]);
 
   const [state, setState] = useState<{ expr: string, visQuery: VisualQuery }>({
     expr: query.expr,
@@ -44,6 +45,7 @@ export function QueryBuilderContainer<Q extends { expr: string;[key: string]: an
         onChange={onVisQueryChange}
         onRunQuery={onRunQuery}
         timeRange={timeRange}
+        enableLabelFilters={enableLabelFilters}
       />
       <hr />
 
