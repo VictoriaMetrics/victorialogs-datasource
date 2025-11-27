@@ -75,18 +75,16 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
 
     if (this.cacheValues.size >= this.cacheSize) {
       const firstKey = this.cacheValues.keys().next().value;
-      this.cacheValues.delete(firstKey);
+      if (firstKey) {
+        this.cacheValues.delete(firstKey);
+      }
     }
 
-    try {
-      const res = (await this.datasource.postResource(url, params)) as FieldHitsResponse;
-      const result = (res?.values || []) as FieldHits[];
-      const sortedResult = sortFieldHits(result);
-      this.cacheValues.set(key, sortedResult);
-      return sortedResult;
-    } catch (error) {
-      throw error;
-    }
+    const res = (await this.datasource.postResource(url, params)) as FieldHitsResponse;
+    const result = (res?.values || []) as FieldHits[];
+    const sortedResult = sortFieldHits(result);
+    this.cacheValues.set(key, sortedResult);
+    return sortedResult;
   }
 
   getTimeRangeParams(timeRange?: TimeRange) {

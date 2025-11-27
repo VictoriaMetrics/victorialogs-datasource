@@ -68,8 +68,7 @@ export type DerivedFieldConfig = {
   matcherType?: 'label' | 'regex';
 };
 
-export interface QueryFilterOptions extends KeyValue<string> {
-}
+export type QueryFilterOptions = KeyValue<string>
 
 export enum FilterActionType {
   FILTER_FOR = 'FILTER_FOR',

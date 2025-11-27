@@ -94,7 +94,7 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
                   width={8}
                   options={LOG_OPERATOR_OPTIONS}
                   value={LOG_OPERATOR_OPTIONS.find(opt => opt.value === operator)}
-                  onChange={(v) => handleRuleChange(index, { operator: v?.value! })}
+                  onChange={(v) => handleRuleChange(index, { operator: v?.value })}
                 />
               </div>
 
@@ -109,7 +109,7 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
                   width={14}
                   options={LOG_LEVEL_OPTIONS}
                   value={LOG_LEVEL_OPTIONS.find(opt => opt.value === level)}
-                  onChange={(v) => handleRuleChange(index, { level: v?.value! })}
+                  onChange={(v) => handleRuleChange(index, { level: v?.value })}
                 />
               </div>
 

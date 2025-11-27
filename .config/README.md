@@ -13,17 +13,18 @@ to issues around working with the project.
 
 ### Extending the ESLint config
 
-Edit the `.eslintrc` file in the project root in order to extend the ESLint configuration.
+Edit the `eslint.config.mjs` file in the project root in order to extend the ESLint configuration.
 
 **Example:**
 
-```json
-{
-  "extends": "./.config/.eslintrc",
-  "rules": {
-    "react/prop-types": "off"
+```js
+export default defineConfig([
+  {
+    "rules": {
+      "react/prop-types": "off"
+    }
   }
-}
+]);
 ```
 
 ---

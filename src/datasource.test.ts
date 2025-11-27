@@ -1,6 +1,7 @@
 import { AdHocVariableFilter } from '@grafana/data';
 import { TemplateSrv } from "@grafana/runtime";
 
+// eslint-disable-next-line jest/no-mocks-import
 import { createDatasource } from "./__mocks__/datasource";
 import { TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from "./constants";
 import { VictoriaLogsDatasource } from "./datasource";
@@ -267,7 +268,7 @@ describe('VictoriaLogsDatasource', () => {
       expect(result).toStrictEqual('foo: in(\"foo\",\"bar\") bar: in(*)');
     })
 
-    it('should not escape the * in the text filter ', () => {
+    it('should not escape the * in the text filter', () => {
       const scopedVars = {};
       const variables = [
         {
