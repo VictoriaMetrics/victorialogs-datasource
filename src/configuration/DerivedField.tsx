@@ -161,7 +161,7 @@ export const DerivedField = (props: Props) => {
       <div className="gf-form">
         <Field label="Internal link" className={styles.internalLink}>
           <Switch
-            value={isVisibleInternalLink}
+            value={showInternalLink}
             onChange={(e: ChangeEvent<HTMLInputElement>) => {
               const { checked } = e.currentTarget;
               if (!checked) {
@@ -175,7 +175,7 @@ export const DerivedField = (props: Props) => {
           />
         </Field>
 
-        {isVisibleInternalLink && (
+        {showInternalLink && (
           <Field label="" className={styles.dataSource}>
             <DataSourcePicker
               tracing={true}
