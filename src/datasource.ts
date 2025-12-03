@@ -457,11 +457,15 @@ export class VictoriaLogsDatasource
 
   private prepareLogContextQueryExpr = (row: LogRowModel): string => {
     let streamId = "";
+    const streamIds = row.dataFrame.meta?.custom?.streamIds;
+    if (streamIds && streamIds.length > 0) {
+      streamId = streamIds[row.rowIndex];
+    }
 
-    if (row.labels[LABEL_STREAM_ID]) {
+    if (!streamId && row.labels[LABEL_STREAM_ID]) {
       // Explore View
       streamId = row.labels[LABEL_STREAM_ID]
-    } else {
+    } else if (!streamId) {
       // Dashboard View
       const transformedLabels: Labels = {};
       Object.values(row.labels).forEach((label) => {
