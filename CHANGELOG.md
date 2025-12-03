@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix an issue where the `Internal link` from derived fields config was disabled. See [#479](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/479).
+
 ## v0.22.3
 
 * BUGFIX: fix an issue where `_msg` was incorrectly parsed to `detected_level` label according to `Log Level rules`. See [#465](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/465).
