@@ -618,10 +618,21 @@ func (d *Datasource) VMUIQuery(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	accountID := di.grafanaSettings.MultitenancyHeaders["AccountID"]
+	if accountID == "" {
+		accountID = "0"
+	}
+
+	projectID := di.grafanaSettings.MultitenancyHeaders["ProjectID"]
+	if projectID == "" {
+		projectID = "0"
+	}
+
 	rw.Header().Add("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 
-	if _, err := fmt.Fprintf(rw, `{"vmuiURL": %q}`, vmuiUrl); err != nil {
+	if _, err := fmt.Fprintf(rw, `{"vmuiURL": %q, "accountID": %q, "projectID": %q}`,
+		vmuiUrl, accountID, projectID); err != nil {
 		d.logger.Warn("Error writing response", "error", err)
 	}
 }

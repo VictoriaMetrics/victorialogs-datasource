@@ -22,7 +22,7 @@ import { VictoriaLogsDatasource } from "../../datasource";
 import { Query } from "../../types";
 import { getDurationFromMilliseconds } from "../../utils/timeUtils";
 
-export const getTimeUrlParams = (panelData?: PanelData) => {
+const getTimeUrlParams = (panelData?: PanelData) => {
   const timeRange = panelData?.timeRange || getDefaultTimeRange();
   const rangeRaw = timeRange.raw;
   let relativeTimeId = 'none';
@@ -84,12 +84,23 @@ export const relativeTimeOptionsVMUI = [
   ...o
 }))
 
+type Tenant = {
+  projectID: string;
+  accountID: string;
+}
+
+const DEFAULT_TENANT: Tenant = {
+  projectID: '0',
+  accountID: '0',
+};
+
 const VmuiLink: FC<Props> = ({
   panelData,
   query,
   datasource,
 }) => {
   const [baseVmuiUrl, setBaseVmuiUrl] = useState('');
+  const [tenant, setTenant] = useState<Tenant>(DEFAULT_TENANT);
 
   useEffect(() => {
     if (!datasource) {
@@ -98,8 +109,9 @@ const VmuiLink: FC<Props> = ({
 
     const fetchVmuiUrl = async () => {
       try {
-        const resp = await datasource.getResource<{ vmuiURL: string }>('vmui');
+        const resp = await datasource.getResource<Tenant & { vmuiURL: string }>('vmui');
         setBaseVmuiUrl(resp.vmuiURL.includes('#') ? resp.vmuiURL.split('/#')[0] : resp.vmuiURL);
+        setTenant({ projectID: resp.projectID, accountID: resp.accountID });
       } catch (error) {
         console.error('Error fetching VMUI URL:', error);
       }
@@ -114,10 +126,11 @@ const VmuiLink: FC<Props> = ({
 
     return `${baseVmuiUrl}/#/?` + new URLSearchParams({
       ...timeParams,
+      ...tenant,
       query: queryExpr,
       tab: '0',
     }).toString();
-  }, [baseVmuiUrl, datasource, panelData, query.expr]);
+  }, [baseVmuiUrl, datasource, panelData, query.expr, tenant]);
 
   return (
     <a href={textUtil.sanitizeUrl(href)} target="_blank" rel="noopener noreferrer"
