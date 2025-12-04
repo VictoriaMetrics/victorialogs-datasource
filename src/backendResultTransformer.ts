@@ -71,6 +71,14 @@ function addLevelField(frame: DataFrame, rules: LogLevelRule[]): DataFrame {
   return { ...frame, fields: [...frame.fields, levelField] };
 }
 
+function getStreamIds(frame: DataFrame) {
+  const labelsField = frame.fields.find(f => f.name === FrameField.Labels);
+  if (!labelsField) {
+    return [];
+  }
+  return labelsField?.values.map(labels => labels._stream_id);
+}
+
 function transformDashboardLabelField(field: Field): Field {
   if (field.name !== FrameField.Labels) {
     return field;
@@ -126,7 +134,11 @@ function processStreamFrame(
     preferredVisualisationType: 'logs',
     limit: query?.maxLines,
     searchWords: query !== undefined ? getHighlighterExpressionsFromQuery(query.expr) : undefined,
-    custom,
+    custom: {
+      ...custom,
+      // if the user decides to hide labels via transforms so that we can get the streamId for `Log context`
+      streamIds: getStreamIds(frame),
+    },
   };
 
   const frameWithMeta = setFrameMeta(frame, meta);
