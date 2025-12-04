@@ -19,8 +19,6 @@ export const TenantSelector = ({ datasource, query, onChange }: Props) => {
   const [accountIds, setAccountIds] = useState<ComboboxOption<string>[]>([]);
   const [projectIds, setProjectIds] = useState<ComboboxOption<string>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSupported, setIsSupported] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   const loadTenantIds = useCallback(async () => {
     setIsLoading(true);
@@ -31,9 +29,7 @@ export const TenantSelector = ({ datasource, query, onChange }: Props) => {
       const hasAccountIds = tenantIds.accountIDs && tenantIds.accountIDs.length > 0;
       const hasProjectIds = tenantIds.projectIDs && tenantIds.projectIDs.length > 0;
 
-      if (!hasAccountIds && !hasProjectIds) {
-        // No tenant IDs available - hide component
-        setIsSupported(false);
+      if (!hasAccountIds || !hasProjectIds) {
         return;
       }
 
@@ -47,10 +43,8 @@ export const TenantSelector = ({ datasource, query, onChange }: Props) => {
     } catch (error) {
       // Should not happen as fetchTenantIds handles errors internally
       console.error('Failed to load tenant IDs:', error);
-      setIsSupported(false);
     } finally {
       setIsLoading(false);
-      setIsInitialized(true);
     }
   }, [datasource]);
 
@@ -59,7 +53,7 @@ export const TenantSelector = ({ datasource, query, onChange }: Props) => {
   }, [loadTenantIds]);
 
   // Don't render if not yet initialized or endpoint is not supported
-  if (!isInitialized || !isSupported) {
+  if (!accountIds.length && !projectIds.length) {
     return null;
   }
 
