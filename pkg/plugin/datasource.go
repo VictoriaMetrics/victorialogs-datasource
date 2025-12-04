@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"encoding/json"
@@ -59,6 +60,7 @@ func NewDatasource() *Datasource {
 	mux.HandleFunc("/select/logsql/streams", ds.VLAPIQuery)
 	mux.HandleFunc("/select/logsql/stream_field_names", ds.VLAPIQuery)
 	mux.HandleFunc("/select/logsql/stream_field_values", ds.VLAPIQuery)
+	mux.HandleFunc("/select/tenant_ids", ds.VLAPITenantIDs)
 	mux.HandleFunc("/vmui", ds.VMUIQuery)
 	ds.CallResourceHandler = httpadapter.New(mux)
 	return &ds
@@ -378,6 +380,14 @@ func (di *DatasourceInstance) datasourceQuery(ctx context.Context, q *Query, isS
 	}
 	req.Header = di.grafanaSettings.CustomHeaders.Clone()
 
+	// Override tenant headers if specified in query
+	if q.AccountID != "" {
+		req.Header.Set("AccountID", q.AccountID)
+	}
+	if q.ProjectID != "" {
+		req.Header.Set("ProjectID", q.ProjectID)
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		if !isTrivialError(err) {
@@ -393,6 +403,15 @@ func (di *DatasourceInstance) datasourceQuery(ctx context.Context, q *Query, isS
 		}
 
 		req.Header = di.grafanaSettings.CustomHeaders.Clone()
+
+		// Override tenant headers if specified in query
+		if q.AccountID != "" {
+			req.Header.Set("AccountID", q.AccountID)
+		}
+		if q.ProjectID != "" {
+			req.Header.Set("ProjectID", q.ProjectID)
+		}
+
 		resp, err = client.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make http request: %w", err)
@@ -599,6 +618,59 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (d *Datasource) VLAPITenantIDs(rw http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	pluginCxt := backend.PluginConfigFromContext(ctx)
+
+	di, err := d.getInstance(ctx, pluginCxt)
+	if err != nil {
+		d.logger.Error("Error loading datasource", "error", err)
+		writeError(rw, http.StatusInternalServerError, err)
+		return
+	}
+
+	u, err := url.Parse(di.settings.URL)
+	if err != nil {
+		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to parse datasource url: %w", err))
+		return
+	}
+	u.Path = path.Join(u.Path, req.URL.Path)
+	newReq, err := http.NewRequestWithContext(ctx, req.Method, u.String(), nil)
+	if err != nil {
+		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to create new request with context: %w", err))
+		return
+	}
+
+	newReq.Header = di.grafanaSettings.CustomHeaders.Clone()
+	resp, err := di.httpClient.Do(newReq)
+	if err != nil {
+		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to make http request: %w", err))
+		return
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to read http response body: %w", err))
+		return
+	}
+
+	rw.Header().Add("Content-Type", "application/json")
+	// VictoriaLogs returns error message with 200 status code for unsupported paths
+	// this hack is for the VictoriaLogs < 1.38.0 which doesn't support /select/tenant_ids endpoint
+	if bytes.Contains(bodyBytes, []byte("unsupported path requested:")) {
+		rw.WriteHeader(http.StatusOK)
+		_, err = rw.Write([]byte(`{}`))
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
+	_, err = rw.Write(bodyBytes)
+	if err != nil {
+		log.DefaultLogger.Warn("Error writing response")
+	}
+}
+
 // VMUIQuery generates VMUI link to a native dashboard
 func (d *Datasource) VMUIQuery(rw http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
@@ -715,13 +787,13 @@ func parseCustomHeaders(jsonData json.RawMessage, decryptedSecureJSONData map[st
 }
 
 func writeError(rw http.ResponseWriter, statusCode int, err error) {
-	data := make(map[string]interface{})
+	d := make(map[string]interface{})
 
-	data["error"] = "Internal Server Error"
-	data["message"] = err.Error()
+	d["error"] = "Internal Server Error"
+	d["message"] = err.Error()
 
 	var b []byte
-	if b, err = json.Marshal(data); err != nil {
+	if b, err = json.Marshal(d); err != nil {
 		rw.WriteHeader(statusCode)
 		return
 	}

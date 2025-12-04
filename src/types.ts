@@ -55,6 +55,8 @@ export interface Query extends DataQuery {
   queryType?: QueryType;
   interval?: string; // for /select/logsql/query
   fields?: string[]; // groups the results by the specified field value for /select/logsql/hits
+  accountId?: string; // query-level AccountID override
+  projectId?: string; // query-level ProjectID override
 }
 
 export type VictoriaLogsQueryEditorProps = QueryEditorProps<VictoriaLogsDatasource, Query, Options>;
