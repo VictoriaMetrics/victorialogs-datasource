@@ -56,8 +56,6 @@ type Query struct {
 	Fields       []string  `json:"fields"`
 	QueryType    QueryType `json:"queryType"`
 	ExtraFilters string    `json:"extraFilters"`
-	AccountID    string    `json:"accountId"`
-	ProjectID    string    `json:"projectId"`
 	url          *url.URL
 	ForAlerting  bool `json:"-"`
 }

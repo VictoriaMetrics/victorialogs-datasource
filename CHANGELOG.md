@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: fetch tenants from the VictoriaLogs backend and allow selecting a tenant in the datasource settings. See [#168](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/158).
+
 ## v0.22.4
 
 * BUGFIX: fix an issue where the `Internal link` from derived fields config was disabled. See [#479](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/479).

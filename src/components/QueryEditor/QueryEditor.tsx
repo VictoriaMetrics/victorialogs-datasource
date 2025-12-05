@@ -20,7 +20,6 @@ import QueryCodeEditor from "./QueryCodeEditor";
 import { QueryEditorHelp } from "./QueryEditorHelp";
 import { QueryEditorOptions } from "./QueryEditorOptions";
 import QueryEditorVariableRegexpError from "./QueryEditorVariableRegexpError";
-import { TenantSelector } from "./TenantSelector";
 import VmuiLink from "./VmuiLink";
 import { EXPLORE_GRAPH_STYLES } from "./constants";
 import { useDefaultExploreGraph } from "./hooks/useDefaultExploreGraph";
@@ -92,11 +91,6 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       <div className={styles.wrapper}>
         <EditorHeader>
           {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType}/>)}
-          <TenantSelector
-            datasource={datasource}
-            query={query}
-            onChange={onChangeInternal}
-          />
           <QueryEditorHelp />
           <VmuiLink
             query={query}

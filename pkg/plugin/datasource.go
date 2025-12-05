@@ -38,6 +38,8 @@ const (
 	// it is weird logic to pass an identifier for an alert request in the headers
 	// but Grafana decided to do so, so we need to follow this
 	requestFromAlert = "FromAlert"
+	accountIDHeader  = "AccountID"
+	projectIDHeader  = "ProjectID"
 )
 
 // Datasource describes a plugin service that manages DatasourceInstance entities
@@ -380,14 +382,6 @@ func (di *DatasourceInstance) datasourceQuery(ctx context.Context, q *Query, isS
 	}
 	req.Header = di.grafanaSettings.CustomHeaders.Clone()
 
-	// Override tenant headers if specified in query
-	if q.AccountID != "" {
-		req.Header.Set("AccountID", q.AccountID)
-	}
-	if q.ProjectID != "" {
-		req.Header.Set("ProjectID", q.ProjectID)
-	}
-
 	resp, err := client.Do(req)
 	if err != nil {
 		if !isTrivialError(err) {
@@ -403,14 +397,6 @@ func (di *DatasourceInstance) datasourceQuery(ctx context.Context, q *Query, isS
 		}
 
 		req.Header = di.grafanaSettings.CustomHeaders.Clone()
-
-		// Override tenant headers if specified in query
-		if q.AccountID != "" {
-			req.Header.Set("AccountID", q.AccountID)
-		}
-		if q.ProjectID != "" {
-			req.Header.Set("ProjectID", q.ProjectID)
-		}
 
 		resp, err = client.Do(req)
 		if err != nil {
@@ -642,6 +628,11 @@ func (d *Datasource) VLAPITenantIDs(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	newReq.Header = di.grafanaSettings.CustomHeaders.Clone()
+	// Security measure - prevent from requesting tenant_ids for requests with the already specified tenant.
+	// This allows enforcing the needed tenants at vmauth side, so they won't have access to /select/tenant_ids endpoint.
+	// See https://docs.victoriametrics.com/victoriametrics/vmauth/#modifying-http-headers
+	newReq.Header.Del(accountIDHeader)
+	newReq.Header.Del(projectIDHeader)
 	resp, err := di.httpClient.Do(newReq)
 	if err != nil {
 		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to make http request: %w", err))
