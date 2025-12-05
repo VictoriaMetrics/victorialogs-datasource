@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.22.4
+
 * BUGFIX: fix an issue where the `Internal link` from derived fields config was disabled. See [#479](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/479).
 * BUGFIX: fix an issue where the `show context` failed if disable labels with transformations. See [#480](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/480).
 * BUGFIX: add tenant information as a query parameter to `url` in `Run in vmui` button. See [#480](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/480).
