@@ -2,7 +2,7 @@
 
 ## tip
 
-* FEATURE: fetch tenants from the VictoriaLogs backend and allow selecting a tenant in the datasource settings. See [#168](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/158).
+* FEATURE: fetch tenants from the VictoriaLogs backend and allow selecting a tenant in the datasource settings. See [#475](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/475).
 
 ## v0.22.4
 
