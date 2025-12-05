@@ -1,6 +1,6 @@
 {
   "name": "victoriametrics-logs-datasource",
-  "version": "0.22.3",
+  "version": "0.22.4",
   "description": "VictoriaLogs datasource plugin for grafana",
   "scripts": {
     "build": "webpack -c ./webpack.config.ts --env production",
