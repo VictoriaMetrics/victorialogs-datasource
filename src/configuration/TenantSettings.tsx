@@ -22,8 +22,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
   const { options, onOptionsChange } = props;
   const multitenancyHeaders = options.jsonData?.multitenancyHeaders;
 
-  const [accountIds, setAccountIds] = useState<ComboboxOption[]>([]);
-  const [projectIds, setProjectIds] = useState<ComboboxOption[]>([]);
+  const [tenants, setTenants] = useState<ComboboxOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadTenantIds = useCallback(async () => {
@@ -42,16 +41,14 @@ export const TenantSettings = (props: PropsConfigEditor) => {
 
       // Check if response is an array
       if (Array.isArray(response)) {
-        const accountIDSet = new Set<string>();
-        const projectIDSet = new Set<string>();
+        const tenantSet = new Set<string>();
 
         response.forEach((item: { account_id: number; project_id: number }) => {
-          accountIDSet.add(String(item.account_id));
-          projectIDSet.add(String(item.project_id));
+          const tenantId = `${item.account_id}:${item.project_id}`;
+          tenantSet.add(tenantId);
         });
 
-        setAccountIds(Array.from(accountIDSet).map(id => ({ label: id, value: id })));
-        setProjectIds(Array.from(projectIDSet).map(id => ({ label: id, value: id })));
+        setTenants(Array.from(tenantSet).map(id => ({ label: id, value: id })));
       }
     } catch (error) {
       // Silently fail - tenant IDs are optional
@@ -65,27 +62,17 @@ export const TenantSettings = (props: PropsConfigEditor) => {
     void loadTenantIds();
   }, [loadTenantIds]);
 
-  const onAccountIdChange = (option: ComboboxOption<string> | null) => {
-    onOptionsChange({
-      ...options,
-      jsonData: {
-        ...options.jsonData,
-        multitenancyHeaders: {
-          ...options.jsonData.multitenancyHeaders,
-          [TenantHeaderNames.AccountID]: option?.value || '',
-        }
-      },
-    });
-  };
+  const onTenantChange = (option: ComboboxOption<string> | null) => {
+    const [accountId = '', projectId = ''] = option?.value?.split(':') || ['0', '0'];
 
-  const onProjectIdChange = (option: ComboboxOption<string> | null) => {
     onOptionsChange({
       ...options,
       jsonData: {
         ...options.jsonData,
         multitenancyHeaders: {
           ...options.jsonData.multitenancyHeaders,
-          [TenantHeaderNames.ProjectID]: option?.value || '',
+          [TenantHeaderNames.AccountID]: accountId,
+          [TenantHeaderNames.ProjectID]: projectId,
         }
       },
     });
@@ -106,7 +93,12 @@ export const TenantSettings = (props: PropsConfigEditor) => {
     });
   };
 
-  const hasTenants = accountIds.length > 0 || projectIds.length > 0;
+  const hasTenants = tenants.length > 0;
+
+  // Combine current accountId and projectId into tenant format
+  const currentTenant = multitenancyHeaders?.[TenantHeaderNames.AccountID] && multitenancyHeaders?.[TenantHeaderNames.ProjectID]
+    ? `${multitenancyHeaders[TenantHeaderNames.AccountID]}:${multitenancyHeaders[TenantHeaderNames.ProjectID]}`
+    : '';
 
   return (
     <Stack direction="column" gap={2}>
@@ -118,63 +110,62 @@ export const TenantSettings = (props: PropsConfigEditor) => {
       </div>
 
       <div className="gf-form-group">
-        <div className="gf-form">
-          <InlineField
-            label="Account ID"
-            labelWidth={28}
-            interactive={true}
-          >
-            {hasTenants ? (
+        {hasTenants ? (
+          <div className="gf-form">
+            <InlineField
+              label="Tenant"
+              labelWidth={28}
+              interactive={true}
+              tooltip="Format: accountId:projectId (e.g., 1:2)"
+            >
               <Combobox
-                placeholder="Select Account ID"
+                placeholder="Select Tenant"
                 isClearable
-                options={accountIds}
-                value={multitenancyHeaders?.[TenantHeaderNames.AccountID]}
-                onChange={onAccountIdChange}
+                options={tenants}
+                value={currentTenant}
+                onChange={onTenantChange}
                 loading={isLoading}
                 width={30}
               />
-            ) : (
-              <Input
-                className="width-8"
-                spellCheck={false}
-                type="number"
-                placeholder="0"
-                value={`${multitenancyHeaders?.[TenantHeaderNames.AccountID] || ''}`}
-                onChange={onInputChange(TenantHeaderNames.AccountID)}
-              />
-            )}
-          </InlineField>
-        </div>
+            </InlineField>
+          </div>
+        ) : (
+          <>
+            <div className="gf-form">
+              <InlineField
+                label="Account ID"
+                labelWidth={28}
+                interactive={true}
+              >
+                <Input
+                  className="width-8"
+                  spellCheck={false}
+                  type="number"
+                  placeholder="0"
+                  value={`${multitenancyHeaders?.[TenantHeaderNames.AccountID] || ''}`}
+                  onChange={onInputChange(TenantHeaderNames.AccountID)}
+                />
+              </InlineField>
+            </div>
 
-        <div className="gf-form">
-          <InlineField
-            label="Project ID"
-            labelWidth={28}
-            interactive={true}
-          >
-            {hasTenants ? (
-              <Combobox
-                placeholder="Select Project ID"
-                isClearable
-                options={projectIds}
-                value={multitenancyHeaders?.[TenantHeaderNames.ProjectID]}
-                onChange={onProjectIdChange}
-                loading={isLoading}
-                width={30}
-              />
-            ) : (
-              <Input
-                className="width-8"
-                spellCheck={false}
-                type="number"
-                placeholder="0"
-                value={`${multitenancyHeaders?.[TenantHeaderNames.ProjectID] || ''}`}
-                onChange={onInputChange(TenantHeaderNames.ProjectID)}
-              />
-            )}
-          </InlineField>
-        </div>
+            <div className="gf-form">
+              <InlineField
+                label="Project ID"
+                labelWidth={28}
+                interactive={true}
+              >
+                <Input
+                  className="width-8"
+                  spellCheck={false}
+                  type="number"
+                  placeholder="0"
+                  value={`${multitenancyHeaders?.[TenantHeaderNames.ProjectID] || ''}`}
+                  onChange={onInputChange(TenantHeaderNames.ProjectID)}
+                />
+              </InlineField>
+            </div>
+          </>
+        )}
       </div>
     </Stack>
   );
