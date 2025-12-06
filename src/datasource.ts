@@ -521,4 +521,41 @@ export class VictoriaLogsDatasource
 
     return { ...timeRange, raw: timeRange };
   }
+
+  async fetchTenantIds(): Promise<{ accountIDs?: string[]; projectIDs?: string[] }> {
+    try {
+      const params = {};
+      const res = await this.postResource('select/tenant_ids', params);
+
+      // Check if response is an array (for VictoriaLogs >= 1.38.0)
+      if (!Array.isArray(res)) {
+        // Unsupported version, return empty arrays
+        return {
+          accountIDs: [],
+          projectIDs: [],
+        };
+      }
+
+      // Extract unique account_id and project_id values
+      const accountIDs = new Set<string>();
+      const projectIDs = new Set<string>();
+
+      res.forEach((item: { account_id: number; project_id: number }) => {
+        accountIDs.add(String(item.account_id));
+        projectIDs.add(String(item.project_id));
+      });
+
+      return {
+        accountIDs: Array.from(accountIDs),
+        projectIDs: Array.from(projectIDs),
+      };
+    } catch (error) {
+      // Any error (network, unsupported endpoint, etc.) - return empty arrays
+      console.error('Failed to fetch tenant IDs:', error);
+      return {
+        accountIDs: [],
+        projectIDs: [],
+      };
+    }
+  }
 }
