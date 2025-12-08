@@ -22,6 +22,7 @@ const documentationLink = (
 export const TenantSettings = (props: PropsConfigEditor) => {
   const { options, onOptionsChange } = props;
   const multitenancyHeaders = options.jsonData?.multitenancyHeaders;
+  const isReadOnly = options.readOnly;
 
   const [tenants, setTenants] = useState<ComboboxOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,6 +107,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
               labelWidth={28}
               interactive={true}
               tooltip="Format: accountId:projectId (e.g., 1:2)"
+              disabled={isReadOnly || isLoading}
             >
               <Combobox
                 placeholder="Select Tenant"
@@ -115,6 +117,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
                 onChange={onTenantChange}
                 loading={isLoading}
                 width={30}
+                disabled={isReadOnly || isLoading}
               />
             </InlineField>
           </div>
@@ -125,6 +128,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
                 label="Account ID"
                 labelWidth={28}
                 interactive={true}
+                disabled={isReadOnly || isLoading}
               >
                 <Input
                   className="width-8"
@@ -133,6 +137,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
                   placeholder="0"
                   value={`${multitenancyHeaders?.[TenantHeaderNames.AccountID] || ''}`}
                   onChange={onInputChange(TenantHeaderNames.AccountID)}
+                  disabled={isReadOnly || isLoading}
                 />
               </InlineField>
             </div>
@@ -142,6 +147,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
                 label="Project ID"
                 labelWidth={28}
                 interactive={true}
+                disabled={isReadOnly || isLoading}
               >
                 <Input
                   className="width-8"
@@ -150,6 +156,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
                   placeholder="0"
                   value={`${multitenancyHeaders?.[TenantHeaderNames.ProjectID] || ''}`}
                   onChange={onInputChange(TenantHeaderNames.ProjectID)}
+                  disabled={isReadOnly || isLoading}
                 />
               </InlineField>
             </div>
