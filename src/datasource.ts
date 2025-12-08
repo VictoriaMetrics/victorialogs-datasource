@@ -521,4 +521,24 @@ export class VictoriaLogsDatasource
 
     return { ...timeRange, raw: timeRange };
   }
+
+  async fetchTenantIds(): Promise<string[]> {
+    try {
+      const res = await this.postResource('select/tenant_ids', {});
+
+      if (!Array.isArray(res)) {
+        return [];
+      }
+
+      const tenantSet = new Set<string>();
+      res.forEach((item: { account_id: number; project_id: number }) => {
+        tenantSet.add(`${item.account_id}:${item.project_id}`);
+      });
+
+      return Array.from(tenantSet);
+    } catch (error) {
+      console.error('Failed to fetch tenants:', error);
+      return [];
+    }
+  }
 }
