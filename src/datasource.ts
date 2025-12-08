@@ -522,40 +522,23 @@ export class VictoriaLogsDatasource
     return { ...timeRange, raw: timeRange };
   }
 
-  async fetchTenantIds(): Promise<{ accountIDs?: string[]; projectIDs?: string[] }> {
+  async fetchTenantIds(): Promise<string[]> {
     try {
-      const params = {};
-      const res = await this.postResource('select/tenant_ids', params);
+      const res = await this.postResource('select/tenant_ids', {});
 
-      // Check if response is an array (for VictoriaLogs >= 1.38.0)
       if (!Array.isArray(res)) {
-        // Unsupported version, return empty arrays
-        return {
-          accountIDs: [],
-          projectIDs: [],
-        };
+        return [];
       }
 
-      // Extract unique account_id and project_id values
-      const accountIDs = new Set<string>();
-      const projectIDs = new Set<string>();
-
+      const tenantSet = new Set<string>();
       res.forEach((item: { account_id: number; project_id: number }) => {
-        accountIDs.add(String(item.account_id));
-        projectIDs.add(String(item.project_id));
+        tenantSet.add(`${item.account_id}:${item.project_id}`);
       });
 
-      return {
-        accountIDs: Array.from(accountIDs),
-        projectIDs: Array.from(projectIDs),
-      };
+      return Array.from(tenantSet);
     } catch (error) {
-      // Any error (network, unsupported endpoint, etc.) - return empty arrays
-      console.error('Failed to fetch tenant IDs:', error);
-      return {
-        accountIDs: [],
-        projectIDs: [],
-      };
+      console.error('Failed to fetch tenants:', error);
+      return [];
     }
   }
 }

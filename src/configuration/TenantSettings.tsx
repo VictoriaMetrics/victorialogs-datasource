@@ -1,9 +1,10 @@
 import React, { SyntheticEvent, useCallback, useEffect, useState } from 'react';
 
 import { SelectableValue } from "@grafana/data";
-import { getBackendSrv } from '@grafana/runtime';
+import { getDataSourceSrv } from '@grafana/runtime';
 import { Combobox, ComboboxOption, InlineField, Input, Stack, Text, TextLink } from '@grafana/ui';
 
+import { VictoriaLogsDatasource } from "../datasource";
 import { TenantHeaderNames } from "../types";
 
 import { PropsConfigEditor } from "./ConfigEditor";
@@ -34,29 +35,17 @@ export const TenantSettings = (props: PropsConfigEditor) => {
 
     setIsLoading(true);
     try {
-      const response = await getBackendSrv().post(
-        `/api/datasources/${options.id}/resources/select/tenant_ids`,
-        {}
-      );
+      const ds = await getDataSourceSrv().get(options.uid) as VictoriaLogsDatasource;
+      const tenantList = await ds.fetchTenantIds();
 
-      // Check if response is an array
-      if (Array.isArray(response)) {
-        const tenantSet = new Set<string>();
-
-        response.forEach((item: { account_id: number; project_id: number }) => {
-          const tenantId = `${item.account_id}:${item.project_id}`;
-          tenantSet.add(tenantId);
-        });
-
-        setTenants(Array.from(tenantSet).map(id => ({ label: id, value: id })));
-      }
+      setTenants(tenantList.map(id => ({ label: id, value: id })));
     } catch (error) {
       // Silently fail - tenant IDs are optional
       console.error('Failed to load tenant IDs:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [options.id, options.url]);
+  }, [options.id, options.url, options.uid]);
 
   useEffect(() => {
     void loadTenantIds();
