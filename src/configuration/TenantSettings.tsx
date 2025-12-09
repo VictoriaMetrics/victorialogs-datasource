@@ -4,8 +4,8 @@ import { SelectableValue } from "@grafana/data";
 import { getDataSourceSrv } from '@grafana/runtime';
 import { InlineField, Input, Stack, Text, TextLink } from '@grafana/ui';
 
-import CompatibleSelect from "../components/CompatibleSelect";
-import { VictoriaLogsDatasource } from "../datasource";
+import { CompatibleSelect } from '../components/CompatibleSelect';
+import { VictoriaLogsDatasource } from '../datasource';
 import { TenantHeaderNames } from "../types";
 
 import { PropsConfigEditor } from "./ConfigEditor";

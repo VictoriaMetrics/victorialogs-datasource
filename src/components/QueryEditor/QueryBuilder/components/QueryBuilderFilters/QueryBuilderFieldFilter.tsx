@@ -8,8 +8,8 @@ import { IconButton, Label, useStyles2 } from "@grafana/ui";
 import { VictoriaLogsDatasource } from "../../../../../datasource";
 import { escapeLabelValueInExactSelector } from "../../../../../languageUtils";
 import { FilterFieldType, VisualQuery } from "../../../../../types";
-import CompatibleAsyncSelect from "../../../../CompatibleAsyncSelect";
-import { deleteByIndexPath } from "../../utils/modifyFilterVisualQuery/deleteByIndexPath";
+import { CompatibleAsyncSelect } from '../../../../CompatibleAsyncSelect';
+import { deleteByIndexPath } from '../../utils/modifyFilterVisualQuery/deleteByIndexPath';
 import { updateValueByIndexPath } from "../../utils/modifyFilterVisualQuery/updateByIndexPath";
 import { DEFAULT_FIELD, filterVisualQueryToString } from "../../utils/parseToString";
 

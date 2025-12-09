@@ -11,7 +11,7 @@ const isGrafana11Plus = gte(config.buildInfo.version, '11.0.0');
 // Try to get Combobox dynamically - it only exists in Grafana 11+
 let GrafanaCombobox: React.ComponentType<{
   placeholder?: string;
-  width?: "auto";
+  width?: number | "auto";
   minWidth?: number;
   value: SelectableValue<string> | null;
   options: SelectableValue<string>[];
@@ -51,7 +51,7 @@ interface CompatibleSelectProps {
  * A compatibility wrapper for static select that uses Combobox in Grafana 11+
  * and Select in older versions.
  */
-const CompatibleSelect: React.FC<CompatibleSelectProps> = ({
+export const CompatibleSelect: React.FC<CompatibleSelectProps> = ({
   placeholder,
   minWidth = 15,
   value,
@@ -92,7 +92,7 @@ const CompatibleSelect: React.FC<CompatibleSelectProps> = ({
     return (
       <GrafanaCombobox
         placeholder={placeholder}
-        width="auto"
+        width={width}
         minWidth={minWidth}
         value={normalizedValue}
         options={options}
@@ -118,5 +118,3 @@ const CompatibleSelect: React.FC<CompatibleSelectProps> = ({
     />
   );
 };
-
-export default CompatibleSelect;
