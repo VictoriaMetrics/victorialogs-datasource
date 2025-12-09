@@ -66,4 +66,12 @@ describe('buildVisualQueryFromString', () => {
     const result = buildVisualQueryFromString(expr);
     expect(result.errors).toHaveLength(0);
   });
+
+  it('should handle quoted values with parentheses and spaces', () => {
+    const expr = '_msg: "(3/9) Installing libunistring (1.3-r0)"';
+    const result = buildVisualQueryFromString(expr);
+    expect(result.errors).toHaveLength(0);
+    expect(result.query.filters.values).toEqual(['_msg: "(3/9) Installing libunistring (1.3-r0)"']);
+    expect(result.query.pipes).toEqual([]);
+  });
 });
