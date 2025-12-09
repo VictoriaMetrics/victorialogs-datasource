@@ -1,6 +1,6 @@
 import { css } from "@emotion/css";
 import { debounce } from "lodash";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { GrafanaTheme2, TimeRange } from "@grafana/data";
 import { AsyncSelect, Combobox as GrafanaCombobox, IconButton, Label, useStyles2 } from "@grafana/ui";
@@ -45,8 +45,6 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
   const fieldValuesCache = useRef<FieldOption[]>([]);
 
 
-  const [fieldValuesKey, setFieldValuesKey] = useState(0);
-
   const { field, fieldValue } = useMemo(() => {
     const regex = /("[^"]*"|'[^']*'|\S+)\s*:\s*("[^"]*"|'[^']*'|\S+)?|\S+/i
     const matches = filter.match(regex);
@@ -86,7 +84,6 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
 
     // Reset field values cache when field name changes
     fieldValuesCache.current = [];
-    setFieldValuesKey(prev => prev + 1);
   }, [onChange, query, indexPath])
 
   const handleSelectFieldValue = useCallback((option: { value?: string; label?: string } | null) => {
@@ -255,7 +252,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
         <span>:</span>
         {Combobox ? (
           <Combobox
-            key={fieldValuesKey}
+            key={field}
             placeholder="Select field value"
             width="auto"
             minWidth={15}
@@ -267,7 +264,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
           />
         ) : (
           <AsyncSelect
-            key={fieldValuesKey}
+            key={field}
             placeholder="Select field value"
             width="auto"
             value={fieldValue ? { label: fieldValue, value: fieldValue } : null}
