@@ -2,12 +2,13 @@ import { css } from "@emotion/css";
 import { debounce } from "lodash";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { GrafanaTheme2, TimeRange } from "@grafana/data";
-import { AsyncSelect, Combobox as GrafanaCombobox, IconButton, Label, useStyles2 } from "@grafana/ui";
+import { GrafanaTheme2, SelectableValue, TimeRange } from "@grafana/data";
+import { IconButton, Label, useStyles2 } from "@grafana/ui";
 
 import { VictoriaLogsDatasource } from "../../../../../datasource";
 import { escapeLabelValueInExactSelector } from "../../../../../languageUtils";
 import { FilterFieldType, VisualQuery } from "../../../../../types";
+import CompatibleAsyncSelect from "../../../../CompatibleAsyncSelect";
 import { deleteByIndexPath } from "../../utils/modifyFilterVisualQuery/deleteByIndexPath";
 import { updateValueByIndexPath } from "../../utils/modifyFilterVisualQuery/updateByIndexPath";
 import { DEFAULT_FIELD, filterVisualQueryToString } from "../../utils/parseToString";
@@ -15,18 +16,8 @@ import { DEFAULT_FIELD, filterVisualQueryToString } from "../../utils/parseToStr
 const DEBOUNCE_MS = 300;
 const MAX_VISIBLE_OPTIONS = 1000;
 
-// Check if Combobox is available (Grafana 11+)
-// In older versions, GrafanaCombobox will be undefined
-const Combobox = typeof GrafanaCombobox !== 'undefined' ? GrafanaCombobox : undefined;
-
-// Type for option used in both Combobox and Select
-// Combobox requires label to be defined, so we make it required
-type FieldOption = {
-  value: string;
-  label: string;
-  description?: string;
-};
-
+// Type alias for options
+type FieldOption = SelectableValue<string>;
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -229,55 +220,24 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
         />
       </div>
       <div className={styles.content}>
-        {Combobox ? (
-          <Combobox
-            placeholder="Select field name"
-            width="auto"
-            minWidth={15}
-            value={field ? { label: field, value: field } : null}
-            options={loadFieldNames}
-            createCustomValue
-            onChange={handleSelectFieldName}
-            isClearable
-          />
-        ) : (
-          <AsyncSelect
-            placeholder="Select field name"
-            width="auto"
-            value={field ? { label: field, value: field } : null}
-            loadOptions={loadFieldNames}
-            defaultOptions
-            allowCustomValue
-            onChange={handleSelectFieldName}
-            isClearable
-          />
-        )}
+        <CompatibleAsyncSelect
+          placeholder="Select field name"
+          value={field ? { label: field, value: field } : null}
+          loadOptions={loadFieldNames}
+          onChange={handleSelectFieldName}
+          isClearable
+          allowCustomValue
+        />
         <span>:</span>
-        {Combobox ? (
-          <Combobox
-            key={fieldValuesKey}
-            placeholder="Select field value"
-            width="auto"
-            minWidth={15}
-            value={fieldValue ? { label: fieldValue, value: fieldValue } : null}
-            options={loadFieldValues}
-            createCustomValue
-            onChange={handleSelectFieldValue}
-            isClearable
-          />
-        ) : (
-          <AsyncSelect
-            key={fieldValuesKey}
-            placeholder="Select field value"
-            width="auto"
-            value={fieldValue ? { label: fieldValue, value: fieldValue } : null}
-            loadOptions={loadFieldValues}
-            defaultOptions
-            allowCustomValue
-            onChange={handleSelectFieldValue}
-            isClearable
-          />
-        )}
+        <CompatibleAsyncSelect
+          key={fieldValuesKey}
+          placeholder="Select field value"
+          value={fieldValue ? { label: fieldValue, value: fieldValue } : null}
+          loadOptions={loadFieldValues}
+          onChange={handleSelectFieldValue}
+          isClearable
+          allowCustomValue
+        />
       </div>
     </div>
   )

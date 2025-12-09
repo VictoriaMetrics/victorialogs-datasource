@@ -2,8 +2,9 @@ import React, { SyntheticEvent, useCallback, useEffect, useState } from 'react';
 
 import { SelectableValue } from "@grafana/data";
 import { getDataSourceSrv } from '@grafana/runtime';
-import { Combobox, ComboboxOption, InlineField, Input, Stack, Text, TextLink } from '@grafana/ui';
+import { InlineField, Input, Stack, Text, TextLink } from '@grafana/ui';
 
+import CompatibleSelect from "../components/CompatibleSelect";
 import { VictoriaLogsDatasource } from "../datasource";
 import { TenantHeaderNames } from "../types";
 
@@ -24,7 +25,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
   const multitenancyHeaders = options.jsonData?.multitenancyHeaders;
   const isReadOnly = options.readOnly;
 
-  const [tenants, setTenants] = useState<ComboboxOption[]>([]);
+  const [tenants, setTenants] = useState<SelectableValue<string>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadTenantIds = useCallback(async () => {
@@ -52,7 +53,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
     void loadTenantIds();
   }, [loadTenantIds]);
 
-  const onTenantChange = (option: ComboboxOption<string> | null) => {
+  const onTenantChange = (option: SelectableValue<string> | null) => {
     const [accountId = '', projectId = ''] = option?.value?.split(':') || ['0', '0'];
 
     onOptionsChange({
@@ -109,7 +110,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
               tooltip="Format: accountId:projectId (e.g., 1:2)"
               disabled={isReadOnly || isLoading}
             >
-              <Combobox
+              <CompatibleSelect
                 placeholder="Select Tenant"
                 isClearable
                 options={tenants}
