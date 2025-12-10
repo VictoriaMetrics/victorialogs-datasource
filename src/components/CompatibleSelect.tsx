@@ -1,12 +1,13 @@
 import React, { useCallback, useMemo } from "react";
-import { gte } from "semver";
+import { coerce, gte } from "semver";
 
 import { SelectableValue } from "@grafana/data";
 import { config } from "@grafana/runtime";
 import { Select } from "@grafana/ui";
 
 // Check if we're running Grafana 11+ where Combobox is available
-const isGrafana11Plus = gte(config.buildInfo.version, '11.0.0');
+const grafanaVersion = coerce(config.buildInfo.version);
+const isGrafana11Plus = grafanaVersion ? gte(grafanaVersion, '11.0.0') : false;
 
 // Try to get Combobox dynamically - it only exists in Grafana 11+
 let GrafanaCombobox: React.ComponentType<{
