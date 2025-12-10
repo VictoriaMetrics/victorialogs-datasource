@@ -1,5 +1,6 @@
 import {
-  DataFrame, DataFrameType,
+  DataFrame,
+  DataFrameType,
   DataQueryError,
   DataQueryRequest,
   DataQueryResponse,

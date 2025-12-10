@@ -14,7 +14,8 @@ const documentationLink = (
   <TextLink
     external
     variant="bodySmall"
-    href="https://docs.victoriametrics.com/victorialogs/#multitenancy">
+    href="https://docs.victoriametrics.com/victorialogs/#multitenancy"
+  >
     Learn more about multitenancy
   </TextLink>
 )

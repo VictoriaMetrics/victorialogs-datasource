@@ -47,7 +47,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     const urlParams = new URLSearchParams();
     if (customParams) {
       for (const [key, value] of customParams) {
-          urlParams.append(key, value);
+        urlParams.append(key, value);
       }
     }
     urlParams.append('query', options.query || '*');

@@ -42,16 +42,16 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   }, [query.expr]);
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
-      if (newEditorMode === QueryEditorMode.Builder) {
-        const result = buildVisualQueryFromString(query.expr || '');
-        if (result.errors.length) {
-          setParseModalOpen(true);
-          return;
-        }
+    if (newEditorMode === QueryEditorMode.Builder) {
+      const result = buildVisualQueryFromString(query.expr || '');
+      if (result.errors.length) {
+        setParseModalOpen(true);
+        return;
       }
-      changeEditorMode(query, newEditorMode, onChange);
-    },
-    [query, onChange]
+    }
+    changeEditorMode(query, newEditorMode, onChange);
+  },
+                                         [query, onChange]
   );
 
   useEffect(() => {

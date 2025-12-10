@@ -37,108 +37,108 @@ export const queryTypeOptions: Array<SelectableValue<QueryType>> = [
 ];
 
 export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onChange, onRunQuery }) => {
-    const filteredOptions = queryTypeOptions.filter(option => option.filter?.({ app }) ?? true);
-    const queryType = query.queryType;
+  const filteredOptions = queryTypeOptions.filter(option => option.filter?.({ app }) ?? true);
+  const queryType = query.queryType;
 
-    const isValidStep = useMemo(() => {
-      return !query.step || isValidGrafanaDuration(query.step) || !isNaN(+query.step);
-    }, [query.step]);
+  const isValidStep = useMemo(() => {
+    return !query.step || isValidGrafanaDuration(query.step) || !isNaN(+query.step);
+  }, [query.step]);
 
-    const collapsedInfo = getCollapsedInfo({
-      query,
-      queryType,
-      maxLines,
-      isValidStep,
-    });
+  const collapsedInfo = getCollapsedInfo({
+    query,
+    queryType,
+    maxLines,
+    isValidStep,
+  });
 
-    const onQueryTypeChange = (value: QueryType) => {
-      onChange({ ...query, queryType: value });
-      onRunQuery();
-    };
+  const onQueryTypeChange = (value: QueryType) => {
+    onChange({ ...query, queryType: value });
+    onRunQuery();
+  };
 
-    const onLegendFormatChanged = (e: React.FormEvent<HTMLInputElement>) => {
-      onChange({ ...query, legendFormat: e.currentTarget.value });
-      onRunQuery();
-    };
+  const onLegendFormatChanged = (e: React.FormEvent<HTMLInputElement>) => {
+    onChange({ ...query, legendFormat: e.currentTarget.value });
+    onRunQuery();
+  };
 
-    const onMaxLinesChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
-      const maxLines = parseInt(e.currentTarget.value, 10);
-      const newMaxLines = isNaN(maxLines) || maxLines < 0 ? undefined : maxLines;
+  const onMaxLinesChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
+    const maxLines = parseInt(e.currentTarget.value, 10);
+    const newMaxLines = isNaN(maxLines) || maxLines < 0 ? undefined : maxLines;
 
-      if (query.maxLines !== newMaxLines) {
-        onChange({ ...query, maxLines: newMaxLines });
-        onRunQuery();
-      }
-    }
-
-    const onStepChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
-      onChange({ ...query, step: e.currentTarget.value.trim() });
+    if (query.maxLines !== newMaxLines) {
+      onChange({ ...query, maxLines: newMaxLines });
       onRunQuery();
     }
+  }
 
-    return (
-      <EditorRow>
-        <QueryEditorOptionsGroup
-          title="Options"
-          collapsedInfo={collapsedInfo}
+  const onStepChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
+    onChange({ ...query, step: e.currentTarget.value.trim() });
+    onRunQuery();
+  }
+
+  return (
+    <EditorRow>
+      <QueryEditorOptionsGroup
+        title="Options"
+        collapsedInfo={collapsedInfo}
+      >
+        <EditorField
+          label="Legend"
+          tooltip="Series name override or template. Ex. {{hostname}} will be replaced with label value for hostname."
         >
-          <EditorField
-            label="Legend"
-            tooltip="Series name override or template. Ex. {{hostname}} will be replaced with label value for hostname."
+          <AutoSizeInput
+            placeholder="{{label}}"
+            type="string"
+            minWidth={14}
+            defaultValue={query.legendFormat}
+            onCommitChange={onLegendFormatChanged}
+          />
+        </EditorField>
+        <div>
+          <EditorField label="Type">
+            <RadioButtonGroup options={filteredOptions} value={queryType} onChange={onQueryTypeChange}/>
+          </EditorField>
+          <TextLink
+            href="https://docs.victoriametrics.com/victorialogs/querying/"
+            icon="external-link-alt"
+            variant={"bodySmall"}
+            external
           >
+            Learn more about querying logs
+          </TextLink>
+        </div>
+        {queryType === QueryType.Instant && (
+          <EditorField label="Line limit" tooltip="Upper limit for number of log lines returned by query.">
             <AutoSizeInput
-              placeholder="{{label}}"
-              type="string"
-              minWidth={14}
-              defaultValue={query.legendFormat}
-              onCommitChange={onLegendFormatChanged}
+              className="width-4"
+              placeholder={maxLines.toString()}
+              type="number"
+              min={0}
+              defaultValue={query.maxLines?.toString() ?? ''}
+              onCommitChange={onMaxLinesChange}
             />
           </EditorField>
-          <div>
-            <EditorField label="Type">
-              <RadioButtonGroup options={filteredOptions} value={queryType} onChange={onQueryTypeChange}/>
-            </EditorField>
-            <TextLink
-              href="https://docs.victoriametrics.com/victorialogs/querying/"
-              icon="external-link-alt"
-              variant={"bodySmall"}
-              external
-            >
-              Learn more about querying logs
-            </TextLink>
-          </div>
-          {queryType === QueryType.Instant && (
-            <EditorField label="Line limit" tooltip="Upper limit for number of log lines returned by query.">
-              <AutoSizeInput
-                className="width-4"
-                placeholder={maxLines.toString()}
-                type="number"
-                min={0}
-                defaultValue={query.maxLines?.toString() ?? ''}
-                onCommitChange={onMaxLinesChange}
-              />
-            </EditorField>
-          )}
-          {queryType === QueryType.StatsRange && (
-            <EditorField
-              label="Step"
-              tooltip="Use the `step` parameter when making metric queries. If not specified, Grafana will use a calculated interval. Example values: 1s, 5m, 10h, 1d."
-              invalid={!isValidStep}
-              error={'Invalid step. Example valid values: 1s, 5m, 10h, 1d.'}
-            >
-              <AutoSizeInput
-                className="width-6"
-                placeholder={'auto'}
-                type="string"
-                defaultValue={query.step ?? ''}
-                onCommitChange={onStepChange}
-              />
-            </EditorField>
-          )}
-        </QueryEditorOptionsGroup>
-      </EditorRow>
-    );
-  }
+        )}
+        {queryType === QueryType.StatsRange && (
+          <EditorField
+            label="Step"
+            tooltip="Use the `step` parameter when making metric queries. If not specified, Grafana will use a calculated interval. Example values: 1s, 5m, 10h, 1d."
+            invalid={!isValidStep}
+            error={'Invalid step. Example valid values: 1s, 5m, 10h, 1d.'}
+          >
+            <AutoSizeInput
+              className="width-6"
+              placeholder={'auto'}
+              type="string"
+              defaultValue={query.step ?? ''}
+              onCommitChange={onStepChange}
+            />
+          </EditorField>
+        )}
+      </QueryEditorOptionsGroup>
+    </EditorRow>
+  );
+}
 );
 
 QueryEditorOptions.displayName = 'QueryEditorOptions';
