@@ -84,16 +84,28 @@ const splitByTopLevelParentheses = (input: string) => {
   const result = [];
   let level = 0;
   let current = '';
+  let inDoubleQuote = false;
+  let inSingleQuote = false;
 
-  for (const char of input) {
-    if (char === '(') {
+  for (let i = 0; i < input.length; i++) {
+    const char = input[i];
+    const prevChar = i > 0 ? input[i - 1] : '';
+
+    // Track quote state (ignore escaped quotes)
+    if (char === '"' && prevChar !== '\\' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+      current += char;
+    } else if (char === "'" && prevChar !== '\\' && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+      current += char;
+    } else if (char === '(' && !inDoubleQuote && !inSingleQuote) {
       if (level === 0 && current.trim() !== '') {
         result.push(current.trim());
         current = '';
       }
       level++;
       current += char;
-    } else if (char === ')') {
+    } else if (char === ')' && !inDoubleQuote && !inSingleQuote) {
       level--;
       current += char;
       if (level === 0) {
@@ -109,7 +121,7 @@ const splitByTopLevelParentheses = (input: string) => {
     result.push(current.trim());
   }
   const regex = new RegExp(`(?:^|\\s)(${BUILDER_OPERATORS.join('|')})\\s*(?:$|\\s+)`, 'i')
-  return result.map(part => part.includes('(') ? part : part.split(regex)).flat(1)
+  return result.map(part => part.startsWith('(') ? part : part.split(regex)).flat(1)
 }
 
 const parseExpression = (input: string): ParsedExpression[] => {

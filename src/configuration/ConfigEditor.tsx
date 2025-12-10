@@ -1,5 +1,5 @@
 import React from 'react';
-import { gte } from 'semver';
+import { coerce, gte } from 'semver';
 
 import { DataSourcePluginOptionsEditorProps, DataSourceSettings, FeatureToggles } from '@grafana/data';
 import { config } from '@grafana/runtime';
@@ -15,6 +15,8 @@ import { LogLevelRulesEditor } from "./LogLevelRules/LogLevelRulesEditor";
 import { LogsSettings } from './LogsSettings';
 import { QuerySettings } from './QuerySettings';
 import { TenantSettings } from "./TenantSettings";
+
+const grafanaVersion = coerce(config.buildInfo.version);
 
 export type PropsConfigEditor = DataSourcePluginOptionsEditorProps<Options>;
 
@@ -64,7 +66,7 @@ const ConfigEditor = (props: PropsConfigEditor) => {
 
       <LogLevelRulesEditor {...props}/>
 
-      {config.featureToggles['secureSocksDSProxyEnabled' as keyof FeatureToggles] && gte(config.buildInfo.version, '10.0.0') && (
+      {config.featureToggles['secureSocksDSProxyEnabled' as keyof FeatureToggles] && grafanaVersion && gte(grafanaVersion, '10.0.0') && (
         <>
           <InlineField
             label="Secure Socks Proxy"
