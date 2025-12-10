@@ -5,6 +5,7 @@
 * FEATURE: fetch tenants from the VictoriaLogs backend and allow selecting a tenant in the datasource settings. See [#475](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/475).
 * FEATURE: enable client side caching and make reliable behavior in QueryBuilder filters. See [this issue](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/357).
 * FEATURE: add compatibility with Grafana 10.x and 11.x by using dynamic component loading for Combobox.
+* FEATURE: add quick level filter, which allows filtering logs by level according to `Log Level Rules` and the base level field. It is the first part of the [issue #108](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/108). See [pr #495](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/495).
 
 ## v0.22.4
 
