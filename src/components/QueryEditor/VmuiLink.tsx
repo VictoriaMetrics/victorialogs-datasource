@@ -133,8 +133,12 @@ const VmuiLink: FC<Props> = ({
   }, [baseVmuiUrl, datasource, panelData, query.expr, tenant]);
 
   return (
-    <a href={textUtil.sanitizeUrl(href)} target="_blank" rel="noopener noreferrer"
-       style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <a
+      href={textUtil.sanitizeUrl(href)}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+    >
       <IconButton
         key="vmui"
         name="external-link-alt"

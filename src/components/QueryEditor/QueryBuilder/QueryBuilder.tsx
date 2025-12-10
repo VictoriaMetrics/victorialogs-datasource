@@ -54,37 +54,39 @@ const QueryBuilderFilter = (props: QueryBuilderFilterProps) => {
   return (
     <div className={isRoot ? styles.builderWrapper : styles.filterWrapper}>
       {filters.values.map((filter, index) => (
-          <Fragment key={index}>
-            <div className={styles.filterItem}>
-              {typeof filter === 'string'
-                ? <QueryBuilderFieldFilter
-                  datasource={datasource}
-                  indexPath={[...indexPath, index]}
-                  filter={filter}
-                  query={query}
-                  timeRange={timeRange}
-                  onChange={onChange}
-                />
-                : <QueryBuilderFilter
-                  datasource={datasource}
-                  indexPath={[...indexPath, index]}
-                  filters={filter}
-                  query={query}
-                  timeRange={timeRange}
-                  onChange={onChange}
-                />
-              }
-            </div>
-            {index !== filters.values.length - 1 && (
-              <QueryBuilderSelectOperator
-                query={query}
-                operator={filters.operators[index] || DEFAULT_FILTER_OPERATOR}
+        <Fragment key={index}>
+          <div className={styles.filterItem}>
+            {typeof filter === 'string'
+              ?
+              <QueryBuilderFieldFilter
+                datasource={datasource}
                 indexPath={[...indexPath, index]}
+                filter={filter}
+                query={query}
+                timeRange={timeRange}
                 onChange={onChange}
               />
-            )}
-          </Fragment>
-        )
+              :
+              <QueryBuilderFilter
+                datasource={datasource}
+                indexPath={[...indexPath, index]}
+                filters={filter}
+                query={query}
+                timeRange={timeRange}
+                onChange={onChange}
+              />
+            }
+          </div>
+          {index !== filters.values.length - 1 && (
+            <QueryBuilderSelectOperator
+              query={query}
+              operator={filters.operators[index] || DEFAULT_FILTER_OPERATOR}
+              indexPath={[...indexPath, index]}
+              onChange={onChange}
+            />
+          )}
+        </Fragment>
+      )
       )}
       {/* for new filters*/}
       {!filters.values.length && (

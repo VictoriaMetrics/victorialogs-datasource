@@ -12,10 +12,12 @@ import unusedImports from "eslint-plugin-unused-imports";
 import * as emotionPlugin from '@emotion/eslint-plugin';
 import { fixupPluginRules } from "@eslint/compat";
 import importPlugin from 'eslint-plugin-import';
+import stylistic from '@stylistic/eslint-plugin';
 
 export default defineConfig([
     eslint.configs.recommended,
     tseslint.configs.recommended,
+    prettier,
     grafanaEslintConfig,
     {
       ignores: [
@@ -49,6 +51,7 @@ export default defineConfig([
         'unused-imports': unusedImports,
         '@emotion': fixupPluginRules(emotionPlugin),
         'import': importPlugin,
+        '@stylistic': stylistic,
       },
       languageOptions: {
         parser: tseslint.parser,
@@ -94,6 +97,22 @@ export default defineConfig([
         "@typescript-eslint/array-type": 0,
         "no-useless-escape": 0,
         "no-prototype-builtins": 0,
+        '@stylistic/indent': ['error', 2, {
+          'SwitchCase': 1,
+          'FunctionDeclaration': { 'parameters': 'first' },
+          'FunctionExpression': { 'parameters': 'first' },
+          'CallExpression': { 'arguments': 'first' },
+          'ObjectExpression': 'first',
+          'ignoredNodes': [
+            'TSTypeAnnotation *',
+          ],
+        }],
+        '@stylistic/jsx-max-props-per-line': ['error', {
+          maximum: 1,
+          when: 'multiline'
+        }],
+        '@stylistic/jsx-first-prop-new-line': ['error', 'multiline-multiprop'],
+        '@stylistic/jsx-closing-bracket-location': ['error', 'tag-aligned'],
         "import/order": [
           "error",
           {
@@ -127,6 +146,5 @@ export default defineConfig([
         '@typescript-eslint/no-explicit-any': 'off',
       },
     },
-    prettier,
   ]
 );

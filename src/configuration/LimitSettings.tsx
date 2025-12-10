@@ -25,7 +25,8 @@ const documentationLink = (
   <TextLink
     external
     variant="bodySmall"
-    href="https://docs.victoriametrics.com/victorialogs/querying/#querying-field-values">
+    href="https://docs.victoriametrics.com/victorialogs/querying/#querying-field-values"
+  >
     Learn more about querying field values
   </TextLink>
 )

@@ -125,23 +125,23 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
           />
         </InlineField>
         {type === FilterFieldType.FieldValue && (
-            <InlineField
-              label="Field"
-              labelWidth={20}
-              error={error}
-              invalid={!!error}
-            >
-              <Select
-                aria-label="Field value"
-                onChange={handleFieldChange}
-                onBlur={handleBlur}
-                value={field}
-                options={fieldNames}
-                width={20}
-                isLoading={isLoading}
-              />
-            </InlineField>
-          )}
+          <InlineField
+            label="Field"
+            labelWidth={20}
+            error={error}
+            invalid={!!error}
+          >
+            <Select
+              aria-label="Field value"
+              onChange={handleFieldChange}
+              onBlur={handleBlur}
+              value={field}
+              options={fieldNames}
+              width={20}
+              isLoading={isLoading}
+            />
+          </InlineField>
+        )}
         <InlineField
           label="Limit"
           labelWidth={20}
