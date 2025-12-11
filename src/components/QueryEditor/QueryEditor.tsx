@@ -8,8 +8,6 @@ import { Button, ConfirmModal, Stack, useStyles2 } from '@grafana/ui';
 import { getQueryExprVariableRegExp } from "../../LogsQL/regExpOperator";
 import { isExprHasStatsPipeFunctions } from "../../LogsQL/statsPipeFunctions";
 import { LevelQueryFilter } from "../../configuration/LogLevelRules/LevelQueryFilter/LeveQueryFilter";
-import { storeKeys } from "../../store/constants";
-import store from "../../store/store";
 import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from "../../types";
 import QueryEditorStatsWarn from "../QueryEditorStatsWarn";
 
@@ -24,6 +22,7 @@ import QueryEditorVariableRegexpError from "./QueryEditorVariableRegexpError";
 import VmuiLink from "./VmuiLink";
 import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from "./constants";
 import { useDefaultExploreGraph } from "./hooks/useDefaultExploreGraph";
+import { useLogsSort } from "./hooks/usePanelSort";
 import { changeEditorMode, getQueryWithDefaults } from "./state";
 
 const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
@@ -41,6 +40,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const varRegExp = useMemo(() => {
     return getQueryExprVariableRegExp(query.expr)?.[0] || null;
   }, [query.expr]);
+  useLogsSort(app, query, onChange, onRunQuery);
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
     if (newEditorMode === QueryEditorMode.Builder) {
@@ -52,7 +52,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     }
     changeEditorMode(query, newEditorMode, onChange);
   },
-                                         [query, onChange]
+  [query, onChange]
   );
 
   useEffect(() => {
@@ -66,15 +66,6 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     }
     onChange(query);
   };
-
-  useEffect(() => {
-    // grafana with a version below 12 doesn't support subscribe function on store
-    if ('subscribe' in store) {
-      store.subscribe(storeKeys.LOGS_SORT_ORDER, () => {
-        onRunQuery();
-      });
-    }
-  }, [onRunQuery]);
 
   useEffect(() => {
     if (!query.expr && app === CoreApp.Explore) {

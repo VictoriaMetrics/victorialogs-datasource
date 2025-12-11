@@ -13,6 +13,8 @@
 * FEATURE: add quick level filter, which allows filtering logs by level according to `Log Level Rules` and the base level field. It is the first part of the [issue #108](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/108). See [pr #495](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/495).
 * FEATURE: add a default query expression `*` in Explore mode when none is provided. See [#483](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/483).
 
+* BUGFIX: fix sorting in the Logs panel, where incorrect logs were shown while the `oldest first` sort was active. See [#266](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/266).
+
 ## v0.22.4
 
 * BUGFIX: fix an issue where the `Internal link` from derived fields config was disabled. See [#479](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/479).

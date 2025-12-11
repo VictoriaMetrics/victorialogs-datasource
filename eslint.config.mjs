@@ -101,7 +101,7 @@ export default defineConfig([
           'SwitchCase': 1,
           'FunctionDeclaration': { 'parameters': 'first' },
           'FunctionExpression': { 'parameters': 'first' },
-          'CallExpression': { 'arguments': 'first' },
+          'CallExpression': { 'arguments': 1 },
           'ObjectExpression': 'first',
           'ignoredNodes': [
             'TSTypeAnnotation *',
