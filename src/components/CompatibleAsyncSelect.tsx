@@ -63,7 +63,9 @@ export const CompatibleAsyncSelect: React.FC<CompatibleAsyncSelectProps> = ({
 }) => {
   // Normalize value to ComboboxOption format
   const normalizedValue = useMemo(() => {
-    if (!value) return null;
+    if (!value) {
+      return null;
+    }
     return value;
   }, [value]);
 

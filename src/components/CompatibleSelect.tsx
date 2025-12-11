@@ -66,7 +66,9 @@ export const CompatibleSelect: React.FC<CompatibleSelectProps> = ({
 }) => {
   // Normalize value to ComboboxOption format
   const normalizedValue = useMemo(() => {
-    if (!value) return null;
+    if (!value) {
+      return null;
+    }
     if (typeof value === 'string') {
       return { value, label: value };
     }
