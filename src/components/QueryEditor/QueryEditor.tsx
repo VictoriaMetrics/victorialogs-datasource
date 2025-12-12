@@ -3,10 +3,11 @@ import { isEqual } from 'lodash';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { CoreApp, GrafanaTheme2, LoadingState } from '@grafana/data';
-import { Button, ConfirmModal, useStyles2 } from '@grafana/ui';
+import { Button, ConfirmModal, Stack, useStyles2 } from '@grafana/ui';
 
 import { getQueryExprVariableRegExp } from "../../LogsQL/regExpOperator";
 import { isExprHasStatsPipeFunctions } from "../../LogsQL/statsPipeFunctions";
+import { LevelQueryFilter } from "../../configuration/LogLevelRules/LevelQueryFilter/LeveQueryFilter";
 import { storeKeys } from "../../store/constants";
 import store from "../../store/store";
 import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from "../../types";
@@ -90,25 +91,29 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       />
       <div className={styles.wrapper}>
         <EditorHeader>
-          {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType}/>)}
-          <QueryEditorHelp />
-          <VmuiLink
-            query={query}
-            panelData={data}
-            datasource={datasource}
-          />
-          <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange}/>
-          {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
-            <Button
-              variant={dataIsStale ? 'primary' : 'secondary'}
-              size="sm"
-              onClick={onRunQuery}
-              icon={data?.state === LoadingState.Loading ? 'fa fa-spinner' : undefined}
-              disabled={data?.state === LoadingState.Loading}
-            >
-              {queries && queries.length > 1 ? `Run queries` : `Run query`}
-            </Button>
-          )}
+          {app === CoreApp.Explore &&
+            <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange}/>}
+          <Stack direction={"row"} justifyContent={"flex-end"} alignItems={"center"} >
+            {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType}/>)}
+            <QueryEditorHelp/>
+            <VmuiLink
+              query={query}
+              panelData={data}
+              datasource={datasource}
+            />
+            <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange}/>
+            {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
+              <Button
+                variant={dataIsStale ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={onRunQuery}
+                icon={data?.state === LoadingState.Loading ? 'fa fa-spinner' : undefined}
+                disabled={data?.state === LoadingState.Loading}
+              >
+                {queries && queries.length > 1 ? `Run queries` : `Run query`}
+              </Button>
+            )}
+          </Stack>
         </EditorHeader>
         <div className="flex-grow-1">
           {editorMode === QueryEditorMode.Builder ? (

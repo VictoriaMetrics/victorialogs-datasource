@@ -19,7 +19,7 @@ const getStyles = (theme: GrafanaTheme2) => ({
     display: 'flex',
     flexWrap: 'wrap',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     gap: theme.spacing(1),
     minHeight: theme.spacing(4),
   }),
