@@ -1,13 +1,20 @@
 import { getDefaultTimeRange, LanguageProvider, TimeRange, } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from './datasource';
-import { FieldHits, FieldHitsResponse, FilterFieldType } from './types';
+import { extractLogParserFromSample } from './languageUtils';
+import { FieldHits, FieldHitsResponse, FilterFieldType, ParserAndLabelKeysResult } from './types';
 
 interface FetchFieldsOptions {
   type: FilterFieldType;
   query?: string;
   field?: string;
   timeRange?: TimeRange;
+  limit?: number;
+}
+
+interface LogQueryOptions {
+  timeRange?: TimeRange;
+  query?: string;
   limit?: number;
 }
 
@@ -37,6 +44,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
   start = async (): Promise<any[]> => {
     return Promise.all([]);
   };
+
 
   async getFieldList(options: FetchFieldsOptions, customParams?: URLSearchParams): Promise<FieldHits[]> {
     if (options.type === FilterFieldType.FieldValue && !options.field) {
@@ -85,6 +93,83 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     const sortedResult = sortFieldHits(result);
     this.cacheValues.set(key, sortedResult);
     return sortedResult;
+  }
+
+  async query(options: LogQueryOptions): Promise<Record<string, unknown>[]> {
+    const url = 'select/logsql/query';
+    const timeRange = this.getTimeRangeParams(options.timeRange);
+    const params = new URLSearchParams({
+      query: options.query ?? '*',
+      start: timeRange.start.toString(),
+      end: timeRange.end.toString(),
+      limit: (options.limit ?? 10).toString(),
+    });
+    try {
+      const res = (await this.datasource.postResource<string>(url, params, { responseType: 'text' }));
+      const lines = res.split('\n').filter(line => line.trim() !== '');
+      return lines.map(line => {
+        try {
+          return JSON.parse(line);
+        } catch (e) {
+          return { message: line };
+        }
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get parser and label keys for a selector
+   *
+   * This asynchronous function is used to fetch parsers and label keys for a selected log stream based on sampled lines.
+   * It returns a promise that resolves to an object with the following properties:
+   *
+   * - `extractedLabelKeys`: An array of available label keys associated with the log stream.
+   * - `hasJSON`: A boolean indicating whether JSON parsing is available for the stream.
+   * - `hasLogfmt`: A boolean indicating whether Logfmt parsing is available for the stream.
+   * - `hasPack`: A boolean indicating whether Pack parsing is available for the stream.
+   * - `unwrapLabelKeys`: An array of label keys that can be used for unwrapping log data.
+   *
+   * @param streamSelector - The selector for the log stream you want to analyze.
+   * @param options - (Optional) An object containing additional options.
+   * @param options.maxLines - (Optional) The number of log lines requested when determining parsers and label keys.
+   * @param options.timeRange - (Optional) The time range for which you want to retrieve label keys. If not provided, the default time range is used.
+   * Smaller maxLines is recommended for improved query performance. The default count is 10.
+   * @returns A promise containing an object with parser and label key information.
+   * @throws An error if the fetch operation fails.
+   */
+  async getParserAndLabelKeys(
+    streamSelector: string,
+    options?: { maxLines?: number; timeRange?: TimeRange }
+  ): Promise<ParserAndLabelKeysResult> {
+    const empty = {
+      extractedLabelKeys: [],
+      structuredMetadataKeys: [],
+      unwrapLabelKeys: [],
+      hasJSON: false,
+      hasLogfmt: false,
+    };
+
+    const sample = await this.query({
+      query: streamSelector,
+      limit: options?.maxLines || 10,
+      timeRange: options?.timeRange,
+    });
+
+    if (!sample.length) {
+      return empty;
+    }
+
+    const { hasLogfmt, hasJSON } = extractLogParserFromSample(sample);
+
+    return {
+      extractedLabelKeys: [],
+      structuredMetadataKeys: [],
+      unwrapLabelKeys: [],
+      hasJSON,
+      hasLogfmt,
+    };
   }
 
   getTimeRangeParams(timeRange?: TimeRange) {
