@@ -1,0 +1,129 @@
+name: Wait for Publish in Grafana Plugin Store
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  check-published:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Get issues with 'waiting for publish' label
+        id: get-issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'waiting for publish',
+              state: 'open'
+            });
+            
+            console.log(`Found ${issues.data.length} issues with 'waiting for publish' label`);
+            core.setOutput('issues', JSON.stringify(issues.data));
+            core.setOutput('count', issues.data.length);
+      
+      - name: Check if there are issues
+        id: check
+        run: |
+          if [ "${{ steps.get-issues.outputs.count }}" -eq "0" ]; then
+            echo "No issues found with 'waiting for publish' label"
+            echo "should_continue=false" >> $GITHUB_OUTPUT
+          else
+            echo "Found issues to process"
+            echo "should_continue=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Read package.json
+        id: package
+        if: steps.check.outputs.should_continue == 'true'
+        run: |
+          PACKAGE_NAME=$(jq -r '.name' package.json)
+          PACKAGE_VERSION=$(jq -r '.version' package.json)
+          echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "Package: $PACKAGE_NAME@$PACKAGE_VERSION"
+      
+      - name: Check Grafana plugin store
+        id: check-store
+        if: steps.check.outputs.should_continue == 'true'
+        run: |
+          RESPONSE=$(curl -s "https://grafana.com/api/plugins/${{ steps.package.outputs.name }}?version=latest")
+          STORE_VERSION=$(echo $RESPONSE | jq -r '.version')
+          echo "store_version=$STORE_VERSION" >> $GITHUB_OUTPUT
+          echo "Grafana store version: $STORE_VERSION"
+          echo "Package.json version: ${{ steps.package.outputs.version }}"
+          
+          if [ "$STORE_VERSION" = "${{ steps.package.outputs.version }}" ]; then
+            echo "is_published=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_published=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Close issues and remove label
+        if: steps.check.outputs.should_continue == 'true' && steps.check-store.outputs.is_published == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = JSON.parse('${{ steps.get-issues.outputs.issues }}');
+            const version = '${{ steps.package.outputs.version }}';
+            const pluginName = '${{ steps.package.outputs.name }}';
+            
+            for (const issue of issues) {
+              console.log(`Processing issue #${issue.number}`);
+              
+              // Remove 'waiting for publish' label
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  name: 'waiting for publish'
+                });
+                console.log(`Removed 'waiting for publish' label from issue #${issue.number}`);
+              } catch (error) {
+                console.log(`Could not remove label from issue #${issue.number}: ${error.message}`);
+              }
+              
+              const repo = context.repo.owner + "/" + context.repo.repo;
+              const release_url="https://github.com/${context.repo.repo}/releases/tag/v${version}"
+              // Create comment mentioning the issue author
+              const comment = `🎉 @${issue.user.login} Great news! Version [v${version}](${release_url}) has been published to the Grafana plugin store. Close the issue as resolved. If you find any problems, feel free to reopen the issue.`;
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: comment
+              });
+              console.log(`Added comment to issue #${issue.number}`);
+              
+              // Close the issue
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+              console.log(`Closed issue #${issue.number}`);
+            }
+      
+      - name: Summary
+        if: steps.check.outputs.should_continue == 'true'
+        run: |
+          echo "### Workflow Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Plugin**: ${{ steps.package.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package version**: ${{ steps.package.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Store version**: ${{ steps.check-store.outputs.store_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Published**: ${{ steps.check-store.outputs.is_published }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Issues processed**: ${{ steps.get-issues.outputs.count }}" >> $GITHUB_STEP_SUMMARY

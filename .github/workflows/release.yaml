@@ -13,6 +13,8 @@ jobs:
   release:
     name: Release on GitHub
     runs-on: ubuntu-latest
+    outputs:
+      PKG_TAG: ${{ env.PKG_TAG }}
     permissions:
       packages: write
       contents: write
@@ -107,3 +109,55 @@ jobs:
         env:
           GH_TOKEN: "${{ secrets.VM_BOT_GH_TOKEN }}"
           GITHUB_TOKEN: "${{ secrets.VM_BOT_GH_TOKEN }}"
+
+  update-issues:
+    name: Update Issues for Release
+    runs-on: ubuntu-latest
+    needs: release
+    if: ${{ needs.release.outputs.PKG_TAG != '' }}
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Update issues with waiting for release label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_TAG="${{ needs.release.outputs.PKG_TAG }}"
+          REPO="${{ github.repository }}"
+          RELEASE_URL="https://github.com/${REPO}/releases/tag/${RELEASE_TAG}"
+          
+          # Find all open issues with 'waiting for release' label
+          ISSUES=$(gh issue list \
+            --repo ${REPO} \
+            --label "waiting for release" \
+            --state open \
+            --json number,author \
+            --jq '.[] | "\(.number)|\(.author.login)"')
+          
+          if [ -z "$ISSUES" ]; then
+            echo "No issues found with 'waiting for release' label"
+            exit 0
+          fi
+          
+          # Process each issue
+          echo "$ISSUES" | while IFS='|' read -r ISSUE_NUMBER AUTHOR; do
+            echo "Processing issue #${ISSUE_NUMBER}"
+            
+            # Remove 'waiting for release' label
+            gh issue edit ${ISSUE_NUMBER} \
+              --repo ${REPO} \
+              --remove-label "waiting for release"
+            
+            # Add 'waiting for publish' label
+            gh issue edit ${ISSUE_NUMBER} \
+              --repo ${REPO} \
+              --add-label "waiting for publish"
+            
+            # Post comment
+            gh issue comment ${ISSUE_NUMBER} \
+              --repo ${REPO} \
+              --body "@${AUTHOR} Your issue has been included in release [${RELEASE_TAG}](${RELEASE_URL}). The plugin is now waiting for publication to the Grafana store."
+            
+            echo "Successfully updated issue #${ISSUE_NUMBER}"
+          done
