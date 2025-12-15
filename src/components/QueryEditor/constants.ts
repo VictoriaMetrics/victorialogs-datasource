@@ -6,3 +6,5 @@ export const EXPLORE_GRAPH_STYLES = {
   STACKED_BARS: 'stacked_bars'
 } as const;
 export type EXPLORE_STYLE_GRAPH_STYLE = typeof EXPLORE_GRAPH_STYLES[keyof typeof EXPLORE_GRAPH_STYLES];
+
+export const DEFAULT_QUERY_EXPR = '*';

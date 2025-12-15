@@ -22,7 +22,7 @@ import { QueryEditorHelp } from "./QueryEditorHelp";
 import { QueryEditorOptions } from "./QueryEditorOptions";
 import QueryEditorVariableRegexpError from "./QueryEditorVariableRegexpError";
 import VmuiLink from "./VmuiLink";
-import { EXPLORE_GRAPH_STYLES } from "./constants";
+import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from "./constants";
 import { useDefaultExploreGraph } from "./hooks/useDefaultExploreGraph";
 import { changeEditorMode, getQueryWithDefaults } from "./state";
 
@@ -76,6 +76,13 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     }
   }, [onRunQuery]);
 
+  useEffect(() => {
+    if (!query.expr && app === CoreApp.Explore) {
+      onChange({ ...query, expr: DEFAULT_QUERY_EXPR });
+      onRunQuery();
+    }
+  }, []);
+
   return (
     <>
       <ConfirmModal
@@ -93,7 +100,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
         <EditorHeader>
           {app === CoreApp.Explore &&
             <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange}/>}
-          <Stack direction={"row"} justifyContent={"flex-end"} alignItems={"center"} >
+          <Stack direction={"row"} justifyContent={"flex-end"} alignItems={"center"}>
             {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType}/>)}
             <QueryEditorHelp/>
             <VmuiLink
