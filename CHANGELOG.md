@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.23.1
+
 * BUGFIX: fix a problem where the variables in the stream could be interpolated incorrectly.
 * BUGFIX: fix a problem where loading tenants throws errors continuously when you create a new datasource from scratch.
 * BUGFIX: fix sorting in the Logs panel, where incorrect logs were shown while the `oldest first` sort was active. See [#266](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/266).
