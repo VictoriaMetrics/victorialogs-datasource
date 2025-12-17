@@ -2,22 +2,19 @@ import { css } from "@emotion/css";
 import { debounce } from "lodash";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 
-import { GrafanaTheme2, SelectableValue, TimeRange } from "@grafana/data";
-import { IconButton, Label, useStyles2 } from "@grafana/ui";
+import { GrafanaTheme2, TimeRange } from "@grafana/data";
+import { ComboboxOption, IconButton, Label, useStyles2 } from "@grafana/ui";
 
 import { VictoriaLogsDatasource } from "../../../../../datasource";
 import { escapeLabelValueInExactSelector } from "../../../../../languageUtils";
 import { FilterFieldType, VisualQuery } from "../../../../../types";
-import { CompatibleAsyncSelect } from '../../../../CompatibleAsyncSelect';
+import { CompatibleCombobox } from "../../../../CompatibleCombobox";
 import { deleteByIndexPath } from '../../utils/modifyFilterVisualQuery/deleteByIndexPath';
 import { updateValueByIndexPath } from "../../utils/modifyFilterVisualQuery/updateByIndexPath";
 import { DEFAULT_FIELD, filterVisualQueryToString } from "../../utils/parseToString";
 
 const DEBOUNCE_MS = 300;
 const MAX_VISIBLE_OPTIONS = 1000;
-
-// Type alias for options
-type FieldOption = SelectableValue<string>;
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -32,8 +29,8 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
   const styles = useStyles2(getStyles);
 
   // Cache for all loaded field names to enable client-side filtering
-  const fieldNamesCache = useRef<FieldOption[]>([]);
-  const fieldValuesCache = useRef<FieldOption[]>([]);
+  const fieldNamesCache = useRef<ComboboxOption[]>([]);
+  const fieldValuesCache = useRef<ComboboxOption[]>([]);
 
 
   const { field, fieldValue } = useMemo(() => {
@@ -90,7 +87,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
   }, [onChange, query, indexPath, field])
 
   // Fetch and cache all options, then filter client-side
-  const fetchFieldOptions = useCallback(async (type: FilterFieldType): Promise<FieldOption[]> => {
+  const fetchFieldOptions = useCallback(async (type: FilterFieldType): Promise<ComboboxOption[]> => {
     const cache = type === FilterFieldType.FieldName ? fieldNamesCache : fieldValuesCache;
 
     // Return cached data if available
@@ -108,7 +105,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
       datasource.customQueryParameters
     );
 
-    const result: FieldOption[] = list ? list.map(({ value, hits }) => ({
+    const result: ComboboxOption[] = list ? list.map(({ value, hits }) => ({
       value: value || "",
       label: value || " ",
       description: `hits: ${hits}`,
@@ -120,9 +117,9 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
 
   // Filter options client-side
   const filterOptions = useCallback((
-    options: FieldOption[],
+    options: ComboboxOption[],
     inputValue: string
-  ): FieldOption[] => {
+  ): ComboboxOption[] => {
     if (!inputValue) {
       // Return first MAX_VISIBLE_OPTIONS when no search
       return options.slice(0, MAX_VISIBLE_OPTIONS);
@@ -143,9 +140,9 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
       debounce(
         async (
           inputValue: string,
-          resolve: (options: FieldOption[]) => void,
-          fetchFn: () => Promise<FieldOption[]>,
-          filterFn: (options: FieldOption[], input: string) => FieldOption[]
+          resolve: (options: ComboboxOption[]) => void,
+          fetchFn: () => Promise<ComboboxOption[]>,
+          filterFn: (options: ComboboxOption[], input: string) => ComboboxOption[]
         ) => {
           const allOptions = await fetchFn();
           resolve(filterFn(allOptions, inputValue));
@@ -156,7 +153,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
   );
 
   // Async options loader for field names with debounce
-  const loadFieldNames = useCallback((inputValue: string): Promise<FieldOption[]> => {
+  const loadFieldNames = useCallback((inputValue: string): Promise<ComboboxOption[]> => {
     return new Promise((resolve) => {
       if (!inputValue) {
         // No debounce on initial load
@@ -175,7 +172,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
   }, [fetchFieldOptions, filterOptions, debouncedFilter]);
 
   // Async options loader for field values with debounce
-  const loadFieldValues = useCallback((inputValue: string): Promise<FieldOption[]> => {
+  const loadFieldValues = useCallback((inputValue: string): Promise<ComboboxOption[]> => {
     return new Promise((resolve) => {
       if (!field) {
         resolve([]);
@@ -217,23 +214,25 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
         />
       </div>
       <div className={styles.content}>
-        <CompatibleAsyncSelect
+        <CompatibleCombobox
           placeholder="Select field name"
           value={field ? { label: field, value: field } : null}
-          loadOptions={loadFieldNames}
+          options={loadFieldNames}
           onChange={handleSelectFieldName}
-          isClearable
-          allowCustomValue
+          width={'auto'}
+          minWidth={10}
+          createCustomValue
         />
         <span>:</span>
-        <CompatibleAsyncSelect
+        <CompatibleCombobox
           key={field}
           placeholder="Select field value"
           value={fieldValue ? { label: fieldValue, value: fieldValue } : null}
-          loadOptions={loadFieldValues}
+          options={loadFieldValues}
           onChange={handleSelectFieldValue}
-          isClearable
-          allowCustomValue
+          width={'auto'}
+          minWidth={10}
+          createCustomValue
         />
       </div>
     </div>
