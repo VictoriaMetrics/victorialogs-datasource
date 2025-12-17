@@ -2,6 +2,9 @@
 
 ## tip
 
+* BUGFIX: fix a problem where the variables in the stream could be interpolated incorrectly.
+* BUGFIX: fix a problem where loading tenants throws errors continuously when you create a new datasource from scratch.
+
 ## v0.23.0
 
 * FEATURE: fetch tenants from the VictoriaLogs backend and allow selecting a tenant in the datasource settings. See [#475](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/475).

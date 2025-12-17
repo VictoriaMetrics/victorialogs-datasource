@@ -101,7 +101,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
           Manage tenants and multitenancy settings. {documentationLink}
         </Text>
         <Text variant="bodySmall" color="disabled" element="p">
-          If you want to use the tenant selector, you must save the datasource configuration before using tenants.
+          If you want to use a selection of the possible tenant list, you must save the datasource configuration before using tenants.
         </Text>
       </div>
 
