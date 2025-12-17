@@ -113,10 +113,16 @@ export const logsSortOrders = {
 
 export const addSortPipeToQuery = ({ expr, queryType, direction }: Query, app: CoreApp | string, isLiveStreaming = false) => {
   let sortDirection: QueryDirection | undefined;
-  if (app === CoreApp.Dashboard || app === CoreApp.PanelEditor) {
-    sortDirection = direction ?? 'desc';
-  } else if (app === CoreApp.Explore) {
-    sortDirection = store.get(storeKeys.LOGS_SORT_ORDER) === LogsSortOrder.Ascending ? 'asc' : 'desc';
+  switch (app) {
+    case CoreApp.Dashboard:
+    case CoreApp.PanelEditor:
+      sortDirection = direction ?? 'desc';
+      break;
+    case CoreApp.Explore:
+      sortDirection = store.get(storeKeys.LOGS_SORT_ORDER) === LogsSortOrder.Ascending ? 'asc' : 'desc';
+      break;
+    default:
+      sortDirection = undefined;
   }
 
   // if a query is not 'Raw logs' or is a live stream, don't add sort pipe

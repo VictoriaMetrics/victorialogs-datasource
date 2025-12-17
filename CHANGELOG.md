@@ -4,6 +4,7 @@
 
 * BUGFIX: fix a problem where the variables in the stream could be interpolated incorrectly.
 * BUGFIX: fix a problem where loading tenants throws errors continuously when you create a new datasource from scratch.
+* BUGFIX: fix sorting in the Logs panel, where incorrect logs were shown while the `oldest first` sort was active. See [#266](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/266).
 
 ## v0.23.0
 
@@ -12,8 +13,6 @@
 * FEATURE: add compatibility with Grafana 10.x and 11.x by using dynamic component loading for Combobox.
 * FEATURE: add quick level filter, which allows filtering logs by level according to `Log Level Rules` and the base level field. It is the first part of the [issue #108](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/108). See [pr #495](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/495).
 * FEATURE: add a default query expression `*` in Explore mode when none is provided. See [#483](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/483).
-
-* BUGFIX: fix sorting in the Logs panel, where incorrect logs were shown while the `oldest first` sort was active. See [#266](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/266).
 
 ## v0.22.4
 
