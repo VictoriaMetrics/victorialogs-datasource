@@ -135,3 +135,12 @@ export enum TenantHeaderNames {
 }
 
 export type MultitenancyHeaders = Partial<Record<TenantHeaderNames, string | undefined>>
+
+
+export interface ParserAndLabelKeysResult {
+  extractedLabelKeys: string[];
+  structuredMetadataKeys: string[];
+  hasJSON: boolean;
+  hasLogfmt: boolean;
+  unwrapLabelKeys: string[];
+}

@@ -1,7 +1,7 @@
 import { SyntaxNode } from "@lezer/common";
 import { escapeRegExp } from 'lodash';
 
-import { Filter, FilterOp, LineFilter, OrFilter, parser, PipeExact, PipeMatch, String } from "@grafana/lezer-logql"
+import { Filter, FilterOp, JsonExpressionParser, LabelParser, LineFilter, Logfmt, OrFilter, parser, PipeExact, PipeMatch, String } from "@grafana/lezer-logql"
 
 export function getNodesFromQuery(query: string, nodeTypes?: number[]): SyntaxNode[] {
   const nodes: SyntaxNode[] = [];
@@ -69,4 +69,10 @@ export function getHighlighterExpressionsFromQuery(input = ''): string[] {
     }
   }
   return results;
+}
+
+export function isQueryWithParser(query: string): { queryWithParser: boolean; parserCount: number } {
+  const nodes = getNodesFromQuery(query, [LabelParser, JsonExpressionParser, Logfmt]);
+  const parserCount = nodes.length;
+  return { queryWithParser: parserCount > 0, parserCount };
 }
