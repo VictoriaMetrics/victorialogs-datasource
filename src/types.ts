@@ -20,10 +20,11 @@ export interface Options extends DataSourceJsonData {
   vmuiUrl?: string;
 }
 
-export enum QueryDirection {
-  Backward = 'backward',
-  Forward = 'forward',
-}
+export const QUERY_DIRECTION = {
+  asc: 'asc',
+  desc: 'desc',
+} as const;
+export type QueryDirection = typeof QUERY_DIRECTION[keyof typeof QUERY_DIRECTION];
 
 export enum SupportingQueryType {
   DataSample = 'dataSample',

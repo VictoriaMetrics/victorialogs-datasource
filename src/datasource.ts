@@ -39,11 +39,14 @@ import { TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from "./constants";
 import { escapeLabelValueInSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
 import { LOGS_VOLUME_BARS, queryLogsVolume } from "./logsVolumeLegacy";
-import { addLabelToQuery, addSortPipeToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
+import {
+  addLabelToQuery,
+  addSortPipeToQuery,
+  queryHasFilter,
+  removeLabelFromQuery
+} from "./modifyQuery";
 import { removeDoubleQuotesAroundVar } from "./parsing";
 import { replaceOperatorWithIn, returnVariables } from "./parsingUtils";
-import { storeKeys } from "./store/constants";
-import store from "./store/store";
 import {
   DerivedFieldConfig,
   FilterActionType,
@@ -113,12 +116,11 @@ export class VictoriaLogsDatasource
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-    const sortOrder = store.get(storeKeys.LOGS_SORT_ORDER);
     const queries = request.targets.filter(q => q.expr || config.publicDashboardAccessToken !== '').map((q) => {
       return {
         ...q,
         // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
-        expr: addSortPipeToQuery(q, sortOrder, request.liveStreaming),
+        expr: addSortPipeToQuery(q, request.app, request.liveStreaming),
         maxLines: q.maxLines ?? this.maxLines,
       }
     });

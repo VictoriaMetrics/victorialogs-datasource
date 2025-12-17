@@ -1,11 +1,13 @@
-import { AdHocVariableFilter } from '@grafana/data';
+import { AdHocVariableFilter, CoreApp, LogsSortOrder } from '@grafana/data';
 
 import {
   buildVisualQueryFromString,
   splitExpression
 } from "./components/QueryEditor/QueryBuilder/utils/parseFromString";
 import { parseVisualQueryToString } from "./components/QueryEditor/QueryBuilder/utils/parseToString";
-import { FilterVisualQuery, Query, QueryType } from "./types";
+import { storeKeys } from "./store/constants";
+import store from "./store/store";
+import { FilterVisualQuery, Query, QueryDirection, QueryType } from "./types";
 
 const operators = ["=", "!=", "=~", "!~", "<", ">"];
 const multiValueOperators = ["=|", "!=|"]
@@ -109,12 +111,29 @@ export const logsSortOrders = {
   desc: "Descending"
 };
 
-export const addSortPipeToQuery = ({ expr, queryType }: Query, sortDirection: string, isLiveStreaming = false) => {
+export const addSortPipeToQuery = ({ expr, queryType, direction }: Query, app: CoreApp | string, isLiveStreaming = false) => {
+  let sortDirection: QueryDirection | undefined;
+  switch (app) {
+    case CoreApp.Dashboard:
+    case CoreApp.PanelEditor:
+      sortDirection = direction ?? 'desc';
+      break;
+    case CoreApp.Explore:
+      sortDirection = store.get(storeKeys.LOGS_SORT_ORDER) === LogsSortOrder.Ascending ? 'asc' : 'desc';
+      break;
+    default:
+      sortDirection = undefined;
+  }
+
   // if a query is not 'Raw logs' or is a live stream, don't add sort pipe
-  if (queryType !== QueryType.Instant || isLiveStreaming) {
+  if (queryType !== QueryType.Instant || isLiveStreaming || !sortDirection) {
     return expr;
   }
-  const exprContainsSort = /\|\s*sort\s*by\s*\(/i.test(expr); // checks for existing sort pipe `sort by (`
-  const sortPipe = `sort by (_time) ${sortDirection === logsSortOrders.asc ? 'asc' : 'desc'}`;
-  return exprContainsSort ? expr : `${expr} | ${sortPipe}`;
+  // checks for existing sort pipe `sort by (_time)` or `order by (_time)`
+  const exprContainsSort = /\|\s*(?:sort|order)\s*by\s*\([^)]*\b_time\b[^)]*\)/i.test(expr);
+  if (exprContainsSort) {
+    return expr;
+  }
+  const sortPipe = `sort by (_time) ${sortDirection}`;
+  return `${expr} | ${sortPipe}`;
 }
