@@ -32,7 +32,13 @@ export function replaceVariables(expr: string) {
   });
 }
 
-const validAfterVariableChars = [' ', '|', '}'];
+/*
+*  ' ' - for filter separator
+*  '|' - for pipe separator
+*  '}' - for end of a stream
+*  ',' - for stream filter separator
+* */
+const validAfterVariableChars = [' ', '|', '}', ','];
 function findIndexEndOfFilter(expr: string, startIndex = 0): number {
   for (let i = startIndex; i < expr.length; i++) {
     if (validAfterVariableChars.includes(expr[i])) {

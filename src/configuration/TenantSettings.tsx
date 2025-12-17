@@ -2,9 +2,9 @@ import React, { SyntheticEvent, useCallback, useEffect, useState } from 'react';
 
 import { SelectableValue } from "@grafana/data";
 import { getDataSourceSrv } from '@grafana/runtime';
-import { InlineField, Input, Stack, Text, TextLink } from '@grafana/ui';
+import { ComboboxOption, InlineField, Input, Stack, Text, TextLink } from '@grafana/ui';
 
-import { CompatibleSelect } from '../components/CompatibleSelect';
+import { CompatibleCombobox } from '../components/CompatibleCombobox';
 import { VictoriaLogsDatasource } from '../datasource';
 import { TenantHeaderNames } from "../types";
 
@@ -26,12 +26,12 @@ export const TenantSettings = (props: PropsConfigEditor) => {
   const multitenancyHeaders = options.jsonData?.multitenancyHeaders;
   const isReadOnly = options.readOnly;
 
-  const [tenants, setTenants] = useState<SelectableValue<string>[]>([]);
+  const [tenants, setTenants] = useState<ComboboxOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadTenantIds = useCallback(async () => {
-    // Only try to load if datasource is saved (has ID and URL)
-    if (!options.id || !options.url) {
+    // Only try to load if datasource is saved (has ID)
+    if (!options.id) {
       setIsLoading(false);
       return;
     }
@@ -48,11 +48,12 @@ export const TenantSettings = (props: PropsConfigEditor) => {
     } finally {
       setIsLoading(false);
     }
-  }, [options.id, options.url, options.uid]);
+  }, [options.id, options.uid]);
 
+  // if changed version, reload tenant IDs, because the datasource url may have changed
   useEffect(() => {
     void loadTenantIds();
-  }, [loadTenantIds]);
+  }, [loadTenantIds, options.version]);
 
   const onTenantChange = (option: SelectableValue<string> | null) => {
     const [accountId = '', projectId = ''] = option?.value?.split(':') || ['0', '0'];
@@ -99,6 +100,9 @@ export const TenantSettings = (props: PropsConfigEditor) => {
         <Text variant="bodySmall" color="disabled" element="p">
           Manage tenants and multitenancy settings. {documentationLink}
         </Text>
+        <Text variant="bodySmall" color="disabled" element="p">
+          If you want to use a selection of the possible tenant list, you must save the datasource configuration before using tenants.
+        </Text>
       </div>
 
       <div className="gf-form-group">
@@ -111,7 +115,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
               tooltip="Format: accountId:projectId (e.g., 1:2)"
               disabled={isReadOnly || isLoading}
             >
-              <CompatibleSelect
+              <CompatibleCombobox
                 placeholder="Select Tenant"
                 isClearable
                 options={tenants}
