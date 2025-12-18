@@ -615,6 +615,13 @@ func (d *Datasource) VLAPITenantIDs(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if di.settings.URL == "" {
+		rw.Header().Add("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusOK)
+		_, err = rw.Write([]byte(`{"hint": "To use the list of possible tenants, need to set the datasource url first and save the datasource configuration"}`))
+		return
+	}
+
 	u, err := url.Parse(di.settings.URL)
 	if err != nil {
 		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to parse datasource url: %w", err))
@@ -822,7 +829,7 @@ func buildDatasourceSettings(settings backend.DataSourceInstanceSettings) (DataS
 }
 
 func setVmuiURL(settings *DataSourceInstanceSettings) error {
-	if len(settings.VMUIURL) == 0 {
+	if len(settings.VMUIURL) == 0 && settings.URL != "" {
 		vmuiUrl, err := newURL(settings.URL, "/select/vmui/", false)
 		if err != nil {
 			return fmt.Errorf("failed to build VMUI url: %w", err)

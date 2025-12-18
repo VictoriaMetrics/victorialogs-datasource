@@ -28,6 +28,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
 
   const [tenants, setTenants] = useState<ComboboxOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hint, setHint] = useState<string>('');
 
   const loadTenantIds = useCallback(async () => {
     // Only try to load if datasource is saved (has ID)
@@ -37,9 +38,14 @@ export const TenantSettings = (props: PropsConfigEditor) => {
     }
 
     setIsLoading(true);
+    setHint('');
     try {
       const ds = await getDataSourceSrv().get(options.uid) as VictoriaLogsDatasource;
       const tenantList = await ds.fetchTenantIds();
+      if (!Array.isArray(tenantList)) {
+        setHint(tenantList.hint);
+        return;
+      }
 
       setTenants(tenantList.map(id => ({ label: id, value: id })));
     } catch (error) {
@@ -100,9 +106,9 @@ export const TenantSettings = (props: PropsConfigEditor) => {
         <Text variant="bodySmall" color="disabled" element="p">
           Manage tenants and multitenancy settings. {documentationLink}
         </Text>
-        <Text variant="bodySmall" color="disabled" element="p">
-          If you want to use a selection of the possible tenant list, you must save the datasource configuration before using tenants.
-        </Text>
+        {hint && <Text variant="bodySmall" color="warning" element="p">
+          {hint}
+        </Text>}
       </div>
 
       <div className="gf-form-group">

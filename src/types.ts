@@ -135,3 +135,8 @@ export enum TenantHeaderNames {
 }
 
 export type MultitenancyHeaders = Partial<Record<TenantHeaderNames, string | undefined>>
+
+export type Tenant = {
+  account_id: string;
+  project_id: string;
+}

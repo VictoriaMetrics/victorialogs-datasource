@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix the loading of tenant IDs when creating a new datasource from scratch.
+
 ## v0.23.1
 
 * BUGFIX: fix a problem where the variables in the stream could be interpolated incorrectly.
