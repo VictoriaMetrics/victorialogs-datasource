@@ -39,12 +39,7 @@ import { TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from "./constants";
 import { escapeLabelValueInSelector } from "./languageUtils";
 import LogsQlLanguageProvider from "./language_provider";
 import { LOGS_VOLUME_BARS, queryLogsVolume } from "./logsVolumeLegacy";
-import {
-  addLabelToQuery,
-  addSortPipeToQuery,
-  queryHasFilter,
-  removeLabelFromQuery
-} from "./modifyQuery";
+import { addLabelToQuery, addSortPipeToQuery, queryHasFilter, removeLabelFromQuery } from "./modifyQuery";
 import { removeDoubleQuotesAroundVar } from "./parsing";
 import { replaceOperatorWithIn, returnVariables } from "./parsingUtils";
 import {
@@ -57,7 +52,7 @@ import {
   QueryBuilderLimits,
   QueryFilterOptions,
   QueryType,
-  SupportingQueryType,
+  SupportingQueryType, Tenant,
   ToggleFilterAction,
   VariableQuery,
 } from './types';
@@ -524,16 +519,19 @@ export class VictoriaLogsDatasource
     return { ...timeRange, raw: timeRange };
   }
 
-  async fetchTenantIds(): Promise<string[]> {
+  async fetchTenantIds(): Promise<{hint: string} | string[]> {
     try {
-      const res = await this.postResource('select/tenant_ids', {});
+      const res = await this.postResource<{ hint: string } | Tenant[]>('select/tenant_ids', {});
 
       if (!Array.isArray(res)) {
+        if (res.hint) {
+          return res;
+        }
         return [];
       }
 
       const tenantSet = new Set<string>();
-      res.forEach((item: { account_id: number; project_id: number }) => {
+      res.forEach((item: Tenant) => {
         tenantSet.add(`${item.account_id}:${item.project_id}`);
       });
 
