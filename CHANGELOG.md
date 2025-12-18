@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.23.2
+
 * BUGFIX: fix the loading of tenant IDs when creating a new datasource from scratch.
 
 ## v0.23.1
