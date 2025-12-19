@@ -74,7 +74,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const issues = JSON.parse('${{ steps.get-issues.outputs.issues }}');
+            const issues = ${{ steps.get-issues.outputs.issues }};
             const version = '${{ steps.package.outputs.version }}';
             const pluginName = '${{ steps.package.outputs.name }}';
             
@@ -95,7 +95,7 @@ jobs:
               }
               
               const repo = context.repo.owner + "/" + context.repo.repo;
-              const release_url="https://github.com/${context.repo.repo}/releases/tag/v${version}"
+              const release_url="https://github.com/${repo}/releases/tag/v${version}"
               // Create comment mentioning the issue author
               const comment = `🎉 @${issue.user.login} Great news! Version [v${version}](${release_url}) has been published to the Grafana plugin store. Close the issue as resolved. If you find any problems, feel free to reopen the issue.`;
               
