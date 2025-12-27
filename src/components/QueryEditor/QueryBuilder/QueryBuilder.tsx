@@ -63,7 +63,8 @@ const QueryBuilder = memo<Props>(({ datasource, query, onChange, onRunQuery, tim
   };
   const onGetLabelNames = async (forLabel: Partial<QueryBuilderLabelFilter>) => {
     const prevLabels = getPrevLabels(query.labels, forLabel);
-    return await getLabelFieldOptions({ timeRange, queryModeller, datasource, labels: prevLabels, fieldType: FilterFieldType.FieldName });
+    const options = await getLabelFieldOptions({ timeRange, queryModeller, datasource, labels: prevLabels, fieldType: FilterFieldType.FieldName });
+    return options.filter((opt) => !["_stream", "_stream_id"].includes(opt.value));
   };
   const onGetLabelValues = async (forLabel: Partial<QueryBuilderLabelFilter>) => {
     if (!forLabel.label) {

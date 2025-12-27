@@ -52,7 +52,7 @@ export default function SortedFieldsEditor(props: QueryBuilderOperationParamEdit
     let options = await getFieldNameOptions(props);
     const selectedNames = values.map(v => v.name);
     options = options.filter((opt: SelectableValue<string>) => opt.value && !selectedNames.includes(opt.value));
-    setOptions(options);
+    setOptions(options as SelectableValue<any>[]);
     setIsLoading(false);
   }
 
