@@ -174,6 +174,13 @@ export class VictoriaLogsDatasource
     return queryHasFilter(expression, filter.key, filter.value, "=");
   }
 
+  filterQuery(query: Query): boolean {
+    if (query.hide || query.expr === '') {
+      return false;
+    }
+    return true;
+  }
+
   applyTemplateVariables(target: Query, scopedVars: ScopedVars, adhocFilters?: AdHocVariableFilter[]): Query {
     const { __auto, __interval, __interval_ms, __range, __range_s, __range_ms, ...rest } = scopedVars || {};
 
@@ -384,6 +391,10 @@ export class VictoriaLogsDatasource
   }
 
   getSupplementaryQuery(options: SupplementaryQueryOptions, query: Query, request: DataQueryRequest<Query>): Query | undefined {
+    if (query.hide) {
+      return undefined;
+    }
+
     switch (options.type) {
       case SupplementaryQueryType.LogsVolume: {
         const totalSeconds = request.range.to.diff(request.range.from, "second");
