@@ -127,7 +127,7 @@ type GrafanaSettings struct {
 	HTTPMethod          string            `json:"httpMethod"`
 	QueryParams         string            `json:"customQueryParameters"`
 	CustomHeaders       http.Header       `json:"-"`
-	MultitenancyHeaders map[string]string `json:"multitenancyHeaders"`
+	MultitenancyHeaders map[string]string `json:"-"`
 }
 
 func NewGrafanaSettings(settings backend.DataSourceInstanceSettings) (*GrafanaSettings, error) {
@@ -140,6 +140,12 @@ func NewGrafanaSettings(settings backend.DataSourceInstanceSettings) (*GrafanaSe
 	if err := json.Unmarshal(settings.JSONData, &grafanaSettings); err != nil {
 		return nil, fmt.Errorf("failed to parse datasource settings: %w", err)
 	}
+
+	multitenancyHeaders, err := parseMultitenancyHeaders(settings)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse tenant settings: %w", err)
+	}
+	grafanaSettings.MultitenancyHeaders = multitenancyHeaders
 
 	// Merge multitenancy headers into the common CustomHeaders set,
 	// so we don't have to attach them repeatedly for every request.
@@ -826,6 +832,35 @@ func buildDatasourceSettings(settings backend.DataSourceInstanceSettings) (DataS
 	dstSettings.URL = settings.URL
 
 	return dstSettings, nil
+}
+
+func parseMultitenancyHeaders(settings backend.DataSourceInstanceSettings) (map[string]string, error) {
+	var rawSettings struct {
+		MultitenancyHeaders map[string]interface{} `json:"multitenancyHeaders"`
+	}
+	var multitenancyHeaders = make(map[string]string)
+	if err := json.Unmarshal(settings.JSONData, &rawSettings); err != nil {
+		return multitenancyHeaders, err
+	}
+
+	// set default values for multitenancyHeaders if MultitenancyHeaders are not set
+	if rawSettings.MultitenancyHeaders == nil {
+		multitenancyHeaders["AccountID"] = "0"
+		multitenancyHeaders["ProjectID"] = "0"
+		return multitenancyHeaders, nil
+	}
+
+	for k, v := range rawSettings.MultitenancyHeaders {
+		switch val := v.(type) {
+		case string:
+			multitenancyHeaders[k] = val
+		case float64:
+			multitenancyHeaders[k] = strconv.FormatInt(int64(val), 10)
+		default:
+			multitenancyHeaders[k] = fmt.Sprintf("%v", val)
+		}
+	}
+	return multitenancyHeaders, nil
 }
 
 func setVmuiURL(settings *DataSourceInstanceSettings) error {

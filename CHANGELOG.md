@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix the parsing of tenant IDs from provisioning configurations. See [#522](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/522).
+
 ## v0.23.2
 
 * BUGFIX: fix the loading of tenant IDs when creating a new datasource from scratch.
