@@ -1063,51 +1063,53 @@ func TestParseMultitenancyHeaders(t *testing.T) {
 	tests := []struct {
 		name     string
 		jsonData string
-		want     map[string]string
+		want     MultitenancyHeaders
 		wantErr  bool
 	}{
 		{
 			name:     "Default values when headers are missing",
 			jsonData: `{}`,
-			want: map[string]string{
-				"AccountID": "0",
-				"ProjectID": "0",
+			want: MultitenancyHeaders{
+				AccountID: "0",
+				ProjectID: "0",
 			},
 			wantErr: false,
 		},
 		{
 			name:     "Valid string values",
 			jsonData: `{"multitenancyHeaders": {"AccountID": "43", "ProjectID": "4"}}`,
-			want: map[string]string{
-				"AccountID": "43",
-				"ProjectID": "4",
+			want: MultitenancyHeaders{
+				AccountID: "43",
+				ProjectID: "4",
 			},
 			wantErr: false,
 		},
 		{
 			name:     "Numeric values (float64 from json)",
 			jsonData: `{"multitenancyHeaders": {"AccountID": 100, "ProjectID": 200}}`,
-			want: map[string]string{
-				"AccountID": "100",
-				"ProjectID": "200",
+			want: MultitenancyHeaders{
+				AccountID: "100",
+				ProjectID: "200",
 			},
 			wantErr: false,
 		},
 		{
 			name:     "Mixed types and extra headers",
 			jsonData: `{"multitenancyHeaders": {"AccountID": 123, "ProjectID": "abc", "Custom": "val"}}`,
-			want: map[string]string{
-				"AccountID": "123",
-				"ProjectID": "abc",
-				"Custom":    "val",
+			want: MultitenancyHeaders{
+				AccountID: "123",
+				ProjectID: "0",
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name:     "Invalid JSON",
 			jsonData: `{invalid}`,
-			want:     make(map[string]string),
-			wantErr:  true,
+			want: MultitenancyHeaders{
+				AccountID: "0",
+				ProjectID: "0",
+			},
+			wantErr: true,
 		},
 	}
 
@@ -1122,13 +1124,8 @@ func TestParseMultitenancyHeaders(t *testing.T) {
 				return
 			}
 			if !tt.wantErr {
-				if len(got) != len(tt.want) {
-					t.Errorf("parseMultitenancyHeaders() got length = %v, want %v", len(got), len(tt.want))
-				}
-				for k, v := range tt.want {
-					if got[k] != v {
-						t.Errorf("parseMultitenancyHeaders() [%s] = %v, want %v", k, got[k], v)
-					}
+				if got != tt.want {
+					t.Errorf("parseMultitenancyHeaders() got %v, want %v", got, tt.want)
 				}
 			}
 		})
