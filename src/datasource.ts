@@ -546,8 +546,11 @@ export class VictoriaLogsDatasource
 
   parseMultitenancyHeaders(multitenancyHeaders?: Partial<Record<TenantHeaderNames, string>>): MultitenancyHeaders {
     const formatTenantId = (value: string | number | undefined): string => {
-      const parsed = parseInt(String(value), 10);
-      return Number.isInteger(parsed) ? String(parsed) : '0';
+      if (value === undefined || value === '') {
+        return '0';
+      }
+      const num = Number(value);
+      return Number.isInteger(num) ? String(num) : '0';
     };
 
     return {
