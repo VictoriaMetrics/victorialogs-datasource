@@ -1058,3 +1058,76 @@ func TestGetBaseVMUIURL(t *testing.T) {
 		})
 	}
 }
+
+func TestParseMultitenancyHeaders(t *testing.T) {
+	tests := []struct {
+		name     string
+		jsonData string
+		want     MultitenancyHeaders
+		wantErr  bool
+	}{
+		{
+			name:     "Default values when headers are missing",
+			jsonData: `{}`,
+			want: MultitenancyHeaders{
+				AccountID: "0",
+				ProjectID: "0",
+			},
+			wantErr: false,
+		},
+		{
+			name:     "Valid string values",
+			jsonData: `{"multitenancyHeaders": {"AccountID": "43", "ProjectID": "4"}}`,
+			want: MultitenancyHeaders{
+				AccountID: "43",
+				ProjectID: "4",
+			},
+			wantErr: false,
+		},
+		{
+			name:     "Numeric values (float64 from json)",
+			jsonData: `{"multitenancyHeaders": {"AccountID": 100, "ProjectID": 200}}`,
+			want: MultitenancyHeaders{
+				AccountID: "100",
+				ProjectID: "200",
+			},
+			wantErr: false,
+		},
+		{
+			name:     "Mixed types and extra headers",
+			jsonData: `{"multitenancyHeaders": {"AccountID": 123, "ProjectID": "abc", "Custom": "val"}}`,
+			want: MultitenancyHeaders{
+				AccountID: "123",
+				ProjectID: "0",
+			},
+			wantErr: true,
+		},
+		{
+			name:     "Invalid JSON",
+			jsonData: `{invalid}`,
+			want: MultitenancyHeaders{
+				AccountID: "0",
+				ProjectID: "0",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			settings := backend.DataSourceInstanceSettings{
+				JSONData: []byte(tt.jsonData),
+			}
+			got, err := parseMultitenancyHeaders(settings)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseMultitenancyHeaders() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr {
+				if got != tt.want {
+					t.Errorf("parseMultitenancyHeaders() got %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}

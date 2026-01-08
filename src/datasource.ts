@@ -52,7 +52,9 @@ import {
   QueryBuilderLimits,
   QueryFilterOptions,
   QueryType,
-  SupportingQueryType, Tenant,
+  SupportingQueryType,
+  Tenant,
+  TenantHeaderNames,
   ToggleFilterAction,
   VariableQuery,
 } from './types';
@@ -107,7 +109,7 @@ export class VictoriaLogsDatasource
     this.variables = new VariableSupport(this);
     this.queryBuilderLimits = settingsData.queryBuilderLimits;
     this.logLevelRules = settingsData.logLevelRules || [];
-    this.multitenancyHeaders = settingsData.multitenancyHeaders;
+    this.multitenancyHeaders = this.parseMultitenancyHeaders(settingsData.multitenancyHeaders);
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
@@ -519,7 +521,7 @@ export class VictoriaLogsDatasource
     return { ...timeRange, raw: timeRange };
   }
 
-  async fetchTenantIds(): Promise<{hint: string} | string[]> {
+  async fetchTenantIds(): Promise<{ hint: string } | string[]> {
     try {
       const res = await this.postResource<{ hint: string } | Tenant[]>('select/tenant_ids', {});
 
@@ -540,5 +542,20 @@ export class VictoriaLogsDatasource
       console.error('Failed to fetch tenants:', error);
       return [];
     }
+  }
+
+  parseMultitenancyHeaders(multitenancyHeaders?: Partial<Record<TenantHeaderNames, string>>): MultitenancyHeaders {
+    const formatTenantId = (value: string | number | undefined): string => {
+      if (value === undefined || value === '') {
+        return '0';
+      }
+      const num = Number(value);
+      return Number.isInteger(num) ? String(num) : '0';
+    };
+
+    return {
+      [TenantHeaderNames.AccountID]: formatTenantId(multitenancyHeaders?.AccountID),
+      [TenantHeaderNames.ProjectID]: formatTenantId(multitenancyHeaders?.ProjectID),
+    };
   }
 }
