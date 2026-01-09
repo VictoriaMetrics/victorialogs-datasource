@@ -3,6 +3,7 @@
 ## tip
 
 * BUGFIX: fix the parsing of tenant IDs from provisioning configurations. See [#522](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/522).
+* BUGFIX: fix an issue where queries would run even if they were hidden. See [#521](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/521).
 
 ## v0.23.2
 
