@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix an issue where queries would run even if they were hidden. See [#521](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/521).
+
 ## v0.23.2
 
 * BUGFIX: fix the loading of tenant IDs when creating a new datasource from scratch.
