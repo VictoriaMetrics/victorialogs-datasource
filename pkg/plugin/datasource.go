@@ -121,13 +121,18 @@ func newDatasourceInstance(ctx context.Context, settings backend.DataSourceInsta
 	}, nil
 }
 
+type MultitenancyHeaders struct {
+	AccountID string `json:"AccountID"`
+	ProjectID string `json:"ProjectID"`
+}
+
 // GrafanaSettings contains the raw DataSourceConfig as JSON as stored by Grafana server.
 // It repeats the properties in this object and includes custom properties.
 type GrafanaSettings struct {
-	HTTPMethod          string            `json:"httpMethod"`
-	QueryParams         string            `json:"customQueryParameters"`
-	CustomHeaders       http.Header       `json:"-"`
-	MultitenancyHeaders map[string]string `json:"multitenancyHeaders"`
+	HTTPMethod          string              `json:"httpMethod"`
+	QueryParams         string              `json:"customQueryParameters"`
+	CustomHeaders       http.Header         `json:"-"`
+	MultitenancyHeaders MultitenancyHeaders `json:"-"`
 }
 
 func NewGrafanaSettings(settings backend.DataSourceInstanceSettings) (*GrafanaSettings, error) {
@@ -141,13 +146,16 @@ func NewGrafanaSettings(settings backend.DataSourceInstanceSettings) (*GrafanaSe
 		return nil, fmt.Errorf("failed to parse datasource settings: %w", err)
 	}
 
+	multitenancyHeaders, err := parseMultitenancyHeaders(settings)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse tenant settings: %w", err)
+	}
+	grafanaSettings.MultitenancyHeaders = multitenancyHeaders
+
 	// Merge multitenancy headers into the common CustomHeaders set,
 	// so we don't have to attach them repeatedly for every request.
-	for k, v := range grafanaSettings.MultitenancyHeaders {
-		if v != "" {
-			customHttpHeaders.Set(k, v)
-		}
-	}
+	customHttpHeaders.Set(projectIDHeader, grafanaSettings.MultitenancyHeaders.ProjectID)
+	customHttpHeaders.Set(accountIDHeader, grafanaSettings.MultitenancyHeaders.AccountID)
 
 	grafanaSettings.CustomHeaders = customHttpHeaders
 
@@ -688,12 +696,12 @@ func (d *Datasource) VMUIQuery(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	accountID := di.grafanaSettings.MultitenancyHeaders["AccountID"]
+	accountID := di.grafanaSettings.MultitenancyHeaders.AccountID
 	if accountID == "" {
 		accountID = "0"
 	}
 
-	projectID := di.grafanaSettings.MultitenancyHeaders["ProjectID"]
+	projectID := di.grafanaSettings.MultitenancyHeaders.ProjectID
 	if projectID == "" {
 		projectID = "0"
 	}
@@ -826,6 +834,59 @@ func buildDatasourceSettings(settings backend.DataSourceInstanceSettings) (DataS
 	dstSettings.URL = settings.URL
 
 	return dstSettings, nil
+}
+
+func parseMultitenancyHeaders(settings backend.DataSourceInstanceSettings) (MultitenancyHeaders, error) {
+	defaults := MultitenancyHeaders{
+		AccountID: "0",
+		ProjectID: "0",
+	}
+
+	var config struct {
+		Headers map[string]interface{} `json:"multitenancyHeaders"`
+	}
+	if err := json.Unmarshal(settings.JSONData, &config); err != nil {
+		return defaults, err
+	}
+
+	if config.Headers == nil {
+		return defaults, nil
+	}
+
+	result := defaults
+	setTenant := func(key string, target *string) error {
+		if val, ok := config.Headers[key]; ok {
+			parsed, err := parseTenantId(val)
+			if err != nil {
+				return err
+			}
+			*target = parsed
+		}
+		return nil
+	}
+
+	if err := setTenant(accountIDHeader, &result.AccountID); err != nil {
+		return defaults, err
+	}
+	if err := setTenant(projectIDHeader, &result.ProjectID); err != nil {
+		return defaults, err
+	}
+
+	return result, nil
+}
+
+func parseTenantId(tenantId interface{}) (string, error) {
+	switch val := tenantId.(type) {
+	case string:
+		if _, err := strconv.ParseFloat(val, 64); err != nil {
+			return "", fmt.Errorf("tenant ID is not a number: %w", err)
+		}
+		return val, nil
+	case float64:
+		return strconv.FormatInt(int64(val), 10), nil
+	default:
+		return fmt.Sprintf("%v", val), nil
+	}
 }
 
 func setVmuiURL(settings *DataSourceInstanceSettings) error {

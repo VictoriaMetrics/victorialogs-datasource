@@ -16,7 +16,7 @@ export interface Options extends DataSourceJsonData {
   // predefinedOperations?: string;
   enableSecureSocksProxy?: boolean;
   logLevelRules?: LogLevelRule[];
-  multitenancyHeaders?: MultitenancyHeaders;
+  multitenancyHeaders?: Partial<Record<TenantHeaderNames, string>>;
   vmuiUrl?: string;
 }
 
@@ -134,7 +134,7 @@ export enum TenantHeaderNames {
   ProjectID = 'ProjectID',
 }
 
-export type MultitenancyHeaders = Partial<Record<TenantHeaderNames, string | undefined>>
+export type MultitenancyHeaders = Record<TenantHeaderNames, string>;
 
 export type Tenant = {
   account_id: string;
