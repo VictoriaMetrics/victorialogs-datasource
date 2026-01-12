@@ -99,7 +99,9 @@ const splitByTopLevelParentheses = (input: string) => {
       inSingleQuote = !inSingleQuote;
       current += char;
     } else if (char === '(' && !inDoubleQuote && !inSingleQuote) {
-      if (level === 0 && current.trim() !== '') {
+      // Check if it's :in(
+      const isListItem = current.trim().endsWith(':in');
+      if (level === 0 && current.trim() !== '' && !isListItem) {
         result.push(current.trim());
         current = '';
       }
@@ -120,16 +122,24 @@ const splitByTopLevelParentheses = (input: string) => {
   if (current.trim() !== '') {
     result.push(current.trim());
   }
-  const regex = new RegExp(`(?:^|\\s)(${BUILDER_OPERATORS.join('|')})\\s*(?:$|\\s+)`, 'i')
-  return result.map(part => part.startsWith('(') ? part : part.split(regex)).flat(1)
+  const operatorsPattern = BUILDER_OPERATORS.join('|');
+  const operatorRegex = new RegExp(`(?:^|\\s)(${operatorsPattern})\\s*(?:$|\\s+)`, 'i');
+
+  const splitPartByOperators = (part: string) => {
+    const isTopLevelGroup = part.startsWith('(') && !/\w+:in\(/.test(part);
+    return isTopLevelGroup ? part : part.split(operatorRegex);
+  };
+
+  return result.flatMap(splitPartByOperators).filter(Boolean);
+
 }
 
 const parseExpression = (input: string): ParsedExpression[] => {
   const parts = splitByTopLevelParentheses(input);
 
   return parts.map(part => {
-    if (part.startsWith('(') && part.endsWith(')')) {
-      // Recursively parse the inner expression
+    if (part.startsWith('(') && part.endsWith(')') && !/\w+:in\(/.test(part)) {
+      // Recursively parse the inner expression, but not for :in()
       return parseExpression(part.slice(1, -1));
     } else {
       return part.trim();
@@ -138,7 +148,8 @@ const parseExpression = (input: string): ParsedExpression[] => {
 }
 
 const parseStringPart = (expression: string) => {
-  const regex = /("[^"]*"|'[^']*'|\S+)\s*:\s*("[^"]*"|'[^']*'|\S+)?|\S+/g;
+  // Regex updated to handle :in(...) or simple key:value
+  const regex = /("[^"]*"|'[^']*'|\S+)\s*:\s*(in\s*\([^)]*\)|"[^"]*"|'[^']*'|\S+)?|\S+/g;
   const matches = expression.match(regex) || [];
   return matches.map(match => match.trim());
 }

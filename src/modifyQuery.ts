@@ -49,7 +49,7 @@ const getMultiValueInsert = (key: string, values: string[], operator: string): s
 
   const valuesStr = values.map(v => `"${v}"`).join(",");
   const expr = `${key}:in(${valuesStr})`
-  return isExclude ? `!(${expr})` : expr;
+  return isExclude ? `!${expr}` : expr;
 }
 
 export const addLabelToQuery = (query: string, filter: AdHocVariableFilter): string => {

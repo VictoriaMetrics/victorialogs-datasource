@@ -118,6 +118,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
             <QueryBuilderContainer
               datasource={props.datasource}
               query={query}
+              app={app}
               onChange={onChangeInternal}
               onRunQuery={props.onRunQuery}
               timeRange={timeRange}

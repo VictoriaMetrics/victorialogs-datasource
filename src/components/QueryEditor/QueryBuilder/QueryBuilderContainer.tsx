@@ -1,11 +1,12 @@
 import { css } from "@emotion/css";
 import React, { useState } from 'react';
 
-import { GrafanaTheme2, TimeRange } from '@grafana/data';
+import { CoreApp, GrafanaTheme2, TimeRange } from '@grafana/data';
 import { useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from "../../../datasource";
 import { Query, VisualQuery } from "../../../types";
+import { AdHocFiltersControl } from "../AdHocFiltersControl";
 
 import QueryBuilder from "./QueryBuilder";
 import { buildVisualQueryFromString } from "./utils/parseFromString";
@@ -14,6 +15,7 @@ import { parseVisualQueryToString } from "./utils/parseToString";
 
 export interface Props {
   query: Query;
+  app?: CoreApp;
   datasource: VictoriaLogsDatasource;
   onChange: (update: Query) => void;
   onRunQuery: () => void;
@@ -23,7 +25,7 @@ export interface Props {
 export function QueryBuilderContainer(props: Props) {
   const styles = useStyles2(getStyles);
 
-  const { query, onChange, onRunQuery, datasource, timeRange } = props
+  const { query, onChange, onRunQuery, datasource, timeRange, app } = props
 
   const [state, setState] = useState<{expr: string, visQuery: VisualQuery}>({
     expr: query.expr,
@@ -36,6 +38,11 @@ export function QueryBuilderContainer(props: Props) {
     onChange({ ...props.query, expr: expr });
   };
 
+  const onAdhocFilterChange = (newQuery: Query) => {
+    setState({ expr: query.expr, visQuery: buildVisualQueryFromString(newQuery.expr).query });
+    onChange(newQuery);
+  }
+
   return (
     <>
       <QueryBuilder
@@ -45,6 +52,8 @@ export function QueryBuilderContainer(props: Props) {
         onRunQuery={onRunQuery}
         timeRange={timeRange}
       />
+      {query.extraFilters && <AdHocFiltersControl query={query} onChange={onAdhocFilterChange} onRunQuery={onRunQuery} app={app} />}
+
       <hr/>
 
       <p className={styles.previewText}>
