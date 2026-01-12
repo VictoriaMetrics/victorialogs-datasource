@@ -44,7 +44,7 @@ const getMultiValueInsert = (key: string, values: string[], operator: string): s
 
   if (key === "_stream") {
     const expr = values.map(v => `${key}: ${v}`).join(" OR ")
-    return isExclude ? `!(${expr})` : `(${expr})`;
+    return isExclude ? `!${expr}` : `(${expr})`;
   }
 
   const valuesStr = values.map(v => `"${v}"`).join(",");
