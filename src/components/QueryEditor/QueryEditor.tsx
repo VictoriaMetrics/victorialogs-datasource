@@ -89,8 +89,10 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       />
       <div className={styles.wrapper}>
         <EditorHeader>
-          {app === CoreApp.Explore &&
+          <div>
+            {app === CoreApp.Explore &&
             <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange}/>}
+          </div>
           <Stack direction={"row"} justifyContent={"flex-end"} alignItems={"center"}>
             {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType}/>)}
             <QueryEditorHelp/>
