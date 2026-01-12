@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { CoreApp, GrafanaTheme2 } from '@grafana/data';
 import { Button, Icon, useStyles2 } from '@grafana/ui';
 
-import { Query } from '../../types';
+import { FilterVisualQuery, Query } from '../../types';
 
 import { buildVisualQueryFromString } from './QueryBuilder/utils/parseFromString';
 
@@ -34,7 +34,7 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
       const filters: string[] = [];
 
       // Extract individual filter values from the parsed structure
-      const extractFilters = (values: (string | any)[]) => {
+      const extractFilters = (values: (string | FilterVisualQuery)[]) => {
         for (const value of values) {
           if (typeof value === 'string') {
             // Only add if it looks like a complete filter (has a colon)
@@ -84,7 +84,7 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
     const currentExpr = query.expr?.trim() || '*';
     const newExpr = currentExpr === '*'
       ? filterToMove
-      : `${currentExpr} AND ${filterToMove}`;
+      : `${filterToMove} AND ${currentExpr}`;
 
     onChange({
       ...query,
