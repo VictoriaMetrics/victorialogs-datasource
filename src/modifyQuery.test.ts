@@ -65,7 +65,7 @@ describe('modifyQuery', () => {
     it('should add "!=|" group', () => {
       const query = 'foo: bar';
       const result = addLabelToQuery(query, { key: 'baz', value: '', values: ['qux', 'quux'], operator: '!=|' });
-      expect(result).toBe('foo: bar AND !(baz:in("qux","quux"))');
+      expect(result).toBe('foo: bar AND !baz:in("qux","quux")');
     });
   });
 

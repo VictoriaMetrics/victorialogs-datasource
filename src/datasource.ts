@@ -203,9 +203,9 @@ export class VictoriaLogsDatasource
     };
   }
 
-  getExtraFilters(adhocFilters?: AdHocVariableFilter[], initialExpr = ''): string {
+  getExtraFilters(adhocFilters?: AdHocVariableFilter[], initialExpr = ''): string | undefined {
     if (!adhocFilters) {
-      return initialExpr;
+      return initialExpr || undefined;
     }
 
     const expr = adhocFilters.reduce((acc: string, filter: AdHocVariableFilter) => {
