@@ -102,7 +102,7 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
   return (
     <div className={styles.adHocFiltersContainer}>
       <div className={styles.adHocFiltersLabel}>
-        <Icon name="filter" size="sm" />
+        <Icon name="filter" size="sm"/>
         <span>Ad-hoc filters:</span>
       </div>
       {adHocFilters.map((filter, index) => (
@@ -113,10 +113,10 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
               size="sm"
               variant="secondary"
               onClick={() => handleMoveToQuery(filter)}
-              tooltip="Move to query."
+              tooltip="Move to query"
               fill="text"
             >
-              <Icon name="arrow-up" />
+              <Icon name="arrow-up"/>
             </Button>
             <Button
               size="sm"
@@ -125,7 +125,7 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
               tooltip="Delete filter"
               fill="text"
             >
-              <Icon name="times" />
+              <Icon name="times"/>
             </Button>
           </div>
         </div>
@@ -161,7 +161,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       display: flex;
       align-items: center;
       gap: ${theme.spacing(0.5)};
-      padding: ${theme.spacing(0.5, 1)};
+      padding: ${theme.spacing(0.25, 0.25, 0.25, 1)};
       background-color: ${theme.colors.background.primary};
       border: 1px solid ${theme.colors.border.weak};
       border-radius: ${theme.shape.radius.default};
@@ -175,10 +175,22 @@ const getStyles = (theme: GrafanaTheme2) => {
     filterText: css`
       color: ${theme.colors.text.primary};
       white-space: nowrap;
+      margin-right: ${theme.spacing(0.5)};
     `,
     filterActions: css`
       display: flex;
-      gap: ${theme.spacing(0.5)};
+      align-items: center;
+      padding-left: ${theme.spacing(0.25)};
+      border-left: 1px solid ${theme.colors.border.weak};
+      
+      button {
+        padding: 0 ${theme.spacing(0.25)};
+        color: ${theme.colors.text.secondary};
+        
+        &:hover {
+          color: ${theme.colors.text.primary};
+        }
+      }
     `,
   };
 };
