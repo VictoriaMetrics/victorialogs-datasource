@@ -199,13 +199,13 @@ export class VictoriaLogsDatasource
       ...target,
       legendFormat: this.templateSrv.replace(target.legendFormat, rest),
       expr: this.interpolateString(target.expr, variables),
-      extraFilters: this.getExtraFilters(adhocFilters),
+      extraFilters: this.getExtraFilters(adhocFilters, target.extraFilters),
     };
   }
 
   getExtraFilters(adhocFilters?: AdHocVariableFilter[], initialExpr = ''): string | undefined {
     if (!adhocFilters) {
-      return;
+      return initialExpr || undefined;
     }
 
     const expr = adhocFilters.reduce((acc: string, filter: AdHocVariableFilter) => {
@@ -235,7 +235,7 @@ export class VictoriaLogsDatasource
         datasource: this.getRef(),
         expr: this.interpolateString(query.expr, scopedVars),
         interval: this.templateSrv.replace(query.interval, scopedVars),
-        extraFilters: this.getExtraFilters(filters),
+        extraFilters: this.getExtraFilters(filters, query.extraFilters),
       }));
     }
     return expandedQueries;
