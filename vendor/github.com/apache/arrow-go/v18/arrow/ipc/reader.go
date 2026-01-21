@@ -39,8 +39,8 @@ type Reader struct {
 	r      MessageReader
 	schema *arrow.Schema
 
-	refCount int64
-	rec      arrow.Record
+	refCount atomic.Int64
+	rec      arrow.RecordBatch
 	err      error
 
 	// types dictTypeMap
@@ -70,13 +70,14 @@ func NewReaderFromMessageReader(r MessageReader, opts ...Option) (reader *Reader
 
 	rr := &Reader{
 		r:        r,
-		refCount: 1,
+		refCount: atomic.Int64{},
 		// types:    make(dictTypeMap),
 		memo:               dictutils.NewMemo(),
 		mem:                cfg.alloc,
 		ensureNativeEndian: cfg.ensureNativeEndian,
 		expectedSchema:     cfg.schema,
 	}
+	rr.refCount.Add(1)
 
 	if !cfg.noAutoSchema {
 		if err := rr.readSchema(cfg.schema); err != nil {
@@ -88,8 +89,32 @@ func NewReaderFromMessageReader(r MessageReader, opts ...Option) (reader *Reader
 }
 
 // NewReader returns a reader that reads records from an input stream.
-func NewReader(r io.Reader, opts ...Option) (*Reader, error) {
-	return NewReaderFromMessageReader(NewMessageReader(r, opts...), opts...)
+func NewReader(r io.Reader, opts ...Option) (rr *Reader, err error) {
+	defer func() {
+		if pErr := recover(); pErr != nil {
+			err = utils.FormatRecoveredError("arrow/ipc: unknown error while reading", pErr)
+		}
+	}()
+	cfg := newConfig(opts...)
+	mr := &messageReader{r: r, mem: cfg.alloc}
+	mr.refCount.Add(1)
+	rr = &Reader{
+		r:        mr,
+		refCount: atomic.Int64{},
+		// types:    make(dictTypeMap),
+		memo:               dictutils.NewMemo(),
+		mem:                cfg.alloc,
+		ensureNativeEndian: cfg.ensureNativeEndian,
+		expectedSchema:     cfg.schema,
+	}
+	rr.refCount.Add(1)
+
+	if !cfg.noAutoSchema {
+		if err := rr.readSchema(cfg.schema); err != nil {
+			return nil, err
+		}
+	}
+	return rr, nil
 }
 
 // Err returns the last error encountered during the iteration over the
@@ -141,16 +166,16 @@ func (r *Reader) readSchema(schema *arrow.Schema) error {
 // Retain increases the reference count by 1.
 // Retain may be called simultaneously from multiple goroutines.
 func (r *Reader) Retain() {
-	atomic.AddInt64(&r.refCount, 1)
+	r.refCount.Add(1)
 }
 
 // Release decreases the reference count by 1.
 // When the reference count goes to zero, the memory is freed.
 // Release may be called simultaneously from multiple goroutines.
 func (r *Reader) Release() {
-	debug.Assert(atomic.LoadInt64(&r.refCount) > 0, "too many releases")
+	debug.Assert(r.refCount.Load() > 0, "too many releases")
 
-	if atomic.AddInt64(&r.refCount, -1) == 0 {
+	if r.refCount.Add(-1) == 0 {
 		if r.rec != nil {
 			r.rec.Release()
 			r.rec = nil
@@ -163,7 +188,7 @@ func (r *Reader) Release() {
 	}
 }
 
-// Next returns whether a Record could be extracted from the underlying stream.
+// Next returns whether a RecordBatch could be extracted from the underlying stream.
 func (r *Reader) Next() bool {
 	if r.rec != nil {
 		r.rec.Release()
@@ -251,20 +276,29 @@ func (r *Reader) next() bool {
 		return false
 	}
 
-	r.rec = newRecord(r.schema, &r.memo, msg.meta, msg.body, r.swapEndianness, r.mem)
+	r.rec = newRecordBatch(r.schema, &r.memo, msg.meta, msg.body, r.swapEndianness, r.mem)
 	return true
+}
+
+// RecordBatch returns the current record batch that has been extracted from the
+// underlying stream.
+// It is valid until the next call to Next.
+func (r *Reader) RecordBatch() arrow.RecordBatch {
+	return r.rec
 }
 
 // Record returns the current record that has been extracted from the
 // underlying stream.
 // It is valid until the next call to Next.
+//
+// Deprecated: Use [RecordBatch] instead.
 func (r *Reader) Record() arrow.Record {
-	return r.rec
+	return r.RecordBatch()
 }
 
-// Read reads the current record from the underlying stream and an error, if any.
+// Read reads the current record batch from the underlying stream and an error, if any.
 // When the Reader reaches the end of the underlying stream, it returns (nil, io.EOF).
-func (r *Reader) Read() (arrow.Record, error) {
+func (r *Reader) Read() (arrow.RecordBatch, error) {
 	if r.rec != nil {
 		r.rec.Release()
 		r.rec = nil
@@ -280,6 +314,4 @@ func (r *Reader) Read() (arrow.Record, error) {
 	return r.rec, nil
 }
 
-var (
-	_ array.RecordReader = (*Reader)(nil)
-)
+var _ array.RecordReader = (*Reader)(nil)

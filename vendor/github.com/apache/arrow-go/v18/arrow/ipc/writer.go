@@ -87,7 +87,7 @@ type Writer struct {
 	codec           flatbuf.CompressionType
 	compressNP      int
 	compressors     []compressor
-	minSpaceSavings *float64
+	minSpaceSavings float64
 
 	// map of the last written dictionaries by id
 	// so we can avoid writing the same dictionary over and over
@@ -152,7 +152,7 @@ func (w *Writer) Close() error {
 	return nil
 }
 
-func (w *Writer) Write(rec arrow.Record) (err error) {
+func (w *Writer) Write(rec arrow.RecordBatch) (err error) {
 	defer func() {
 		if pErr := recover(); pErr != nil {
 			err = utils.FormatRecoveredError("arrow/ipc: unknown error while writing", pErr)
@@ -204,7 +204,7 @@ func (w *Writer) Write(rec arrow.Record) (err error) {
 	return w.pw.WritePayload(data)
 }
 
-func writeDictionaryPayloads(mem memory.Allocator, batch arrow.Record, isFileFormat bool, emitDictDeltas bool, mapper *dictutils.Mapper, lastWrittenDicts map[int64]arrow.Array, pw PayloadWriter, encoder *recordEncoder) error {
+func writeDictionaryPayloads(mem memory.Allocator, batch arrow.RecordBatch, isFileFormat bool, emitDictDeltas bool, mapper *dictutils.Mapper, lastWrittenDicts map[int64]arrow.Array, pw PayloadWriter, encoder *recordEncoder) error {
 	dictionaries, err := dictutils.CollectDictionaries(batch, mapper)
 	if err != nil {
 		return err
@@ -306,7 +306,7 @@ func (d *dictEncoder) Encode(p *Payload, id int64, isDelta bool, dict arrow.Arra
 	}()
 
 	schema := arrow.NewSchema([]arrow.Field{{Name: "dictionary", Type: dict.DataType(), Nullable: true}}, nil)
-	batch := array.NewRecord(schema, []arrow.Array{dict}, int64(dict.Len()))
+	batch := array.NewRecordBatch(schema, []arrow.Array{dict}, int64(dict.Len()))
 	defer batch.Release()
 	if err := d.encode(p, batch); err != nil {
 		return err
@@ -328,7 +328,7 @@ type recordEncoder struct {
 	codec           flatbuf.CompressionType
 	compressNP      int
 	compressors     []compressor
-	minSpaceSavings *float64
+	minSpaceSavings float64
 }
 
 func newRecordEncoder(
@@ -338,7 +338,7 @@ func newRecordEncoder(
 	allow64b bool,
 	codec flatbuf.CompressionType,
 	compressNP int,
-	minSpaceSavings *float64,
+	minSpaceSavings float64,
 	compressors []compressor,
 ) *recordEncoder {
 	return &recordEncoder{
@@ -355,12 +355,12 @@ func newRecordEncoder(
 
 func (w *recordEncoder) shouldCompress(uncompressed, compressed int) bool {
 	debug.Assert(uncompressed > 0, "uncompressed size is 0")
-	if w.minSpaceSavings == nil {
+	if w.minSpaceSavings == 0 {
 		return true
 	}
 
 	savings := 1.0 - float64(compressed)/float64(uncompressed)
-	return savings >= *w.minSpaceSavings
+	return savings >= w.minSpaceSavings
 }
 
 func (w *recordEncoder) reset() {
@@ -467,7 +467,7 @@ func (w *recordEncoder) compressBodyBuffers(p *Payload) error {
 	return <-errch
 }
 
-func (w *recordEncoder) encode(p *Payload, rec arrow.Record) error {
+func (w *recordEncoder) encode(p *Payload, rec arrow.RecordBatch) error {
 	// perform depth-first traversal of the row-batch
 	for i, col := range rec.Columns() {
 		err := w.visit(p, col)
@@ -477,13 +477,10 @@ func (w *recordEncoder) encode(p *Payload, rec arrow.Record) error {
 	}
 
 	if w.codec != -1 {
-		if w.minSpaceSavings != nil {
-			pct := *w.minSpaceSavings
-			if pct < 0 || pct > 1 {
-				p.Release()
-				return fmt.Errorf("%w: minSpaceSavings not in range [0,1]. Provided %.05f",
-					arrow.ErrInvalid, pct)
-			}
+		if w.minSpaceSavings < 0 || w.minSpaceSavings > 1 {
+			p.Release()
+			return fmt.Errorf("%w: minSpaceSavings not in range [0,1]. Provided %.05f",
+				arrow.ErrInvalid, w.minSpaceSavings)
 		}
 		w.compressBodyBuffers(p)
 	}
@@ -1033,7 +1030,7 @@ func (w *recordEncoder) rebaseDenseUnionValueOffsets(arr *array.DenseUnion, offs
 	return shiftedOffsetsBuf
 }
 
-func (w *recordEncoder) Encode(p *Payload, rec arrow.Record) error {
+func (w *recordEncoder) Encode(p *Payload, rec arrow.RecordBatch) error {
 	if err := w.encode(p, rec); err != nil {
 		return err
 	}
@@ -1087,7 +1084,7 @@ func needTruncate(offset int64, buf *memory.Buffer, minLength int64) bool {
 // GetRecordBatchPayload produces the ipc payload for a given record batch.
 // The resulting payload itself must be released by the caller via the Release
 // method after it is no longer needed.
-func GetRecordBatchPayload(batch arrow.Record, opts ...Option) (Payload, error) {
+func GetRecordBatchPayload(batch arrow.RecordBatch, opts ...Option) (Payload, error) {
 	cfg := newConfig(opts...)
 	var (
 		data = Payload{msg: MessageRecordBatch}
