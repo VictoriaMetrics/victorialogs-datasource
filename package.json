@@ -76,6 +76,11 @@
     "webpack-subresource-integrity": "^5.2.0-rc.1",
     "webpack-virtual-modules": "^0.6.2"
   },
+  "resolutions": {
+    "react-router": "6.30.3",
+    "react-router-dom": "6.30.3",
+    "react-router-dom-v5-compat": "6.30.3"
+  },
   "engines": {
     "node": ">=24.11.1"
   },
