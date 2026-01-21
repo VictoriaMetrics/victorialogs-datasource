@@ -2,6 +2,10 @@
 
 ## tip
 
+## v0.23.4
+
+* BUGFIX: update dependencies to fix security issues with react-router. See [pr #534](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/534).
+
 ## v0.23.3
 
 * BUGFIX: fix the parsing of tenant IDs from provisioning configurations. See [#522](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/522).
