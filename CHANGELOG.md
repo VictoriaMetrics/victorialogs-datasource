@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.23.4
+
 ## v0.23.3
 
 * BUGFIX: fix the parsing of tenant IDs from provisioning configurations. See [#522](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/522).
