@@ -22,7 +22,7 @@
     "@emotion/eslint-plugin": "^11.12.0",
     "@eslint/compat": "^2.0.0",
     "@eslint/js": "^9.39.1",
-    "@grafana/e2e-selectors": "^11.6.1",
+    "@grafana/e2e-selectors": "^12.3.1",
     "@grafana/eslint-config": "^9.0.0",
     "@grafana/tsconfig": "^2.0.0",
     "@stylistic/eslint-plugin": "^5.6.1",
@@ -76,17 +76,22 @@
     "webpack-subresource-integrity": "^5.2.0-rc.1",
     "webpack-virtual-modules": "^0.6.2"
   },
+  "resolutions": {
+    "react-router": "6.30.3",
+    "react-router-dom": "6.30.3",
+    "react-router-dom-v5-compat": "6.30.3"
+  },
   "engines": {
     "node": ">=24.11.1"
   },
   "dependencies": {
     "@emotion/css": "11.13.5",
-    "@grafana/data": "12.2.0",
+    "@grafana/data": "12.3.1",
     "@grafana/lezer-logql": "^0.2.7",
     "@grafana/plugin-ui": "^0.10.5",
-    "@grafana/runtime": "12.2.0",
-    "@grafana/schema": "^12.2.0",
-    "@grafana/ui": "12.2.0",
+    "@grafana/runtime": "12.3.1",
+    "@grafana/schema": "^12.3.1",
+    "@grafana/ui": "12.3.1",
     "@lezer/common": "^1.2.1",
     "@lezer/lr": "^1.4.1",
     "lodash": "^4.17.21",
