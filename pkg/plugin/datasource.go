@@ -413,6 +413,8 @@ func (di *DatasourceInstance) datasourceQuery(ctx context.Context, q *Query, isS
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+
 		switch resp.StatusCode {
 		case http.StatusUnprocessableEntity:
 			return nil, parseErrorResponse(resp.Body)
@@ -426,6 +428,7 @@ func (di *DatasourceInstance) datasourceQuery(ctx context.Context, q *Query, isS
 	// This is to handle cases where VictoriaLogs returns no data
 	// and avoid json decoding errors
 	if resp.ContentLength == 0 {
+		resp.Body.Close()
 		return nil, nil
 	}
 
