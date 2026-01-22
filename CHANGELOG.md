@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.23.5
+
 * BUGFIX: fix closing connections in the datasource backend to prevent resource leak. See [pr #537](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/537).
 
 ## v0.23.4
