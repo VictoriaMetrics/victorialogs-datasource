@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix closing connections in the datasource backend to prevent resource leak. See [pr #537](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/537).
+
 ## v0.23.4
 
 * BUGFIX: update dependencies to fix security issues with react-router. See [pr #534](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/534).
