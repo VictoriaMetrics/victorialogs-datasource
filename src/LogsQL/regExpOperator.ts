@@ -102,3 +102,41 @@ export function isRegExpOperatorInLastFilter(queryExpr: string): boolean {
 
   return false;
 }
+
+const escapeRegExpChars = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Processes a query expression by replacing occurrences of variables with double-quoted variables
+ * following a specific pattern. Escapes special characters in variable names to safely construct
+ * the regular expression used for substitution.
+ *
+ * @param {string} queryExpr - The input query expression containing placeholders for variables.
+ * @param {string[]} variables - An array of variable names to be replaced in the query expression.
+ * @return {string} The query expression with variables replaced by double-quoted equivalents.
+ */
+export function doubleQuoteRegExp(queryExpr: string, variables: string[]): string {
+  let newQueryExpr = queryExpr;
+  for (const variable of variables) {
+    const escapedVariable = escapeRegExpChars(variable);
+    newQueryExpr = newQueryExpr.replace(
+      new RegExp(`:~\\s*\\$${escapedVariable}\\b`, 'g'),
+      `:~"\$${variable}"`
+    );
+  }
+  return newQueryExpr;
+}
+
+/**
+ * Adjusts the given query expression string by replacing specific regular expression patterns.
+ *
+ * This method searches for occurrences of the pattern `:~"*"` in the input string,
+ * where `*` is surrounded by optional whitespace, and replaces them with the pattern `:~".*"`.
+ *
+ * @param {string} queryExpr - The query expression string to be processed.
+ * @return {string} The modified query expression string with the corrected patterns.
+ */
+export function correctRegExpValueAll(queryExpr: string): string {
+  return queryExpr
+    .replace(/:\s*~\s*"\*"/g, ':~".*"') // for regexp operator
+    .replace(/:\s*!\s*~\s*"\*"/g, ':!~".*"') // for negative regexp operator
+}

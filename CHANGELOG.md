@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix an issue where variables were incorrectly interpolated in the query, as a result of which the `repeat by variable` feature did not work correctly. See [#502](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/502).
+
 ## v0.23.5
 
 * BUGFIX: fix closing connections in the datasource backend to prevent resource leak. See [pr #537](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/537).
