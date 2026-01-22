@@ -1,4 +1,6 @@
 import {
+  correctRegExpValueAll,
+  doubleQuoteRegExp,
   getQueryExprVariableRegExp,
   isRegExpOperatorInLastFilter,
   replaceRegExpOperatorToOperator
@@ -258,6 +260,126 @@ describe('regExpOperator', () => {
     it('should return true if regexp filter contain escaping double quotes', () => {
       const result = isRegExpOperatorInLastFilter(`filterName1:~ "\\"([^\\"]*)\\"$filter`);
       expect(result).toBeTruthy();
+    });
+  });
+
+  describe('doubleQuoteRegExpOperator', () => { 
+    it('should wrap variable with double quotes when :~$ is present', () => {
+      const result = doubleQuoteRegExp('fieldName:~$var', ['var']);
+      expect(result).toEqual('fieldName:~"$var"');
+    });
+
+    it('should wrap multiple variables', () => {
+      const result = doubleQuoteRegExp('f1:~$var1 f2:~$var2', ['var1', 'var2']);
+      expect(result).toEqual('f1:~"$var1" f2:~"$var2"');
+    });
+
+    it('should not wrap if operator is not :~$', () => {
+      const result = doubleQuoteRegExp('fieldName:$var', ['var']);
+      expect(result).toEqual('fieldName:$var');
+    });
+
+    it('should handle variables with special regex characters', () => {
+      const result = doubleQuoteRegExp('field:~$var.name', ['var.name']);
+      expect(result).toEqual('field:~"$var.name"');
+    });
+
+    it('should respect word boundaries and not match partial variable names', () => {
+      const result = doubleQuoteRegExp('f1:~$var f2:~$var2', ['var']);
+      expect(result).toEqual('f1:~"$var" f2:~$var2');
+    });
+
+    it('should return original string if variables list is empty', () => {
+      const query = 'fieldName:~$var';
+      const result = doubleQuoteRegExp(query, []);
+      expect(result).toEqual(query);
+    });
+
+    it('should handle query with no matches', () => {
+      const query = 'some random text';
+      const result = doubleQuoteRegExp(query, ['var']);
+      expect(result).toEqual(query);
+    });
+
+    it('should handle multiple occurrences of the same variable', () => {
+      const result = doubleQuoteRegExp('f1:~$var f2:~$var', ['var']);
+      expect(result).toEqual('f1:~"$var" f2:~"$var"');
+    });
+
+    it('should handle query with the space before value', () => {
+      const result = doubleQuoteRegExp('f1:~ $var', ['var']);
+      expect(result).toEqual('f1:~"$var"');
+    });
+  });
+
+  describe('correctRegExpValueAll', () => {
+    it('should replace :~"*": the basic case', () => {
+      expect(correctRegExpValueAll('field:~"*"' )).toEqual('field:~".*"');
+    });
+
+    it('should replace :~   "*": with spaces after operator', () => {
+      expect(correctRegExpValueAll('field:~   "*"' )).toEqual('field:~".*"');
+    });
+
+    it('should replace :~"*": when it is a part of a longer query', () => {
+      expect(correctRegExpValueAll('a:1 b:~"*"' )).toEqual('a:1 b:~".*"');
+    });
+
+    it('should replace all occurrences (global replacement)', () => {
+      const input = 'f1:~"*" f2:~   "*" | f3:~"*" f4:"*"';
+      const output = 'f1:~".*" f2:~".*" | f3:~".*" f4:"*"';
+      expect(correctRegExpValueAll(input)).toEqual(output);
+    });
+
+    it('should handle newlines/tabs after :~ (whitespace is allowed)', () => {
+      const input = `f1:~\n"*"\nf2:~\t"*"`;
+      const output = `f1:~".*"\nf2:~".*"`;
+      expect(correctRegExpValueAll(input)).toEqual(output);
+    });
+
+    it('should not change query when there is no :~"*"', () => {
+      const input = 'field:"*" field:~".*" field:~"$var"';
+      expect(correctRegExpValueAll(input)).toEqual(input);
+    });
+
+    it('should not replace when there are spaces inside the quotes (pattern is exactly "*")', () => {
+      const input = 'field:~" * " field:~"*"';
+      const output = 'field:~" * " field:~".*"';
+      expect(correctRegExpValueAll(input)).toEqual(output);
+    });
+
+    it('should not replace for other operators (e.g. =~ or !~) — only :~ is handled', () => {
+      const input = 'field:="*" field:!="*" field:~"*"';
+      const output = 'field:="*" field:!="*" field:~".*"';
+      expect(correctRegExpValueAll(input)).toEqual(output);
+    });
+
+    it('should return empty string as is', () => {
+      expect(correctRegExpValueAll('')).toEqual('');
+    });
+
+    it('should be idempotent (running twice does not change result)', () => {
+      const input = 'f1:~"*" f2:~   "*"';
+      const once = correctRegExpValueAll(input);
+      const twice = correctRegExpValueAll(once);
+      expect(once).toEqual('f1:~".*" f2:~".*"');
+      expect(twice).toEqual(once);
+    });
+
+    it('should replace :!~"*": the basic case', () => {
+      expect(correctRegExpValueAll('field:!~"*"' )).toEqual('field:!~".*"');
+    });
+
+    it('should replace :!~   "*": with spaces/newlines after operator', () => {
+      const input = `field:!~\n"*"\nother:1`;
+      const output = `field:!~".*"\nother:1`;
+      expect(correctRegExpValueAll(input)).toEqual(output);
+    });
+
+    it('should replace both :~"*"" and :!~"*"" in the same query', () => {
+      const input = 'f1:~"*" f2:!~   "*" | f3:~"*" f4:"*"';
+      const output = 'f1:~".*" f2:!~".*" | f3:~".*" f4:"*"';
+      expect(correctRegExpValueAll(input)).toEqual(output);
     });
   });
 });

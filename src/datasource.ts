@@ -31,7 +31,8 @@ import {
 } from '@grafana/data';
 import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, TemplateSrv, } from '@grafana/runtime';
 
-import { isRegExpOperatorInLastFilter } from "./LogsQL/regExpOperator";
+import { correctMultiExactOperatorValueAll } from "./LogsQL/multiExactOperator";
+import { correctRegExpValueAll, doubleQuoteRegExp, isRegExpOperatorInLastFilter } from "./LogsQL/regExpOperator";
 import { transformBackendResult } from "./backendResultTransformer";
 import QueryEditor from "./components/QueryEditor/QueryEditor";
 import { LogLevelRule } from "./configuration/LogLevelRules/types";
@@ -58,7 +59,6 @@ import {
   ToggleFilterAction,
   VariableQuery,
 } from './types';
-import { replaceAllOptionInQuery } from "./utils/replaceAllOptionInQuery";
 import { getMillisecondsFromDuration } from "./utils/timeUtils";
 import { VariableSupport } from "./variableSupport/VariableSupport";
 
@@ -301,17 +301,18 @@ export class VictoriaLogsDatasource
     for (const variable of fieldValuesVariables) {
       result = removeDoubleQuotesAroundVar(result, variable.name);
       result = replaceOperatorWithIn(result, variable.name);
-      if (this.isAllOption(variable)) {
-        result = replaceAllOptionInQuery(result, variable);
-      }
     }
     return result;
   }
 
   interpolateString(string: string, scopedVars?: ScopedVars) {
-    const exprWithReplacedOperators = this.replaceOperatorsToInForMultiQueryVariables(string);
-    const expr = this.templateSrv.replace(exprWithReplacedOperators, scopedVars, this.interpolateQueryExpr);
-    return this.replaceMultiVariables(expr)
+    let expr = this.replaceOperatorsToInForMultiQueryVariables(string);
+    const variableNamesList = this.templateSrv.getVariables().map(v => v.name);
+    expr = doubleQuoteRegExp(expr, variableNamesList);
+    expr = this.templateSrv.replace(expr, scopedVars, this.interpolateQueryExpr);
+    expr = correctRegExpValueAll(expr);
+    expr = correctMultiExactOperatorValueAll(expr);
+    return this.replaceMultiVariables(expr);
   }
 
   private replaceMultiVariables(input: string): string {
