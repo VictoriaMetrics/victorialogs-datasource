@@ -4,6 +4,7 @@ import React from 'react';
 import { GrafanaTheme2 } from "@grafana/data";
 import { Badge, TextLink, useTheme2 } from "@grafana/ui";
 
+import { VICTORIA_LOGS_DOCS_HOST } from "../conf";
 import { QueryType } from "../types";
 
 import { queryTypeOptions } from "./QueryEditor/QueryEditorOptions";
@@ -31,7 +32,7 @@ const QueryEditorStatsWarn = ({ queryType }: Props) => {
         text={text}
       />
       <TextLink
-        href="https://docs.victoriametrics.com/victorialogs/logsql/#stats-pipe"
+        href={`${VICTORIA_LOGS_DOCS_HOST}/victorialogs/logsql/#stats-pipe`}
         icon="external-link-alt"
         variant={"bodySmall"}
         external

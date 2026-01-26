@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import { CoreApp, isValidGrafanaDuration, SelectableValue } from '@grafana/data';
 import { AutoSizeInput, RadioButtonGroup, TextLink } from '@grafana/ui';
 
+import { VICTORIA_LOGS_DOCS_HOST } from "../../conf";
 import { Query, QueryType } from "../../types";
 
 import EditorField from "./EditorField";
@@ -99,7 +100,7 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
             <RadioButtonGroup options={filteredOptions} value={queryType} onChange={onQueryTypeChange}/>
           </EditorField>
           <TextLink
-            href="https://docs.victoriametrics.com/victorialogs/querying/"
+            href={`${VICTORIA_LOGS_DOCS_HOST}/victorialogs/querying/`}
             icon="external-link-alt"
             variant={"bodySmall"}
             external

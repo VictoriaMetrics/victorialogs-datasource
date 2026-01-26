@@ -2,7 +2,7 @@ import { css } from "@emotion/css";
 import React, { useCallback } from 'react';
 
 import { GrafanaTheme2 } from "@grafana/data";
-import { Badge, TextLink, useTheme2 } from "@grafana/ui";
+import { Badge, TextLink, useStyles2 } from "@grafana/ui";
 
 import { replaceRegExpOperatorToOperator } from "../../LogsQL/regExpOperator";
 import { Query } from "../../types";
@@ -14,8 +14,7 @@ interface Props {
 }
 
 const QueryEditorVariableRegexpError = ({ regExp, query, onChange }: Props) => {
-  const theme = useTheme2();
-  const styles = getStyles(theme);
+  const styles = useStyles2(getStyles);
   const fixedFilter = replaceRegExpOperatorToOperator(regExp);
   const onApply = useCallback((e: React.MouseEvent) => {
     e.preventDefault();

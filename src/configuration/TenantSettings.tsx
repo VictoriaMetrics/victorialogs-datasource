@@ -5,6 +5,7 @@ import { getDataSourceSrv } from '@grafana/runtime';
 import { ComboboxOption, InlineField, Input, Stack, Text, TextLink } from '@grafana/ui';
 
 import { CompatibleCombobox } from '../components/CompatibleCombobox';
+import { VICTORIA_LOGS_DOCS_HOST } from "../conf";
 import { VictoriaLogsDatasource } from '../datasource';
 import { TenantHeaderNames } from "../types";
 
@@ -15,7 +16,7 @@ const documentationLink = (
   <TextLink
     external
     variant="bodySmall"
-    href="https://docs.victoriametrics.com/victorialogs/#multitenancy"
+    href={`${VICTORIA_LOGS_DOCS_HOST}/victorialogs/#multitenancy`}
   >
     Learn more about multitenancy
   </TextLink>
