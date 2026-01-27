@@ -40,30 +40,32 @@ export const HintItem = ({ hint, query, onQueryChange }: HintItemComponentProps)
   };
 
   return (
-    <Card>
-      <Stack direction={'column'} justifyContent={'space-between'}>
+    <Card className={styles.card}>
+      <Card.Heading className={styles.cardHeader}>
+        <h5 className={styles.title}>
+          {hint.title}
+          {hint.id && (
+            <>
+              <TextLink
+                href={`${VICTORIA_LOGS_DOCS_HOST}/victorialogs/logsql/#${hint.id}`}
+                icon="external-link-alt"
+                variant={"body"}
+                external
+              >Documentation</TextLink>
+            </>
+          )}
+        </h5>
         <div className={styles.content}>
-          <h5 className={styles.title}>
-            {hint.title}
-            {hint.id && (
-              <>
-                <TextLink
-                  href={`${VICTORIA_LOGS_DOCS_HOST}/victorialogs/logsql/#${hint.id}`}
-                  icon="external-link-alt"
-                  variant={"body"}
-                  style={{ marginLeft: 4 }}
-                  external
-                > </TextLink>
-              </>
-            )}
-          </h5>
           {hint.description && (
             <div className={styles.description}>
-              {hint.description}: <code className={styles.queryExpr}>{hint.queryExpr}</code>
+              {hint.description}:
             </div>
           )}
+          <code className={styles.queryExpr}>{hint.queryExpr}</code>
         </div>
-        <div>
+      </Card.Heading>
+      <Card.Description>
+        <Stack direction={'column'} justifyContent={'space-between'}>
           Example:
           <code className={styles.code}>{hint.example}</code>
           <Card.Actions>
@@ -106,20 +108,33 @@ export const HintItem = ({ hint, query, onQueryChange }: HintItemComponentProps)
               Add new query
             </Button>
           </Card.Actions>
-        </div>
-      </Stack>
+        </Stack>
+      </Card.Description>
     </Card>
   );
 };
 
 const getStyles = (theme: GrafanaTheme2) => {
   return {
+    card: css`
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    `,
+    cardHeader: css`
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    `,
     content: css`
       margin-bottom: 8px;
     `,
     title: css`
-      display: block;
+      display: flex;
+      direction: row;
+      justify-content: space-between;
       margin-bottom: 4px;
+      width: 100%;
       font-weight: ${theme.typography.fontWeightMedium};
       color: ${theme.colors.text.primary};
     `,
@@ -132,6 +147,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       white-space: pre-wrap;
     `,
     code: css`
+      width: 100%;
       display: block;
       padding: 8px;
       font-size: 14px;

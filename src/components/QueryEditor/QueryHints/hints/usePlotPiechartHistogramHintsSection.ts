@@ -19,6 +19,7 @@ export const usePlotPiechartHistogramHintsSection = (): QueryHintSection => {
           queryExpr: '<q> | stats by (<field>) count() as hits | sort by (hits desc)',
           example: '* | stats by (method) count() as hits | sort by (hits desc)',
           description: 'See which values of field are most common',
+          id: 'stats-pipe'
         },
         // TODO: histogram pipe doesn't work correctly right now
         // {
