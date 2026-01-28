@@ -21,19 +21,6 @@ export const usePlotPiechartHistogramHintsSection = (): QueryHintSection => {
           description: 'See which values of field are most common',
           id: 'stats-pipe'
         },
-        // TODO: histogram pipe doesn't work correctly right now
-        // {
-        //   title: 'Histogram by response size',
-        //   queryExpr: '<q> | stats histogram(<field>)',
-        //   example: '* | stats histogram(response_size)',
-        //   description: 'Create histogram buckets for response sizes',
-        // },
-        // {
-        //   title: 'Histogram grouped by host',
-        //   queryExpr: '<q> | stats by (<group_field>) histogram(<value_field>)',
-        //   example: '* | stats by (host) histogram(response_size)',
-        //   description: 'Create separate histograms for each host',
-        // },
         {
           title: 'Custom bucket intervals',
           queryExpr: '<q> | stats by (<field>:<interval>) count() requests',
