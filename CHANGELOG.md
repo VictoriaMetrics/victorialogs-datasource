@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: add query suggestions to help users get started with log searches. See [#108](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/108).
+
 * BUGFIX: fix an issue where variables were incorrectly interpolated in the query, as a result of which the `repeat by variable` feature did not work correctly. See [#502](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/502).
 
 ## v0.23.5

@@ -3,6 +3,8 @@ import React from "react";
 import { usePluginContext } from "@grafana/data";
 import { Stack, Text } from '@grafana/ui';
 
+import { VICTORIA_LOGS_DOCS_HOST } from "../conf";
+
 const tips = [
   {
     title: "Datasource",
@@ -10,11 +12,11 @@ const tips = [
   },
   {
     title: "VictoriaLogs",
-    url: "https://docs.victoriametrics.com/victorialogs/",
+    url: `${VICTORIA_LOGS_DOCS_HOST}/victorialogs/`,
   },
   {
     title: "LogsQL",
-    url: "https://docs.victoriametrics.com/victorialogs/logsql/",
+    url: `${VICTORIA_LOGS_DOCS_HOST}/victorialogs/logsql/`,
   },
   {
     title: "VictoriaMetrics",

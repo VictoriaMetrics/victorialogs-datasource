@@ -11,6 +11,7 @@ import {
   Text
 } from '@grafana/ui';
 
+import { VICTORIA_LOGS_DOCS_HOST } from "../conf";
 import { FilterFieldType } from "../types";
 
 import { PropsConfigEditor } from "./ConfigEditor";
@@ -25,7 +26,7 @@ const documentationLink = (
   <TextLink
     external
     variant="bodySmall"
-    href="https://docs.victoriametrics.com/victorialogs/querying/#querying-field-values"
+    href={`${VICTORIA_LOGS_DOCS_HOST}/victorialogs/querying/#querying-field-values`}
   >
     Learn more about querying field values
   </TextLink>

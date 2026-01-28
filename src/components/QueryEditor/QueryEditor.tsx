@@ -19,6 +19,7 @@ import QueryCodeEditor from "./QueryCodeEditor";
 import { QueryEditorHelp } from "./QueryEditorHelp";
 import { QueryEditorOptions } from "./QueryEditorOptions";
 import QueryEditorVariableRegexpError from "./QueryEditorVariableRegexpError";
+import { QueryHintsExample } from "./QueryHints";
 import VmuiLink from "./VmuiLink";
 import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from "./constants";
 import { useDefaultExploreGraph } from "./hooks/useDefaultExploreGraph";
@@ -28,7 +29,7 @@ import { changeEditorMode, getQueryWithDefaults } from "./state";
 const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const styles = useStyles2(getStyles);
 
-  const { onChange, onRunQuery, data, app, queries, datasource, range: timeRange } = props;
+  const { onChange, onRunQuery, data, app, queries, datasource, range: timeRange, onAddQuery } = props;
   const [dataIsStale, setDataIsStale] = useState(false);
   const [parseModalOpen, setParseModalOpen] = useState(false);
   useDefaultExploreGraph(app, EXPLORE_GRAPH_STYLES.BARS);
@@ -54,6 +55,17 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   },
   [query, onChange]
   );
+
+  const onQueryExprChange = useCallback((newExpr: string, newQuery?: boolean) => {
+    if (newQuery) {
+      onAddQuery?.({
+        expr: newExpr,
+        refId: '' // if empty, refId will be assigned in onAddQuery automatically
+      })
+    } else {
+      onChange({ ...query, expr: newExpr });
+    }
+  }, [onAddQuery, onChange, query]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -89,10 +101,11 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       />
       <div className={styles.wrapper}>
         <EditorHeader>
-          <div>
+          <Stack direction={"row"} alignItems={"center"}>
+            <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr}/>
             {app === CoreApp.Explore &&
             <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange}/>}
-          </div>
+          </Stack>
           <Stack direction={"row"} justifyContent={"flex-end"} alignItems={"center"}>
             {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType}/>)}
             <QueryEditorHelp/>
