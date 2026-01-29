@@ -11,9 +11,11 @@ import {
 } from "../../../../configuration/LogLevelRules/const";
 import { LogLevelRule } from "../../../../configuration/LogLevelRules/types";
 
-import { QueryHint, QueryHintSection } from "./types";
+import { QueryHint, QueryHintSectionBase } from "./types";
 
-export const useLevelQueryHintSection = (levelRules: LogLevelRule[]): QueryHintSection => {
+type LevelHint = Pick<QueryHint, "title" | "queryExpr">;
+
+export const useLevelQueryHintSection = (levelRules: LogLevelRule[]): QueryHintSectionBase<LevelHint> => {
   return useMemo(() => {
     const enabledLevelRules = levelRules.filter(rule => rule.enabled);
     const groupedByLevelRules = groupBy(enabledLevelRules, 'level');
@@ -27,7 +29,7 @@ export const useLevelQueryHintSection = (levelRules: LogLevelRule[]): QueryHintS
 
     const hints = Object
       .entries(levelFilters)
-      .map(([ruleLevel, rule]): QueryHint => {
+      .map(([ruleLevel, rule]): LevelHint => {
         const levelKey = ruleLevel as UniqLogLevelKeys;
         const queryExprByRules = rule.map(r => `${r.field}:${OperatorLabels[r.operator]}"${r.value}"`);
         const possibleLevelValues = possibleLogValueByLevelType[levelKey].map(value => `"${value}"`).join(',');
