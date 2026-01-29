@@ -40,3 +40,6 @@ jobs:
 
       - name: Run tests
         run: yarn test
+
+      - name: Run typecheck
+        run: yarn typecheck
