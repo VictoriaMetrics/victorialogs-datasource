@@ -2006,7 +2006,7 @@
     lz-string "^1.5.0"
     pretty-format "^27.0.2"
 
-"@testing-library/jest-dom@*":
+"@testing-library/jest-dom@^6.9.1":
   version "6.9.1"
   resolved "https://registry.yarnpkg.com/@testing-library/jest-dom/-/jest-dom-6.9.1.tgz#7613a04e146dd2976d24ddf019730d57a89d56c2"
   integrity sha512-zIcONa+hVtVSSep9UT3jZ5rizo2BsxgyDYU7WFD5eICBE7no3881HGeb/QkGfsJs6JTkY1aQhT7rIPC7e+0nnA==
@@ -2016,20 +2016,6 @@
     css.escape "^1.5.1"
     dom-accessibility-api "^0.6.3"
     picocolors "^1.1.1"
-    redent "^3.0.0"
-
-"@testing-library/jest-dom@6.4.6":
-  version "6.4.6"
-  resolved "https://registry.yarnpkg.com/@testing-library/jest-dom/-/jest-dom-6.4.6.tgz#ec1df8108651bed5475534955565bed88c6732ce"
-  integrity sha512-8qpnGVincVDLEcQXWaHOf6zmlbwTKc6Us6PPu4CRnPXCzo2OGBS5cwgMMOWdxDpEz1mkbvXHpEy99M5Yvt682w==
-  dependencies:
-    "@adobe/css-tools" "^4.4.0"
-    "@babel/runtime" "^7.9.2"
-    aria-query "^5.0.0"
-    chalk "^3.0.0"
-    css.escape "^1.5.1"
-    dom-accessibility-api "^0.6.3"
-    lodash "^4.17.21"
     redent "^3.0.0"
 
 "@testing-library/react@16.0.0":
@@ -2292,13 +2278,6 @@
   version "6.15.3"
   resolved "https://registry.yarnpkg.com/@types/systemjs/-/systemjs-6.15.3.tgz#d758dceafee62d2ed4aad7d07342b145d623e260"
   integrity sha512-STyj2LUevlyVqEQ1wjOORLQTJbNnM2V1DNzmemxVHlOovdKBKqccALDbR9aCcTRThhcXzew88SMbN4SMm6JOcw==
-
-"@types/testing-library__jest-dom@6.0.0":
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/@types/testing-library__jest-dom/-/testing-library__jest-dom-6.0.0.tgz#b558b64b80a72130714be1f505c6df482d453690"
-  integrity sha512-bnreXCgus6IIadyHNlN/oI5FfX4dWgvGhOPvpr7zzCYDGAPIfvyIoAozMBINmhmsVuqV0cncejF2y5KC7ScqOg==
-  dependencies:
-    "@testing-library/jest-dom" "*"
 
 "@types/tough-cookie@*":
   version "4.0.5"
@@ -3306,14 +3285,6 @@ caniuse-lite@^1.0.30001754:
   version "1.0.30001757"
   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001757.tgz#a46ff91449c69522a462996c6aac4ef95d7ccc5e"
   integrity sha512-r0nnL/I28Zi/yjk1el6ilj27tKcdjLsNqAOZr0yVjWPrSQyHgKI2INaEWw21bAQSv2LXRt1XuCS/GomNpWOxsQ==
-
-chalk@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/chalk/-/chalk-3.0.0.tgz#3f73c2bf526591f574cc492c51e2456349f844e4"
-  integrity sha512-4D3B6Wf41KOYRFdszmDqMCGq5VV/uMAB273JILmO+3jAlh8X4qDtdtgCR3fxtbLEMzSx22QdhnDcJvu2u1fVwg==
-  dependencies:
-    ansi-styles "^4.1.0"
-    supports-color "^7.1.0"
 
 chalk@^4.0.0, chalk@^4.1.0, chalk@^4.1.2:
   version "4.1.2"

@@ -2,11 +2,12 @@ export interface QueryHints {
   sections: QueryHintSection[];
 }
 
-export interface QueryHintSection {
+export interface QueryHintSectionBase<T> {
   title: string;
-  hints: QueryHint[];
+  hints: T[];
 }
 
+export type QueryHintSection = QueryHintSectionBase<QueryHint>
 export interface QueryHint {
   title: string;
   queryExpr: string;
