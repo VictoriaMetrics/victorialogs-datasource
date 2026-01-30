@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix an issue where the `histogram` function throws a warning. See [#524](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/524).
+
 ## v0.24.0
 
 * FEATURE: add query suggestions to help users get started with log searches. See [#108](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/108).

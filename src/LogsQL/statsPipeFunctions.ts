@@ -4,6 +4,8 @@ export const statsPipeFunctions = [
   "count_empty",
   "count_uniq",
   "count_uniq_hash",
+  "histogram",
+  "json_values",
   "max",
   "median",
   "min",
