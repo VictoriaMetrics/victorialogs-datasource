@@ -107,7 +107,6 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
             <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange}/>}
           </Stack>
           <Stack direction={"row"} justifyContent={"flex-end"} alignItems={"center"}>
-            {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType}/>)}
             <QueryEditorHelp/>
             <VmuiLink
               query={query}
@@ -142,6 +141,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
             <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true}/>
           )}
           {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange}/>)}
+          {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType}/>)}
           <QueryEditorOptions
             query={query}
             onChange={onChange}
