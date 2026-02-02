@@ -154,6 +154,47 @@ Where:
 * `operator` is the comparison operator to use, such as `equals`, `notEquals`, `regex`, `lessThan`, `greaterThan`.
 * `enabled` is a boolean flag to enable or disable the rule. Defaults to `true` if omitted.
 
+### Variables
+VictoriaLogs datasource supports [variables](https://grafana.com/docs/grafana/latest/variables/) in queries.
+
+#### Ad Hoc filter
+You can use [Ad Hoc filters](https://grafana.com/docs/grafana/latest/visualizations/dashboards/variables/add-template-variables/#add-ad-hoc-filters) to filter logs in Dashboards.
+Ad Hoc filters are applied to all panels in the Dashboard as [extra_filters](https://docs.victoriametrics.com/victorialogs/querying/#extra-filters) query parameter. If you navigate to the Explore page from the Dashboard, Ad Hoc filters are also applied there.
+<img alt="Ad hoc filters" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/extra_filters_explore_page.png?raw=true">
+
+
+#### Word filter
+If you want to filter logs by a specific word or phrase, you can use [word filter](https://docs.victoriametrics.com/victorialogs/logsql/#word-filter).
+To do this, you need to create a [text box variable](https://grafana.com/docs/grafana/latest/visualizations/dashboards/variables/add-template-variables/#add-a-text-box-variable).
+After it is created, you need to add this to the query: `<q> | $word_filter`. Type any word or phrase you want to look for. Set to "*" to not filter. By default, the given word is searched in the _msg field.
+<img alt="Word filter" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/word_filter.png?raw=true">
+
+#### Variable interpolation
+
+VictoriaLogs datasource supports automatic variable interpolation with the following rules:
+
+**1. Field Value Variables:**
+- `field:$var` → `field:in("v1", ..., "vN")`
+- `field:=$var` → `field:in("v1", ..., "vN")`
+- Values are quoted and escaped
+- Empty values or "All" expand to `in(*)`
+
+**2. Function Contexts:**
+- `in($var)` and `contains_any($var)` expand to quoted lists
+- Values maintain proper quoting within function calls
+
+**3. Inequality Operators in filters:**
+- `field:!$var` → `!field:in("v1", ..., "vN")`
+- `field:!=$var` → `!field:in("v1", ..., "vN")`
+
+**4. Stream Filters:**
+- `{tag=$var}` → `{tag in(...)}`
+- `{field!=$var}` → `{field not_in(...)}`
+
+**5. Restrictions:**
+- Avoid using variables as values in regexp filters (e.g., `field:~$var`), in this case, you will get a warning message
+- Invalid usage will show an error message
+
 ## Correlations
 
 ### Trace to logs
