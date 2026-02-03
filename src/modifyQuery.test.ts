@@ -73,6 +73,11 @@ describe('modifyQuery', () => {
       const result = addLabelToQuery(query, { key: 'span:attr_id', value: 'abc', operator: '!=|' });
       expect(result).toBe('foo: bar AND !\"span:attr_id\":in()');
     });
+    it('should not quote label name containing colons(:) with double quotes if key is already quoted', () => {
+      const query = 'foo: bar';
+      const result = addLabelToQuery(query, { key: '"span:attr_id"', value: 'abc', operator: '!=|' });
+      expect(result).toBe('foo: bar AND !\"span:attr_id\":in()');
+    });
   });
 
   describe('removeLabelFromQuery', () => {

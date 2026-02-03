@@ -19,7 +19,7 @@ export function queryHasFilter(query: string, key: string, value: string, operat
 }
 
 const KEY_CHARS_TO_NORMALIZE = ':';
-export const normalizeKey = (key: string): string => key.includes(KEY_CHARS_TO_NORMALIZE) ? `"${key}"` : key;
+export const normalizeKey = (key: string): string => key.includes(KEY_CHARS_TO_NORMALIZE) && !key.match(/^".*"$/) ? `"${key}"` : key;
 
 const getFilterInsertValue = (key: string, value: string, operator: string): string => {
   if (streamKeys.includes(key)) {
