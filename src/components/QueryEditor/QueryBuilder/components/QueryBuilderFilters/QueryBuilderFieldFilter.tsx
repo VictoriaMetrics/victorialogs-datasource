@@ -7,6 +7,7 @@ import { ComboboxOption, IconButton, Label, useStyles2 } from "@grafana/ui";
 
 import { VictoriaLogsDatasource } from "../../../../../datasource";
 import { escapeLabelValueInExactSelector } from "../../../../../languageUtils";
+import { normalizeKey } from "../../../../../modifyQuery";
 import { FilterFieldType, VisualQuery } from "../../../../../types";
 import { CompatibleCombobox } from "../../../../CompatibleCombobox";
 import { deleteByIndexPath } from '../../utils/modifyFilterVisualQuery/deleteByIndexPath';
@@ -78,7 +79,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
     if (!option || !option.value) {
       return;
     }
-    const fullFilter = `${field || ''}: ${field === '_stream' ? option.value : `"${escapeLabelValueInExactSelector(option.value || "")}"`} `
+    const fullFilter = `${normalizeKey(field || '')}: ${field === '_stream' ? option.value : `"${escapeLabelValueInExactSelector(option.value || "")}"`} `
 
     onChange({
       ...query,
