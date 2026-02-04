@@ -76,9 +76,11 @@
     "webpack-virtual-modules": "^0.6.2"
   },
   "resolutions": {
+    "diff": "4.0.4",
     "react-router": "6.30.3",
     "react-router-dom": "6.30.3",
-    "react-router-dom-v5-compat": "6.30.3"
+    "react-router-dom-v5-compat": "6.30.3",
+    "@isaacs/brace-expansion": "5.0.1"
   },
   "engines": {
     "node": ">=24.11.1"
