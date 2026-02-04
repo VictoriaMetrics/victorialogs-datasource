@@ -3,6 +3,7 @@
 ## tip
 
 * BUGFIX: fix an issue where the `histogram` function throws a warning. See [#524](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/524).
+* BUGFIX: quote label names containing colons(:) with double quotes. See [#549](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/549).
 
 ## v0.24.0
 

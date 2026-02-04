@@ -18,25 +18,30 @@ export function queryHasFilter(query: string, key: string, value: string, operat
   return applicableOperators.some(op => query.includes(getFilterInsertValue(key, value, op)));
 }
 
+const KEY_CHARS_TO_NORMALIZE = ':';
+export const normalizeKey = (key: string): string => key.includes(KEY_CHARS_TO_NORMALIZE) && !key.match(/^".*"$/) ? `"${key}"` : key;
+
 const getFilterInsertValue = (key: string, value: string, operator: string): string => {
   if (streamKeys.includes(key)) {
     return getFilterInsertValueForStream(key, value, operator);
   }
 
+  const normalizedKey = normalizeKey(key);
   switch (operator) {
     case "=~":
-      return `${key}:~"${value}"`
+      return `${normalizedKey}:~"${value}"`
     default:
-      return `${key}:${operator}"${value}"`
+      return `${normalizedKey}:${operator}"${value}"`
   }
 }
 
 const getFilterInsertValueForStream = (key: string, value: string, operator: string): string => {
+  const normalizedKey = normalizeKey(key);
   if (operator.includes('!')) {
-    return `(! ${key}: ${value})`;
+    return `(! ${normalizedKey}: ${value})`;
   }
 
-  return `${key}:${value}`;
+  return `${normalizedKey}:${value}`;
 }
 
 const getMultiValueInsert = (key: string, values: string[], operator: string): string => {
@@ -47,8 +52,9 @@ const getMultiValueInsert = (key: string, values: string[], operator: string): s
     return isExclude ? `!${expr}` : `(${expr})`;
   }
 
+  const normalizedKey = normalizeKey(key);
   const valuesStr = values.map(v => `"${v}"`).join(",");
-  const expr = `${key}:in(${valuesStr})`
+  const expr = `${normalizedKey}:in(${valuesStr})`;
   return isExclude ? `!${expr}` : expr;
 }
 
