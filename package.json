@@ -93,7 +93,7 @@
     "@grafana/ui": "12.3.1",
     "@lezer/common": "^1.2.1",
     "@lezer/lr": "^1.4.1",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "rxjs": "^7.8.2",
