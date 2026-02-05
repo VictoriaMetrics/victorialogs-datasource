@@ -1,4 +1,4 @@
-import { getDefaultTimeRange, LanguageProvider, TimeRange, } from '@grafana/data';
+import { getDefaultTimeRange, LanguageProvider, TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from './datasource';
 import { FieldHits, FieldHitsResponse, FilterFieldType } from './types';
@@ -9,6 +9,8 @@ interface FetchFieldsOptions {
   field?: string;
   timeRange?: TimeRange;
   limit?: number;
+  /** Filter for field values using containing match (server-side filtering) */
+  fieldValueFilter?: string;
 }
 
 enum HitsValueType {
@@ -50,7 +52,14 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
         urlParams.append(key, value);
       }
     }
-    urlParams.append('query', options.query || '*');
+
+    // Build query with optional field value filter (prefix match for server-side filtering)
+    let finalQuery = options.query || '*';
+    if (options.type === FilterFieldType.FieldValue && options.field && options.fieldValueFilter) {
+      const fieldFilter = `${options.field}: i("${options.fieldValueFilter}")`;
+      finalQuery = finalQuery === '*' ? fieldFilter : `(${finalQuery}) AND ${fieldFilter}`;
+    }
+    urlParams.append('query', finalQuery);
 
     const timeRange = this.getTimeRangeParams(options.timeRange);
     urlParams.append('start', timeRange.start.toString());
@@ -114,7 +123,7 @@ function determineType(value: string): HitsValueType {
 }
 
 function getArrayType(data: FieldHits[]): HitsValueType {
-  const types = new Set(data.map(item => determineType(item.value)));
+  const types = new Set(data.map((item) => determineType(item.value)));
   return types.size === 1 ? Array.from(types)[0] : HitsValueType.STRING;
 }
 
