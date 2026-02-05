@@ -41,7 +41,7 @@ const limitFields = [
       optional <code>limit=N</code> parameter to restrict the number of returned values to <code>N</code>.
       Leave the field blank or set the value to <code>0</code> to remove the limit
     </>),
-    placeholder: "",
+    placeholder: "1000",
     key: FilterFieldType.FieldValue
   }
 ]

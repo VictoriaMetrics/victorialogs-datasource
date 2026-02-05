@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: limit the number of field values. This limit can be configured in the datasource settings. See [#543](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/543).
+
 ## v0.24.1
 
 * BUGFIX: fix an issue where the `histogram` function throws a warning. See [#524](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/524).
