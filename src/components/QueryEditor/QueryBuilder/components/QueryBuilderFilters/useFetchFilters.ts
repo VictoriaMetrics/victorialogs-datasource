@@ -177,6 +177,11 @@ export const useFetchFilters = ({
     [fetchFieldValues, debouncedFilter]
   );
 
+  // Reset cache when query filters change
+  useEffect(() => {
+    fieldNamesCache.current = [];
+  }, [query.filters]);
+
   // Cleanup debounce on unmount
   useEffect(() => {
     return () => {
