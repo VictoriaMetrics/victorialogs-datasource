@@ -23,5 +23,5 @@ export const statsPipeFunctions = [
 
 export const isExprHasStatsPipeFunctions = (expr: string) => {
   const regex = new RegExp(`.*\\|.*\\b(${statsPipeFunctions.join("|")})\\b`, "mi");
-  return regex.test(expr)
-}
+  return regex.test(expr);
+};

@@ -1,11 +1,11 @@
-import { css } from '@emotion/css';
-import React, { useState } from 'react';
+import { css } from "@emotion/css";
+import React, { useState } from "react";
 
-import { GrafanaTheme2 } from '@grafana/data';
-import { Collapse, useStyles2 } from '@grafana/ui';
+import { GrafanaTheme2 } from "@grafana/data";
+import { Collapse, useStyles2 } from "@grafana/ui";
 
-import { HintItem } from './HintItem';
-import { QueryHintSection } from './hints/types';
+import { HintItem } from "./HintItem";
+import { QueryHintSection } from "./hints/types";
 
 interface HintSectionComponentProps {
   section: QueryHintSection;

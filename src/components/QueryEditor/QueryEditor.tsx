@@ -1,9 +1,9 @@
 import { css } from "@emotion/css";
-import { isEqual } from 'lodash';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { isEqual } from "lodash";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import { CoreApp, GrafanaTheme2, LoadingState } from '@grafana/data';
-import { Button, ConfirmModal, Stack, useStyles2 } from '@grafana/ui';
+import { CoreApp, GrafanaTheme2, LoadingState } from "@grafana/data";
+import { Button, ConfirmModal, Stack, useStyles2 } from "@grafana/ui";
 
 import { getQueryExprVariableRegExp } from "../../LogsQL/regExpOperator";
 import { isExprHasStatsPipeFunctions } from "../../LogsQL/statsPipeFunctions";
@@ -37,7 +37,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const query = getQueryWithDefaults(props.query, app, data?.request?.panelPluginId);
   const editorMode = query.editorMode!;
   const isStatsQuery = query.queryType === QueryType.Stats || query.queryType === QueryType.StatsRange;
-  const showStatsWarn = isStatsQuery && !isExprHasStatsPipeFunctions(query.expr || '');
+  const showStatsWarn = isStatsQuery && !isExprHasStatsPipeFunctions(query.expr || "");
   const varRegExp = useMemo(() => {
     return getQueryExprVariableRegExp(query.expr)?.[0] || null;
   }, [query.expr]);
@@ -45,7 +45,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
     if (newEditorMode === QueryEditorMode.Builder) {
-      const result = buildVisualQueryFromString(query.expr || '');
+      const result = buildVisualQueryFromString(query.expr || "");
       if (result.errors.length) {
         setParseModalOpen(true);
         return;
@@ -60,8 +60,8 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     if (newQuery) {
       onAddQuery?.({
         expr: newExpr,
-        refId: '' // if empty, refId will be assigned in onAddQuery automatically
-      })
+        refId: "" // if empty, refId will be assigned in onAddQuery automatically
+      });
     } else {
       onChange({ ...query, expr: newExpr });
     }
@@ -102,27 +102,27 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       <div className={styles.wrapper}>
         <EditorHeader>
           <Stack direction={"row"} alignItems={"center"}>
-            <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr}/>
+            <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr} />
             {app === CoreApp.Explore &&
-            <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange}/>}
+            <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />}
           </Stack>
           <Stack direction={"row"} justifyContent={"flex-end"} alignItems={"center"}>
-            <QueryEditorHelp/>
+            <QueryEditorHelp />
             <VmuiLink
               query={query}
               panelData={data}
               datasource={datasource}
             />
-            <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange}/>
+            <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange} />
             {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
               <Button
-                variant={dataIsStale ? 'primary' : 'secondary'}
+                variant={dataIsStale ? "primary" : "secondary"}
                 size="sm"
                 onClick={onRunQuery}
-                icon={data?.state === LoadingState.Loading ? 'fa fa-spinner' : undefined}
+                icon={data?.state === LoadingState.Loading ? "fa fa-spinner" : undefined}
                 disabled={data?.state === LoadingState.Loading}
               >
-                {queries && queries.length > 1 ? `Run queries` : `Run query`}
+                {queries && queries.length > 1 ? "Run queries" : "Run query"}
               </Button>
             )}
           </Stack>
@@ -138,10 +138,10 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
               timeRange={timeRange}
             />
           ) : (
-            <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true}/>
+            <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
           )}
-          {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange}/>)}
-          {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType}/>)}
+          {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange} />)}
+          {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType} />)}
           <QueryEditorOptions
             query={query}
             onChange={onChange}
@@ -152,7 +152,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
         </div>
       </div>
     </>
-  )
+  );
 });
 
 const getStyles = (theme: GrafanaTheme2) => {
@@ -165,5 +165,5 @@ const getStyles = (theme: GrafanaTheme2) => {
   };
 };
 
-QueryEditor.displayName = 'QueryEditor';
-export default QueryEditor
+QueryEditor.displayName = "QueryEditor";
+export default QueryEditor;

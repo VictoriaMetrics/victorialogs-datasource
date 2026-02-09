@@ -39,8 +39,8 @@ export const useFetchFilters = ({
 
     const limit = datasource.getQueryBuilderLimits(FilterFieldType.FieldName);
     const filtersWithoutCurrent = deleteByIndexPath(query.filters, indexPath);
-    const currentOperator = query.filters.operators[indexPath[0] - 1] || 'AND';
-    const filters = currentOperator === 'AND' ? filterVisualQueryToString(filtersWithoutCurrent, true) : '';
+    const currentOperator = query.filters.operators[indexPath[0] - 1] || "AND";
+    const filters = currentOperator === "AND" ? filterVisualQueryToString(filtersWithoutCurrent, true) : "";
 
     const list = await datasource.languageProvider?.getFieldList(
       { type: FilterFieldType.FieldName, timeRange, field, limit, query: filters },
@@ -65,8 +65,8 @@ export const useFetchFilters = ({
     ): Promise<ComboboxOption[]> => {
       const limit = datasource.getQueryBuilderLimits(FilterFieldType.FieldValue) || MAX_VISIBLE_OPTIONS;
       const filtersWithoutCurrent = deleteByIndexPath(query.filters, indexPath);
-      const currentOperator = query.filters.operators[indexPath[0] - 1] || 'AND';
-      const filters = currentOperator === 'AND' ? filterVisualQueryToString(filtersWithoutCurrent, true) : '';
+      const currentOperator = query.filters.operators[indexPath[0] - 1] || "AND";
+      const filters = currentOperator === "AND" ? filterVisualQueryToString(filtersWithoutCurrent, true) : "";
 
       const list = await datasource.languageProvider?.getFieldList(
         {
@@ -89,8 +89,8 @@ export const useFetchFilters = ({
       // Show warning if limit was reached
       if (limitReached) {
         const warningOption: ComboboxOption = {
-          value: '',
-          label: `Too many distinct values. Please type more characters`,
+          value: "",
+          label: "Too many distinct values. Please type more characters",
           description: `The server returned first ${limit} values. You can increase the limit in datasource settings, but be aware of potential performance issues.`,
           infoOption: true
         };
@@ -98,8 +98,8 @@ export const useFetchFilters = ({
       }
 
       const mappedOptions = list.map(({ value, hits }) => ({
-        value: value || '',
-        label: value || ' ',
+        value: value || "",
+        label: value || " ",
         description: `hits: ${hits}`,
       }));
       options.push(...mappedOptions);

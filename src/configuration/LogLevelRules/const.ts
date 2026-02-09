@@ -1,7 +1,7 @@
 import { LogLevel } from "@grafana/data";
 import { colors, ComboboxOption } from "@grafana/ui";
 
-import { LogLevelRuleType } from './types';
+import { LogLevelRuleType } from "./types";
 
 export interface LogOperatorOption {
   value: LogLevelRuleType;
@@ -10,19 +10,19 @@ export interface LogOperatorOption {
 }
 
 export const LOG_OPERATOR_OPTIONS: LogOperatorOption[] = [
-  { label: '=', description: 'Equals', value: LogLevelRuleType.Equals },
-  { label: '!=', description: 'Not equal', value: LogLevelRuleType.NotEquals },
-  { label: '=~', description: 'Matches regex', value: LogLevelRuleType.Regex },
-  { label: '<', description: 'Less than', value: LogLevelRuleType.LessThan },
-  { label: '>', description: 'Greater than', value: LogLevelRuleType.GreaterThan },
+  { label: "=", description: "Equals", value: LogLevelRuleType.Equals },
+  { label: "!=", description: "Not equal", value: LogLevelRuleType.NotEquals },
+  { label: "=~", description: "Matches regex", value: LogLevelRuleType.Regex },
+  { label: "<", description: "Less than", value: LogLevelRuleType.LessThan },
+  { label: ">", description: "Greater than", value: LogLevelRuleType.GreaterThan },
 ];
 
 export const OperatorLabels: Record<LogLevelRuleType, string> = {
-  [LogLevelRuleType.Equals]: '=',
-  [LogLevelRuleType.NotEquals]: '!=',
-  [LogLevelRuleType.Regex]: '~',
-  [LogLevelRuleType.LessThan]: '<',
-  [LogLevelRuleType.GreaterThan]: '>',
+  [LogLevelRuleType.Equals]: "=",
+  [LogLevelRuleType.NotEquals]: "!=",
+  [LogLevelRuleType.Regex]: "~",
+  [LogLevelRuleType.LessThan]: "<",
+  [LogLevelRuleType.GreaterThan]: ">",
 };
 
 export const LOG_LEVEL_OPTIONS: Array<ComboboxOption<LogLevel>> = Array.from(

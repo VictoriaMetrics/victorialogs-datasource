@@ -1,5 +1,5 @@
 import { css } from "@emotion/css";
-import React, { useCallback } from 'react';
+import React, { useCallback } from "react";
 
 import { GrafanaTheme2 } from "@grafana/data";
 import { Button, useStyles2 } from "@grafana/ui";
@@ -19,24 +19,24 @@ const QueryBuilderAddFilter = ({ query, onAddFilter }: Props) => {
     onAddFilter({
       ...query, filters: {
         ...query.filters,
-        values: [...query.filters.values, ''],
+        values: [...query.filters.values, ""],
         operators: [...query.filters.operators, DEFAULT_FILTER_OPERATOR]
       }
-    })
-  }, [onAddFilter, query])
+    });
+  }, [onAddFilter, query]);
 
   return (
     <div className={styles.wrapper}>
       <Button
-        variant={'secondary'}
+        variant={"secondary"}
         onClick={handleAddFilter}
-        icon={'plus'}
+        icon={"plus"}
       >
-        {`Filter`}
+        {"Filter"}
       </Button>
     </div>
-  )
-}
+  );
+};
 
 const getStyles = (_theme: GrafanaTheme2) => {
   return {

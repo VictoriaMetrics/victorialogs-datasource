@@ -5,10 +5,10 @@ import { SelectableValue } from "@grafana/data";
 
 export const getValueFromEventItem = (eventItem: SyntheticEvent<HTMLInputElement> | SelectableValue<string>) => {
   if (!eventItem) {
-    return '';
+    return "";
   }
 
-  if (eventItem.hasOwnProperty('currentTarget')) {
+  if (eventItem.hasOwnProperty("currentTarget")) {
     return eventItem.currentTarget.value;
   }
 

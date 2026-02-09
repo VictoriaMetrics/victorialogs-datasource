@@ -1,12 +1,12 @@
-import { css } from '@emotion/css';
-import React, { useRef } from 'react';
-import { useLatest } from 'react-use';
+import { css } from "@emotion/css";
+import React, { useRef } from "react";
+import { useLatest } from "react-use";
 
-import { GrafanaTheme2 } from '@grafana/data';
-import { selectors } from '@grafana/e2e-selectors';
-import { useTheme2, ReactMonacoEditor, monacoTypes } from '@grafana/ui';
+import { GrafanaTheme2 } from "@grafana/data";
+import { selectors } from "@grafana/e2e-selectors";
+import { useTheme2, ReactMonacoEditor, monacoTypes } from "@grafana/ui";
 
-import { Props } from './MonacoQueryFieldProps';
+import { Props } from "./MonacoQueryFieldProps";
 
 const options: monacoTypes.editor.IStandaloneEditorConstructionOptions = {
   codeLens: false,
@@ -17,7 +17,7 @@ const options: monacoTypes.editor.IStandaloneEditorConstructionOptions = {
   folding: false,
   fontSize: 14,
   lineDecorationsWidth: 8, // used as "padding-left"
-  lineNumbers: 'off',
+  lineNumbers: "off",
   minimap: { enabled: false },
   overviewRulerBorder: false,
   overviewRulerLanes: 0,
@@ -27,16 +27,16 @@ const options: monacoTypes.editor.IStandaloneEditorConstructionOptions = {
     top: 4,
     bottom: 5,
   },
-  renderLineHighlight: 'none',
+  renderLineHighlight: "none",
   scrollbar: {
-    vertical: 'hidden',
+    vertical: "hidden",
     verticalScrollbarSize: 8, // used as "padding-right"
-    horizontal: 'hidden',
+    horizontal: "hidden",
     horizontalScrollbarSize: 0,
   },
   scrollBeyondLastLine: false,
   suggestFontSize: 12,
-  wordWrap: 'on',
+  wordWrap: "on",
 };
 
 // this number was chosen by testing various values. it might be necessary
@@ -99,7 +99,7 @@ const MonacoQueryField = (props: Props) => {
             if (containerDiv !== null) {
               const pixelHeight = editor.getContentHeight();
               containerDiv.style.height = `${pixelHeight + EDITOR_HEIGHT_OFFSET}px`;
-              containerDiv.style.width = '100%';
+              containerDiv.style.width = "100%";
               const pixelWidth = containerDiv.clientWidth;
               editor.layout({ width: pixelWidth, height: pixelHeight });
             }
@@ -120,7 +120,7 @@ const MonacoQueryField = (props: Props) => {
           command palette uses. Pass the event out of monaco manually
           */
           editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, function () {
-            global.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }));
+            global.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
           });
 
           if (placeholder) {

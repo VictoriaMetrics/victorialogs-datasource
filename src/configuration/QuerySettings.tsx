@@ -1,6 +1,6 @@
-import React from 'react';
+import React from "react";
 
-import { InlineField, Input } from '@grafana/ui';
+import { InlineField, Input } from "@grafana/ui";
 
 type Props = {
   maxLines: string;

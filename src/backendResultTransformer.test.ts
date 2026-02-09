@@ -1,10 +1,10 @@
 import { DataQueryRequest, DataQueryResponse, dateTime, LogLevel } from "@grafana/data";
 
-import { transformBackendResult } from './backendResultTransformer';
+import { transformBackendResult } from "./backendResultTransformer";
 import { LogLevelRule, LogLevelRuleType } from "./configuration/LogLevelRules/types";
-import { DerivedFieldConfig, Query, QueryType } from './types';
+import { DerivedFieldConfig, Query, QueryType } from "./types";
 
-describe('transformBackendResult', () => {
+describe("transformBackendResult", () => {
   const labels = [
     {
       "_stream_id": "0000000000000000e934a84adb05276890d7f7bfcadabe92",
@@ -49,7 +49,7 @@ describe('transformBackendResult', () => {
       "version": "0.1"
     },
   ];
-  it('should parse level labels and delete origin level labels to avoid duplication', () => {
+  it("should parse level labels and delete origin level labels to avoid duplication", () => {
     const response = {
       "data": [
         {
@@ -175,7 +175,7 @@ describe('transformBackendResult', () => {
     const logLevelRules: LogLevelRule[] = [];
     const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
     expect(result.data[0].fields[2].values).toStrictEqual(labels);
-    expect(result.data[0].fields[3].name).toStrictEqual('detected_level')
+    expect(result.data[0].fields[3].name).toStrictEqual("detected_level");
     expect(result.data[0].fields[3].values).toStrictEqual([
       "info",
       "error",
@@ -186,13 +186,13 @@ describe('transformBackendResult', () => {
     ]);
   });
 
-  it('should parse level according to rules, apply the origin level labels then rule labels', () => {
+  it("should parse level according to rules, apply the origin level labels then rule labels", () => {
     const extendedLabels = labels.map((l, index) => {
       if (index > 2) {
         return {
           ...l,
-          level: 'Custom unknown level'
-        }
+          level: "Custom unknown level"
+        };
       }
       return l;
     });
@@ -320,9 +320,9 @@ describe('transformBackendResult', () => {
     const derivedFieldConfigs: DerivedFieldConfig[] = [];
     const logLevelRules: LogLevelRule[] = [{
       enabled: true,
-      field: 'environment',
+      field: "environment",
       operator: LogLevelRuleType.Equals,
-      value: 'dev',
+      value: "dev",
       level: LogLevel.critical
     }];
     const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
@@ -337,12 +337,12 @@ describe('transformBackendResult', () => {
     ]);
   });
 
-  it('should parse level from the _msg label according to rules', () => {
+  it("should parse level from the _msg label according to rules", () => {
     const extendedLabels = labels.map((l, index) => {
       return {
         ...l,
-        level: 'Custom unknown level'
-      }
+        level: "Custom unknown level"
+      };
     });
     const response = {
       "data": [
@@ -468,9 +468,9 @@ describe('transformBackendResult', () => {
     const derivedFieldConfigs: DerivedFieldConfig[] = [];
     const logLevelRules: LogLevelRule[] = [{
       enabled: true,
-      field: '_msg',
+      field: "_msg",
       operator: LogLevelRuleType.Regex,
-      value: 'critical',
+      value: "critical",
       level: LogLevel.critical
     }];
     const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
@@ -485,8 +485,8 @@ describe('transformBackendResult', () => {
     ]);
   });
 
-  describe('processMetricRangeFrames', () => {
-    const refId = 'A';
+  describe("processMetricRangeFrames", () => {
+    const refId = "A";
     const baseResponse = {
       "data": [
         {
@@ -591,7 +591,7 @@ describe('transformBackendResult', () => {
       "dashboardTitle": "double label info"
     } as unknown as DataQueryRequest<Query>;
 
-    it('should fill with null values skipped timestamps if fields is empty', () => {
+    it("should fill with null values skipped timestamps if fields is empty", () => {
       const response = {
         ...baseResponse,
         data: [
@@ -609,7 +609,7 @@ describe('transformBackendResult', () => {
       expect(result.data[0].fields.length).toStrictEqual(0);
     });
 
-    it('should fill with null values skipped timestamps', () => {
+    it("should fill with null values skipped timestamps", () => {
       const response = { ...baseResponse };
       const request = { ...baseRequest };
       const derivedFieldConfigs: DerivedFieldConfig[] = [];
@@ -618,5 +618,5 @@ describe('transformBackendResult', () => {
       expect(result.data[0].fields[0].values).toStrictEqual([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
       expect(result.data[0].fields[1].values).toStrictEqual([1, 2, null, 3, 4, null, null, null, 5, null]);
     });
-  })
+  });
 });

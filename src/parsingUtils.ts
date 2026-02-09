@@ -1,13 +1,13 @@
 const varTypeFunc = [
   (v: string) => `\$${v}`,
-  (v: string, f?: string) => `[[${v}${f ? `:${f}` : ''}]]`,
-  (v: string, f?: string) => `\$\{${v}${f ? `:${f}` : ''}\}`,
+  (v: string, f?: string) => `[[${v}${f ? `:${f}` : ""}]]`,
+  (v: string, f?: string) => `\$\{${v}${f ? `:${f}` : ""}\}`,
 ];
 
 export const variableRegex = /\$(\w+)|\[\[([\s\S]+?)(?::(\w+))?]]|\${(\w+)(?:\.([^:^}]+))?(?::([^}]+))?}/g;
 
 export function returnVariables(expr: string) {
-  const replacer = (match: string, type: any, v: any, f: any) => varTypeFunc[parseInt(type, 10)](v, f)
+  const replacer = (match: string, type: any, v: any, f: any) => varTypeFunc[parseInt(type, 10)](v, f);
   return expr.replace(/__V_(\d)__(.+?)__V__(?:__F__(\w+)__F__)?/g, replacer);
 }
 
@@ -16,19 +16,19 @@ export function replaceVariables(expr: string) {
   return expr.replace(variableRegex, (match, var1, var2, fmt2, var3, fieldPath, fmt3) => {
     const fmt = fmt2 || fmt3;
     let variable = var1;
-    let varType = '0';
+    let varType = "0";
 
     if (var2) {
       variable = var2;
-      varType = '1';
+      varType = "1";
     }
 
     if (var3) {
       variable = var3;
-      varType = '2';
+      varType = "2";
     }
 
-    return `__V_${varType}__` + variable + '__V__' + (fmt ? '__F__' + fmt + '__F__' : '');
+    return `__V_${varType}__` + variable + "__V__" + (fmt ? "__F__" + fmt + "__F__" : "");
   });
 }
 
@@ -38,7 +38,7 @@ export function replaceVariables(expr: string) {
 *  '}' - for end of a stream
 *  ',' - for stream filter separator
 * */
-const validAfterVariableChars = [' ', '|', '}', ','];
+const validAfterVariableChars = [" ", "|", "}", ","];
 function findIndexEndOfFilter(expr: string, startIndex = 0): number {
   for (let i = startIndex; i < expr.length; i++) {
     if (validAfterVariableChars.includes(expr[i])) {
@@ -49,9 +49,9 @@ function findIndexEndOfFilter(expr: string, startIndex = 0): number {
 }
 
 enum OperatorType {
-  NEGATED_EQUALS = 'NEGATED_EQUALS',    // :! or :!= or !=
-  EQUALS = 'EQUALS',                    // : or := or =
-  NONE = 'NONE'
+  NEGATED_EQUALS = "NEGATED_EQUALS",    // :! or :!= or !=
+  EQUALS = "EQUALS",                    // : or := or =
+  NONE = "NONE"
 }
 
 interface OperatorInfo {
@@ -78,18 +78,18 @@ function shouldSkipVariable(result: string, varIndex: number, varPattern: string
 
 function countLeftSpaces(str: string, endPos: number): number {
   let count = 0;
-  for (let i = endPos - 1; i >= 0 && str[i] === ' '; i--) {
+  for (let i = endPos - 1; i >= 0 && str[i] === " "; i--) {
     count++;
   }
   return count;
 }
 
 function detectStreamOperator(queryExpr: string, endOperatorPos: number, rightSpaces: number): null | OperatorInfo {
-  if (queryExpr[endOperatorPos - 1] !== '=') {
+  if (queryExpr[endOperatorPos - 1] !== "=") {
     return null;
   }
 
-  if (queryExpr[endOperatorPos - 2] === '!' && queryExpr[endOperatorPos - 3] !== ':') {
+  if (queryExpr[endOperatorPos - 2] === "!" && queryExpr[endOperatorPos - 3] !== ":") {
     const startOperatorIndex = endOperatorPos - 2;
     const leftSpaces = countLeftSpaces(queryExpr, startOperatorIndex);
     return {
@@ -102,7 +102,7 @@ function detectStreamOperator(queryExpr: string, endOperatorPos: number, rightSp
     };
   }
 
-  const invalidPreChars = [':', '!'];
+  const invalidPreChars = [":", "!"];
   if (!invalidPreChars.includes(queryExpr[endOperatorPos - 2])) {
     const startOperatorIndex = endOperatorPos - 1;
     const leftSpaces = countLeftSpaces(queryExpr, startOperatorIndex);
@@ -141,7 +141,7 @@ function detectOperator(queryExpr: string, varIndex: number): OperatorInfo {
   let length = 1;
   let leftSpaces = countLeftSpaces(queryExpr, startOperatorIndex);
   const oneCharBeforeSpaces = queryExpr[endOperatorPos - 1];
-  if (oneCharBeforeSpaces === ':' ) {
+  if (oneCharBeforeSpaces === ":" ) {
     return { type: OperatorType.EQUALS, length, leftSpaces, rightSpaces, startOperatorIndex };
   }
 
@@ -150,9 +150,9 @@ function detectOperator(queryExpr: string, varIndex: number): OperatorInfo {
   length = 2;
   leftSpaces = countLeftSpaces(queryExpr, startOperatorIndex);
   const twoCharsBeforeSpaces = queryExpr.slice(Math.max(0, startOperatorIndex), endOperatorPos);
-  const twoCharsOperators = [':=', ':!']
+  const twoCharsOperators = [":=", ":!"];
   if (twoCharsOperators.includes(twoCharsBeforeSpaces)) {
-    const type = twoCharsBeforeSpaces.includes('!') ? OperatorType.NEGATED_EQUALS : OperatorType.EQUALS;
+    const type = twoCharsBeforeSpaces.includes("!") ? OperatorType.NEGATED_EQUALS : OperatorType.EQUALS;
     return { type, length, leftSpaces, rightSpaces, startOperatorIndex };
   }
 
@@ -161,7 +161,7 @@ function detectOperator(queryExpr: string, varIndex: number): OperatorInfo {
   length = 3;
   leftSpaces = countLeftSpaces(queryExpr, startOperatorIndex);
   const threeCharsBeforeSpaces = queryExpr.slice(Math.max(0, startOperatorIndex), endOperatorPos);
-  const threeCharsOperators = [':!=']
+  const threeCharsOperators = [":!="];
   if (threeCharsOperators.includes(threeCharsBeforeSpaces)) {
     return { type: OperatorType.NEGATED_EQUALS, length, leftSpaces, rightSpaces, startOperatorIndex };
   }
@@ -171,7 +171,7 @@ function detectOperator(queryExpr: string, varIndex: number): OperatorInfo {
 
 function findFieldName(result: string, operatorStart: number): { fieldName: string; fieldStart: number } {
   let fieldStart = operatorStart - 1;
-  while (fieldStart >= 0 && result[fieldStart] !== ' ' && result[fieldStart] !== '|') {
+  while (fieldStart >= 0 && result[fieldStart] !== " " && result[fieldStart] !== "|") {
     fieldStart--;
   }
   fieldStart++;
@@ -196,9 +196,9 @@ function transformNegatedOperator(
 
   let filterPart: string;
   if(operatorInfo.isStreamOperator){
-    filterPart = `${fieldName.trimEnd()} not_in(${varPattern})`
+    filterPart = `${fieldName.trimEnd()} not_in(${varPattern})`;
   } else {
-    filterPart = `!${fieldName.trimEnd()}:in(${varPattern})`
+    filterPart = `!${fieldName.trimEnd()}:in(${varPattern})`;
   }
 
   const transformed = `${beforeField}${filterPart}${afterVariable}`;
@@ -218,7 +218,7 @@ function transformWithOperator(
   const operatorStart = varIndex - operatorInfo.length - totalSpaces;
   const beforeOperator = result.slice(0, operatorStart);
   const afterVariable = result.slice(actualEndIndex);
-  const inOperator = operatorInfo.isStreamOperator ? ' in' : ':in';
+  const inOperator = operatorInfo.isStreamOperator ? " in" : ":in";
 
   const filterWithBeforeOperatorPart = `${beforeOperator.trimEnd()}${inOperator}(${varPattern})`;
   const transformed = filterWithBeforeOperatorPart + afterVariable;

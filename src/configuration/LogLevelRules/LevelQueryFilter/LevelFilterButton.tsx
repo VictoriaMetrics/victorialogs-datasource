@@ -22,10 +22,10 @@ export const LevelFilterButton = ({ onClick, label, level, isSelected }: LevelFi
         variant={"secondary"}
         size={"sm"}
         type={"button"}
-        style={{ opacity: isSelected ? 1 : 0.5, userSelect: 'none' }}
+        style={{ opacity: isSelected ? 1 : 0.5, userSelect: "none" }}
         tooltip={"Use 'shift' to select several levels"}
       >
-        <div className={styles.colorCircle} style={{ backgroundColor: getLogLevelColor(level) }}/>
+        <div className={styles.colorCircle} style={{ backgroundColor: getLogLevelColor(level) }} />
         {label}
       </Button>
     </Stack>
@@ -41,7 +41,7 @@ const getStyles = () => {
     colorCircle: css({
       width: 12,
       height: 12,
-      borderRadius: '50%',
+      borderRadius: "50%",
       marginRight: 5,
     }),
   };

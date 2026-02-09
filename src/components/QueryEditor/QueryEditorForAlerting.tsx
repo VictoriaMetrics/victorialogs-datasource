@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 import { VictoriaLogsQueryEditorProps } from "../../types";
 
@@ -18,10 +18,10 @@ const QueryEditorForAlerting = (props: VictoriaLogsQueryEditorProps) => {
       data-testid={testIds.editor}
     />
   );
-}
+};
 
-export default QueryEditorForAlerting
+export default QueryEditorForAlerting;
 
 export const testIds = {
-  editor: 'victorialogs-editor-cloud-alerting',
+  editor: "victorialogs-editor-cloud-alerting",
 };

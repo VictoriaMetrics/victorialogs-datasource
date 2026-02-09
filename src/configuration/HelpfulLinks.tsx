@@ -1,7 +1,7 @@
 import React from "react";
 
 import { usePluginContext } from "@grafana/data";
-import { Stack, Text } from '@grafana/ui';
+import { Stack, Text } from "@grafana/ui";
 
 import { VICTORIA_LOGS_DOCS_HOST } from "../conf";
 

@@ -78,7 +78,7 @@ export const queryLogsVolume = (datasource: VictoriaLogsDatasource, request: Dat
       subscription?.unsubscribe();
     };
   });
-}
+};
 
 /**
  * Take multiple data frames, sum up values and group by level.
@@ -136,8 +136,8 @@ function aggregateFields(
     return aggregatedDataFrame;
   }
 
-  aggregatedDataFrame.addField({ name: 'Time', type: FieldType.time }, totalLength);
-  aggregatedDataFrame.addField({ name: 'Value', type: FieldType.number, config }, totalLength);
+  aggregatedDataFrame.addField({ name: "Time", type: FieldType.time }, totalLength);
+  aggregatedDataFrame.addField({ name: "Value", type: FieldType.number, config }, totalLength);
 
   for (let pointIndex = 0; pointIndex < totalLength; pointIndex++) {
     const time = uniqTimes[pointIndex];
@@ -174,18 +174,18 @@ function getLogVolumeFieldConfig(level: LogLevel) {
       fillOpacity: 100,
       stacking: {
         mode: StackingMode.Normal,
-        group: 'A',
+        group: "A",
       },
     },
   };
 }
 
 const extractLevel = (frame: DataFrame, rules: LogLevelRule[]): LogLevel => {
-  const valueField = frame.fields.find(f => f.name === 'Value');
+  const valueField = frame.fields.find(f => f.name === "Value");
 
   if (!valueField?.labels) {
     return LogLevel.unknown;
   }
 
-  return extractLevelFromLabels(valueField.labels, rules)
-}
+  return extractLevelFromLabels(valueField.labels, rules);
+};

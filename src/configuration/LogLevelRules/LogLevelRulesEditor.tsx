@@ -1,7 +1,7 @@
-import React from 'react';
+import React from "react";
 
-import { LogLevel, } from '@grafana/data';
-import { Button, Stack, InlineSwitch, Input, Select, Text, Tooltip, Badge } from '@grafana/ui';
+import { LogLevel, } from "@grafana/data";
+import { Button, Stack, InlineSwitch, Input, Select, Text, Tooltip, Badge } from "@grafana/ui";
 
 import { PropsConfigEditor } from "../ConfigEditor";
 
@@ -19,7 +19,7 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
         logLevelRules: rules,
       },
     });
-  }
+  };
 
   const rules = options.jsonData.logLevelRules || [];
 
@@ -33,9 +33,9 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
     onChangeHandler([
       ...rules,
       {
-        field: '',
+        field: "",
         operator: LogLevelRuleType.Equals,
-        value: '',
+        value: "",
         level: LogLevel.info,
         enabled: true,
       },
@@ -100,7 +100,7 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
 
               <Input
                 placeholder="Value"
-                value={String(value ?? '')}
+                value={String(value ?? "")}
                 onChange={(e) => handleRuleChange(index, { value: e.currentTarget.value })}
               />
 
@@ -117,12 +117,12 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
                 {LOG_LEVEL_COLOR[level] && (
                   <div
                     style={{
-                      width: '20px',
-                      height: '20px',
+                      width: "20px",
+                      height: "20px",
                       backgroundColor: LOG_LEVEL_COLOR[level],
-                      borderRadius: '50%',
-                      display: 'inline-block',
-                      margin: '0 8px',
+                      borderRadius: "50%",
+                      display: "inline-block",
+                      margin: "0 8px",
                     }}
                   />
                 )}

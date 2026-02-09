@@ -1,6 +1,6 @@
-import React, { SyntheticEvent } from 'react';
+import React, { SyntheticEvent } from "react";
 
-import { SelectableValue } from '@grafana/data';
+import { SelectableValue } from "@grafana/data";
 import {
   InlineField,
   regexValidation,
@@ -9,7 +9,7 @@ import {
   TextLink,
   Stack,
   Text
-} from '@grafana/ui';
+} from "@grafana/ui";
 
 import { VICTORIA_LOGS_DOCS_HOST } from "../conf";
 import { FilterFieldType } from "../types";
@@ -19,8 +19,8 @@ import { getValueFromEventItem } from "./utils";
 
 const validationRule = regexValidation(
   /^$|^\d+$/,
-  'Value is not valid, you can use number'
-)
+  "Value is not valid, you can use number"
+);
 
 const documentationLink = (
   <TextLink
@@ -30,7 +30,7 @@ const documentationLink = (
   >
     Learn more about querying field values
   </TextLink>
-)
+);
 
 
 const limitFields = [
@@ -44,7 +44,7 @@ const limitFields = [
     placeholder: "1000",
     key: FilterFieldType.FieldValue
   }
-]
+];
 
 type Props = PropsConfigEditor & {
   children?: React.ReactNode
@@ -53,12 +53,12 @@ type Props = PropsConfigEditor & {
 export const LimitsSettings = (props: Props) => {
   const { options, onOptionsChange, children } = props;
 
-  const [error, setError] = React.useState<string | null>(null)
+  const [error, setError] = React.useState<string | null>(null);
 
   const handleBlur = (event: SyntheticEvent<HTMLInputElement>) => {
-    const errors = validate(event.currentTarget.value, [validationRule])
-    setError(errors?.[0] || null)
-  }
+    const errors = validate(event.currentTarget.value, [validationRule]);
+    setError(errors?.[0] || null);
+  };
 
   return (
     <Stack direction="column" gap={2}>
@@ -82,7 +82,7 @@ export const LimitsSettings = (props: Props) => {
             >
               <Input
                 className="width-8"
-                value={`${options.jsonData?.queryBuilderLimits?.[field.key] || ''}`}
+                value={`${options.jsonData?.queryBuilderLimits?.[field.key] || ""}`}
                 onChange={onChangeHandler(field.key, options, onOptionsChange)}
                 spellCheck={false}
                 placeholder={field.placeholder}
@@ -94,11 +94,11 @@ export const LimitsSettings = (props: Props) => {
         {children}
       </div>
     </Stack>
-  )
+  );
 };
 
 const onChangeHandler =
-  (key: string, options: Props['options'], onOptionsChange: Props['onOptionsChange']) =>
+  (key: string, options: Props["options"], onOptionsChange: Props["onOptionsChange"]) =>
     (eventItem: SyntheticEvent<HTMLInputElement> | SelectableValue<string>) => {
       onOptionsChange({
         ...options,

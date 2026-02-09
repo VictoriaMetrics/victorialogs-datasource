@@ -1,9 +1,9 @@
-import { css } from '@emotion/css';
-import React from 'react';
-import { useToggle } from 'react-use';
+import { css } from "@emotion/css";
+import React from "react";
+import { useToggle } from "react-use";
 
-import { GrafanaTheme2 } from '@grafana/data';
-import { Icon, useStyles2 } from '@grafana/ui';
+import { GrafanaTheme2 } from "@grafana/data";
+import { Icon, useStyles2 } from "@grafana/ui";
 
 export interface Props {
   title: string;
@@ -19,7 +19,7 @@ const QueryEditorOptionsGroup = ({ title, children, collapsedInfo }: Props)  => 
     <div>
       <div className={styles.header} onClick={toggleOpen} title="Click to edit options">
         <div className={styles.toggle}>
-          <Icon name={isOpen ? 'angle-down' : 'angle-right'} />
+          <Icon name={isOpen ? "angle-down" : "angle-right"} />
         </div>
         <h6 className={styles.title}>{title}</h6>
         {!isOpen && (
@@ -33,7 +33,7 @@ const QueryEditorOptionsGroup = ({ title, children, collapsedInfo }: Props)  => 
       {isOpen && <div className={styles.body}>{children}</div>}
     </div>
   );
-}
+};
 
 export default QueryEditorOptionsGroup;
 
@@ -41,23 +41,23 @@ const getStyles = (theme: GrafanaTheme2) => {
   return {
     switchLabel: css({
       color: theme.colors.text.secondary,
-      cursor: 'pointer',
+      cursor: "pointer",
       fontSize: theme.typography.bodySmall.fontSize,
-      '&:hover': {
+      "&:hover": {
         color: theme.colors.text.primary,
       },
     }),
     header: css({
-      display: 'flex',
-      cursor: 'pointer',
-      alignItems: 'baseline',
+      display: "flex",
+      cursor: "pointer",
+      alignItems: "baseline",
       color: theme.colors.text.primary,
-      '&:hover': {
+      "&:hover": {
         background: theme.colors.emphasize(theme.colors.background.primary, 0.03),
       },
     }),
     title: css({
-      overflow: 'hidden',
+      overflow: "hidden",
       fontSize: theme.typography.bodySmall.fontSize,
       fontWeight: theme.typography.fontWeightMedium,
       margin: 0,
@@ -67,14 +67,14 @@ const getStyles = (theme: GrafanaTheme2) => {
       fontSize: theme.typography.bodySmall.fontSize,
       paddingLeft: theme.spacing(2),
       gap: theme.spacing(2),
-      display: 'flex',
+      display: "flex",
     }),
     body: css({
-      display: 'flex',
+      display: "flex",
       paddingTop: theme.spacing(2),
       paddingLeft: theme.spacing(1),
       gap: theme.spacing(2),
-      flexWrap: 'wrap',
+      flexWrap: "wrap",
     }),
     toggle: css({
       color: theme.colors.text.secondary,

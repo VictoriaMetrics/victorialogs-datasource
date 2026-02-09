@@ -1,12 +1,12 @@
-import { css } from '@emotion/css';
-import React from 'react';
+import { css } from "@emotion/css";
+import React from "react";
 
-import { GrafanaTheme2 } from '@grafana/data';
-import { useStyles2 } from '@grafana/ui';
+import { GrafanaTheme2 } from "@grafana/data";
+import { useStyles2 } from "@grafana/ui";
 
 import { VictoriaLogsQueryEditorProps } from "../../types";
 
-import { AdHocFiltersControl } from './AdHocFiltersControl';
+import { AdHocFiltersControl } from "./AdHocFiltersControl";
 import QueryField from "./QueryField";
 
 type Props = VictoriaLogsQueryEditorProps & {
@@ -41,7 +41,7 @@ const QueryCodeEditor = (props: Props) => {
       />
     </div>
   );
-}
+};
 
 const getStyles = (theme: GrafanaTheme2) => {
   return {
@@ -66,4 +66,4 @@ const getStyles = (theme: GrafanaTheme2) => {
   };
 };
 
-export default QueryCodeEditor
+export default QueryCodeEditor;

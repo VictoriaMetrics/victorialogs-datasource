@@ -1,27 +1,27 @@
 import { debounce } from "lodash";
-import React, { FormEvent, useEffect, useState } from 'react';
+import React, { FormEvent, useEffect, useState } from "react";
 
-import { DEFAULT_FIELD_DISPLAY_VALUES_LIMIT, QueryEditorProps, SelectableValue } from '@grafana/data';
+import { DEFAULT_FIELD_DISPLAY_VALUES_LIMIT, QueryEditorProps, SelectableValue } from "@grafana/data";
 import { InlineField, InlineFieldRow, Input, Select } from "@grafana/ui";
 
 import { VictoriaLogsDatasource } from "../../datasource";
-import { FilterFieldType, Options, Query, VariableQuery } from '../../types';
+import { FilterFieldType, Options, Query, VariableQuery } from "../../types";
 
 const variableOptions = [
-  { label: 'Field names', value: FilterFieldType.FieldName },
-  { label: 'Field values', value: FilterFieldType.FieldValue },
+  { label: "Field names", value: FilterFieldType.FieldName },
+  { label: "Field values", value: FilterFieldType.FieldValue },
 ];
 
-const refId = 'VictoriaLogsVariableQueryEditor-VariableQuery'
+const refId = "VictoriaLogsVariableQueryEditor-VariableQuery";
 
 export type Props = QueryEditorProps<VictoriaLogsDatasource, Query, Options, VariableQuery>;
 
 export const VariableQueryEditor = ({ onChange, query, datasource, range }: Props) => {
   const [type, setType] = useState<FilterFieldType>();
-  const [queryFilter, setQueryFilter] = useState<string>('');
-  const [field, setField] = useState<string>('');
+  const [queryFilter, setQueryFilter] = useState<string>("");
+  const [field, setField] = useState<string>("");
   const [limit, setLimit] = useState<number>(DEFAULT_FIELD_DISPLAY_VALUES_LIMIT);
-  const [fieldNames, setFieldNames] = useState<SelectableValue<string>[]>([])
+  const [fieldNames, setFieldNames] = useState<SelectableValue<string>[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
@@ -35,7 +35,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
 
   const handleFieldChange = (newField: SelectableValue<string>) => {
     setField(newField.value || "");
-  }
+  };
 
   const handleBlur = () => {
     if (!type) {
@@ -49,13 +49,13 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
   };
 
   const handleLimitChange = (e: FormEvent<HTMLInputElement>) => {
-    const value = Number(e.currentTarget.value)
+    const value = Number(e.currentTarget.value);
     setLimit(isNaN(value) ? DEFAULT_FIELD_DISPLAY_VALUES_LIMIT : value);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    e.key === 'Enter' && handleBlur()
-  }
+    e.key === "Enter" && handleBlur();
+  };
 
   useEffect(() => {
     if (!query) {
@@ -63,8 +63,8 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
     }
 
     setType(query.type);
-    setField(query.field || '');
-    setQueryFilter(query.query || '');
+    setField(query.field || "");
+    setQueryFilter(query.query || "");
     setLimit(query.limit ?? DEFAULT_FIELD_DISPLAY_VALUES_LIMIT);
   }, [query]);
 
@@ -145,7 +145,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
         <InlineField
           label="Limit"
           labelWidth={20}
-          tooltip={'Maximum number of values to return. Set to 0 to remove the limit.'}
+          tooltip={"Maximum number of values to return. Set to 0 to remove the limit."}
         >
           <Input
             type="number"
@@ -163,7 +163,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
           label="Query"
           labelWidth={20}
           grow={true}
-          tooltip={'Optional. If defined, this filters the logs based on the specified query and returns the corresponding field names.'}
+          tooltip={"Optional. If defined, this filters the logs based on the specified query and returns the corresponding field names."}
         >
           <Input
             type="text"
@@ -177,5 +177,5 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
         </InlineField>
       </InlineFieldRow>
     </div>
-  )
+  );
 };

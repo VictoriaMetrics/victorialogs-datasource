@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import React, { FC, memo, useEffect, useMemo, useState } from 'react';
+import React, { FC, memo, useEffect, useMemo, useState } from "react";
 
-import { getDefaultTimeRange, PanelData, textUtil } from '@grafana/data';
+import { getDefaultTimeRange, PanelData, textUtil } from "@grafana/data";
 import { IconButton } from "@grafana/ui";
 
 import { VictoriaLogsDatasource } from "../../datasource";
@@ -25,24 +25,24 @@ import { getDurationFromMilliseconds } from "../../utils/timeUtils";
 const getTimeUrlParams = (panelData?: PanelData) => {
   const timeRange = panelData?.timeRange || getDefaultTimeRange();
   const rangeRaw = timeRange.raw;
-  let relativeTimeId = 'none';
+  let relativeTimeId = "none";
 
-  if (typeof rangeRaw?.from === 'string') {
-    const duration = rangeRaw.from.replace('now-', '')
-    relativeTimeId = relativeTimeOptionsVMUI.find(ops => ops.duration === duration)?.id || 'none'
+  if (typeof rangeRaw?.from === "string") {
+    const duration = rangeRaw.from.replace("now-", "");
+    relativeTimeId = relativeTimeOptionsVMUI.find(ops => ops.duration === duration)?.id || "none";
   }
 
   const start = timeRange.from.valueOf() / 1000;
   const end = timeRange.to.valueOf() / 1000;
   const rangeDiff = Math.ceil(end - start);
-  const endTime = timeRange.to.utc().format('YYYY-MM-DD HH:mm');
+  const endTime = timeRange.to.utc().format("YYYY-MM-DD HH:mm");
 
   return {
-    'g0.range_input': getDurationFromMilliseconds(rangeDiff * 1000),
-    'g0.end_input': endTime,
-    'g0.relative_time': relativeTimeId,
+    "g0.range_input": getDurationFromMilliseconds(rangeDiff * 1000),
+    "g0.end_input": endTime,
+    "g0.relative_time": relativeTimeId,
   };
-}
+};
 
 const getQueryWithTemplate = (datasource: VictoriaLogsDatasource, query: string, panelData?: PanelData,) => {
   const scopedVars = panelData?.request?.scopedVars || {};
@@ -50,11 +50,11 @@ const getQueryWithTemplate = (datasource: VictoriaLogsDatasource, query: string,
   expr = datasource.getExtraFilters(panelData?.request?.filters, expr) ?? expr;
   expr = datasource.interpolateString(expr, scopedVars);
   return expr;
-}
+};
 
 export const mergeTemplateWithQuery = (query = "") => {
   return query;
-}
+};
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -82,7 +82,7 @@ export const relativeTimeOptionsVMUI = [
 ].map(o => ({
   id: o.title.replace(/\s/g, "_").toLocaleLowerCase(),
   ...o
-}))
+}));
 
 type Tenant = {
   projectID: string;
@@ -90,8 +90,8 @@ type Tenant = {
 }
 
 const DEFAULT_TENANT: Tenant = {
-  projectID: '0',
-  accountID: '0',
+  projectID: "0",
+  accountID: "0",
 };
 
 const VmuiLink: FC<Props> = ({
@@ -99,7 +99,7 @@ const VmuiLink: FC<Props> = ({
   query,
   datasource,
 }) => {
-  const [baseVmuiUrl, setBaseVmuiUrl] = useState('');
+  const [baseVmuiUrl, setBaseVmuiUrl] = useState("");
   const [tenant, setTenant] = useState<Tenant>(DEFAULT_TENANT);
 
   useEffect(() => {
@@ -109,13 +109,13 @@ const VmuiLink: FC<Props> = ({
 
     const fetchVmuiUrl = async () => {
       try {
-        const resp = await datasource.getResource<Tenant & { vmuiURL: string }>('vmui');
-        setBaseVmuiUrl(resp.vmuiURL.includes('#') ? resp.vmuiURL.split('/#')[0] : resp.vmuiURL);
+        const resp = await datasource.getResource<Tenant & { vmuiURL: string }>("vmui");
+        setBaseVmuiUrl(resp.vmuiURL.includes("#") ? resp.vmuiURL.split("/#")[0] : resp.vmuiURL);
         setTenant({ projectID: resp.projectID, accountID: resp.accountID });
       } catch (error) {
-        console.error('Error fetching VMUI URL:', error);
+        console.error("Error fetching VMUI URL:", error);
       }
-    }
+    };
 
     fetchVmuiUrl();
   }, [datasource]);
@@ -128,7 +128,7 @@ const VmuiLink: FC<Props> = ({
       ...timeParams,
       ...tenant,
       query: queryExpr,
-      tab: '0',
+      tab: "0",
     }).toString();
   }, [baseVmuiUrl, datasource, panelData, query.expr, tenant]);
 

@@ -9,7 +9,7 @@ import { escapeLabelValueInExactSelector } from "../../../../../languageUtils";
 import { normalizeKey } from "../../../../../modifyQuery";
 import { VisualQuery } from "../../../../../types";
 import { CompatibleCombobox } from "../../../../CompatibleCombobox";
-import { deleteByIndexPath } from '../../utils/modifyFilterVisualQuery/deleteByIndexPath';
+import { deleteByIndexPath } from "../../utils/modifyFilterVisualQuery/deleteByIndexPath";
 import { updateValueByIndexPath } from "../../utils/modifyFilterVisualQuery/updateByIndexPath";
 import { DEFAULT_FIELD } from "../../utils/parseToString";
 
@@ -84,7 +84,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
       if (!option || !option.value) {
         return;
       }
-      const fullFilter = `${normalizeKey(field || '')}: ${field === '_stream' ? option.value : `"${escapeLabelValueInExactSelector(option.value || '')}"`} `;
+      const fullFilter = `${normalizeKey(field || "")}: ${field === "_stream" ? option.value : `"${escapeLabelValueInExactSelector(option.value || "")}"`} `;
 
       onChange({
         ...query,
@@ -98,7 +98,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
     <div className={styles.wrapper}>
       <div className={styles.header}>
         <Label>Filter</Label>
-        <IconButton name={'times'} tooltip={'Remove filter'} size="sm" onClick={handleRemoveFilter} />
+        <IconButton name={"times"} tooltip={"Remove filter"} size="sm" onClick={handleRemoveFilter} />
       </div>
       <div className={styles.content}>
         <CompatibleCombobox
@@ -106,7 +106,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
           value={field ? { label: field, value: field } : null}
           options={loadFieldNames}
           onChange={handleSelectFieldName}
-          width={'auto'}
+          width={"auto"}
           minWidth={10}
           createCustomValue
         />
@@ -117,7 +117,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
           value={fieldValue ? { label: fieldValue, value: fieldValue } : null}
           options={loadFieldValues}
           onChange={handleSelectFieldValue}
-          width={'auto'}
+          width={"auto"}
           minWidth={10}
           createCustomValue
         />

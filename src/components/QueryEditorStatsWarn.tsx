@@ -1,5 +1,5 @@
 import { css } from "@emotion/css";
-import React from 'react';
+import React from "react";
 
 import { GrafanaTheme2 } from "@grafana/data";
 import { Badge, TextLink, useTheme2 } from "@grafana/ui";
@@ -22,7 +22,7 @@ const QueryEditorStatsWarn = ({ queryType }: Props) => {
     <div>
       The query must include the `| stats ...` pipe for the `{queryTypeLabel}` query type to work correctly.
     </div>
-  )
+  );
 
   return (
     <div className={styles.root}>
@@ -40,16 +40,16 @@ const QueryEditorStatsWarn = ({ queryType }: Props) => {
         Learn more about stats pipe
       </TextLink>
     </div>
-  )
-}
+  );
+};
 
 export default QueryEditorStatsWarn;
 
 const getStyles = (theme: GrafanaTheme2) => {
   return {
     root: css({
-      display: 'flex',
-      alignItems: 'center',
+      display: "flex",
+      alignItems: "center",
       gap: theme.spacing(1),
       flexGrow: 1,
     }),

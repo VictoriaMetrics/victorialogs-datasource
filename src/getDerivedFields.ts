@@ -1,15 +1,15 @@
-import { groupBy } from 'lodash';
+import { groupBy } from "lodash";
 
-import { FieldType, DataFrame, DataLink, Field } from '@grafana/data';
-import { getDataSourceSrv } from '@grafana/runtime';
+import { FieldType, DataFrame, DataLink, Field } from "@grafana/data";
+import { getDataSourceSrv } from "@grafana/runtime";
 
-import { DerivedFieldConfig } from './types';
+import { DerivedFieldConfig } from "./types";
 
 export function getDerivedFields(dataFrame: DataFrame, derivedFieldConfigs: DerivedFieldConfig[]): Field[] {
   if (!derivedFieldConfigs.length) {
     return [];
   }
-  const derivedFieldsGrouped = groupBy(derivedFieldConfigs, 'name');
+  const derivedFieldsGrouped = groupBy(derivedFieldConfigs, "name");
 
   const newFields = Object.values(derivedFieldsGrouped).map(fieldFromDerivedFieldConfig);
 
@@ -19,15 +19,15 @@ export function getDerivedFields(dataFrame: DataFrame, derivedFieldConfigs: Deri
 
   if (lineField === undefined) {
     // if this is happening, something went wrong, let's raise an error
-    throw new Error('invalid logs-dataframe, string-field missing');
+    throw new Error("invalid logs-dataframe, string-field missing");
   }
 
-  const labelFields = dataFrame.fields.find((f) => f.type === FieldType.other && f.name === 'labels');
+  const labelFields = dataFrame.fields.find((f) => f.type === FieldType.other && f.name === "labels");
 
   for (let i = 0; i < lineField.values.length; i++) {
     for (const field of newFields) {
       // `matcherRegex` can be either a RegExp that is used to extract the value from the log line, or it can be a label key to derive the field from the labels
-      if (derivedFieldsGrouped[field.name][0].matcherType === 'label' && labelFields) {
+      if (derivedFieldsGrouped[field.name][0].matcherType === "label" && labelFields) {
         const label = labelFields.values[i];
         if (label) {
           // Find the key that matches both, the `matcherRegex` and the label key
@@ -42,7 +42,7 @@ export function getDerivedFields(dataFrame: DataFrame, derivedFieldConfigs: Deri
         }
         field.values.push(null);
       } else if (
-        derivedFieldsGrouped[field.name][0].matcherType === 'regex' ||
+        derivedFieldsGrouped[field.name][0].matcherType === "regex" ||
         derivedFieldsGrouped[field.name][0].matcherType === undefined
       ) {
         // `matcherRegex` will actually be used as a RegExp here
@@ -74,10 +74,10 @@ function fieldFromDerivedFieldConfig(derivedFieldConfigs: DerivedFieldConfig[]):
       const dsSettings = dataSourceSrv.getInstanceSettings(derivedFieldConfig.datasourceUid);
       const queryType = (type: string | undefined): string | undefined => {
         switch (type) {
-          case 'tempo':
-            return 'traceql';
-          case 'grafana-x-ray-datasource':
-            return 'getTrace';
+          case "tempo":
+            return "traceql";
+          case "grafana-x-ray-datasource":
+            return "getTrace";
           default:
             return undefined;
         }
@@ -85,19 +85,19 @@ function fieldFromDerivedFieldConfig(derivedFieldConfigs: DerivedFieldConfig[]):
 
       acc.push({
         // Will be filled out later
-        title: derivedFieldConfig.urlDisplayLabel || '',
-        url: '',
+        title: derivedFieldConfig.urlDisplayLabel || "",
+        url: "",
         // This is hardcoded for Jaeger or Zipkin not way right now to specify datasource specific query object
         internal: {
           query: { query: derivedFieldConfig.url, queryType: queryType(dsSettings?.type) },
           datasourceUid: derivedFieldConfig.datasourceUid,
-          datasourceName: dsSettings?.name ?? 'Data source not found',
+          datasourceName: dsSettings?.name ?? "Data source not found",
         },
       });
     } else if (derivedFieldConfig.url) {
       acc.push({
         // We do not know what title to give here so we count on presentation layer to create a title from metadata.
-        title: derivedFieldConfig.urlDisplayLabel || '',
+        title: derivedFieldConfig.urlDisplayLabel || "",
         // This is hardcoded for Jaeger or Zipkin not way right now to specify datasource specific query object
         url: derivedFieldConfig.url,
       });

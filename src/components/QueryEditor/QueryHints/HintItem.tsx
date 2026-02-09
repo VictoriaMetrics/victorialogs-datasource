@@ -1,12 +1,12 @@
-import { css } from '@emotion/css';
-import React from 'react';
+import { css } from "@emotion/css";
+import React from "react";
 
-import { GrafanaTheme2 } from '@grafana/data';
-import { Button, Card, ClipboardButton, Stack, TextLink, useStyles2 } from '@grafana/ui';
+import { GrafanaTheme2 } from "@grafana/data";
+import { Button, Card, ClipboardButton, Stack, TextLink, useStyles2 } from "@grafana/ui";
 
-import { VICTORIA_LOGS_DOCS_HOST } from '../../../conf';
+import { VICTORIA_LOGS_DOCS_HOST } from "../../../conf";
 
-import { QueryHint } from './hints/types';
+import { QueryHint } from "./hints/types";
 
 interface HintItemComponentProps {
   hint: QueryHint;
@@ -20,12 +20,12 @@ export const HintItem = ({ hint, query, onQueryChange }: HintItemComponentProps)
   // add existing query to the hint as a filter before the pipe operator
   const handleAppendQuery = () => {
     let prevQuery = query.trim();
-    if (prevQuery.endsWith('|')) {
+    if (prevQuery.endsWith("|")) {
       prevQuery = prevQuery.slice(0, -1);
     }
     let hintExpr = hint.example;
-    if (prevQuery && hintExpr.startsWith('*') && hintExpr.includes('|')) {
-      hintExpr = hintExpr.split('|').slice(1).join('|').trim();
+    if (prevQuery && hintExpr.startsWith("*") && hintExpr.includes("|")) {
+      hintExpr = hintExpr.split("|").slice(1).join("|").trim();
     }
     prevQuery = prevQuery ? `${prevQuery} | ${hintExpr}` : hintExpr;
     onQueryChange(prevQuery);
@@ -65,7 +65,7 @@ export const HintItem = ({ hint, query, onQueryChange }: HintItemComponentProps)
         </div>
       </Card.Heading>
       <Card.Description>
-        <Stack direction={'column'} justifyContent={'space-between'}>
+        <Stack direction={"column"} justifyContent={"space-between"}>
           Example:
           <code className={styles.code}>{hint.example}</code>
           <Card.Actions>

@@ -12,7 +12,7 @@ export const CompatibleCombobox: typeof Combobox = (props) => {
     if (!props.value) {
       return null;
     }
-    if (typeof props.value === 'string') {
+    if (typeof props.value === "string") {
       return { value: props.value, label: props.value };
     }
     return props.value;
@@ -28,11 +28,11 @@ export const CompatibleCombobox: typeof Combobox = (props) => {
   };
 
   const asyncOption = useCallback((value: SelectValue<any>) => {
-    if (typeof props.options === 'function') {
+    if (typeof props.options === "function") {
       return props.options(value);
     }
     return new Promise<SelectValue<any>>(() => {});
-  }, [props])
+  }, [props]);
 
   const selectOptions = useMemo(() => {
     if (Array.isArray(props.options)) {
@@ -52,7 +52,7 @@ export const CompatibleCombobox: typeof Combobox = (props) => {
     );
   }
 
-  if (typeof selectOptions === 'function') {
+  if (typeof selectOptions === "function") {
     return (
       <AsyncSelect
         placeholder={props.placeholder}
@@ -66,7 +66,7 @@ export const CompatibleCombobox: typeof Combobox = (props) => {
         isLoading={props.loading}
         disabled={props.disabled}
       />
-    )
+    );
   }
 
   return (

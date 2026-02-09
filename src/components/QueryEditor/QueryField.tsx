@@ -1,6 +1,6 @@
-import React from 'react';
+import React from "react";
 
-import { QueryEditorProps } from '@grafana/data';
+import { QueryEditorProps } from "@grafana/data";
 
 import { VictoriaLogsDatasource } from "../../datasource";
 import { Options, Query } from "../../types";
@@ -8,7 +8,7 @@ import { MonacoQueryFieldWrapper } from "../monaco-query-field/MonacoQueryFieldW
 
 export interface QueryFieldProps extends QueryEditorProps<VictoriaLogsDatasource, Query, Options> {
   ExtraFieldElement?: React.ReactNode;
-  'data-testid'?: string;
+  "data-testid"?: string;
 }
 
 const QueryField: React.FC<QueryFieldProps> = (
@@ -18,7 +18,7 @@ const QueryField: React.FC<QueryFieldProps> = (
     history,
     onRunQuery,
     onChange,
-    'data-testid': dataTestId
+    "data-testid": dataTestId
   }) => {
 
   const onChangeQuery = (value: string) => {
@@ -37,7 +37,7 @@ const QueryField: React.FC<QueryFieldProps> = (
             history={history ?? []}
             onChange={onChangeQuery}
             onRunQuery={onRunQuery}
-            initialValue={query.expr ?? ''}
+            initialValue={query.expr ?? ""}
             placeholder="Enter a LogsQL query…"
           />
         </div>

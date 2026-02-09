@@ -9,9 +9,9 @@ export interface LogLevelRule {
 }
 
 export enum LogLevelRuleType {
-  Equals = 'equals',
-  NotEquals = 'notEquals',
-  GreaterThan = 'greaterThan',
-  LessThan = 'lessThan',
-  Regex = 'regex',
+  Equals = "equals",
+  NotEquals = "notEquals",
+  GreaterThan = "greaterThan",
+  LessThan = "lessThan",
+  Regex = "regex",
 }

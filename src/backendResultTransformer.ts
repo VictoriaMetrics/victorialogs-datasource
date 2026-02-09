@@ -8,28 +8,28 @@ import {
   FieldType,
   isDataFrame,
   QueryResultMeta
-} from '@grafana/data';
+} from "@grafana/data";
 
 import { LogLevelRule } from "./configuration/LogLevelRules/types";
 import { extractLevelFromLabels } from "./configuration/LogLevelRules/utils";
-import { getDerivedFields } from './getDerivedFields';
-import { makeTableFrames } from './makeTableFrames';
-import { getHighlighterExpressionsFromQuery } from './queryUtils';
-import { dataFrameHasError } from './responseUtils';
-import { DerivedFieldConfig, Query, QueryType } from './types';
+import { getDerivedFields } from "./getDerivedFields";
+import { makeTableFrames } from "./makeTableFrames";
+import { getHighlighterExpressionsFromQuery } from "./queryUtils";
+import { dataFrameHasError } from "./responseUtils";
+import { DerivedFieldConfig, Query, QueryType } from "./types";
 import { getMillisecondsFromDuration } from "./utils/timeUtils";
 
-const ANNOTATIONS_REF_ID = 'Anno';
+const ANNOTATIONS_REF_ID = "Anno";
 
 enum FrameField {
-  Labels = 'labels',
-  Line = 'Line',
+  Labels = "labels",
+  Line = "Line",
   /**
    * The name of the label that is added to the log line to indicate the calculated log level according to the log level rules
    * Grafana supports only `detected_level` and `level` label names. Apps often use 'level' for the log level,
    * so to avoid duplication and confusion of overwritten 'level' labels, we use 'detected_level' instead.
    * */
-  DetectedLevel = 'detected_level'
+  DetectedLevel = "detected_level"
 }
 
 function isMetricFrame(frame: DataFrame): boolean {
@@ -57,7 +57,7 @@ function addLevelField(frame: DataFrame, rules: LogLevelRule[]): DataFrame {
 
   const levelValues = Array.from({ length: rows }, (_, idx) => {
     const labels = (labelsField?.values[idx] ?? {}) as Record<string, string>;
-    const msg = lineField?.values[idx] ?? '';
+    const msg = lineField?.values[idx] ?? "";
     const labelsWithMsg = { ...labels, _msg: msg };
     return extractLevelFromLabels(labelsWithMsg, rules);
   });
@@ -111,7 +111,7 @@ function processStreamsFrames(
 ): DataFrame[] {
   return frames.map((frame) => {
     const query = frame.refId !== undefined ? queryMap.get(frame.refId) : undefined;
-    const isAnnotations = query?.refId === ANNOTATIONS_REF_ID
+    const isAnnotations = query?.refId === ANNOTATIONS_REF_ID;
     return processStreamFrame(frame, query, derivedFieldConfigs, logLevelRules, isAnnotations);
   });
 }
@@ -128,11 +128,11 @@ function processStreamFrame(
   };
 
   if (dataFrameHasError(frame)) {
-    custom.error = 'Error when parsing some of the logs';
+    custom.error = "Error when parsing some of the logs";
   }
 
   const meta: QueryResultMeta = {
-    preferredVisualisationType: 'logs',
+    preferredVisualisationType: "logs",
     limit: query?.maxLines,
     searchWords: query !== undefined ? getHighlighterExpressionsFromQuery(query.expr) : undefined,
     custom: {
@@ -214,19 +214,19 @@ const fillFrameWithNullValues = (frame: DataFrame, query: Query, startMs: number
       ...frame.fields[1],
       values: values,
     }]
-  }
-}
+  };
+};
 
 function getQueryMap(queries: Query[]) {
   return new Map(queries.map((query) => [query.refId, query]));
 }
 
 function processMetricRangeFrames(frames: DataFrame[], queries: Query[], startTime: number, endTime: number): DataFrame[] {
-  const meta: QueryResultMeta = { preferredVisualisationType: 'graph', type: DataFrameType.TimeSeriesMulti };
+  const meta: QueryResultMeta = { preferredVisualisationType: "graph", type: DataFrameType.TimeSeriesMulti };
   const queryMap = getQueryMap(queries);
 
   return frames.map((frame) => {
-    const query = queryMap.get(frame.refId || '');
+    const query = queryMap.get(frame.refId || "");
     // need to fill missing timestamps with null values, so grafana can render the graph properly
     const frameWithNullValues = query ? fillFrameWithNullValues(frame, query, startTime, endTime) : frame;
     return setFrameMeta(frameWithNullValues, meta);
@@ -278,7 +278,7 @@ function improveError(error: DataQueryError | undefined, queryMap: Map<string, Q
     return error;
   }
 
-  if (message.includes('escape') && query.expr.includes('\\')) {
+  if (message.includes("escape") && query.expr.includes("\\")) {
     return {
       ...error,
       message: `${message}. Make sure that all special characters are escaped with \\. For more information on escaping of special characters visit LogQL documentation at https://docs.victoriametrics.com/victorialogs/logsql/.`,
@@ -302,7 +302,7 @@ export function transformBackendResult(
   // this way we can be sure, and also typescript is happy.
   const dataFrames = data.map((d) => {
     if (!isDataFrame(d)) {
-      throw new Error('transformation only supports dataframe responses');
+      throw new Error("transformation only supports dataframe responses");
     }
 
     return d;

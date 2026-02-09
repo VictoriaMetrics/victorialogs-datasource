@@ -1,4 +1,4 @@
-import { AdHocVariableFilter, CoreApp, LogsSortOrder } from '@grafana/data';
+import { AdHocVariableFilter, CoreApp, LogsSortOrder } from "@grafana/data";
 
 import {
   buildVisualQueryFromString,
@@ -10,7 +10,7 @@ import store from "./store/store";
 import { FilterVisualQuery, Query, QueryDirection, QueryType } from "./types";
 
 const operators = ["=", "!=", "=~", "!~", "<", ">"];
-const multiValueOperators = ["=|", "!=|"]
+const multiValueOperators = ["=|", "!=|"];
 const streamKeys = ["_stream", "_stream_id"];
 
 export function queryHasFilter(query: string, key: string, value: string, operator?: string): boolean {
@@ -18,7 +18,7 @@ export function queryHasFilter(query: string, key: string, value: string, operat
   return applicableOperators.some(op => query.includes(getFilterInsertValue(key, value, op)));
 }
 
-const KEY_CHARS_TO_NORMALIZE = ':';
+const KEY_CHARS_TO_NORMALIZE = ":";
 export const normalizeKey = (key: string): string => key.includes(KEY_CHARS_TO_NORMALIZE) && !key.match(/^".*"$/) ? `"${key}"` : key;
 
 const getFilterInsertValue = (key: string, value: string, operator: string): string => {
@@ -29,26 +29,26 @@ const getFilterInsertValue = (key: string, value: string, operator: string): str
   const normalizedKey = normalizeKey(key);
   switch (operator) {
     case "=~":
-      return `${normalizedKey}:~"${value}"`
+      return `${normalizedKey}:~"${value}"`;
     default:
-      return `${normalizedKey}:${operator}"${value}"`
+      return `${normalizedKey}:${operator}"${value}"`;
   }
-}
+};
 
 const getFilterInsertValueForStream = (key: string, value: string, operator: string): string => {
   const normalizedKey = normalizeKey(key);
-  if (operator.includes('!')) {
+  if (operator.includes("!")) {
     return `(! ${normalizedKey}: ${value})`;
   }
 
   return `${normalizedKey}:${value}`;
-}
+};
 
 const getMultiValueInsert = (key: string, values: string[], operator: string): string => {
-  const isExclude = operator === "!=|"
+  const isExclude = operator === "!=|";
 
   if (key === "_stream") {
-    const expr = values.map(v => `${key}: ${v}`).join(" OR ")
+    const expr = values.map(v => `${key}: ${v}`).join(" OR ");
     return isExclude ? `!${expr}` : `(${expr})`;
   }
 
@@ -56,26 +56,26 @@ const getMultiValueInsert = (key: string, values: string[], operator: string): s
   const valuesStr = values.map(v => `"${v}"`).join(",");
   const expr = `${normalizedKey}:in(${valuesStr})`;
   return isExclude ? `!${expr}` : expr;
-}
+};
 
 export const addLabelToQuery = (query: string, filter: AdHocVariableFilter): string => {
   const { key, value, values = [], operator } = filter;
-  const [filters, ...pipes] = splitExpression(query)
+  const [filters, ...pipes] = splitExpression(query);
 
-  const isMultiValue = multiValueOperators.includes(operator)
+  const isMultiValue = multiValueOperators.includes(operator);
   const insertPart = isMultiValue
     ? getMultiValueInsert(key, values, operator)
-    : getFilterInsertValue(key, value, operator)
+    : getFilterInsertValue(key, value, operator);
 
-  const pipesPart = pipes?.length ? `| ${pipes.join(' | ')}` : ''
-  return filters.length ? (`${filters} AND ${insertPart} ${pipesPart}`).trim() : (`${insertPart} ${pipesPart}`).trim()
-}
+  const pipesPart = pipes?.length ? `| ${pipes.join(" | ")}` : "";
+  return filters.length ? (`${filters} AND ${insertPart} ${pipesPart}`).trim() : (`${insertPart} ${pipesPart}`).trim();
+};
 
 export const removeLabelFromQuery = (query: string, key: string, value: string, operator?: string): string => {
   const { query: { filters, pipes }, errors } = buildVisualQueryFromString(query);
 
   if (errors.length) {
-    console.error(errors.join('\n'));
+    console.error(errors.join("\n"));
     return query;
   }
 
@@ -94,8 +94,8 @@ const recursiveRemove = (filters: FilterVisualQuery, keyValue: string): boolean 
 
   for (let i = values.length - 1; i >= 0; i--) {
     const val = values[i];
-    const isString = typeof val === 'string'
-    const isFilterObject = typeof val === 'object' && 'values' in val
+    const isString = typeof val === "string";
+    const isFilterObject = typeof val === "object" && "values" in val;
 
     if (isString && val === keyValue) {
       // If the string matches keyValue, delete it and the operator
@@ -110,7 +110,7 @@ const recursiveRemove = (filters: FilterVisualQuery, keyValue: string): boolean 
   }
 
   return removed;
-}
+};
 
 export const logsSortOrders = {
   asc: "Ascending",
@@ -122,10 +122,10 @@ export const addSortPipeToQuery = ({ expr, queryType, direction }: Query, app: C
   switch (app) {
     case CoreApp.Dashboard:
     case CoreApp.PanelEditor:
-      sortDirection = direction ?? 'desc';
+      sortDirection = direction ?? "desc";
       break;
     case CoreApp.Explore:
-      sortDirection = store.get(storeKeys.LOGS_SORT_ORDER) === LogsSortOrder.Ascending ? 'asc' : 'desc';
+      sortDirection = store.get(storeKeys.LOGS_SORT_ORDER) === LogsSortOrder.Ascending ? "asc" : "desc";
       break;
     default:
       sortDirection = undefined;
@@ -142,4 +142,4 @@ export const addSortPipeToQuery = ({ expr, queryType, direction }: Query, app: C
   }
   const sortPipe = `sort by (_time) ${sortDirection}`;
   return `${expr} | ${sortPipe}`;
-}
+};

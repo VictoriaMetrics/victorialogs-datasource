@@ -1,7 +1,7 @@
-import { getDefaultTimeRange, LanguageProvider, TimeRange } from '@grafana/data';
+import { getDefaultTimeRange, LanguageProvider, TimeRange } from "@grafana/data";
 
-import { VictoriaLogsDatasource } from './datasource';
-import { FieldHits, FieldHitsResponse, FilterFieldType } from './types';
+import { VictoriaLogsDatasource } from "./datasource";
+import { FieldHits, FieldHitsResponse, FilterFieldType } from "./types";
 
 interface FetchFieldsOptions {
   type: FilterFieldType;
@@ -14,9 +14,9 @@ interface FetchFieldsOptions {
 }
 
 enum HitsValueType {
-  NUMBER = 'number',
-  DATE = 'date',
-  STRING = 'string'
+  NUMBER = "number",
+  DATE = "date",
+  STRING = "string"
 }
 
 export default class LogsQlLanguageProvider extends LanguageProvider {
@@ -42,7 +42,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
 
   async getFieldList(options: FetchFieldsOptions, customParams?: URLSearchParams): Promise<FieldHits[]> {
     if (options.type === FilterFieldType.FieldValue && !options.field) {
-      console.warn('getFieldList: field is required for FieldValue type');
+      console.warn("getFieldList: field is required for FieldValue type");
       return [];
     }
 
@@ -54,28 +54,28 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     }
 
     // Build query with optional field value filter (prefix match for server-side filtering)
-    let finalQuery = options.query || '*';
+    let finalQuery = options.query || "*";
     if (options.type === FilterFieldType.FieldValue && options.field && options.fieldValueFilter) {
       const fieldFilter = `${options.field}: i("${options.fieldValueFilter}")`;
-      finalQuery = finalQuery === '*' ? fieldFilter : `(${finalQuery}) AND ${fieldFilter}`;
+      finalQuery = finalQuery === "*" ? fieldFilter : `(${finalQuery}) AND ${fieldFilter}`;
     }
-    urlParams.append('query', finalQuery);
+    urlParams.append("query", finalQuery);
 
     const timeRange = this.getTimeRangeParams(options.timeRange);
-    urlParams.append('start', timeRange.start.toString());
-    urlParams.append('end', timeRange.end.toString());
+    urlParams.append("start", timeRange.start.toString());
+    urlParams.append("end", timeRange.end.toString());
 
     if (options.type === FilterFieldType.FieldValue && options.field) {
-      urlParams.append('field', options.field);
+      urlParams.append("field", options.field);
     }
 
     if (options.limit && options.limit > 0 && options.type === FilterFieldType.FieldValue) {
-      urlParams.append('limit', options.limit.toString());
+      urlParams.append("limit", options.limit.toString());
     }
 
     const params = Object.fromEntries(urlParams);
 
-    const url = options.type === FilterFieldType.FieldName ? 'select/logsql/field_names' : `select/logsql/field_values`;
+    const url = options.type === FilterFieldType.FieldName ? "select/logsql/field_names" : "select/logsql/field_values";
     const key = `${url}?${urlParams.toString()}`;
 
     if (this.cacheValues.has(key)) {

@@ -2,7 +2,7 @@ import { CoreApp } from "@grafana/data";
 
 import { Query, QueryEditorMode, QueryType } from "../../types";
 
-const queryEditorModeDefaultLocalStorageKey = 'VictoriaLogsQueryEditorModeDefault';
+const queryEditorModeDefaultLocalStorageKey = "VictoriaLogsQueryEditorModeDefault";
 
 export function getQueryWithDefaults(query: Query, app?: CoreApp, panelPluginId?: string): Query {
   let result = query;
@@ -12,21 +12,21 @@ export function getQueryWithDefaults(query: Query, app?: CoreApp, panelPluginId?
   }
 
   if (!query.expr) {
-    result = { ...result, expr: '' };
+    result = { ...result, expr: "" };
   }
 
   if (!query.queryType) {
     result = {
       ...result,
       queryType: getDefaultQueryTypeByPanel(panelPluginId) ?? getDefaultQueryTypeByApp(app),
-    }
+    };
   }
 
   return result;
 }
 
 export function changeEditorMode(query: Query, editorMode: QueryEditorMode, onChange: (query: Query) => void) {
-  if (query.expr === '') {
+  if (query.expr === "") {
     window.localStorage.setItem(queryEditorModeDefaultLocalStorageKey, editorMode);
   }
 
@@ -34,7 +34,7 @@ export function changeEditorMode(query: Query, editorMode: QueryEditorMode, onCh
 }
 
 export function getDefaultEditorMode(expr: string) {
-  if (expr != null && expr !== '') {
+  if (expr != null && expr !== "") {
     return QueryEditorMode.Code;
   }
 
@@ -44,10 +44,10 @@ export function getDefaultEditorMode(expr: string) {
 
 function getDefaultQueryTypeByPanel(panelPluginId?: string) {
   switch (panelPluginId) {
-    case 'logs':
-    case 'table':
+    case "logs":
+    case "table":
       return QueryType.Instant;
-    case 'timeseries':
+    case "timeseries":
       return QueryType.StatsRange;
     default:
       return null;

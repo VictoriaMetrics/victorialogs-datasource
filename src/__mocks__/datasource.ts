@@ -1,8 +1,8 @@
-import { DataSourceInstanceSettings, PluginType } from '@grafana/data';
-import { TemplateSrv } from '@grafana/runtime';
+import { DataSourceInstanceSettings, PluginType } from "@grafana/data";
+import { TemplateSrv } from "@grafana/runtime";
 
-import { VictoriaLogsDatasource } from '../datasource';
-import { Options } from '../types';
+import { VictoriaLogsDatasource } from "../datasource";
+import { Options } from "../types";
 
 const defaultTemplateSrvMock = {
   replace: (input: string) => input,
@@ -13,37 +13,37 @@ export function createDatasource(
   settings: Partial<DataSourceInstanceSettings<Options>> = {}
 ): VictoriaLogsDatasource {
   const customSettings: DataSourceInstanceSettings<Options> = {
-    url: 'myloggingurl',
+    url: "myloggingurl",
     id: 0,
-    uid: '',
-    type: '',
-    name: '',
+    uid: "",
+    type: "",
+    name: "",
     meta: {
-      id: 'id',
-      name: 'name',
+      id: "id",
+      name: "name",
       type: PluginType.datasource,
-      module: '',
-      baseUrl: '',
+      module: "",
+      baseUrl: "",
       info: {
         author: {
-          name: 'Test',
+          name: "Test",
         },
-        description: '',
+        description: "",
         links: [],
         logos: {
-          large: '',
-          small: '',
+          large: "",
+          small: "",
         },
         screenshots: [],
-        updated: '',
-        version: '',
+        updated: "",
+        version: "",
       },
     },
     readOnly: false,
     jsonData: {
-      maxLines: '20',
+      maxLines: "20",
     },
-    access: 'direct',
+    access: "direct",
     ...settings,
   };
 

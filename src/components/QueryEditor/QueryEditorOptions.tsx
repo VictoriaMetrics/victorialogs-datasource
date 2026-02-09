@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo } from "react";
 
-import { CoreApp, isValidGrafanaDuration, SelectableValue } from '@grafana/data';
-import { AutoSizeInput, RadioButtonGroup, TextLink } from '@grafana/ui';
+import { CoreApp, isValidGrafanaDuration, SelectableValue } from "@grafana/data";
+import { AutoSizeInput, RadioButtonGroup, TextLink } from "@grafana/ui";
 
 import { VICTORIA_LOGS_DOCS_HOST } from "../../conf";
 import { Query, QueryType } from "../../types";
@@ -21,18 +21,18 @@ export interface Props {
 export const queryTypeOptions: Array<SelectableValue<QueryType>> = [
   {
     value: QueryType.Instant,
-    label: 'Raw Logs',
+    label: "Raw Logs",
     filter: ({ app }: Props) => app !== CoreApp.UnifiedAlerting && app !== CoreApp.CloudAlerting,
     description: "Use `/select/logsql/query` for querying logs.",
   },
   {
     value: QueryType.StatsRange,
-    label: 'Range',
+    label: "Range",
     description: "Use `/select/logsql/stats_query_range` for querying log stats over the given time range."
   },
   {
     value: QueryType.Stats,
-    label: 'Instant',
+    label: "Instant",
     description: "Use `/select/logsql/stats_query` for querying log stats at the given time."
   },
 ];
@@ -70,12 +70,12 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
       onChange({ ...query, maxLines: newMaxLines });
       onRunQuery();
     }
-  }
+  };
 
   const onStepChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
     onChange({ ...query, step: e.currentTarget.value.trim() });
     onRunQuery();
-  }
+  };
 
   return (
     <EditorRow>
@@ -97,7 +97,7 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
         </EditorField>
         <div>
           <EditorField label="Type">
-            <RadioButtonGroup options={filteredOptions} value={queryType} onChange={onQueryTypeChange}/>
+            <RadioButtonGroup options={filteredOptions} value={queryType} onChange={onQueryTypeChange} />
           </EditorField>
           <TextLink
             href={`${VICTORIA_LOGS_DOCS_HOST}/victorialogs/querying/`}
@@ -115,7 +115,7 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
               placeholder={maxLines.toString()}
               type="number"
               min={0}
-              defaultValue={query.maxLines?.toString() ?? ''}
+              defaultValue={query.maxLines?.toString() ?? ""}
               onCommitChange={onMaxLinesChange}
             />
           </EditorField>
@@ -125,13 +125,13 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
             label="Step"
             tooltip="Use the `step` parameter when making metric queries. If not specified, Grafana will use a calculated interval. Example values: 1s, 5m, 10h, 1d."
             invalid={!isValidStep}
-            error={'Invalid step. Example valid values: 1s, 5m, 10h, 1d.'}
+            error={"Invalid step. Example valid values: 1s, 5m, 10h, 1d."}
           >
             <AutoSizeInput
               className="width-6"
-              placeholder={'auto'}
+              placeholder={"auto"}
               type="string"
-              defaultValue={query.step ?? ''}
+              defaultValue={query.step ?? ""}
               onCommitChange={onStepChange}
             />
           </EditorField>
@@ -142,7 +142,7 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
 }
 );
 
-QueryEditorOptions.displayName = 'QueryEditorOptions';
+QueryEditorOptions.displayName = "QueryEditorOptions";
 
 interface CollapsedInfoProps {
   query: Query;
@@ -160,7 +160,7 @@ function getCollapsedInfo({ query, queryType, maxLines, isValidStep }: Collapsed
   query.legendFormat && items.push(`Legend: ${query.legendFormat}`);
 
   if (queryType === QueryType.StatsRange && query.step) {
-    items.push(`Step: ${isValidStep ? query.step : 'Invalid value'}`);
+    items.push(`Step: ${isValidStep ? query.step : "Invalid value"}`);
   }
 
   if (queryType === QueryType.Instant && maxLines) {

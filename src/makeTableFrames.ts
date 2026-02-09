@@ -13,7 +13,7 @@ export function makeTableFrames(instantMetricFrames: DataFrame[]): DataFrame[] {
 }
 
 function makeTableFrame(instantMetricFrames: DataFrame[], refId: string): DataFrame {
-  const tableTimeField: Field = { name: 'Time', config: {}, values: [], type: FieldType.time };
+  const tableTimeField: Field = { name: "Time", config: {}, values: [], type: FieldType.time };
   const tableValueField: Field = {
     name: `Value #${refId}`,
     config: {},
@@ -56,7 +56,7 @@ function makeTableFrame(instantMetricFrames: DataFrame[], refId: string): DataFr
     const labels = valueField.labels ?? {};
 
     for (const f of labelFields) {
-      const text = labels[f.name] ?? '';
+      const text = labels[f.name] ?? "";
       // we insert the labels as many times as we have values
       for (let i = 0; i < valueArray.length; i++) {
         f.values.push(text);
@@ -67,7 +67,7 @@ function makeTableFrame(instantMetricFrames: DataFrame[], refId: string): DataFr
   return {
     fields: [tableTimeField, ...labelFields, tableValueField],
     refId,
-    meta: { preferredVisualisationType: 'table' },
+    meta: { preferredVisualisationType: "table" },
     length: tableTimeField.values.length,
   };
 }

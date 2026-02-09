@@ -7,8 +7,8 @@ export function getQueryExprVariableRegExp(queryExpr: string) {
   return new RegExp(variableRegExpPattern).exec(queryExpr);
 }
 
-export function replaceRegExpOperatorToOperator(queryExpr: string, operator = ':') {
-  return queryExpr.replace(new RegExp(variableRegExpPattern, 'g'), (match, p1, p2, p3, p4) => {
+export function replaceRegExpOperatorToOperator(queryExpr: string, operator = ":") {
+  return queryExpr.replace(new RegExp(variableRegExpPattern, "g"), (match, p1, p2, p3, p4) => {
     // p3 - "$variable"
     // p4 - $variable
     const variable = p3 || p4;
@@ -25,7 +25,7 @@ export function replaceRegExpOperatorToOperator(queryExpr: string, operator = ':
  * Checks if a character at a given position is a non-escaped quote.
  */
 function isNonEscapedQuote(queryExpr: string, index: number): boolean {
-  return queryExpr[index] === '"' && queryExpr[index - 1] !== '\\';
+  return queryExpr[index] === '"' && queryExpr[index - 1] !== "\\";
 }
 
 /**
@@ -33,7 +33,7 @@ function isNonEscapedQuote(queryExpr: string, index: number): boolean {
  */
 function skipWhitespace(queryExpr: string, startIndex: number): number {
   let index = startIndex;
-  while (index < queryExpr.length && queryExpr[index] === ' ') {
+  while (index < queryExpr.length && queryExpr[index] === " ") {
     index++;
   }
   return index;
@@ -48,7 +48,7 @@ function hasRegExpOperator(queryExpr: string, operatorIndex: number, isInQuotedS
   }
 
   const nextIndex = skipWhitespace(queryExpr, operatorIndex + 1);
-  return nextIndex < queryExpr.length && queryExpr[nextIndex] === '~';
+  return nextIndex < queryExpr.length && queryExpr[nextIndex] === "~";
 }
 
 /**
@@ -63,7 +63,7 @@ function hasRegExpOperator(queryExpr: string, operatorIndex: number, isInQuotedS
  */
 export function isRegExpOperatorInLastFilter(queryExpr: string): boolean {
   let isInQuotedSection = true; // we always start inside the double quotes, so set it to true
-  const operatorChars = [':', '='];
+  const operatorChars = [":", "="];
   let hasFoundOperator = false;
 
   for (let i = queryExpr.length - 1; i >= 0; i--) {
@@ -79,7 +79,7 @@ export function isRegExpOperatorInLastFilter(queryExpr: string): boolean {
     }
 
     // Skip spaces
-    if (char === ' ') {
+    if (char === " ") {
       if (hasFoundOperator) {
         return false;
       }
@@ -87,7 +87,7 @@ export function isRegExpOperatorInLastFilter(queryExpr: string): boolean {
     }
 
     // Stop if we encounter a pipe character
-    if (char === '|' && !isInQuotedSection) {
+    if (char === "|" && !isInQuotedSection) {
       return false;
     }
 
@@ -103,7 +103,7 @@ export function isRegExpOperatorInLastFilter(queryExpr: string): boolean {
   return false;
 }
 
-const escapeRegExpChars = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRegExpChars = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
  * Processes a query expression by replacing occurrences of variables with double-quoted variables
@@ -119,7 +119,7 @@ export function doubleQuoteRegExp(queryExpr: string, variables: string[]): strin
   for (const variable of variables) {
     const escapedVariable = escapeRegExpChars(variable);
     newQueryExpr = newQueryExpr.replace(
-      new RegExp(`:~\\s*\\$${escapedVariable}\\b`, 'g'),
+      new RegExp(`:~\\s*\\$${escapedVariable}\\b`, "g"),
       `:~"\$${variable}"`
     );
   }
@@ -138,5 +138,5 @@ export function doubleQuoteRegExp(queryExpr: string, variables: string[]): strin
 export function correctRegExpValueAll(queryExpr: string): string {
   return queryExpr
     .replace(/:\s*~\s*"\*"/g, ':~".*"') // for regexp operator
-    .replace(/:\s*!\s*~\s*"\*"/g, ':!~".*"') // for negative regexp operator
+    .replace(/:\s*!\s*~\s*"\*"/g, ':!~".*"'); // for negative regexp operator
 }

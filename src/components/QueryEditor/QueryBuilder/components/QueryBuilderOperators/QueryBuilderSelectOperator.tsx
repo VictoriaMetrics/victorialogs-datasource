@@ -1,5 +1,5 @@
 import { css } from "@emotion/css";
-import React from 'react';
+import React from "react";
 
 import { GrafanaTheme2, SelectableValue } from "@grafana/data";
 import { Label, Select, useStyles2 } from "@grafana/ui";
@@ -23,14 +23,14 @@ const QueryBuilderSelectOperator: React.FC<Props> = ({ query, operator, indexPat
     onChange({
       ...query,
       filters: updateOperatorByIndexPath(query.filters, indexPath, value || DEFAULT_FILTER_OPERATOR)
-    })
-  }
+    });
+  };
 
   const handleCreateOption = (customValue: string) => {
     handleOperatorChange({ value: customValue });
-  }
+  };
 
-  const options = BUILDER_OPERATORS.map((op) => ({ label: op, value: op }))
+  const options = BUILDER_OPERATORS.map((op) => ({ label: op, value: op }));
 
   return (
     <div className={styles.wrapper}>
@@ -44,8 +44,8 @@ const QueryBuilderSelectOperator: React.FC<Props> = ({ query, operator, indexPat
         onChange={handleOperatorChange}
       />
     </div>
-  )
-}
+  );
+};
 
 const getStyles = (theme: GrafanaTheme2) => {
   return {

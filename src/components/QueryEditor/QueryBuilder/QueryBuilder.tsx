@@ -1,5 +1,5 @@
 import { css } from "@emotion/css";
-import React, { Fragment, memo } from 'react';
+import React, { Fragment, memo } from "react";
 
 import { GrafanaTheme2, TimeRange } from "@grafana/data";
 import { useStyles2 } from "@grafana/ui";
@@ -22,7 +22,7 @@ interface Props {
 
 const QueryBuilder = memo<Props>(({ datasource, query, onChange, timeRange }) => {
   const styles = useStyles2(getStyles);
-  const { filters } = query
+  const { filters } = query;
 
   return (
     <div className={styles.builderWrapper}>
@@ -35,7 +35,7 @@ const QueryBuilder = memo<Props>(({ datasource, query, onChange, timeRange }) =>
         indexPath={[]}
       />
     </div>
-  )
+  );
 });
 
 interface QueryBuilderFilterProps {
@@ -49,14 +49,14 @@ interface QueryBuilderFilterProps {
 
 const QueryBuilderFilter = (props: QueryBuilderFilterProps) => {
   const styles = useStyles2(getStyles);
-  const { datasource, filters, query, indexPath, timeRange, onChange } = props
-  const isRoot = !indexPath.length
+  const { datasource, filters, query, indexPath, timeRange, onChange } = props;
+  const isRoot = !indexPath.length;
   return (
     <div className={isRoot ? styles.builderWrapper : styles.filterWrapper}>
       {filters.values.map((filter, index) => (
         <Fragment key={index}>
           <div className={styles.filterItem}>
-            {typeof filter === 'string'
+            {typeof filter === "string"
               ?
               <QueryBuilderFieldFilter
                 datasource={datasource}
@@ -93,16 +93,16 @@ const QueryBuilderFilter = (props: QueryBuilderFilterProps) => {
         <QueryBuilderFieldFilter
           datasource={datasource}
           indexPath={[...indexPath, filters.values.length]}
-          filter={''}
+          filter={""}
           query={query}
           timeRange={timeRange}
           onChange={onChange}
         />
       )}
-      <QueryBuilderAddFilter query={query} onAddFilter={onChange}/>
+      <QueryBuilderAddFilter query={query} onAddFilter={onChange} />
     </div>
-  )
-}
+  );
+};
 
 const getStyles = (theme: GrafanaTheme2) => {
   return {
@@ -130,6 +130,6 @@ const getStyles = (theme: GrafanaTheme2) => {
   };
 };
 
-QueryBuilder.displayName = 'QueryBuilder';
+QueryBuilder.displayName = "QueryBuilder";
 
 export default QueryBuilder;

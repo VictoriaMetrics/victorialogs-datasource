@@ -1,4 +1,4 @@
-import { store as grafanaStore } from '@grafana/data';
+import { store as grafanaStore } from "@grafana/data";
 
 type LocalStorage = {
   get: (key: string) => string | null;

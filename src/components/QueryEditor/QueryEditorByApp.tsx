@@ -1,11 +1,11 @@
-import React, { memo } from 'react';
+import React, { memo } from "react";
 
-import { CoreApp } from '@grafana/data';
+import { CoreApp } from "@grafana/data";
 
-import { VictoriaLogsQueryEditorProps } from '../../types';
+import { VictoriaLogsQueryEditorProps } from "../../types";
 
-import QueryEditor from './QueryEditor';
-import QueryEditorForAlerting from './QueryEditorForAlerting';
+import QueryEditor from "./QueryEditor";
+import QueryEditorForAlerting from "./QueryEditorForAlerting";
 
 const QueryEditorByApp = (props: VictoriaLogsQueryEditorProps) => {
   const { app } = props;
@@ -16,6 +16,6 @@ const QueryEditorByApp = (props: VictoriaLogsQueryEditorProps) => {
     default:
       return <QueryEditor {...props} />;
   }
-}
+};
 
 export default memo(QueryEditorByApp);

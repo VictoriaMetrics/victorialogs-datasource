@@ -18,7 +18,7 @@ export const useLogsSort = (
       return;
     }
     const subscription = getAppEvents().subscribe(LogSortOrderChangeEvent, (sortEvent: LogSortOrderChangeEvent) => {
-      const direction = sortEvent.payload.order === 'Ascending' ? 'asc' : 'desc';
+      const direction = sortEvent.payload.order === "Ascending" ? "asc" : "desc";
       if (query.direction !== direction) {
         onChange({ ...query, direction: direction });
         onRunQuery();
@@ -31,7 +31,7 @@ export const useLogsSort = (
 
   useEffect(() => {
     // grafana with a version below 12 doesn't support subscribe function on store
-    if ('subscribe' in store) {
+    if ("subscribe" in store) {
       store.subscribe(storeKeys.LOGS_SORT_ORDER, () => {
         onRunQuery();
       });

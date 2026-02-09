@@ -1,4 +1,4 @@
-import { cloneDeep } from 'lodash';
+import { cloneDeep } from "lodash";
 import { lastValueFrom, map, merge, Observable } from "rxjs";
 
 import {
@@ -28,8 +28,8 @@ import {
   TimeRange,
   toUtc,
   TypedVariableModel,
-} from '@grafana/data';
-import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, TemplateSrv, } from '@grafana/runtime';
+} from "@grafana/data";
+import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, TemplateSrv, } from "@grafana/runtime";
 
 import { correctMultiExactOperatorValueAll } from "./LogsQL/multiExactOperator";
 import { correctRegExpValueAll, doubleQuoteRegExp, isRegExpOperatorInLastFilter } from "./LogsQL/regExpOperator";
@@ -58,15 +58,15 @@ import {
   TenantHeaderNames,
   ToggleFilterAction,
   VariableQuery,
-} from './types';
+} from "./types";
 import { getMillisecondsFromDuration } from "./utils/timeUtils";
 import { VariableSupport } from "./variableSupport/VariableSupport";
 
-export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
-export const REF_ID_STARTER_LOG_SAMPLE = 'log-sample-';
-export const REF_ID_STARTER_LOG_CONTEXT_REQUEST = 'log-context-request-';
-export const REF_ID_STARTER_LOG_CONTEXT_QUERY = 'log-context-query-';
-export const LABEL_STREAM_ID = '_stream_id';
+export const REF_ID_STARTER_LOG_VOLUME = "log-volume-";
+export const REF_ID_STARTER_LOG_SAMPLE = "log-sample-";
+export const REF_ID_STARTER_LOG_CONTEXT_REQUEST = "log-context-request-";
+export const REF_ID_STARTER_LOG_CONTEXT_QUERY = "log-context-query-";
+export const LABEL_STREAM_ID = "_stream_id";
 
 export class VictoriaLogsDatasource
   extends DataSourceWithBackend<Query, Options>
@@ -98,8 +98,8 @@ export class VictoriaLogsDatasource
     this.url = instanceSettings.url!;
     this.basicAuth = instanceSettings.basicAuth;
     this.withCredentials = instanceSettings.withCredentials;
-    this.httpMethod = settingsData.httpMethod || 'POST';
-    this.maxLines = parseInt(settingsData.maxLines ?? '0', 10) || 1000;
+    this.httpMethod = settingsData.httpMethod || "POST";
+    this.maxLines = parseInt(settingsData.maxLines ?? "0", 10) || 1000;
     this.derivedFields = settingsData.derivedFields || [];
     this.customQueryParameters = new URLSearchParams(settingsData.customQueryParameters);
     this.languageProvider = languageProvider ?? new LogsQlLanguageProvider(this);
@@ -113,13 +113,13 @@ export class VictoriaLogsDatasource
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-    const queries = request.targets.filter(q => q.expr || config.publicDashboardAccessToken !== '').map((q) => {
+    const queries = request.targets.filter(q => q.expr || config.publicDashboardAccessToken !== "").map((q) => {
       return {
         ...q,
         // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
         expr: addSortPipeToQuery(q, request.app, request.liveStreaming),
         maxLines: q.maxLines ?? this.maxLines,
-      }
+      };
     });
 
     // if step is defined, use it as the request interval to set the width of bars correctly
@@ -147,14 +147,14 @@ export class VictoriaLogsDatasource
   }
 
   toggleQueryFilter(query: Query, filter: ToggleFilterAction): Query {
-    let expression = query.expr ?? '';
+    let expression = query.expr ?? "";
 
     if (!filter.options?.key || !filter.options?.value) {
       return { ...query, expr: expression };
     }
 
     const value = escapeLabelValueInSelector(filter.options.value);
-    const hasFilter = queryHasFilter(expression, filter.options.key, value)
+    const hasFilter = queryHasFilter(expression, filter.options.key, value);
 
     if (hasFilter) {
       expression = removeLabelFromQuery(expression, filter.options.key, value);
@@ -164,7 +164,7 @@ export class VictoriaLogsDatasource
     const isFilterOut = filter.type === FilterActionType.FILTER_OUT;
 
     if ((isFilterFor && !hasFilter) || isFilterOut) {
-      const operator = isFilterFor ? '=' : '!=';
+      const operator = isFilterFor ? "=" : "!=";
       expression = addLabelToQuery(expression, { key: filter.options.key, value, operator });
     }
 
@@ -172,12 +172,12 @@ export class VictoriaLogsDatasource
   }
 
   queryHasFilter(query: Query, filter: QueryFilterOptions): boolean {
-    const expression = query.expr ?? '';
+    const expression = query.expr ?? "";
     return queryHasFilter(expression, filter.key, filter.value, "=");
   }
 
   filterQuery(query: Query): boolean {
-    if (query.hide || query.expr === '') {
+    if (query.hide || query.expr === "") {
       return false;
     }
     return true;
@@ -189,10 +189,10 @@ export class VictoriaLogsDatasource
     const variables = {
       ...rest,
       __interval: {
-        value: '$__interval',
+        value: "$__interval",
       },
       __interval_ms: {
-        value: '$__interval_ms',
+        value: "$__interval_ms",
       },
     };
     return {
@@ -203,7 +203,7 @@ export class VictoriaLogsDatasource
     };
   }
 
-  getExtraFilters(adhocFilters?: AdHocVariableFilter[], initialExpr = ''): string | undefined {
+  getExtraFilters(adhocFilters?: AdHocVariableFilter[], initialExpr = ""): string | undefined {
     if (!adhocFilters) {
       return initialExpr || undefined;
     }
@@ -216,7 +216,7 @@ export class VictoriaLogsDatasource
   }
 
   interpolateQueryExpr(value: any, _variable: any) {
-    if (typeof value === 'string' && value) {
+    if (typeof value === "string" && value) {
       value = [value];
     }
 
@@ -251,8 +251,8 @@ export class VictoriaLogsDatasource
 
     const interpolatedVariableQuery: VariableQuery = {
       ...query,
-      field: this.interpolateString(query.field || '', options?.scopedVars),
-      query: this.interpolateString(query.query || '', options?.scopedVars),
+      field: this.interpolateString(query.field || "", options?.scopedVars),
+      query: this.interpolateString(query.query || "", options?.scopedVars),
     };
 
     return await this.processMetricFindQuery(interpolatedVariableQuery, options?.range);
@@ -263,10 +263,10 @@ export class VictoriaLogsDatasource
       type: FilterFieldType.FieldName,
       timeRange: options?.timeRange,
       limit: DEFAULT_FIELD_DISPLAY_VALUES_LIMIT,
-    }, this.customQueryParameters)
+    }, this.customQueryParameters);
     return list
       ? list.map(({ value }) => ({ text: value || " " }))
-      : []
+      : [];
   }
 
   async getTagValues(options: DataSourceGetTagValuesOptions<Query>): Promise<MetricFindValue[]> {
@@ -275,19 +275,19 @@ export class VictoriaLogsDatasource
       timeRange: options.timeRange,
       limit: DEFAULT_FIELD_DISPLAY_VALUES_LIMIT,
       field: options.key,
-    }, this.customQueryParameters)
+    }, this.customQueryParameters);
     return list
       ? list.map(({ value }) => ({ text: value || " " }))
-      : []
+      : [];
   }
 
   isAllOption(variable: TypedVariableModel): boolean {
-    const value = 'current' in variable && variable?.current?.value;
+    const value = "current" in variable && variable?.current?.value;
     if (!value) {
       return false;
     }
 
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       return value === VARIABLE_ALL_VALUE || value === TEXT_FILTER_ALL_VALUE;
     }
 
@@ -296,7 +296,7 @@ export class VictoriaLogsDatasource
 
   replaceOperatorsToInForMultiQueryVariables(expr: string) {
     const variables = this.templateSrv.getVariables();
-    const fieldValuesVariables = variables.filter(v => v.type === 'query' && v.query.type === 'fieldValue' && v.multi || this.isAllOption(v)) as QueryVariableModel[];
+    const fieldValuesVariables = variables.filter(v => v.type === "query" && v.query.type === "fieldValue" && v.multi || this.isAllOption(v)) as QueryVariableModel[];
     let result = expr;
     for (const variable of fieldValuesVariables) {
       result = removeDoubleQuotesAroundVar(result, variable.name);
@@ -319,10 +319,10 @@ export class VictoriaLogsDatasource
     const multiVariablePattern = /\$_StartMultiVariable_(.+?)_EndMultiVariable?/g;
 
     return input.replace(multiVariablePattern, (match, valueList: string, offset) => {
-      const values = valueList.split('_separator_');
+      const values = valueList.split("_separator_");
 
       const queryBeforeOffset = input.slice(0, offset);
-      const precedingChars = queryBeforeOffset.replace(/\s+/g, '').slice(-3);
+      const precedingChars = queryBeforeOffset.replace(/\s+/g, "").slice(-3);
 
       if (isRegExpOperatorInLastFilter(queryBeforeOffset)) {
         return `(${values.join("|")})`;
@@ -341,7 +341,7 @@ export class VictoriaLogsDatasource
       query: query.query,
       limit: query.limit,
     }, this.customQueryParameters);
-    return (list ? list.map(({ value }) => ({ text: value })) : [])
+    return (list ? list.map(({ value }) => ({ text: value })) : []);
   }
 
   getQueryBuilderLimits(key: FilterFieldType): number {
@@ -376,7 +376,7 @@ export class VictoriaLogsDatasource
     request: DataQueryRequest<Query>,
     options?: SupplementaryQueryOptions
   ): DataQueryRequest<Query> | undefined {
-    const logsVolumeOption = { ...options, type }
+    const logsVolumeOption = { ...options, type };
     const logsVolumeRequest = cloneDeep(request);
     const targets = logsVolumeRequest.targets
       .map((query) => this.getSupplementaryQuery(logsVolumeOption, query, logsVolumeRequest))
@@ -403,7 +403,7 @@ export class VictoriaLogsDatasource
         const totalSeconds = request.range.to.diff(request.range.from, "second");
         const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || "";
 
-        const fields = this.getActiveLevelRules().map(r => r.field)
+        const fields = this.getActiveLevelRules().map(r => r.field);
         const uniqFields = Array.from(new Set([...fields, "level"]));
 
         return {
@@ -437,21 +437,21 @@ export class VictoriaLogsDatasource
       return undefined;
     }
 
-    const newRequest = this.getSupplementaryRequest(type, request)
+    const newRequest = this.getSupplementaryRequest(type, request);
     if (!newRequest) {
-      return
+      return;
     }
 
     switch (type) {
       case SupplementaryQueryType.LogsVolume:
         return queryLogsVolume(this, newRequest);
       default:
-        return undefined
+        return undefined;
     }
   }
 
   getQueryDisplayText(query: Query): string {
-    return (query.expr || '');
+    return (query.expr || "");
   }
 
   getActiveLevelRules(): LogLevelRule[] {
@@ -475,19 +475,19 @@ export class VictoriaLogsDatasource
 
     if (!streamId && row.labels[LABEL_STREAM_ID]) {
       // Explore View
-      streamId = row.labels[LABEL_STREAM_ID]
+      streamId = row.labels[LABEL_STREAM_ID];
     } else if (!streamId) {
       // Dashboard View
       const transformedLabels: Labels = {};
       Object.values(row.labels).forEach((label) => {
-        const [key, value] = label.split(':');
+        const [key, value] = label.split(":");
         const cleanedKey = key.trim();
-        transformedLabels[cleanedKey] = value.trim().replace(/"/g, '');
+        transformedLabels[cleanedKey] = value.trim().replace(/"/g, "");
       });
       streamId = transformedLabels[LABEL_STREAM_ID];
     }
 
-    return addLabelToQuery('', { key: LABEL_STREAM_ID, value: streamId, operator: '' });
+    return addLabelToQuery("", { key: LABEL_STREAM_ID, value: streamId, operator: "" });
   };
 
   private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions): DataQueryRequest<Query> => {
@@ -511,7 +511,7 @@ export class VictoriaLogsDatasource
       scopedVars: {},
       startTime: Date.now(),
       targets: [query],
-      timezone: 'UTC'
+      timezone: "UTC"
     };
   };
 
@@ -531,11 +531,11 @@ export class VictoriaLogsDatasource
         };
 
     return { ...timeRange, raw: timeRange };
-  }
+  };
 
   async fetchTenantIds(): Promise<{ hint: string } | string[]> {
     try {
-      const res = await this.postResource<{ hint: string } | Tenant[]>('select/tenant_ids', {});
+      const res = await this.postResource<{ hint: string } | Tenant[]>("select/tenant_ids", {});
 
       if (!Array.isArray(res)) {
         if (res.hint) {
@@ -551,18 +551,18 @@ export class VictoriaLogsDatasource
 
       return Array.from(tenantSet);
     } catch (error) {
-      console.error('Failed to fetch tenants:', error);
+      console.error("Failed to fetch tenants:", error);
       return [];
     }
   }
 
   parseMultitenancyHeaders(multitenancyHeaders?: Partial<Record<TenantHeaderNames, string>>): MultitenancyHeaders {
     const formatTenantId = (value: string | number | undefined): string => {
-      if (value === undefined || value === '') {
-        return '0';
+      if (value === undefined || value === "") {
+        return "0";
       }
       const num = Number(value);
-      return Number.isInteger(num) ? String(num) : '0';
+      return Number.isInteger(num) ? String(num) : "0";
     };
 
     return {

@@ -1,12 +1,12 @@
-import React, { SyntheticEvent, useCallback, useEffect, useState } from 'react';
+import React, { SyntheticEvent, useCallback, useEffect, useState } from "react";
 
 import { SelectableValue } from "@grafana/data";
-import { getDataSourceSrv } from '@grafana/runtime';
-import { ComboboxOption, InlineField, Input, Stack, Text, TextLink } from '@grafana/ui';
+import { getDataSourceSrv } from "@grafana/runtime";
+import { ComboboxOption, InlineField, Input, Stack, Text, TextLink } from "@grafana/ui";
 
-import { CompatibleCombobox } from '../components/CompatibleCombobox';
+import { CompatibleCombobox } from "../components/CompatibleCombobox";
 import { VICTORIA_LOGS_DOCS_HOST } from "../conf";
-import { VictoriaLogsDatasource } from '../datasource';
+import { VictoriaLogsDatasource } from "../datasource";
 import { TenantHeaderNames } from "../types";
 
 import { PropsConfigEditor } from "./ConfigEditor";
@@ -20,7 +20,7 @@ const documentationLink = (
   >
     Learn more about multitenancy
   </TextLink>
-)
+);
 
 export const TenantSettings = (props: PropsConfigEditor) => {
   const { options, onOptionsChange } = props;
@@ -29,7 +29,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
 
   const [tenants, setTenants] = useState<ComboboxOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [hint, setHint] = useState<string>('');
+  const [hint, setHint] = useState<string>("");
 
   const loadTenantIds = useCallback(async () => {
     // Only try to load if datasource is saved (has ID)
@@ -39,7 +39,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
     }
 
     setIsLoading(true);
-    setHint('');
+    setHint("");
     try {
       const ds = await getDataSourceSrv().get(options.uid) as VictoriaLogsDatasource;
       const tenantList = await ds.fetchTenantIds();
@@ -51,7 +51,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
       setTenants(tenantList.map(id => ({ label: id, value: id })));
     } catch (error) {
       // Silently fail - tenant IDs are optional
-      console.error('Failed to load tenant IDs:', error);
+      console.error("Failed to load tenant IDs:", error);
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +63,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
   }, [loadTenantIds, options.version]);
 
   const onTenantChange = (option: SelectableValue<string> | null) => {
-    const [accountId = '', projectId = ''] = option?.value?.split(':') || ['0', '0'];
+    const [accountId = "", projectId = ""] = option?.value?.split(":") || ["0", "0"];
 
     onOptionsChange({
       ...options,
@@ -98,7 +98,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
   // Combine current accountId and projectId into tenant format
   const currentTenant = multitenancyHeaders?.[TenantHeaderNames.AccountID] && multitenancyHeaders?.[TenantHeaderNames.ProjectID]
     ? `${multitenancyHeaders[TenantHeaderNames.AccountID]}:${multitenancyHeaders[TenantHeaderNames.ProjectID]}`
-    : '';
+    : "";
 
   return (
     <Stack direction="column" gap={2}>
@@ -148,7 +148,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
                   spellCheck={false}
                   type="number"
                   placeholder="0"
-                  value={`${multitenancyHeaders?.[TenantHeaderNames.AccountID] || ''}`}
+                  value={`${multitenancyHeaders?.[TenantHeaderNames.AccountID] || ""}`}
                   onChange={onInputChange(TenantHeaderNames.AccountID)}
                   disabled={isReadOnly || isLoading}
                 />
@@ -167,7 +167,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
                   spellCheck={false}
                   type="number"
                   placeholder="0"
-                  value={`${multitenancyHeaders?.[TenantHeaderNames.ProjectID] || ''}`}
+                  value={`${multitenancyHeaders?.[TenantHeaderNames.ProjectID] || ""}`}
                   onChange={onInputChange(TenantHeaderNames.ProjectID)}
                   disabled={isReadOnly || isLoading}
                 />

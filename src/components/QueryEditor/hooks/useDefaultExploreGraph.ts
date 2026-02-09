@@ -16,4 +16,4 @@ export const useDefaultExploreGraph = (app: CoreApp | undefined, defaultGraph: E
       }
     }
   }, [app, defaultGraph]);
-}
+};

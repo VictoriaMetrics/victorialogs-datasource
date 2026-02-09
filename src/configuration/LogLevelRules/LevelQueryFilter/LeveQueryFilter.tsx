@@ -33,14 +33,14 @@ export const LevelQueryFilter = ({ logLevelRules, query, onChange }: Props) => {
       isShiftPressed,
       isQueryContainUnknowFilter,
       isUnknownFilter
-    })
+    });
     onChange({ ...query, expr: queryExpr });
   }, [isQueryContainUnknowFilter, onChange, query]);
 
   return (
     <Stack direction={"row"} justifyContent={"flex-start"} alignItems={"center"} wrap={"wrap"}>
       {levelQueryHintSection.hints.map(({ title, queryExpr }) => {
-        const isNegativeStart = query.expr.startsWith('!(');
+        const isNegativeStart = query.expr.startsWith("!(");
         const isSelected = (isNegativeStart && title === LogLevel.unknown)
           || (!isNegativeStart && query.expr.includes(queryExpr));
         return (
@@ -51,7 +51,7 @@ export const LevelQueryFilter = ({ logLevelRules, query, onChange }: Props) => {
             label={title}
             isSelected={isSelected}
           />
-        )
+        );
       })}
     </Stack>
   );
