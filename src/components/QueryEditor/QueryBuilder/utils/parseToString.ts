@@ -1,7 +1,7 @@
-import { FilterVisualQuery, VisualQuery } from "../../../../types";
+import { FilterVisualQuery, VisualQuery } from '../../../../types';
 
-export const DEFAULT_FILTER_OPERATOR = "AND";
-export const DEFAULT_FIELD = "_msg";
+export const DEFAULT_FILTER_OPERATOR = 'AND';
+export const DEFAULT_FIELD = '_msg';
 
 export const filterVisualQueryToString = (
   query: FilterVisualQuery,
@@ -9,12 +9,12 @@ export const filterVisualQueryToString = (
 ): string => {
   // Convert every value (recursively for nested queries)
   const valueStrings = query.values.map(v =>
-    typeof v === "string" ? v.trim() : `(${filterVisualQueryToString(v, finishedOnly)})`
+    typeof v === 'string' ? v.trim() : `(${filterVisualQueryToString(v, finishedOnly)})`
   );
 
   const operatorStrings = query.operators.map(op => op.trim());
 
-  let output = "";
+  let output = '';
   for (let i = 0; i < valueStrings.length; i++) {
     const val = valueStrings[i];
     const isValidValue = /^.+:.+$/.test(val); // something on both sides of ':'
@@ -33,6 +33,6 @@ export const filterVisualQueryToString = (
 };
 
 export const parseVisualQueryToString = (query: VisualQuery): string => {
-  const pipesPart = query.pipes?.length ? ` | ${query.pipes.join(" | ")}` : "";
+  const pipesPart = query.pipes?.length ? ` | ${query.pipes.join(' | ')}` : '';
   return filterVisualQueryToString(query.filters) + pipesPart;
 };

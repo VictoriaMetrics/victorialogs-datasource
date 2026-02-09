@@ -1,16 +1,16 @@
-import { css } from "@emotion/css";
-import React, { useState } from "react";
+import { css } from '@emotion/css';
+import React, { useState } from 'react';
 
-import { CoreApp, GrafanaTheme2, TimeRange } from "@grafana/data";
-import { useStyles2 } from "@grafana/ui";
+import { CoreApp, GrafanaTheme2, TimeRange } from '@grafana/data';
+import { useStyles2 } from '@grafana/ui';
 
-import { VictoriaLogsDatasource } from "../../../datasource";
-import { Query, VisualQuery } from "../../../types";
-import { AdHocFiltersControl } from "../AdHocFiltersControl";
+import { VictoriaLogsDatasource } from '../../../datasource';
+import { Query, VisualQuery } from '../../../types';
+import { AdHocFiltersControl } from '../AdHocFiltersControl';
 
-import QueryBuilder from "./QueryBuilder";
-import { buildVisualQueryFromString } from "./utils/parseFromString";
-import { parseVisualQueryToString } from "./utils/parseToString";
+import QueryBuilder from './QueryBuilder';
+import { buildVisualQueryFromString } from './utils/parseFromString';
+import { parseVisualQueryToString } from './utils/parseToString';
 
 
 export interface Props {
@@ -57,7 +57,7 @@ export function QueryBuilderContainer(props: Props) {
       <hr />
 
       <p className={styles.previewText}>
-        {query.expr !== "" && query.expr}
+        {query.expr !== '' && query.expr}
       </p>
     </>
   );

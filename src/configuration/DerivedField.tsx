@@ -1,19 +1,19 @@
-import { css } from "@emotion/css";
-import * as React from "react";
-import { ChangeEvent, useState } from "react";
+import { css } from '@emotion/css';
+import * as React from 'react';
+import { ChangeEvent, useState } from 'react';
 
-import { DataSourceInstanceSettings, GrafanaTheme2, VariableSuggestion } from "@grafana/data";
-import { DataSourcePicker } from "@grafana/runtime";
-import { Button, DataLinkInput, Field, Icon, Input, Label, Select, Switch, Tooltip, useStyles2 } from "@grafana/ui";
+import { DataSourceInstanceSettings, GrafanaTheme2, VariableSuggestion } from '@grafana/data';
+import { DataSourcePicker } from '@grafana/runtime';
+import { Button, DataLinkInput, Field, Icon, Input, Label, Select, Switch, Tooltip, useStyles2 } from '@grafana/ui';
 
-import { DerivedFieldConfig } from "../types";
+import { DerivedFieldConfig } from '../types';
 
-type MatcherType = "label" | "regex";
+type MatcherType = 'label' | 'regex';
 
 const getStyles = (theme: GrafanaTheme2) => ({
   row: css({
-    display: "flex",
-    alignItems: "baseline",
+    display: 'flex',
+    alignItems: 'baseline',
   }),
   nameField: css({
     flex: 2,
@@ -55,7 +55,7 @@ export const DerivedField = (props: Props) => {
   const { value, onChange, onDelete, suggestions, className, validateName } = props;
   const styles = useStyles2(getStyles);
   const [showInternalLink, setShowInternalLink] = useState(!!value.datasourceUid);
-  const [fieldType, setFieldType] = useState<MatcherType>(value.matcherType ?? "regex");
+  const [fieldType, setFieldType] = useState<MatcherType>(value.matcherType ?? 'regex');
   const isVisibleInternalLink = showInternalLink && !!value.datasourceUid;
 
   const handleChange = (field: keyof typeof value) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,29 +68,29 @@ export const DerivedField = (props: Props) => {
   const invalidName = !validateName(value.name);
 
   return (
-    <div className={className} data-testid="derived-field">
-      <div className="gf-form">
-        <Field className={styles.nameField} label="Name" invalid={invalidName} error="The name is already in use">
-          <Input value={value.name} onChange={handleChange("name")} placeholder="Field name" invalid={invalidName} />
+    <div className={className} data-testid='derived-field'>
+      <div className='gf-form'>
+        <Field className={styles.nameField} label='Name' invalid={invalidName} error='The name is already in use'>
+          <Input value={value.name} onChange={handleChange('name')} placeholder='Field name' invalid={invalidName} />
         </Field>
         <Field
           className={styles.nameMatcherField}
           label={
             <TooltipLabel
-              label="Type"
-              content="Derived fields can be created from labels or by applying a regular expression to the log message."
+              label='Type'
+              content='Derived fields can be created from labels or by applying a regular expression to the log message.'
             />
           }
         >
           <Select
             options={[
-              { label: "Regex in log line", value: "regex" },
-              { label: "Label", value: "label" },
+              { label: 'Regex in log line', value: 'regex' },
+              { label: 'Label', value: 'label' },
             ]}
             value={fieldType}
             onChange={(type) => {
               // make sure this is a valid MatcherType
-              if (type.value === "label" || type.value === "regex") {
+              if (type.value === 'label' || type.value === 'regex') {
                 setFieldType(type.value);
                 onChange({
                   ...value,
@@ -104,25 +104,25 @@ export const DerivedField = (props: Props) => {
           className={styles.regexField}
           label={
             <>
-              {fieldType === "regex" && (
+              {fieldType === 'regex' && (
                 <TooltipLabel
-                  label="Regex"
-                  content="Use to parse and capture some part of the log message. You can use the captured groups in the template."
+                  label='Regex'
+                  content='Use to parse and capture some part of the log message. You can use the captured groups in the template.'
                 />
               )}
 
-              {fieldType === "label" && <TooltipLabel label="Label" content="Use to derive the field from a label." />}
+              {fieldType === 'label' && <TooltipLabel label='Label' content='Use to derive the field from a label.' />}
             </>
           }
         >
-          <Input value={value.matcherRegex} onChange={handleChange("matcherRegex")} />
+          <Input value={value.matcherRegex} onChange={handleChange('matcherRegex')} />
         </Field>
-        <Field label="">
+        <Field label=''>
           <Button
-            aria-label="Remove field"
-            variant="destructive"
-            title="Remove field"
-            icon="times"
+            aria-label='Remove field'
+            variant='destructive'
+            title='Remove field'
+            icon='times'
             onClick={(event) => {
               event.preventDefault();
               onDelete();
@@ -131,11 +131,11 @@ export const DerivedField = (props: Props) => {
         </Field>
       </div>
 
-      <div className="gf-form">
-        <Field label={isVisibleInternalLink ? "Query" : "URL"} className={styles.urlField}>
+      <div className='gf-form'>
+        <Field label={isVisibleInternalLink ? 'Query' : 'URL'} className={styles.urlField}>
           <DataLinkInput
-            placeholder={isVisibleInternalLink ? "${__value.raw}" : "http://example.com/${__value.raw}"}
-            value={value.url || ""}
+            placeholder={isVisibleInternalLink ? '${__value.raw}' : 'http://example.com/${__value.raw}'}
+            value={value.url || ''}
             onChange={(newValue) =>
               onChange({
                 ...value,
@@ -149,17 +149,17 @@ export const DerivedField = (props: Props) => {
           className={styles.urlDisplayLabelField}
           label={
             <TooltipLabel
-              label="URL Label"
-              content="Use to override the button label when this derived field is found in a log."
+              label='URL Label'
+              content='Use to override the button label when this derived field is found in a log.'
             />
           }
         >
-          <Input value={value.urlDisplayLabel} onChange={handleChange("urlDisplayLabel")} />
+          <Input value={value.urlDisplayLabel} onChange={handleChange('urlDisplayLabel')} />
         </Field>
       </div>
 
-      <div className="gf-form">
-        <Field label="Internal link" className={styles.internalLink}>
+      <div className='gf-form'>
+        <Field label='Internal link' className={styles.internalLink}>
           <Switch
             value={showInternalLink}
             onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -176,7 +176,7 @@ export const DerivedField = (props: Props) => {
         </Field>
 
         {showInternalLink && (
-          <Field label="" className={styles.dataSource}>
+          <Field label='' className={styles.dataSource}>
             <DataSourcePicker
               tracing={true}
               onChange={(ds: DataSourceInstanceSettings) =>
@@ -198,8 +198,8 @@ export const DerivedField = (props: Props) => {
 const TooltipLabel = ({ content, label }: { content: string; label: string }) => (
   <Label>
     {label}
-    <Tooltip placement="top" content={content} theme="info">
-      <Icon tabIndex={0} name="info-circle" size="sm" style={{ marginLeft: "10px" }} />
+    <Tooltip placement='top' content={content} theme='info'>
+      <Icon tabIndex={0} name='info-circle' size='sm' style={{ marginLeft: '10px' }} />
     </Tooltip>
   </Label>
 );

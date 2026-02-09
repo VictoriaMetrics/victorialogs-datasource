@@ -139,8 +139,8 @@ export default defineConfig([
 
       semi: ['error', 'always'],
       'react/jsx-tag-spacing': ['error', { beforeSelfClosing: 'always' }],
-      'jsx-quotes': ['error', 'prefer-double'],
-      quotes: ['error', 'double', { avoidEscape: true }],
+      'jsx-quotes': ['error', 'prefer-single'],
+      quotes: ['error', 'single', { avoidEscape: true }],
 
       // Use typescript's no-redeclare for compatibility with overrides
       'no-redeclare': 'off',

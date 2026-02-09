@@ -1,16 +1,16 @@
-import { css } from "@emotion/css";
-import React, { useMemo, useState } from "react";
+import { css } from '@emotion/css';
+import React, { useMemo, useState } from 'react';
 
-import { GrafanaTheme2 } from "@grafana/data";
-import { Button, Modal, useStyles2 } from "@grafana/ui";
+import { GrafanaTheme2 } from '@grafana/data';
+import { Button, Modal, useStyles2 } from '@grafana/ui';
 
-import { HintSection } from "./HintSection";
+import { HintSection } from './HintSection';
 import {
   useFormatLogsOutputHintsSection,
   usePlotPiechartHistogramHintsSection,
   usePlotTimeSeriesHintsSection,
   usePrintRecentLogsHintsSection,
-} from "./hints";
+} from './hints';
 
 interface QueryHintsExampleProps {
   query: string;
@@ -44,13 +44,13 @@ export const QueryHintsExample = ({ query, onQueryChange }: QueryHintsExamplePro
 
   return (
     <>
-      <Button icon="question-circle" variant="secondary" size="sm" onClick={() => setIsModalOpen(true)}>
+      <Button icon='question-circle' variant='secondary' size='sm' onClick={() => setIsModalOpen(true)}>
         Quick start
       </Button>
 
       <Modal
         className={styles.modal}
-        title="LogsQL Query Examples"
+        title='LogsQL Query Examples'
         isOpen={isModalOpen}
         onDismiss={() => setIsModalOpen(false)}
         closeOnEscape

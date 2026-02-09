@@ -1,6 +1,6 @@
-import { FilterVisualQuery, VisualQuery } from "../../../../types";
+import { FilterVisualQuery, VisualQuery } from '../../../../types';
 
-import { BUILDER_OPERATORS, isEmptyQuery } from "./parsing";
+import { BUILDER_OPERATORS, isEmptyQuery } from './parsing';
 
 interface Context {
   query: VisualQuery;
@@ -40,13 +40,13 @@ export const buildVisualQueryFromString = (expr: string): Context => {
 };
 
 const handleExpression = (expr: string) => {
-  const [filterStrPart, ...pipeParts] = expr.split("|").map(part => part.trim());
+  const [filterStrPart, ...pipeParts] = expr.split('|').map(part => part.trim());
   const filters = parseStringToFilterVisualQuery(filterStrPart);
   return { filters, pipes: pipeParts };
 };
 
 export const splitExpression = (expr: string): string[] => {
-  return expr.split("|").map(part => part.trim());
+  return expr.split('|').map(part => part.trim());
 };
 
 const parseStringToFilterVisualQuery = (expression: string): FilterVisualQuery => {
@@ -62,7 +62,7 @@ const parseStringToFilterVisualQuery = (expression: string): FilterVisualQuery =
       if (!part) {
         return;
       }
-      if (typeof part === "string") {
+      if (typeof part === 'string') {
         if (BUILDER_OPERATORS.includes(part.toUpperCase())) {
           filter.operators.push(part);
         } else {
@@ -83,50 +83,50 @@ const parseStringToFilterVisualQuery = (expression: string): FilterVisualQuery =
 const splitByTopLevelParentheses = (input: string) => {
   const result = [];
   let level = 0;
-  let current = "";
+  let current = '';
   let inDoubleQuote = false;
   let inSingleQuote = false;
 
   for (let i = 0; i < input.length; i++) {
     const char = input[i];
-    const prevChar = i > 0 ? input[i - 1] : "";
+    const prevChar = i > 0 ? input[i - 1] : '';
 
     // Track quote state (ignore escaped quotes)
-    if (char === '"' && prevChar !== "\\" && !inSingleQuote) {
+    if (char === '"' && prevChar !== '\\' && !inSingleQuote) {
       inDoubleQuote = !inDoubleQuote;
       current += char;
-    } else if (char === "'" && prevChar !== "\\" && !inDoubleQuote) {
+    } else if (char === "'" && prevChar !== '\\' && !inDoubleQuote) {
       inSingleQuote = !inSingleQuote;
       current += char;
-    } else if (char === "(" && !inDoubleQuote && !inSingleQuote) {
+    } else if (char === '(' && !inDoubleQuote && !inSingleQuote) {
       // Check if it's :in(
-      const isListItem = current.trim().endsWith(":in");
-      if (level === 0 && current.trim() !== "" && !isListItem) {
+      const isListItem = current.trim().endsWith(':in');
+      if (level === 0 && current.trim() !== '' && !isListItem) {
         result.push(current.trim());
-        current = "";
+        current = '';
       }
       level++;
       current += char;
-    } else if (char === ")" && !inDoubleQuote && !inSingleQuote) {
+    } else if (char === ')' && !inDoubleQuote && !inSingleQuote) {
       level--;
       current += char;
       if (level === 0) {
         result.push(current.trim());
-        current = "";
+        current = '';
       }
     } else {
       current += char;
     }
   }
 
-  if (current.trim() !== "") {
+  if (current.trim() !== '') {
     result.push(current.trim());
   }
-  const operatorsPattern = BUILDER_OPERATORS.join("|");
-  const operatorRegex = new RegExp(`(?:^|\\s)(${operatorsPattern})\\s*(?:$|\\s+)`, "i");
+  const operatorsPattern = BUILDER_OPERATORS.join('|');
+  const operatorRegex = new RegExp(`(?:^|\\s)(${operatorsPattern})\\s*(?:$|\\s+)`, 'i');
 
   const splitPartByOperators = (part: string) => {
-    const isTopLevelGroup = part.startsWith("(") && !/\w+:in\(/.test(part);
+    const isTopLevelGroup = part.startsWith('(') && !/\w+:in\(/.test(part);
     return isTopLevelGroup ? part : part.split(operatorRegex);
   };
 
@@ -138,7 +138,7 @@ const parseExpression = (input: string): ParsedExpression[] => {
   const parts = splitByTopLevelParentheses(input);
 
   return parts.map(part => {
-    if (part.startsWith("(") && part.endsWith(")") && !/\w+:in\(/.test(part)) {
+    if (part.startsWith('(') && part.endsWith(')') && !/\w+:in\(/.test(part)) {
       // Recursively parse the inner expression, but not for :in()
       return parseExpression(part.slice(1, -1));
     } else {

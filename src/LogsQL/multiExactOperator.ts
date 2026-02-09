@@ -8,7 +8,7 @@
 export function correctMultiExactOperatorValueAll(expr: string): string {
   return expr
     // replace ": in(*)" with ":in(*)"
-    .replace(/:\s*in\(\.\*\)/g, ":in(*)")
+    .replace(/:\s*in\(\.\*\)/g, ':in(*)')
     // replace "word in (.*)" with "word in (*)" for the stream field
-    .replace(/("(?:\\.|[^"\\])*"|[^\s:]+)\s+in\(\.\*\)/g, "$1 in(*)");
+    .replace(/("(?:\\.|[^"\\])*"|[^\s:]+)\s+in\(\.\*\)/g, '$1 in(*)');
 }

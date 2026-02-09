@@ -1,4 +1,4 @@
-import { FilterVisualQuery } from "../../../../../types";
+import { FilterVisualQuery } from '../../../../../types';
 
 export function deleteByIndexPath(obj: FilterVisualQuery, indexPath: number[]): FilterVisualQuery {
   // Helper function to recursively navigate the object and create a new copy
@@ -30,7 +30,7 @@ export function deleteByIndexPath(obj: FilterVisualQuery, indexPath: number[]): 
       return {
         ...currentObj,
         values: currentObj.values.map((item, index) => {
-          if (index === path[level] && typeof item !== "string") {
+          if (index === path[level] && typeof item !== 'string') {
             return recursiveDelete(item, path, level + 1);
           }
           return item;

@@ -1,7 +1,7 @@
-import { SyntaxNode } from "@lezer/common";
-import { escapeRegExp } from "lodash";
+import { SyntaxNode } from '@lezer/common';
+import { escapeRegExp } from 'lodash';
 
-import { Filter, FilterOp, LineFilter, OrFilter, parser, PipeExact, PipeMatch, String } from "@grafana/lezer-logql";
+import { Filter, FilterOp, LineFilter, OrFilter, parser, PipeExact, PipeMatch, String } from '@grafana/lezer-logql';
 
 export function getNodesFromQuery(query: string, nodeTypes?: number[]): SyntaxNode[] {
   const nodes: SyntaxNode[] = [];
@@ -30,7 +30,7 @@ export function getStringsFromLineFilter(filter: SyntaxNode): SyntaxNode[] {
   return nodes;
 }
 
-export function getHighlighterExpressionsFromQuery(input = ""): string[] {
+export function getHighlighterExpressionsFromQuery(input = ''): string[] {
   const results = [];
 
   const filters = getNodesFromQuery(input, [LineFilter]);
@@ -46,18 +46,18 @@ export function getHighlighterExpressionsFromQuery(input = ""): string[] {
 
     for (const string of strings) {
       const filterTerm = input.substring(string.from, string.to).trim();
-      const backtickedTerm = filterTerm[0] === "`";
+      const backtickedTerm = filterTerm[0] === '`';
       const unwrappedFilterTerm = filterTerm.substring(1, filterTerm.length - 1);
 
       if (!unwrappedFilterTerm) {
         continue;
       }
 
-      let resultTerm = "";
+      let resultTerm = '';
 
       // Only filter expressions with |~ operator are treated as regular expressions
       if (pipeMatch) {
-        resultTerm = backtickedTerm ? unwrappedFilterTerm : unwrappedFilterTerm.replace(/\\\\/g, "\\");
+        resultTerm = backtickedTerm ? unwrappedFilterTerm : unwrappedFilterTerm.replace(/\\\\/g, '\\');
       } else {
         // We need to escape this string so it is not matched as regular expression
         resultTerm = escapeRegExp(unwrappedFilterTerm);

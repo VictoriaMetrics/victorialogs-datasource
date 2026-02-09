@@ -1,9 +1,9 @@
-import { DataFrame, DataSourceJsonData, KeyValue, QueryEditorProps } from "@grafana/data";
-import { BackendSrvRequest } from "@grafana/runtime";
-import { DataQuery } from "@grafana/schema";
+import { DataFrame, DataSourceJsonData, KeyValue, QueryEditorProps } from '@grafana/data';
+import { BackendSrvRequest } from '@grafana/runtime';
+import { DataQuery } from '@grafana/schema';
 
-import { LogLevelRule } from "./configuration/LogLevelRules/types";
-import { VictoriaLogsDatasource } from "./datasource";
+import { LogLevelRule } from './configuration/LogLevelRules/types';
+import { VictoriaLogsDatasource } from './datasource';
 
 export interface Options extends DataSourceJsonData {
   maxLines?: string;
@@ -21,27 +21,27 @@ export interface Options extends DataSourceJsonData {
 }
 
 export const QUERY_DIRECTION = {
-  asc: "asc",
-  desc: "desc",
+  asc: 'asc',
+  desc: 'desc',
 } as const;
 export type QueryDirection = typeof QUERY_DIRECTION[keyof typeof QUERY_DIRECTION];
 
 export enum SupportingQueryType {
-  DataSample = "dataSample",
-  LogsSample = "logsSample",
-  LogsVolume = "logsVolume",
+  DataSample = 'dataSample',
+  LogsSample = 'logsSample',
+  LogsVolume = 'logsVolume',
 }
 
 export enum QueryType {
-  Instant = "instant", // /select/logsql/query
-  Stats = "stats", // /select/logsql/stats_query
-  StatsRange = "statsRange", // /select/logsql/stats_query_range
-  Hits = "hits", // /select/logsql/hits
+  Instant = 'instant', // /select/logsql/query
+  Stats = 'stats', // /select/logsql/stats_query
+  StatsRange = 'statsRange', // /select/logsql/stats_query_range
+  Hits = 'hits', // /select/logsql/hits
 }
 
 export enum QueryEditorMode {
-  Builder = "builder",
-  Code = "code",
+  Builder = 'builder',
+  Code = 'code',
 }
 
 export interface Query extends DataQuery {
@@ -66,14 +66,14 @@ export type DerivedFieldConfig = {
   url?: string;
   urlDisplayLabel?: string;
   datasourceUid?: string;
-  matcherType?: "label" | "regex";
+  matcherType?: 'label' | 'regex';
 };
 
 export type QueryFilterOptions = KeyValue<string>
 
 export enum FilterActionType {
-  FILTER_FOR = "FILTER_FOR",
-  FILTER_OUT = "FILTER_OUT",
+  FILTER_FOR = 'FILTER_FOR',
+  FILTER_OUT = 'FILTER_OUT',
 }
 
 export interface ToggleFilterAction {
@@ -113,8 +113,8 @@ export interface FieldHits {
 }
 
 export enum FilterFieldType {
-  FieldName = "fieldName",
-  FieldValue = "fieldValue"
+  FieldName = 'fieldName',
+  FieldValue = 'fieldValue'
 }
 
 export interface VariableQuery extends DataQuery {
@@ -130,8 +130,8 @@ export type QueryBuilderLimits = {
 };
 
 export enum TenantHeaderNames {
-  AccountID = "AccountID",
-  ProjectID = "ProjectID",
+  AccountID = 'AccountID',
+  ProjectID = 'ProjectID',
 }
 
 export type MultitenancyHeaders = Record<TenantHeaderNames, string>;

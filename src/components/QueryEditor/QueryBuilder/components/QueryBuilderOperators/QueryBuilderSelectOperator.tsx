@@ -1,13 +1,13 @@
-import { css } from "@emotion/css";
-import React from "react";
+import { css } from '@emotion/css';
+import React from 'react';
 
-import { GrafanaTheme2, SelectableValue } from "@grafana/data";
-import { Label, Select, useStyles2 } from "@grafana/ui";
+import { GrafanaTheme2, SelectableValue } from '@grafana/data';
+import { Label, Select, useStyles2 } from '@grafana/ui';
 
-import { VisualQuery } from "../../../../../types";
-import { updateOperatorByIndexPath } from "../../utils/modifyFilterVisualQuery/updateByIndexPath";
-import { DEFAULT_FILTER_OPERATOR } from "../../utils/parseToString";
-import { BUILDER_OPERATORS } from "../../utils/parsing";
+import { VisualQuery } from '../../../../../types';
+import { updateOperatorByIndexPath } from '../../utils/modifyFilterVisualQuery/updateByIndexPath';
+import { DEFAULT_FILTER_OPERATOR } from '../../utils/parseToString';
+import { BUILDER_OPERATORS } from '../../utils/parsing';
 
 interface Props {
   query: VisualQuery;
@@ -36,7 +36,7 @@ const QueryBuilderSelectOperator: React.FC<Props> = ({ query, operator, indexPat
     <div className={styles.wrapper}>
       <Label>Operator</Label>
       <Select
-        width="auto"
+        width='auto'
         options={options}
         value={operator.toUpperCase()}
         allowCustomValue

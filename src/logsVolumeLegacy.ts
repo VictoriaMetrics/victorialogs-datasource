@@ -1,4 +1,4 @@
-import { from, isObservable, Observable } from "rxjs";
+import { from, isObservable, Observable } from 'rxjs';
 
 import {
   DataFrame,
@@ -11,14 +11,14 @@ import {
   LogLevel,
   MutableDataFrame,
   toDataFrame
-} from "@grafana/data";
-import { BarAlignment, GraphDrawStyle, StackingMode } from "@grafana/schema";
+} from '@grafana/data';
+import { BarAlignment, GraphDrawStyle, StackingMode } from '@grafana/schema';
 
-import { LOG_LEVEL_COLOR } from "./configuration/LogLevelRules/const";
-import { LogLevelRule } from "./configuration/LogLevelRules/types";
-import { extractLevelFromLabels } from "./configuration/LogLevelRules/utils";
-import { VictoriaLogsDatasource } from "./datasource";
-import { Query } from "./types";
+import { LOG_LEVEL_COLOR } from './configuration/LogLevelRules/const';
+import { LogLevelRule } from './configuration/LogLevelRules/types';
+import { extractLevelFromLabels } from './configuration/LogLevelRules/utils';
+import { VictoriaLogsDatasource } from './datasource';
+import { Query } from './types';
 
 export const LOGS_VOLUME_BARS = 100;
 
@@ -124,7 +124,7 @@ function aggregateFields(
     return aggregatedDataFrame;
   }
 
-  const totalSeconds = request.range.to.diff(request.range.from, "second");
+  const totalSeconds = request.range.to.diff(request.range.from, 'second');
   const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || 1;
   const uniqTimes = Array.from(
     { length: LOGS_VOLUME_BARS },
@@ -136,8 +136,8 @@ function aggregateFields(
     return aggregatedDataFrame;
   }
 
-  aggregatedDataFrame.addField({ name: "Time", type: FieldType.time }, totalLength);
-  aggregatedDataFrame.addField({ name: "Value", type: FieldType.number, config }, totalLength);
+  aggregatedDataFrame.addField({ name: 'Time', type: FieldType.time }, totalLength);
+  aggregatedDataFrame.addField({ name: 'Value', type: FieldType.number, config }, totalLength);
 
   for (let pointIndex = 0; pointIndex < totalLength; pointIndex++) {
     const time = uniqTimes[pointIndex];
@@ -174,14 +174,14 @@ function getLogVolumeFieldConfig(level: LogLevel) {
       fillOpacity: 100,
       stacking: {
         mode: StackingMode.Normal,
-        group: "A",
+        group: 'A',
       },
     },
   };
 }
 
 const extractLevel = (frame: DataFrame, rules: LogLevelRule[]): LogLevel => {
-  const valueField = frame.fields.find(f => f.name === "Value");
+  const valueField = frame.fields.find(f => f.name === 'Value');
 
   if (!valueField?.labels) {
     return LogLevel.unknown;

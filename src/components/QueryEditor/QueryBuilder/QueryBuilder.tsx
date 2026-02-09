@@ -1,16 +1,16 @@
-import { css } from "@emotion/css";
-import React, { Fragment, memo } from "react";
+import { css } from '@emotion/css';
+import React, { Fragment, memo } from 'react';
 
-import { GrafanaTheme2, TimeRange } from "@grafana/data";
-import { useStyles2 } from "@grafana/ui";
+import { GrafanaTheme2, TimeRange } from '@grafana/data';
+import { useStyles2 } from '@grafana/ui';
 
-import { VictoriaLogsDatasource } from "../../../datasource";
-import { FilterVisualQuery, VisualQuery } from "../../../types";
+import { VictoriaLogsDatasource } from '../../../datasource';
+import { FilterVisualQuery, VisualQuery } from '../../../types';
 
-import QueryBuilderAddFilter from "./components/QueryBuilderAddFilter";
-import QueryBuilderFieldFilter from "./components/QueryBuilderFilters/QueryBuilderFieldFilter";
-import QueryBuilderSelectOperator from "./components/QueryBuilderOperators/QueryBuilderSelectOperator";
-import { DEFAULT_FILTER_OPERATOR } from "./utils/parseToString";
+import QueryBuilderAddFilter from './components/QueryBuilderAddFilter';
+import QueryBuilderFieldFilter from './components/QueryBuilderFilters/QueryBuilderFieldFilter';
+import QueryBuilderSelectOperator from './components/QueryBuilderOperators/QueryBuilderSelectOperator';
+import { DEFAULT_FILTER_OPERATOR } from './utils/parseToString';
 
 interface Props {
   query: VisualQuery;
@@ -56,7 +56,7 @@ const QueryBuilderFilter = (props: QueryBuilderFilterProps) => {
       {filters.values.map((filter, index) => (
         <Fragment key={index}>
           <div className={styles.filterItem}>
-            {typeof filter === "string"
+            {typeof filter === 'string'
               ?
               <QueryBuilderFieldFilter
                 datasource={datasource}
@@ -93,7 +93,7 @@ const QueryBuilderFilter = (props: QueryBuilderFilterProps) => {
         <QueryBuilderFieldFilter
           datasource={datasource}
           indexPath={[...indexPath, filters.values.length]}
-          filter={""}
+          filter={''}
           query={query}
           timeRange={timeRange}
           onChange={onChange}
@@ -130,6 +130,6 @@ const getStyles = (theme: GrafanaTheme2) => {
   };
 };
 
-QueryBuilder.displayName = "QueryBuilder";
+QueryBuilder.displayName = 'QueryBuilder';
 
 export default QueryBuilder;

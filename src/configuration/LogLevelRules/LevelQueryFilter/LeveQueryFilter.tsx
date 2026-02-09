@@ -1,15 +1,15 @@
-import React, { MouseEvent, useCallback, useMemo } from "react";
+import React, { MouseEvent, useCallback, useMemo } from 'react';
 
 
-import { LogLevel } from "@grafana/data";
-import { Stack } from "@grafana/ui";
+import { LogLevel } from '@grafana/data';
+import { Stack } from '@grafana/ui';
 
-import { useLevelQueryHintSection } from "../../../components/QueryEditor/QueryHints/hints/useLevelQueryHintSection";
-import { Query } from "../../../types";
-import { LogLevelRule } from "../types";
+import { useLevelQueryHintSection } from '../../../components/QueryEditor/QueryHints/hints/useLevelQueryHintSection';
+import { Query } from '../../../types';
+import { LogLevelRule } from '../types';
 
-import { LevelFilterButton } from "./LevelFilterButton";
-import { buildQueryExprWithLevelFilters } from "./utils";
+import { LevelFilterButton } from './LevelFilterButton';
+import { buildQueryExprWithLevelFilters } from './utils';
 
 
 interface Props {
@@ -38,9 +38,9 @@ export const LevelQueryFilter = ({ logLevelRules, query, onChange }: Props) => {
   }, [isQueryContainUnknowFilter, onChange, query]);
 
   return (
-    <Stack direction={"row"} justifyContent={"flex-start"} alignItems={"center"} wrap={"wrap"}>
+    <Stack direction={'row'} justifyContent={'flex-start'} alignItems={'center'} wrap={'wrap'}>
       {levelQueryHintSection.hints.map(({ title, queryExpr }) => {
-        const isNegativeStart = query.expr.startsWith("!(");
+        const isNegativeStart = query.expr.startsWith('!(');
         const isSelected = (isNegativeStart && title === LogLevel.unknown)
           || (!isNegativeStart && query.expr.includes(queryExpr));
         return (

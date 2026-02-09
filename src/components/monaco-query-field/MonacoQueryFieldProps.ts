@@ -1,6 +1,6 @@
-import { HistoryItem } from "@grafana/data";
+import { HistoryItem } from '@grafana/data';
 
-import { Query } from "../../types";
+import { Query } from '../../types';
 
 export type Props = {
   initialValue: string;

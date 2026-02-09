@@ -1,12 +1,12 @@
-import { css } from "@emotion/css";
-import React from "react";
+import { css } from '@emotion/css';
+import React from 'react';
 
-import { GrafanaTheme2 } from "@grafana/data";
-import { Button, Card, ClipboardButton, Stack, TextLink, useStyles2 } from "@grafana/ui";
+import { GrafanaTheme2 } from '@grafana/data';
+import { Button, Card, ClipboardButton, Stack, TextLink, useStyles2 } from '@grafana/ui';
 
-import { VICTORIA_LOGS_DOCS_HOST } from "../../../conf";
+import { VICTORIA_LOGS_DOCS_HOST } from '../../../conf';
 
-import { QueryHint } from "./hints/types";
+import { QueryHint } from './hints/types';
 
 interface HintItemComponentProps {
   hint: QueryHint;
@@ -20,12 +20,12 @@ export const HintItem = ({ hint, query, onQueryChange }: HintItemComponentProps)
   // add existing query to the hint as a filter before the pipe operator
   const handleAppendQuery = () => {
     let prevQuery = query.trim();
-    if (prevQuery.endsWith("|")) {
+    if (prevQuery.endsWith('|')) {
       prevQuery = prevQuery.slice(0, -1);
     }
     let hintExpr = hint.example;
-    if (prevQuery && hintExpr.startsWith("*") && hintExpr.includes("|")) {
-      hintExpr = hintExpr.split("|").slice(1).join("|").trim();
+    if (prevQuery && hintExpr.startsWith('*') && hintExpr.includes('|')) {
+      hintExpr = hintExpr.split('|').slice(1).join('|').trim();
     }
     prevQuery = prevQuery ? `${prevQuery} | ${hintExpr}` : hintExpr;
     onQueryChange(prevQuery);
@@ -48,8 +48,8 @@ export const HintItem = ({ hint, query, onQueryChange }: HintItemComponentProps)
             <>
               <TextLink
                 href={`${VICTORIA_LOGS_DOCS_HOST}/victorialogs/logsql/#${hint.id}`}
-                icon="external-link-alt"
-                variant={"body"}
+                icon='external-link-alt'
+                variant={'body'}
                 external
               >Documentation</TextLink>
             </>
@@ -65,45 +65,45 @@ export const HintItem = ({ hint, query, onQueryChange }: HintItemComponentProps)
         </div>
       </Card.Heading>
       <Card.Description>
-        <Stack direction={"column"} justifyContent={"space-between"}>
+        <Stack direction={'column'} justifyContent={'space-between'}>
           Example:
           <code className={styles.code}>{hint.example}</code>
           <Card.Actions>
             <Button
-              size="sm"
-              variant="primary"
+              size='sm'
+              variant='primary'
               onClick={handleReplaceQuery}
-              aria-label="Replace current query with this example"
-              tooltip="Replace current query with this example"
+              aria-label='Replace current query with this example'
+              tooltip='Replace current query with this example'
             >
               Replace
             </Button>
             <Button
-              size="sm"
-              variant="secondary"
+              size='sm'
+              variant='secondary'
               onClick={handleAppendQuery}
-              aria-label="Append this example to current query"
-              tooltip="Append this example to current query as a pipe"
+              aria-label='Append this example to current query'
+              tooltip='Append this example to current query as a pipe'
             >
               Append
             </Button>
             <div className={styles.divider} />
             <ClipboardButton
-              icon="copy"
+              icon='copy'
               getText={() => hint.example}
-              size="sm"
-              aria-label="Copy this example to clipboard"
-              tooltip="Copy this example to clipboard"
-              variant="secondary"
+              size='sm'
+              aria-label='Copy this example to clipboard'
+              tooltip='Copy this example to clipboard'
+              variant='secondary'
             >
               Copy
             </ClipboardButton>
             <Button
-              size="sm"
-              variant="secondary"
+              size='sm'
+              variant='secondary'
               onClick={handleCreateNewQuery}
-              aria-label="Add this example as a new query"
-              tooltip="Add this example as a new query"
+              aria-label='Add this example as a new query'
+              tooltip='Add this example as a new query'
             >
               Add new query
             </Button>

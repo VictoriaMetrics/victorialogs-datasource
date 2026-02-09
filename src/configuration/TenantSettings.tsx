@@ -1,21 +1,21 @@
-import React, { SyntheticEvent, useCallback, useEffect, useState } from "react";
+import React, { SyntheticEvent, useCallback, useEffect, useState } from 'react';
 
-import { SelectableValue } from "@grafana/data";
-import { getDataSourceSrv } from "@grafana/runtime";
-import { ComboboxOption, InlineField, Input, Stack, Text, TextLink } from "@grafana/ui";
+import { SelectableValue } from '@grafana/data';
+import { getDataSourceSrv } from '@grafana/runtime';
+import { ComboboxOption, InlineField, Input, Stack, Text, TextLink } from '@grafana/ui';
 
-import { CompatibleCombobox } from "../components/CompatibleCombobox";
-import { VICTORIA_LOGS_DOCS_HOST } from "../conf";
-import { VictoriaLogsDatasource } from "../datasource";
-import { TenantHeaderNames } from "../types";
+import { CompatibleCombobox } from '../components/CompatibleCombobox';
+import { VICTORIA_LOGS_DOCS_HOST } from '../conf';
+import { VictoriaLogsDatasource } from '../datasource';
+import { TenantHeaderNames } from '../types';
 
-import { PropsConfigEditor } from "./ConfigEditor";
-import { getValueFromEventItem } from "./utils";
+import { PropsConfigEditor } from './ConfigEditor';
+import { getValueFromEventItem } from './utils';
 
 const documentationLink = (
   <TextLink
     external
-    variant="bodySmall"
+    variant='bodySmall'
     href={`${VICTORIA_LOGS_DOCS_HOST}/victorialogs/#multitenancy`}
   >
     Learn more about multitenancy
@@ -29,7 +29,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
 
   const [tenants, setTenants] = useState<ComboboxOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [hint, setHint] = useState<string>("");
+  const [hint, setHint] = useState<string>('');
 
   const loadTenantIds = useCallback(async () => {
     // Only try to load if datasource is saved (has ID)
@@ -39,7 +39,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
     }
 
     setIsLoading(true);
-    setHint("");
+    setHint('');
     try {
       const ds = await getDataSourceSrv().get(options.uid) as VictoriaLogsDatasource;
       const tenantList = await ds.fetchTenantIds();
@@ -51,7 +51,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
       setTenants(tenantList.map(id => ({ label: id, value: id })));
     } catch (error) {
       // Silently fail - tenant IDs are optional
-      console.error("Failed to load tenant IDs:", error);
+      console.error('Failed to load tenant IDs:', error);
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +63,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
   }, [loadTenantIds, options.version]);
 
   const onTenantChange = (option: SelectableValue<string> | null) => {
-    const [accountId = "", projectId = ""] = option?.value?.split(":") || ["0", "0"];
+    const [accountId = '', projectId = ''] = option?.value?.split(':') || ['0', '0'];
 
     onOptionsChange({
       ...options,
@@ -98,32 +98,32 @@ export const TenantSettings = (props: PropsConfigEditor) => {
   // Combine current accountId and projectId into tenant format
   const currentTenant = multitenancyHeaders?.[TenantHeaderNames.AccountID] && multitenancyHeaders?.[TenantHeaderNames.ProjectID]
     ? `${multitenancyHeaders[TenantHeaderNames.AccountID]}:${multitenancyHeaders[TenantHeaderNames.ProjectID]}`
-    : "";
+    : '';
 
   return (
-    <Stack direction="column" gap={2}>
+    <Stack direction='column' gap={2}>
       <div>
-        <Text variant="h4">Multitenancy</Text>
-        <Text variant="bodySmall" color="disabled" element="p">
+        <Text variant='h4'>Multitenancy</Text>
+        <Text variant='bodySmall' color='disabled' element='p'>
           Manage tenants and multitenancy settings. {documentationLink}
         </Text>
-        {hint && <Text variant="bodySmall" color="warning" element="p">
+        {hint && <Text variant='bodySmall' color='warning' element='p'>
           {hint}
         </Text>}
       </div>
 
-      <div className="gf-form-group">
+      <div className='gf-form-group'>
         {hasTenants ? (
-          <div className="gf-form">
+          <div className='gf-form'>
             <InlineField
-              label="Tenant"
+              label='Tenant'
               labelWidth={28}
               interactive={true}
-              tooltip="Format: accountId:projectId (e.g., 1:2)"
+              tooltip='Format: accountId:projectId (e.g., 1:2)'
               disabled={isReadOnly || isLoading}
             >
               <CompatibleCombobox
-                placeholder="Select Tenant"
+                placeholder='Select Tenant'
                 isClearable
                 options={tenants}
                 value={currentTenant}
@@ -136,38 +136,38 @@ export const TenantSettings = (props: PropsConfigEditor) => {
           </div>
         ) : (
           <>
-            <div className="gf-form">
+            <div className='gf-form'>
               <InlineField
-                label="Account ID"
+                label='Account ID'
                 labelWidth={28}
                 interactive={true}
                 disabled={isReadOnly || isLoading}
               >
                 <Input
-                  className="width-8"
+                  className='width-8'
                   spellCheck={false}
-                  type="number"
-                  placeholder="0"
-                  value={`${multitenancyHeaders?.[TenantHeaderNames.AccountID] || ""}`}
+                  type='number'
+                  placeholder='0'
+                  value={`${multitenancyHeaders?.[TenantHeaderNames.AccountID] || ''}`}
                   onChange={onInputChange(TenantHeaderNames.AccountID)}
                   disabled={isReadOnly || isLoading}
                 />
               </InlineField>
             </div>
 
-            <div className="gf-form">
+            <div className='gf-form'>
               <InlineField
-                label="Project ID"
+                label='Project ID'
                 labelWidth={28}
                 interactive={true}
                 disabled={isReadOnly || isLoading}
               >
                 <Input
-                  className="width-8"
+                  className='width-8'
                   spellCheck={false}
-                  type="number"
-                  placeholder="0"
-                  value={`${multitenancyHeaders?.[TenantHeaderNames.ProjectID] || ""}`}
+                  type='number'
+                  placeholder='0'
+                  value={`${multitenancyHeaders?.[TenantHeaderNames.ProjectID] || ''}`}
                   onChange={onInputChange(TenantHeaderNames.ProjectID)}
                   disabled={isReadOnly || isLoading}
                 />

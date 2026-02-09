@@ -1,26 +1,26 @@
-import React from "react";
+import React from 'react';
 
-import { usePluginContext } from "@grafana/data";
-import { Stack, Text } from "@grafana/ui";
+import { usePluginContext } from '@grafana/data';
+import { Stack, Text } from '@grafana/ui';
 
-import { VICTORIA_LOGS_DOCS_HOST } from "../conf";
+import { VICTORIA_LOGS_DOCS_HOST } from '../conf';
 
 const tips = [
   {
-    title: "Datasource",
-    url: "https://github.com/VictoriaMetrics/victorialogs-datasource",
+    title: 'Datasource',
+    url: 'https://github.com/VictoriaMetrics/victorialogs-datasource',
   },
   {
-    title: "VictoriaLogs",
+    title: 'VictoriaLogs',
     url: `${VICTORIA_LOGS_DOCS_HOST}/victorialogs/`,
   },
   {
-    title: "LogsQL",
+    title: 'LogsQL',
     url: `${VICTORIA_LOGS_DOCS_HOST}/victorialogs/logsql/`,
   },
   {
-    title: "VictoriaMetrics",
-    url: "https://victoriametrics.com/",
+    title: 'VictoriaMetrics',
+    url: 'https://victoriametrics.com/',
   },
 ];
 
@@ -30,18 +30,18 @@ export const HelpfulLinks = () => {
   const changelogUrl = `https://github.com/VictoriaMetrics/victorialogs-datasource/releases/tag/v${version}`;
 
   return (
-    <Stack direction="column" gap={2}>
+    <Stack direction='column' gap={2}>
       <div>
-        <Text variant="h4">Helpful links</Text>
+        <Text variant='h4'>Helpful links</Text>
       </div>
 
-      <div className="gf-form-group gf-form-inline markdown-html">
+      <div className='gf-form-group gf-form-inline markdown-html'>
         {version && (
           <a
-            className="gf-form-label gf-form-label--dashlink"
+            className='gf-form-label gf-form-label--dashlink'
             href={changelogUrl}
-            target="_blank"
-            rel="docs noreferrer"
+            target='_blank'
+            rel='docs noreferrer'
           >
             Release v{version}
           </a>
@@ -49,10 +49,10 @@ export const HelpfulLinks = () => {
         {tips.map((t) => (
           <a
             key={t.url}
-            className="gf-form-label gf-form-label--dashlink"
+            className='gf-form-label gf-form-label--dashlink'
             href={t.url}
-            target="_blank"
-            rel="docs noreferrer"
+            target='_blank'
+            rel='docs noreferrer'
           >
             {t.title}
           </a>

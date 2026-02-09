@@ -1,13 +1,13 @@
-import { css } from "@emotion/css";
-import React from "react";
+import { css } from '@emotion/css';
+import React from 'react';
 
-import { GrafanaTheme2 } from "@grafana/data";
-import { useStyles2 } from "@grafana/ui";
+import { GrafanaTheme2 } from '@grafana/data';
+import { useStyles2 } from '@grafana/ui';
 
-import { VictoriaLogsQueryEditorProps } from "../../types";
+import { VictoriaLogsQueryEditorProps } from '../../types';
 
-import { AdHocFiltersControl } from "./AdHocFiltersControl";
-import QueryField from "./QueryField";
+import { AdHocFiltersControl } from './AdHocFiltersControl';
+import QueryField from './QueryField';
 
 type Props = VictoriaLogsQueryEditorProps & {
   showExplain: boolean;

@@ -1,5 +1,5 @@
-import { from, Observable } from "rxjs";
-import { map } from "rxjs/operators";
+import { from, Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 import {
   CustomVariableSupport,
@@ -7,11 +7,11 @@ import {
   MetricFindValue,
   ScopedVars,
   TimeRange
-} from "@grafana/data";
+} from '@grafana/data';
 
-import { VariableQueryEditor } from "../components/VariableQueryEditor/VariableQueryEditor";
-import { VictoriaLogsDatasource } from "../datasource";
-import { VariableQuery } from "../types";
+import { VariableQueryEditor } from '../components/VariableQueryEditor/VariableQueryEditor';
+import { VictoriaLogsDatasource } from '../datasource';
+import { VariableQuery } from '../types';
 
 export class VariableSupport extends CustomVariableSupport<VictoriaLogsDatasource, VariableQuery> {
   editor = VariableQueryEditor;

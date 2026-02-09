@@ -1,14 +1,14 @@
-import React from "react";
+import React from 'react';
 
-import { QueryEditorProps } from "@grafana/data";
+import { QueryEditorProps } from '@grafana/data';
 
-import { VictoriaLogsDatasource } from "../../datasource";
-import { Options, Query } from "../../types";
-import { MonacoQueryFieldWrapper } from "../monaco-query-field/MonacoQueryFieldWrapper";
+import { VictoriaLogsDatasource } from '../../datasource';
+import { Options, Query } from '../../types';
+import { MonacoQueryFieldWrapper } from '../monaco-query-field/MonacoQueryFieldWrapper';
 
 export interface QueryFieldProps extends QueryEditorProps<VictoriaLogsDatasource, Query, Options> {
   ExtraFieldElement?: React.ReactNode;
-  "data-testid"?: string;
+  'data-testid'?: string;
 }
 
 const QueryField: React.FC<QueryFieldProps> = (
@@ -18,7 +18,7 @@ const QueryField: React.FC<QueryFieldProps> = (
     history,
     onRunQuery,
     onChange,
-    "data-testid": dataTestId
+    'data-testid': dataTestId
   }) => {
 
   const onChangeQuery = (value: string) => {
@@ -28,17 +28,17 @@ const QueryField: React.FC<QueryFieldProps> = (
   return (
     <>
       <div
-        className="gf-form-inline gf-form-inline--xs-view-flex-column flex-grow-1"
+        className='gf-form-inline gf-form-inline--xs-view-flex-column flex-grow-1'
         data-testid={dataTestId}
       >
-        <div className="gf-form--grow flex-shrink-1 min-width-15">
+        <div className='gf-form--grow flex-shrink-1 min-width-15'>
           <MonacoQueryFieldWrapper
             runQueryOnBlur={false}
             history={history ?? []}
             onChange={onChangeQuery}
             onRunQuery={onRunQuery}
-            initialValue={query.expr ?? ""}
-            placeholder="Enter a LogsQL query…"
+            initialValue={query.expr ?? ''}
+            placeholder='Enter a LogsQL query…'
           />
         </div>
       </div>

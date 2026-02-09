@@ -1,7 +1,7 @@
-import { isExprHasStatsPipeFunctions, statsPipeFunctions } from "./statsPipeFunctions";
+import { isExprHasStatsPipeFunctions, statsPipeFunctions } from './statsPipeFunctions';
 
-describe("isExprHasStatsPipeFunctions", () => {
-  describe("should return true for each stats pipe function", () => {
+describe('isExprHasStatsPipeFunctions', () => {
+  describe('should return true for each stats pipe function', () => {
     it.each(statsPipeFunctions)("detects '%s' function", (func) => {
       expect(isExprHasStatsPipeFunctions(`* | stats by () ${func}()`)).toBe(true);
     });

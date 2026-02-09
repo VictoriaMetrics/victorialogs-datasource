@@ -1,74 +1,74 @@
-import { DataQueryRequest, DataQueryResponse, dateTime, LogLevel } from "@grafana/data";
+import { DataQueryRequest, DataQueryResponse, dateTime, LogLevel } from '@grafana/data';
 
-import { transformBackendResult } from "./backendResultTransformer";
-import { LogLevelRule, LogLevelRuleType } from "./configuration/LogLevelRules/types";
-import { DerivedFieldConfig, Query, QueryType } from "./types";
+import { transformBackendResult } from './backendResultTransformer';
+import { LogLevelRule, LogLevelRuleType } from './configuration/LogLevelRules/types';
+import { DerivedFieldConfig, Query, QueryType } from './types';
 
-describe("transformBackendResult", () => {
+describe('transformBackendResult', () => {
   const labels = [
     {
-      "_stream_id": "0000000000000000e934a84adb05276890d7f7bfcadabe92",
-      "custom": "customValue",
-      "environment": "dev",
-      "level": "info",
-      "version": "0.1"
+      '_stream_id': '0000000000000000e934a84adb05276890d7f7bfcadabe92',
+      'custom': 'customValue',
+      'environment': 'dev',
+      'level': 'info',
+      'version': '0.1'
     },
     {
-      "_stream_id": "0000000000000000e934a84adb05276890d7f7bfcadabe92",
-      "custom": "customValue",
-      "environment": "dev",
-      "level": "error",
-      "version": "0.1"
+      '_stream_id': '0000000000000000e934a84adb05276890d7f7bfcadabe92',
+      'custom': 'customValue',
+      'environment': 'dev',
+      'level': 'error',
+      'version': '0.1'
     },
     {
-      "_stream_id": "0000000000000000e934a84adb05276890d7f7bfcadabe92",
-      "custom": "customValue",
-      "environment": "dev",
-      "level": "unknown",
-      "version": "0.1"
+      '_stream_id': '0000000000000000e934a84adb05276890d7f7bfcadabe92',
+      'custom': 'customValue',
+      'environment': 'dev',
+      'level': 'unknown',
+      'version': '0.1'
     },
     {
-      "_stream_id": "0000000000000000e934a84adb05276890d7f7bfcadabe92",
-      "custom": "customValue",
-      "environment": "dev",
-      "level": "information",
-      "version": "0.1"
+      '_stream_id': '0000000000000000e934a84adb05276890d7f7bfcadabe92',
+      'custom': 'customValue',
+      'environment': 'dev',
+      'level': 'information',
+      'version': '0.1'
     },
     {
-      "_stream_id": "0000000000000000e934a84adb05276890d7f7bfcadabe92",
-      "custom": "customValue",
-      "environment": "dev",
-      "level": "debug",
-      "version": "0.1"
+      '_stream_id': '0000000000000000e934a84adb05276890d7f7bfcadabe92',
+      'custom': 'customValue',
+      'environment': 'dev',
+      'level': 'debug',
+      'version': '0.1'
     },
     {
-      "_stream_id": "0000000000000000e934a84adb05276890d7f7bfcadabe92",
-      "cutom": "customValue",
-      "environment": "dev",
-      "level": "trace",
-      "version": "0.1"
+      '_stream_id': '0000000000000000e934a84adb05276890d7f7bfcadabe92',
+      'cutom': 'customValue',
+      'environment': 'dev',
+      'level': 'trace',
+      'version': '0.1'
     },
   ];
-  it("should parse level labels and delete origin level labels to avoid duplication", () => {
+  it('should parse level labels and delete origin level labels to avoid duplication', () => {
     const response = {
-      "data": [
+      'data': [
         {
-          "refId": "A",
-          "meta": {
-            "typeVersion": [
+          'refId': 'A',
+          'meta': {
+            'typeVersion': [
               0,
               0
             ]
           },
-          "fields": [
+          'fields': [
             {
-              "name": "Time",
-              "type": "time",
-              "typeInfo": {
-                "frame": "time.Time"
+              'name': 'Time',
+              'type': 'time',
+              'typeInfo': {
+                'frame': 'time.Time'
               },
-              "config": {},
-              "values": [
+              'config': {},
+              'values': [
                 1760598702731,
                 1760598701836,
                 1760598700825,
@@ -76,8 +76,8 @@ describe("transformBackendResult", () => {
                 1760598697034,
                 1760598696367,
               ],
-              "entities": {},
-              "nanos": [
+              'entities': {},
+              'nanos': [
                 713000,
                 524000,
                 282000,
@@ -87,134 +87,134 @@ describe("transformBackendResult", () => {
               ]
             },
             {
-              "name": "Line",
-              "type": "string",
-              "typeInfo": {
-                "frame": "string"
+              'name': 'Line',
+              'type': 'string',
+              'typeInfo': {
+                'frame': 'string'
               },
-              "config": {},
-              "values": [
-                "starting application",
-                "starting application",
-                "starting application",
-                "starting application",
-                "starting application",
-                "starting application",
+              'config': {},
+              'values': [
+                'starting application',
+                'starting application',
+                'starting application',
+                'starting application',
+                'starting application',
+                'starting application',
               ],
-              "entities": {}
+              'entities': {}
             },
             {
-              "name": "labels",
-              "type": "other",
-              "typeInfo": {
-                "frame": "json.RawMessage"
+              'name': 'labels',
+              'type': 'other',
+              'typeInfo': {
+                'frame': 'json.RawMessage'
               },
-              "config": {},
-              "values": labels,
-              "entities": {}
+              'config': {},
+              'values': labels,
+              'entities': {}
             }
           ],
-          "length": 6
+          'length': 6
         }
       ],
-      "state": "Done"
+      'state': 'Done'
     } as DataQueryResponse;
     const request = {
-      "app": "dashboard",
-      "requestId": "SQR100",
-      "timezone": "browser",
-      "range": {
-        "to": "2025-10-16T07:28:02.475Z",
-        "from": "2025-10-16T01:28:02.475Z",
-        "raw": {
-          "from": "now-6h",
-          "to": "now"
+      'app': 'dashboard',
+      'requestId': 'SQR100',
+      'timezone': 'browser',
+      'range': {
+        'to': '2025-10-16T07:28:02.475Z',
+        'from': '2025-10-16T01:28:02.475Z',
+        'raw': {
+          'from': 'now-6h',
+          'to': 'now'
         }
       },
-      "interval": "20s",
-      "intervalMs": 20000,
-      "targets": [
+      'interval': '20s',
+      'intervalMs': 20000,
+      'targets': [
         {
-          "datasource": {
-            "type": "victoriametrics-logs-datasource",
-            "uid": "bexw8wod6s4jke"
+          'datasource': {
+            'type': 'victoriametrics-logs-datasource',
+            'uid': 'bexw8wod6s4jke'
           },
-          "editorMode": "code",
-          "expr": "*",
-          "queryType": "instant",
-          "refId": "A",
-          "maxLines": 1000
+          'editorMode': 'code',
+          'expr': '*',
+          'queryType': 'instant',
+          'refId': 'A',
+          'maxLines': 1000
         }
       ],
-      "maxDataPoints": 913,
-      "scopedVars": {
-        "__sceneObject": {
-          "text": "__sceneObject"
+      'maxDataPoints': 913,
+      'scopedVars': {
+        '__sceneObject': {
+          'text': '__sceneObject'
         },
-        "__interval": {
-          "text": "20s",
-          "value": "20s"
+        '__interval': {
+          'text': '20s',
+          'value': '20s'
         },
-        "__interval_ms": {
-          "text": "20000",
-          "value": 20000
+        '__interval_ms': {
+          'text': '20000',
+          'value': 20000
         }
       },
-      "startTime": 1760599682628,
-      "rangeRaw": {
-        "from": "now-6h",
-        "to": "now"
+      'startTime': 1760599682628,
+      'rangeRaw': {
+        'from': 'now-6h',
+        'to': 'now'
       },
-      "dashboardUID": "886b7b9f-97a7-47ee-93b6-9ec7342f6d3e",
-      "panelId": 1,
-      "panelName": "New panel",
-      "panelPluginId": "table",
-      "dashboardTitle": "double label info"
+      'dashboardUID': '886b7b9f-97a7-47ee-93b6-9ec7342f6d3e',
+      'panelId': 1,
+      'panelName': 'New panel',
+      'panelPluginId': 'table',
+      'dashboardTitle': 'double label info'
     } as unknown as DataQueryRequest<Query>;
     const derivedFieldConfigs: DerivedFieldConfig[] = [];
     const logLevelRules: LogLevelRule[] = [];
     const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
     expect(result.data[0].fields[2].values).toStrictEqual(labels);
-    expect(result.data[0].fields[3].name).toStrictEqual("detected_level");
+    expect(result.data[0].fields[3].name).toStrictEqual('detected_level');
     expect(result.data[0].fields[3].values).toStrictEqual([
-      "info",
-      "error",
-      "unknown",
-      "information",
-      "debug",
-      "trace",
+      'info',
+      'error',
+      'unknown',
+      'information',
+      'debug',
+      'trace',
     ]);
   });
 
-  it("should parse level according to rules, apply the origin level labels then rule labels", () => {
+  it('should parse level according to rules, apply the origin level labels then rule labels', () => {
     const extendedLabels = labels.map((l, index) => {
       if (index > 2) {
         return {
           ...l,
-          level: "Custom unknown level"
+          level: 'Custom unknown level'
         };
       }
       return l;
     });
     const response = {
-      "data": [
+      'data': [
         {
-          "refId": "A",
-          "meta": {
-            "typeVersion": [
+          'refId': 'A',
+          'meta': {
+            'typeVersion': [
               0,
               0
             ]
           },
-          "fields": [
+          'fields': [
             {
-              "name": "Time",
-              "type": "time",
-              "typeInfo": {
-                "frame": "time.Time"
+              'name': 'Time',
+              'type': 'time',
+              'typeInfo': {
+                'frame': 'time.Time'
               },
-              "config": {},
-              "values": [
+              'config': {},
+              'values': [
                 1760598702731,
                 1760598701836,
                 1760598700825,
@@ -222,8 +222,8 @@ describe("transformBackendResult", () => {
                 1760598697034,
                 1760598696367,
               ],
-              "entities": {},
-              "nanos": [
+              'entities': {},
+              'nanos': [
                 713000,
                 524000,
                 282000,
@@ -233,96 +233,96 @@ describe("transformBackendResult", () => {
               ]
             },
             {
-              "name": "Line",
-              "type": "string",
-              "typeInfo": {
-                "frame": "string"
+              'name': 'Line',
+              'type': 'string',
+              'typeInfo': {
+                'frame': 'string'
               },
-              "config": {},
-              "values": [
-                "starting application",
-                "starting application",
-                "starting application",
-                "starting application",
-                "starting application",
-                "starting application",
+              'config': {},
+              'values': [
+                'starting application',
+                'starting application',
+                'starting application',
+                'starting application',
+                'starting application',
+                'starting application',
               ],
-              "entities": {}
+              'entities': {}
             },
             {
-              "name": "labels",
-              "type": "other",
-              "typeInfo": {
-                "frame": "json.RawMessage"
+              'name': 'labels',
+              'type': 'other',
+              'typeInfo': {
+                'frame': 'json.RawMessage'
               },
-              "config": {},
-              "values": extendedLabels,
-              "entities": {}
+              'config': {},
+              'values': extendedLabels,
+              'entities': {}
             }
           ],
-          "length": 6
+          'length': 6
         }
       ],
-      "state": "Done"
+      'state': 'Done'
     } as DataQueryResponse;
     const request = {
-      "app": "dashboard",
-      "requestId": "SQR100",
-      "timezone": "browser",
-      "range": {
-        "to": "2025-10-16T07:28:02.475Z",
-        "from": "2025-10-16T01:28:02.475Z",
-        "raw": {
-          "from": "now-6h",
-          "to": "now"
+      'app': 'dashboard',
+      'requestId': 'SQR100',
+      'timezone': 'browser',
+      'range': {
+        'to': '2025-10-16T07:28:02.475Z',
+        'from': '2025-10-16T01:28:02.475Z',
+        'raw': {
+          'from': 'now-6h',
+          'to': 'now'
         }
       },
-      "interval": "20s",
-      "intervalMs": 20000,
-      "targets": [
+      'interval': '20s',
+      'intervalMs': 20000,
+      'targets': [
         {
-          "datasource": {
-            "type": "victoriametrics-logs-datasource",
-            "uid": "bexw8wod6s4jke"
+          'datasource': {
+            'type': 'victoriametrics-logs-datasource',
+            'uid': 'bexw8wod6s4jke'
           },
-          "editorMode": "code",
-          "expr": "*",
-          "queryType": "instant",
-          "refId": "A",
-          "maxLines": 1000
+          'editorMode': 'code',
+          'expr': '*',
+          'queryType': 'instant',
+          'refId': 'A',
+          'maxLines': 1000
         }
       ],
-      "maxDataPoints": 913,
-      "scopedVars": {
-        "__sceneObject": {
-          "text": "__sceneObject"
+      'maxDataPoints': 913,
+      'scopedVars': {
+        '__sceneObject': {
+          'text': '__sceneObject'
         },
-        "__interval": {
-          "text": "20s",
-          "value": "20s"
+        '__interval': {
+          'text': '20s',
+          'value': '20s'
         },
-        "__interval_ms": {
-          "text": "20000",
-          "value": 20000
+        '__interval_ms': {
+          'text': '20000',
+          'value': 20000
         }
       },
-      "startTime": 1760599682628,
-      "rangeRaw": {
-        "from": "now-6h",
-        "to": "now"
+      'startTime': 1760599682628,
+      'rangeRaw': {
+        'from': 'now-6h',
+        'to': 'now'
       },
-      "dashboardUID": "886b7b9f-97a7-47ee-93b6-9ec7342f6d3e",
-      "panelId": 1,
-      "panelName": "New panel",
-      "panelPluginId": "table",
-      "dashboardTitle": "double label info"
+      'dashboardUID': '886b7b9f-97a7-47ee-93b6-9ec7342f6d3e',
+      'panelId': 1,
+      'panelName': 'New panel',
+      'panelPluginId': 'table',
+      'dashboardTitle': 'double label info'
     } as unknown as DataQueryRequest<Query>;
     const derivedFieldConfigs: DerivedFieldConfig[] = [];
     const logLevelRules: LogLevelRule[] = [{
       enabled: true,
-      field: "environment",
+      field: 'environment',
       operator: LogLevelRuleType.Equals,
-      value: "dev",
+      value: 'dev',
       level: LogLevel.critical
     }];
     const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
@@ -337,32 +337,32 @@ describe("transformBackendResult", () => {
     ]);
   });
 
-  it("should parse level from the _msg label according to rules", () => {
+  it('should parse level from the _msg label according to rules', () => {
     const extendedLabels = labels.map((l, index) => {
       return {
         ...l,
-        level: "Custom unknown level"
+        level: 'Custom unknown level'
       };
     });
     const response = {
-      "data": [
+      'data': [
         {
-          "refId": "A",
-          "meta": {
-            "typeVersion": [
+          'refId': 'A',
+          'meta': {
+            'typeVersion': [
               0,
               0
             ]
           },
-          "fields": [
+          'fields': [
             {
-              "name": "Time",
-              "type": "time",
-              "typeInfo": {
-                "frame": "time.Time"
+              'name': 'Time',
+              'type': 'time',
+              'typeInfo': {
+                'frame': 'time.Time'
               },
-              "config": {},
-              "values": [
+              'config': {},
+              'values': [
                 1760598702731,
                 1760598701836,
                 1760598700825,
@@ -370,8 +370,8 @@ describe("transformBackendResult", () => {
                 1760598697034,
                 1760598696367,
               ],
-              "entities": {},
-              "nanos": [
+              'entities': {},
+              'nanos': [
                 713000,
                 524000,
                 282000,
@@ -381,96 +381,96 @@ describe("transformBackendResult", () => {
               ]
             },
             {
-              "name": "Line",
-              "type": "string",
-              "typeInfo": {
-                "frame": "string"
+              'name': 'Line',
+              'type': 'string',
+              'typeInfo': {
+                'frame': 'string'
               },
-              "config": {},
-              "values": [
-                "critical error",
-                "starting application",
-                "starting application",
-                "starting application",
-                "starting application",
-                "starting application",
+              'config': {},
+              'values': [
+                'critical error',
+                'starting application',
+                'starting application',
+                'starting application',
+                'starting application',
+                'starting application',
               ],
-              "entities": {}
+              'entities': {}
             },
             {
-              "name": "labels",
-              "type": "other",
-              "typeInfo": {
-                "frame": "json.RawMessage"
+              'name': 'labels',
+              'type': 'other',
+              'typeInfo': {
+                'frame': 'json.RawMessage'
               },
-              "config": {},
-              "values": extendedLabels,
-              "entities": {}
+              'config': {},
+              'values': extendedLabels,
+              'entities': {}
             }
           ],
-          "length": 6
+          'length': 6
         }
       ],
-      "state": "Done"
+      'state': 'Done'
     } as DataQueryResponse;
     const request = {
-      "app": "dashboard",
-      "requestId": "SQR100",
-      "timezone": "browser",
-      "range": {
-        "to": "2025-10-16T07:28:02.475Z",
-        "from": "2025-10-16T01:28:02.475Z",
-        "raw": {
-          "from": "now-6h",
-          "to": "now"
+      'app': 'dashboard',
+      'requestId': 'SQR100',
+      'timezone': 'browser',
+      'range': {
+        'to': '2025-10-16T07:28:02.475Z',
+        'from': '2025-10-16T01:28:02.475Z',
+        'raw': {
+          'from': 'now-6h',
+          'to': 'now'
         }
       },
-      "interval": "20s",
-      "intervalMs": 20000,
-      "targets": [
+      'interval': '20s',
+      'intervalMs': 20000,
+      'targets': [
         {
-          "datasource": {
-            "type": "victoriametrics-logs-datasource",
-            "uid": "bexw8wod6s4jke"
+          'datasource': {
+            'type': 'victoriametrics-logs-datasource',
+            'uid': 'bexw8wod6s4jke'
           },
-          "editorMode": "code",
-          "expr": "*",
-          "queryType": "instant",
-          "refId": "A",
-          "maxLines": 1000
+          'editorMode': 'code',
+          'expr': '*',
+          'queryType': 'instant',
+          'refId': 'A',
+          'maxLines': 1000
         }
       ],
-      "maxDataPoints": 913,
-      "scopedVars": {
-        "__sceneObject": {
-          "text": "__sceneObject"
+      'maxDataPoints': 913,
+      'scopedVars': {
+        '__sceneObject': {
+          'text': '__sceneObject'
         },
-        "__interval": {
-          "text": "20s",
-          "value": "20s"
+        '__interval': {
+          'text': '20s',
+          'value': '20s'
         },
-        "__interval_ms": {
-          "text": "20000",
-          "value": 20000
+        '__interval_ms': {
+          'text': '20000',
+          'value': 20000
         }
       },
-      "startTime": 1760599682628,
-      "rangeRaw": {
-        "from": "now-6h",
-        "to": "now"
+      'startTime': 1760599682628,
+      'rangeRaw': {
+        'from': 'now-6h',
+        'to': 'now'
       },
-      "dashboardUID": "886b7b9f-97a7-47ee-93b6-9ec7342f6d3e",
-      "panelId": 1,
-      "panelName": "New panel",
-      "panelPluginId": "table",
-      "dashboardTitle": "double label info"
+      'dashboardUID': '886b7b9f-97a7-47ee-93b6-9ec7342f6d3e',
+      'panelId': 1,
+      'panelName': 'New panel',
+      'panelPluginId': 'table',
+      'dashboardTitle': 'double label info'
     } as unknown as DataQueryRequest<Query>;
     const derivedFieldConfigs: DerivedFieldConfig[] = [];
     const logLevelRules: LogLevelRule[] = [{
       enabled: true,
-      field: "_msg",
+      field: '_msg',
       operator: LogLevelRuleType.Regex,
-      value: "critical",
+      value: 'critical',
       level: LogLevel.critical
     }];
     const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
@@ -485,113 +485,113 @@ describe("transformBackendResult", () => {
     ]);
   });
 
-  describe("processMetricRangeFrames", () => {
-    const refId = "A";
+  describe('processMetricRangeFrames', () => {
+    const refId = 'A';
     const baseResponse = {
-      "data": [
+      'data': [
         {
-          "refId": refId,
-          "meta": {
-            "typeVersion": [
+          'refId': refId,
+          'meta': {
+            'typeVersion': [
               0,
               0
             ]
           },
-          "fields": [
+          'fields': [
             {
-              "name": "Time",
-              "type": "time",
-              "typeInfo": {
-                "frame": "time.Time"
+              'name': 'Time',
+              'type': 'time',
+              'typeInfo': {
+                'frame': 'time.Time'
               },
-              "config": {},
-              "values": [
+              'config': {},
+              'values': [
                 10,
                 20,
                 40,
                 50,
                 90,
               ],
-              "entities": {},
+              'entities': {},
             },
             {
-              "name": "Line",
-              "type": "number",
-              "typeInfo": {
-                "frame": "string"
+              'name': 'Line',
+              'type': 'number',
+              'typeInfo': {
+                'frame': 'string'
               },
-              "config": {},
-              "values": [
+              'config': {},
+              'values': [
                 1,
                 2,
                 3,
                 4,
                 5,
               ],
-              "entities": {}
+              'entities': {}
             },
           ],
-          "length": 5
+          'length': 5
         }
       ],
-      "state": "Done"
+      'state': 'Done'
     } as DataQueryResponse;
 
     const baseRequest = {
-      "app": "dashboard",
-      "requestId": "SQR100",
-      "timezone": "browser",
-      "range": {
-        "to": dateTime("1970-01-01T00:00:00.101Z"), //  101ms
-        "from": dateTime("1970-01-01T00:00:00.005Z"), //  5ms
-        "raw": {
-          "from": "now-6h",
-          "to": "now"
+      'app': 'dashboard',
+      'requestId': 'SQR100',
+      'timezone': 'browser',
+      'range': {
+        'to': dateTime('1970-01-01T00:00:00.101Z'), //  101ms
+        'from': dateTime('1970-01-01T00:00:00.005Z'), //  5ms
+        'raw': {
+          'from': 'now-6h',
+          'to': 'now'
         }
       },
-      "interval": "20s",
-      "intervalMs": 20000,
-      "targets": [
+      'interval': '20s',
+      'intervalMs': 20000,
+      'targets': [
         {
-          "datasource": {
-            "type": "victoriametrics-logs-datasource",
-            "uid": "bexw8wod6s4jke"
+          'datasource': {
+            'type': 'victoriametrics-logs-datasource',
+            'uid': 'bexw8wod6s4jke'
           },
-          "editorMode": "code",
-          "expr": "*",
-          "queryType": QueryType.StatsRange,
-          "refId": refId,
-          "maxLines": 1000,
-          step: "10ms",
+          'editorMode': 'code',
+          'expr': '*',
+          'queryType': QueryType.StatsRange,
+          'refId': refId,
+          'maxLines': 1000,
+          step: '10ms',
         }
       ],
-      "maxDataPoints": 913,
-      "scopedVars": {
-        "__sceneObject": {
-          "text": "__sceneObject"
+      'maxDataPoints': 913,
+      'scopedVars': {
+        '__sceneObject': {
+          'text': '__sceneObject'
         },
-        "__interval": {
-          "text": "20s",
-          "value": "20s"
+        '__interval': {
+          'text': '20s',
+          'value': '20s'
         },
-        "__interval_ms": {
-          "text": "20000",
-          "value": 20000
+        '__interval_ms': {
+          'text': '20000',
+          'value': 20000
         }
       },
-      "startTime": 1760599682628,
-      "rangeRaw": {
-        "from": "now-6h",
-        "to": "now"
+      'startTime': 1760599682628,
+      'rangeRaw': {
+        'from': 'now-6h',
+        'to': 'now'
       },
-      "dashboardUID": "886b7b9f-97a7-47ee-93b6-9ec7342f6d3e",
-      "panelId": 1,
-      "panelName": "New panel",
-      "panelPluginId": "table",
-      "dashboardTitle": "double label info"
+      'dashboardUID': '886b7b9f-97a7-47ee-93b6-9ec7342f6d3e',
+      'panelId': 1,
+      'panelName': 'New panel',
+      'panelPluginId': 'table',
+      'dashboardTitle': 'double label info'
     } as unknown as DataQueryRequest<Query>;
 
-    it("should fill with null values skipped timestamps if fields is empty", () => {
+    it('should fill with null values skipped timestamps if fields is empty', () => {
       const response = {
         ...baseResponse,
         data: [
@@ -609,7 +609,7 @@ describe("transformBackendResult", () => {
       expect(result.data[0].fields.length).toStrictEqual(0);
     });
 
-    it("should fill with null values skipped timestamps", () => {
+    it('should fill with null values skipped timestamps', () => {
       const response = { ...baseResponse };
       const request = { ...baseRequest };
       const derivedFieldConfigs: DerivedFieldConfig[] = [];

@@ -49,7 +49,7 @@ function buildLevelQuery({
 }: BuildQueryExprWithLevelFiltersProps) {
   const isQueryWithFilter = isQueryContainsLevelFilter(queryExpr);
   if (!isQueryWithFilter) {
-    return levelQueryExpr + " | " + queryExpr;
+    return levelQueryExpr + ' | ' + queryExpr;
   }
 
   if (queryExpr.trim().length === 0) {
@@ -73,28 +73,28 @@ function buildLevelQuery({
 
 function buildMultiLevelFilter(queryExpr: string, levelQueryExpr: string) {
   if (!queryExpr.includes(levelQueryExpr)) {
-    return levelQueryExpr + " OR " + queryExpr;
+    return levelQueryExpr + ' OR ' + queryExpr;
   } else {
     return queryExpr
       .split(levelQueryExpr)
       .map(trimOR)
       .filter(Boolean)
-      .join(" OR ");
+      .join(' OR ');
   }
 }
 
 function trimOR(query: string) {
   let result = query.trim();
-  if (result.toLowerCase().startsWith("or")) {
+  if (result.toLowerCase().startsWith('or')) {
     result = result.slice(2).trim();
   }
-  if (result.toLowerCase().endsWith("or")) {
+  if (result.toLowerCase().endsWith('or')) {
     result = result.slice(0, -2).trim();
   }
   return result;
 }
 
-const PIPE_SEPARATOR = "|";
+const PIPE_SEPARATOR = '|';
 
 function findPipeSeparatorPosition(queryExpr: string): number {
   const pipeSeparatorPosition = queryExpr.indexOf(PIPE_SEPARATOR);
@@ -104,7 +104,7 @@ function findPipeSeparatorPosition(queryExpr: string): number {
 
   let quotesCount = 0;
   for (let i = 0; i < queryExpr.length; i++) {
-    if (queryExpr[i] === '"' && queryExpr[i - 1] !== "\\") {
+    if (queryExpr[i] === '"' && queryExpr[i - 1] !== '\\') {
       quotesCount++;
       continue;
     }

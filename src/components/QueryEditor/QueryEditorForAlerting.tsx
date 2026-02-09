@@ -1,8 +1,8 @@
-import React from "react";
+import React from 'react';
 
-import { VictoriaLogsQueryEditorProps } from "../../types";
+import { VictoriaLogsQueryEditorProps } from '../../types';
 
-import QueryField from "./QueryField";
+import QueryField from './QueryField';
 
 const QueryEditorForAlerting = (props: VictoriaLogsQueryEditorProps) => {
   const { query, data, datasource, onChange, onRunQuery, history } = props;
@@ -23,5 +23,5 @@ const QueryEditorForAlerting = (props: VictoriaLogsQueryEditorProps) => {
 export default QueryEditorForAlerting;
 
 export const testIds = {
-  editor: "victorialogs-editor-cloud-alerting",
+  editor: 'victorialogs-editor-cloud-alerting',
 };

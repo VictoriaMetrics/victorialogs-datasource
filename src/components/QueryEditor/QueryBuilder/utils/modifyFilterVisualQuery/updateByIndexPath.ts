@@ -1,4 +1,4 @@
-import { FilterVisualQuery } from "../../../../../types";
+import { FilterVisualQuery } from '../../../../../types';
 
 export function updateValueByIndexPath(obj: FilterVisualQuery, indexPath: number[], newValue: string): FilterVisualQuery {
   // Helper function to recursively navigate the object and create a new copy
@@ -14,7 +14,7 @@ export function updateValueByIndexPath(obj: FilterVisualQuery, indexPath: number
     } else {
       // Otherwise, continue recursively and copy current level
       const newValues = [...currentObj.values];
-      if (typeof newValues[path[level]] !== "object" || newValues[path[level]] === null) {
+      if (typeof newValues[path[level]] !== 'object' || newValues[path[level]] === null) {
         newValues[path[level]] = { values: [], operators: currentObj.operators }; // Create a new valid FilterVisualQuery object
       }
       newValues[path[level]] = recursiveUpdateValue(newValues[path[level]] as FilterVisualQuery, path, level + 1);
@@ -42,7 +42,7 @@ export function updateOperatorByIndexPath(obj: FilterVisualQuery, indexPath: num
     } else {
       // Otherwise, continue recursively and copy current level
       const newValues = [...currentObj.values];
-      if (typeof newValues[path[level]] !== "object" || newValues[path[level]] === null) {
+      if (typeof newValues[path[level]] !== 'object' || newValues[path[level]] === null) {
         newValues[path[level]] = { values: [], operators: [] }; // Create a new valid FilterVisualQuery object
       }
       newValues[path[level]] = recursiveUpdateOperator(newValues[path[level]] as FilterVisualQuery, path, level + 1);

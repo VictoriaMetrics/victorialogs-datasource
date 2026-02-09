@@ -1,12 +1,12 @@
-import { css } from "@emotion/css";
-import React, { useMemo } from "react";
+import { css } from '@emotion/css';
+import React, { useMemo } from 'react';
 
-import { CoreApp, GrafanaTheme2 } from "@grafana/data";
-import { Button, Icon, useStyles2 } from "@grafana/ui";
+import { CoreApp, GrafanaTheme2 } from '@grafana/data';
+import { Button, Icon, useStyles2 } from '@grafana/ui';
 
-import { FilterVisualQuery, Query } from "../../types";
+import { FilterVisualQuery, Query } from '../../types';
 
-import { buildVisualQueryFromString } from "./QueryBuilder/utils/parseFromString";
+import { buildVisualQueryFromString } from './QueryBuilder/utils/parseFromString';
 
 interface AdHocFiltersControlProps {
   query: Query;
@@ -36,12 +36,12 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
       // Extract individual filter values from the parsed structure
       const extractFilters = (values: (string | FilterVisualQuery)[]) => {
         for (const value of values) {
-          if (typeof value === "string") {
+          if (typeof value === 'string') {
             // Only add if it looks like a complete filter (has a colon)
-            if (value.includes(":")) {
+            if (value.includes(':')) {
               filters.push(value);
             }
-          } else if (value && typeof value === "object" && value.values) {
+          } else if (value && typeof value === 'object' && value.values) {
             // Recursively extract from nested filters
             extractFilters(value.values);
           }
@@ -51,7 +51,7 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
       extractFilters(parsed.query.filters.values);
       return filters;
     } catch (e) {
-      console.error("Failed to parse extra_filters:", e);
+      console.error('Failed to parse extra_filters:', e);
       return [];
     }
   }, [query.extraFilters]);
@@ -62,7 +62,7 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
     }
 
     const remainingFilters = adHocFilters.filter(f => f !== filterToDelete);
-    const newExtraFilters = remainingFilters.join(" AND ");
+    const newExtraFilters = remainingFilters.join(' AND ');
 
     onChange({
       ...query,
@@ -78,11 +78,11 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
 
     // Remove from extra_filters
     const remainingFilters = adHocFilters.filter(f => f !== filterToMove);
-    const newExtraFilters = remainingFilters.join(" AND ");
+    const newExtraFilters = remainingFilters.join(' AND ');
 
     // Add to query expression
-    const currentExpr = query.expr?.trim() || "*";
-    const newExpr = currentExpr === "*"
+    const currentExpr = query.expr?.trim() || '*';
+    const newExpr = currentExpr === '*'
       ? filterToMove
       : `${filterToMove} AND ${currentExpr}`;
 
@@ -102,7 +102,7 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
   return (
     <div className={styles.adHocFiltersContainer}>
       <div className={styles.adHocFiltersLabel}>
-        <Icon name="filter" size="sm" />
+        <Icon name='filter' size='sm' />
         <span>Ad-hoc filters:</span>
       </div>
       {adHocFilters.map((filter, index) => (
@@ -110,22 +110,22 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
           <span className={styles.filterText}>{filter}</span>
           <div className={styles.filterActions}>
             <Button
-              size="sm"
-              variant="secondary"
+              size='sm'
+              variant='secondary'
               onClick={() => handleMoveToQuery(filter)}
-              tooltip="Move to query"
-              fill="text"
+              tooltip='Move to query'
+              fill='text'
             >
-              <Icon name="arrow-up" />
+              <Icon name='arrow-up' />
             </Button>
             <Button
-              size="sm"
-              variant="secondary"
+              size='sm'
+              variant='secondary'
               onClick={() => handleDeleteFilter(filter)}
-              tooltip="Delete filter"
-              fill="text"
+              tooltip='Delete filter'
+              fill='text'
             >
-              <Icon name="times" />
+              <Icon name='times' />
             </Button>
           </div>
         </div>

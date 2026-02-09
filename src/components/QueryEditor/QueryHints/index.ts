@@ -4,8 +4,8 @@ export {
   useFormatLogsOutputHintsSection,
   usePlotTimeSeriesHintsSection,
   usePlotPiechartHistogramHintsSection,
-} from "./hints";
+} from './hints';
 
-export type { QueryHint, QueryHintSection, QueryHints } from "./hints/types";
+export type { QueryHint, QueryHintSection, QueryHints } from './hints/types';
 
-export { QueryHintsExample } from "./QueryHintsExample";
+export { QueryHintsExample } from './QueryHintsExample';

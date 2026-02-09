@@ -1,10 +1,10 @@
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useState } from 'react';
 
-import { textUtil } from "@grafana/data";
-import { getTemplateSrv } from "@grafana/runtime";
-import { InlineField, TextArea } from "@grafana/ui";
+import { textUtil } from '@grafana/data';
+import { getTemplateSrv } from '@grafana/runtime';
+import { InlineField, TextArea } from '@grafana/ui';
 
-import { DerivedFieldConfig } from "../types";
+import { DerivedFieldConfig } from '../types';
 
 type Props = {
   derivedFields?: DerivedFieldConfig[];
@@ -12,7 +12,7 @@ type Props = {
 };
 export const DebugSection = (props: Props) => {
   const { derivedFields, className } = props;
-  const [debugText, setDebugText] = useState("");
+  const [debugText, setDebugText] = useState('');
 
   let debugFields: DebugField[] = [];
   if (debugText && derivedFields) {
@@ -21,11 +21,11 @@ export const DebugSection = (props: Props) => {
 
   return (
     <div className={className}>
-      <InlineField label="Debug log message" labelWidth={24} grow>
+      <InlineField label='Debug log message' labelWidth={24} grow>
         <TextArea
-          type="text"
-          aria-label="Loki query"
-          placeholder="Paste an example log line here to test the regular expressions of your derived fields"
+          type='text'
+          aria-label='Loki query'
+          placeholder='Paste an example log line here to test the regular expressions of your derived fields'
           value={debugText}
           onChange={(event) => setDebugText(event.currentTarget.value)}
         />
@@ -40,7 +40,7 @@ type DebugFieldItemProps = {
 };
 const DebugFields = ({ fields }: DebugFieldItemProps) => {
   return (
-    <table className={"filter-table"}>
+    <table className={'filter-table'}>
       <thead>
         <tr>
           <th>Name</th>
@@ -60,7 +60,7 @@ const DebugFields = ({ fields }: DebugFieldItemProps) => {
             <tr key={`${field.name}=${field.value}`}>
               <td>{field.name}</td>
               <td>{value}</td>
-              <td>{field.href ? <a href={field.href}>{field.href}</a> : ""}</td>
+              <td>{field.href ? <a href={field.href}>{field.href}</a> : ''}</td>
             </tr>
           );
         })}
@@ -91,14 +91,14 @@ function makeDebugFields(derivedFields: DerivedFieldConfig[], debugText: string)
               value: {
                 raw: value,
               },
-              text: "Raw value",
+              text: 'Raw value',
             },
           });
           href = textUtil.sanitizeUrl(href);
         }
         const debugFiled: DebugField = {
           name: field.name,
-          value: value || "<no match>",
+          value: value || '<no match>',
           href,
         };
         return debugFiled;

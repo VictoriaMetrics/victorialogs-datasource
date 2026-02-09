@@ -1,4 +1,4 @@
-import { LogLevel } from "@grafana/data";
+import { LogLevel } from '@grafana/data';
 
 export interface LogLevelRule {
   field: string;
@@ -9,9 +9,9 @@ export interface LogLevelRule {
 }
 
 export enum LogLevelRuleType {
-  Equals = "equals",
-  NotEquals = "notEquals",
-  GreaterThan = "greaterThan",
-  LessThan = "lessThan",
-  Regex = "regex",
+  Equals = 'equals',
+  NotEquals = 'notEquals',
+  GreaterThan = 'greaterThan',
+  LessThan = 'lessThan',
+  Regex = 'regex',
 }

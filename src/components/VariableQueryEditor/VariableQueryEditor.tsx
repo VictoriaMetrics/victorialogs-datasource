@@ -1,29 +1,29 @@
-import { debounce } from "lodash";
-import React, { FormEvent, useEffect, useState } from "react";
+import { debounce } from 'lodash';
+import React, { FormEvent, useEffect, useState } from 'react';
 
-import { DEFAULT_FIELD_DISPLAY_VALUES_LIMIT, QueryEditorProps, SelectableValue } from "@grafana/data";
-import { InlineField, InlineFieldRow, Input, Select } from "@grafana/ui";
+import { DEFAULT_FIELD_DISPLAY_VALUES_LIMIT, QueryEditorProps, SelectableValue } from '@grafana/data';
+import { InlineField, InlineFieldRow, Input, Select } from '@grafana/ui';
 
-import { VictoriaLogsDatasource } from "../../datasource";
-import { FilterFieldType, Options, Query, VariableQuery } from "../../types";
+import { VictoriaLogsDatasource } from '../../datasource';
+import { FilterFieldType, Options, Query, VariableQuery } from '../../types';
 
 const variableOptions = [
-  { label: "Field names", value: FilterFieldType.FieldName },
-  { label: "Field values", value: FilterFieldType.FieldValue },
+  { label: 'Field names', value: FilterFieldType.FieldName },
+  { label: 'Field values', value: FilterFieldType.FieldValue },
 ];
 
-const refId = "VictoriaLogsVariableQueryEditor-VariableQuery";
+const refId = 'VictoriaLogsVariableQueryEditor-VariableQuery';
 
 export type Props = QueryEditorProps<VictoriaLogsDatasource, Query, Options, VariableQuery>;
 
 export const VariableQueryEditor = ({ onChange, query, datasource, range }: Props) => {
   const [type, setType] = useState<FilterFieldType>();
-  const [queryFilter, setQueryFilter] = useState<string>("");
-  const [field, setField] = useState<string>("");
+  const [queryFilter, setQueryFilter] = useState<string>('');
+  const [field, setField] = useState<string>('');
   const [limit, setLimit] = useState<number>(DEFAULT_FIELD_DISPLAY_VALUES_LIMIT);
   const [fieldNames, setFieldNames] = useState<SelectableValue<string>[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<string>('');
 
   const handleTypeChange = (newType: SelectableValue<FilterFieldType>) => {
     if (!newType.value) {
@@ -34,7 +34,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
   };
 
   const handleFieldChange = (newField: SelectableValue<string>) => {
-    setField(newField.value || "");
+    setField(newField.value || '');
   };
 
   const handleBlur = () => {
@@ -54,7 +54,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    e.key === "Enter" && handleBlur();
+    e.key === 'Enter' && handleBlur();
   };
 
   useEffect(() => {
@@ -63,8 +63,8 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
     }
 
     setType(query.type);
-    setField(query.field || "");
-    setQueryFilter(query.query || "");
+    setField(query.field || '');
+    setQueryFilter(query.query || '');
     setLimit(query.limit ?? DEFAULT_FIELD_DISPLAY_VALUES_LIMIT);
   }, [query]);
 
@@ -75,7 +75,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
 
     const getFiledNames = async () => {
       try {
-        setError("");
+        setError('');
         setIsLoading(true);
         const list = await datasource.languageProvider?.getFieldList({
           type: FilterFieldType.FieldName,
@@ -87,14 +87,14 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
         const result = list
           ? list.map(({ value, hits }) => ({
             value,
-            label: value || " ",
+            label: value || ' ',
             description: `hits: ${hits}`,
           }))
           : [];
 
         setFieldNames(result);
       } catch (error) {
-        setError("Error fetching field names. See console for more details.");
+        setError('Error fetching field names. See console for more details.');
         console.error(error);
       } finally {
         setIsLoading(false);
@@ -114,9 +114,9 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
   return (
     <div>
       <InlineFieldRow>
-        <InlineField label="Query type" labelWidth={20}>
+        <InlineField label='Query type' labelWidth={20}>
           <Select
-            aria-label="Query type"
+            aria-label='Query type'
             onChange={handleTypeChange}
             onBlur={handleBlur}
             value={type}
@@ -126,13 +126,13 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
         </InlineField>
         {type === FilterFieldType.FieldValue && (
           <InlineField
-            label="Field"
+            label='Field'
             labelWidth={20}
             error={error}
             invalid={!!error}
           >
             <Select
-              aria-label="Field value"
+              aria-label='Field value'
               onChange={handleFieldChange}
               onBlur={handleBlur}
               value={field}
@@ -143,14 +143,14 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
           </InlineField>
         )}
         <InlineField
-          label="Limit"
+          label='Limit'
           labelWidth={20}
-          tooltip={"Maximum number of values to return. Set to 0 to remove the limit."}
+          tooltip={'Maximum number of values to return. Set to 0 to remove the limit.'}
         >
           <Input
-            type="number"
-            aria-label="Limit"
-            placeholder="Limit"
+            type='number'
+            aria-label='Limit'
+            placeholder='Limit'
             value={limit}
             onChange={handleLimitChange}
             onBlur={handleBlur}
@@ -160,15 +160,15 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
       </InlineFieldRow>
       <InlineFieldRow>
         <InlineField
-          label="Query"
+          label='Query'
           labelWidth={20}
           grow={true}
-          tooltip={"Optional. If defined, this filters the logs based on the specified query and returns the corresponding field names."}
+          tooltip={'Optional. If defined, this filters the logs based on the specified query and returns the corresponding field names.'}
         >
           <Input
-            type="text"
-            aria-label="Query Filter"
-            placeholder="Optional query filter"
+            type='text'
+            aria-label='Query Filter'
+            placeholder='Optional query filter'
             value={queryFilter}
             onChange={handleQueryFilterChange}
             onBlur={handleBlur}

@@ -1,8 +1,8 @@
-import { css } from "@emotion/css";
-import React, { ComponentProps, FC } from "react";
+import { css } from '@emotion/css';
+import React, { ComponentProps, FC } from 'react';
 
-import { GrafanaTheme2 } from "@grafana/data";
-import { useTheme2, ReactUtils, Field, Icon, PopoverContent, Tooltip } from "@grafana/ui";
+import { GrafanaTheme2 } from '@grafana/data';
+import { useTheme2, ReactUtils, Field, Icon, PopoverContent, Tooltip } from '@grafana/ui';
 
 interface EditorFieldProps extends ComponentProps<typeof Field> {
   label: string;
@@ -27,8 +27,8 @@ const EditorField: FC<EditorFieldProps> = (props) => {
         {label}
         {optional && <span className={styles.optional}> - optional</span>}
         {tooltip && (
-          <Tooltip placement="top" content={tooltip} theme="info">
-            <Icon name="info-circle" size="sm" className={styles.icon} />
+          <Tooltip placement='top' content={tooltip} theme='info'>
+            <Icon name='info-circle' size='sm' className={styles.icon} />
           </Tooltip>
         )}
       </label>
@@ -57,7 +57,7 @@ const getStyles = (theme: GrafanaTheme2, width?: number | string) => {
       paddingBottom: theme.spacing(0.5),
     }),
     optional: css({
-      fontStyle: "italic",
+      fontStyle: 'italic',
       color: theme.colors.text.secondary,
     }),
     field: css({
@@ -66,7 +66,7 @@ const getStyles = (theme: GrafanaTheme2, width?: number | string) => {
     icon: css({
       color: theme.colors.text.secondary,
       marginLeft: theme.spacing(1),
-      ":hover": {
+      ':hover': {
         color: theme.colors.text.primary,
       },
     }),

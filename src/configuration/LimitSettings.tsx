@@ -1,6 +1,6 @@
-import React, { SyntheticEvent } from "react";
+import React, { SyntheticEvent } from 'react';
 
-import { SelectableValue } from "@grafana/data";
+import { SelectableValue } from '@grafana/data';
 import {
   InlineField,
   regexValidation,
@@ -9,23 +9,23 @@ import {
   TextLink,
   Stack,
   Text
-} from "@grafana/ui";
+} from '@grafana/ui';
 
-import { VICTORIA_LOGS_DOCS_HOST } from "../conf";
-import { FilterFieldType } from "../types";
+import { VICTORIA_LOGS_DOCS_HOST } from '../conf';
+import { FilterFieldType } from '../types';
 
-import { PropsConfigEditor } from "./ConfigEditor";
-import { getValueFromEventItem } from "./utils";
+import { PropsConfigEditor } from './ConfigEditor';
+import { getValueFromEventItem } from './utils';
 
 const validationRule = regexValidation(
   /^$|^\d+$/,
-  "Value is not valid, you can use number"
+  'Value is not valid, you can use number'
 );
 
 const documentationLink = (
   <TextLink
     external
-    variant="bodySmall"
+    variant='bodySmall'
     href={`${VICTORIA_LOGS_DOCS_HOST}/victorialogs/querying/#querying-field-values`}
   >
     Learn more about querying field values
@@ -35,13 +35,13 @@ const documentationLink = (
 
 const limitFields = [
   {
-    label: "Field values",
+    label: 'Field values',
     tooltip: (<>
       In the Query Builder, the <code>/select/logsql/field_values</code> endpoint allows an
       optional <code>limit=N</code> parameter to restrict the number of returned values to <code>N</code>.
       Leave the field blank or set the value to <code>0</code> to remove the limit
     </>),
-    placeholder: "1000",
+    placeholder: '1000',
     key: FilterFieldType.FieldValue
   }
 ];
@@ -61,17 +61,17 @@ export const LimitsSettings = (props: Props) => {
   };
 
   return (
-    <Stack direction="column" gap={2}>
+    <Stack direction='column' gap={2}>
       <div>
-        <Text variant="h4">Limits</Text>
-        <Text variant="bodySmall" color="disabled" element="p">
+        <Text variant='h4'>Limits</Text>
+        <Text variant='bodySmall' color='disabled' element='p'>
           Sets a limit on how many values are returned in query results. {documentationLink}
         </Text>
       </div>
 
-      <div className="gf-form-group">
+      <div className='gf-form-group'>
         {limitFields.map((field) => (
-          <div className="gf-form" key={field.key}>
+          <div className='gf-form' key={field.key}>
             <InlineField
               label={field.label}
               labelWidth={28}
@@ -81,8 +81,8 @@ export const LimitsSettings = (props: Props) => {
               invalid={!!error}
             >
               <Input
-                className="width-8"
-                value={`${options.jsonData?.queryBuilderLimits?.[field.key] || ""}`}
+                className='width-8'
+                value={`${options.jsonData?.queryBuilderLimits?.[field.key] || ''}`}
                 onChange={onChangeHandler(field.key, options, onOptionsChange)}
                 spellCheck={false}
                 placeholder={field.placeholder}
@@ -98,7 +98,7 @@ export const LimitsSettings = (props: Props) => {
 };
 
 const onChangeHandler =
-  (key: string, options: Props["options"], onOptionsChange: Props["onOptionsChange"]) =>
+  (key: string, options: Props['options'], onOptionsChange: Props['onOptionsChange']) =>
     (eventItem: SyntheticEvent<HTMLInputElement> | SelectableValue<string>) => {
       onOptionsChange({
         ...options,

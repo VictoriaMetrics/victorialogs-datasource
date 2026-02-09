@@ -1,6 +1,6 @@
-import React from "react";
+import React from 'react';
 
-import { InlineField, Input } from "@grafana/ui";
+import { InlineField, Input } from '@grafana/ui';
 
 type Props = {
   maxLines: string;
@@ -10,9 +10,9 @@ type Props = {
 export const QuerySettings = (props: Props) => {
   const { maxLines, onMaxLinedChange } = props;
   return (
-    <div className="gf-form-inline">
+    <div className='gf-form-inline'>
       <InlineField
-        label="Maximum lines"
+        label='Maximum lines'
         labelWidth={28}
         tooltip={
           <>
@@ -23,11 +23,11 @@ export const QuerySettings = (props: Props) => {
         }
       >
         <Input
-          className="width-8"
-          type="number"
+          className='width-8'
+          type='number'
           value={maxLines}
           onChange={(event: React.FormEvent<HTMLInputElement>) => onMaxLinedChange(event.currentTarget.value)}
-          placeholder="1000"
+          placeholder='1000'
           spellCheck={false}
         />
       </InlineField>

@@ -1,7 +1,7 @@
-import { useMemo } from "react";
-import * as React from "react";
+import { useMemo } from 'react';
+import * as React from 'react';
 
-import { Icon, Tooltip } from "@grafana/ui";
+import { Icon, Tooltip } from '@grafana/ui';
 
 export const QueryEditorHelp = () => {
   const helpTooltipContent = useMemo(() => {
@@ -32,8 +32,8 @@ export const QueryEditorHelp = () => {
   }, []);
 
   return (
-    <Tooltip placement="top" content={helpTooltipContent} theme="info">
-      <Icon name="info-circle" size="sm" width={16} height={16} />
+    <Tooltip placement='top' content={helpTooltipContent} theme='info'>
+      <Icon name='info-circle' size='sm' width={16} height={16} />
     </Tooltip>
   );
 };

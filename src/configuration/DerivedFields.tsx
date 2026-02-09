@@ -1,18 +1,18 @@
-import { css } from "@emotion/css";
-import React, { useCallback, useState } from "react";
+import { css } from '@emotion/css';
+import React, { useCallback, useState } from 'react';
 
-import { GrafanaTheme2, VariableOrigin, DataLinkBuiltInVars } from "@grafana/data";
-import { ConfigDescriptionLink } from "@grafana/plugin-ui";
-import { Button, Stack, Text, useTheme2 } from "@grafana/ui";
+import { GrafanaTheme2, VariableOrigin, DataLinkBuiltInVars } from '@grafana/data';
+import { ConfigDescriptionLink } from '@grafana/plugin-ui';
+import { Button, Stack, Text, useTheme2 } from '@grafana/ui';
 
-import { DerivedFieldConfig } from "../types";
+import { DerivedFieldConfig } from '../types';
 
-import { DebugSection } from "./DebugSection";
-import { DerivedField } from "./DerivedField";
+import { DebugSection } from './DebugSection';
+import { DerivedField } from './DerivedField';
 
 const getStyles = (theme: GrafanaTheme2) => ({
   addButton: css({
-    marginRight: "10px",
+    marginRight: '10px',
   }),
   derivedField: css({
     marginBottom: theme.spacing(1),
@@ -44,14 +44,14 @@ export const DerivedFields = ({ fields = [], onChange }: Props) => {
   );
 
   return (
-    <Stack direction="column" gap={2}>
+    <Stack direction='column' gap={2}>
       <div>
-        <Text variant="h4">Derived fields</Text>
-        <Text variant="bodySmall" color="disabled" element="p">
+        <Text variant='h4'>Derived fields</Text>
+        <Text variant='bodySmall' color='disabled' element='p'>
           <ConfigDescriptionLink
-            description="Derived fields can be used to extract new fields from a log message and create a link from its value."
-            suffix="loki/configure-loki-data-source/#derived-fields"
-            feature="derived fields"
+            description='Derived fields can be used to extract new fields from a log message and create a link from its value.'
+            suffix='loki/configure-loki-data-source/#derived-fields'
+            feature='derived fields'
           />
         </Text>
       </div>
@@ -76,8 +76,8 @@ export const DerivedFields = ({ fields = [], onChange }: Props) => {
             suggestions={[
               {
                 value: DataLinkBuiltInVars.valueRaw,
-                label: "Raw value",
-                documentation: "Exact string captured by the regular expression",
+                label: 'Raw value',
+                documentation: 'Exact string captured by the regular expression',
                 origin: VariableOrigin.Value,
               },
             ]}
@@ -86,17 +86,17 @@ export const DerivedFields = ({ fields = [], onChange }: Props) => {
 
         <div>
           <Button
-            variant="secondary"
+            variant='secondary'
             className={styles.addButton}
-            icon="plus"
+            icon='plus'
             onClick={(event) => {
               event.preventDefault();
               const emptyConfig: DerivedFieldConfig = {
-                name: "",
-                matcherRegex: "",
-                urlDisplayLabel: "",
-                url: "",
-                matcherType: "regex",
+                name: '',
+                matcherRegex: '',
+                urlDisplayLabel: '',
+                url: '',
+                matcherType: 'regex',
               };
               const newDerivedFields = [...fields, emptyConfig];
               onChange(newDerivedFields);
@@ -106,8 +106,8 @@ export const DerivedFields = ({ fields = [], onChange }: Props) => {
           </Button>
 
           {fields.length > 0 && (
-            <Button variant="secondary" type="button" onClick={() => setShowDebug(!showDebug)}>
-              {showDebug ? "Hide example log message" : "Show example log message"}
+            <Button variant='secondary' type='button' onClick={() => setShowDebug(!showDebug)}>
+              {showDebug ? 'Hide example log message' : 'Show example log message'}
             </Button>
           )}
         </div>
@@ -116,7 +116,7 @@ export const DerivedFields = ({ fields = [], onChange }: Props) => {
           <div className={styles.debugSection}>
             <DebugSection
               className={css({
-                marginBottom: "10px",
+                marginBottom: '10px',
               })}
               derivedFields={fields}
             />
