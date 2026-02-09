@@ -195,11 +195,19 @@ export class VictoriaLogsDatasource
         value: '$__interval_ms',
       },
     };
+
+    let extraFilters = this.getExtraFilters(adhocFilters, target.extraFilters);
+    let expr = this.interpolateString(target.expr, variables);
+    if (target.isApplyExtraFiltersToRootQuery && extraFilters) {
+      expr = `${extraFilters} | ${expr}`;
+      extraFilters = undefined;
+    }
+
     return {
       ...target,
       legendFormat: this.templateSrv.replace(target.legendFormat, rest),
-      expr: this.interpolateString(target.expr, variables),
-      extraFilters: this.getExtraFilters(adhocFilters, target.extraFilters),
+      expr,
+      extraFilters,
     };
   }
 

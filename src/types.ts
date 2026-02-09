@@ -24,7 +24,7 @@ export const QUERY_DIRECTION = {
   asc: 'asc',
   desc: 'desc',
 } as const;
-export type QueryDirection = typeof QUERY_DIRECTION[keyof typeof QUERY_DIRECTION];
+export type QueryDirection = (typeof QUERY_DIRECTION)[keyof typeof QUERY_DIRECTION];
 
 export enum SupportingQueryType {
   DataSample = 'dataSample',
@@ -54,8 +54,12 @@ export interface Query extends DataQuery {
   direction?: QueryDirection;
   supportingQueryType?: SupportingQueryType;
   queryType?: QueryType;
-  interval?: string; // for /select/logsql/query
-  fields?: string[]; // groups the results by the specified field value for /select/logsql/hits
+  /** for /select/logsql/query */
+  interval?: string;
+  /** groups the results by the specified field value for /select/logsql/hits */
+  fields?: string[];
+  /** if true, adhoc filters will be applied as the root filter, otherwise as an extra_filters */
+  isApplyExtraFiltersToRootQuery?: boolean;
 }
 
 export type VictoriaLogsQueryEditorProps = QueryEditorProps<VictoriaLogsDatasource, Query, Options>;

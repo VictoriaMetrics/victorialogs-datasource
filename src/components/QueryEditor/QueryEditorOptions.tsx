@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 
 import { CoreApp, isValidGrafanaDuration, SelectableValue } from '@grafana/data';
-import { AutoSizeInput, RadioButtonGroup, TextLink } from '@grafana/ui';
+import { AutoSizeInput, InlineSwitch, RadioButtonGroup, TextLink } from '@grafana/ui';
 
 import { VICTORIA_LOGS_DOCS_HOST } from '../../conf';
 import { Query, QueryType } from '../../types';
@@ -46,6 +46,7 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
   }, [query.step]);
 
   const collapsedInfo = getCollapsedInfo({
+    app,
     query,
     queryType,
     maxLines,
@@ -74,6 +75,11 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
 
   const onStepChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
     onChange({ ...query, step: e.currentTarget.value.trim() });
+    onRunQuery();
+  };
+
+  const onFiltersToRootQueryChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
+    onChange({ ...query, isApplyExtraFiltersToRootQuery: e.currentTarget.checked });
     onRunQuery();
   };
 
@@ -136,6 +142,17 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
             />
           </EditorField>
         )}
+        {app !== CoreApp.Explore && (
+          <EditorField
+            label='Ad-hoc filters to root query'
+            tooltip='When enabled, ad-hoc filters are prepended to the query expression instead of being sent as extra_filters parameter. This prevents filters from propagating into join/union subqueries.'
+          >
+            <InlineSwitch
+              value={query.isApplyExtraFiltersToRootQuery ?? false}
+              onChange={onFiltersToRootQueryChange}
+            />
+          </EditorField>
+        )}
       </QueryEditorOptionsGroup>
     </EditorRow>
   );
@@ -145,13 +162,14 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
 QueryEditorOptions.displayName = 'QueryEditorOptions';
 
 interface CollapsedInfoProps {
+  app?: CoreApp;
   query: Query;
   maxLines: number,
   isValidStep: boolean,
   queryType?: string;
 }
 
-function getCollapsedInfo({ query, queryType, maxLines, isValidStep }: CollapsedInfoProps): string[] {
+function getCollapsedInfo({ app, query, queryType, maxLines, isValidStep }: CollapsedInfoProps): string[] {
   const items: string[] = [];
 
   const queryTypeLabel = queryTypeOptions.find(option => option.value === queryType)?.label || 'unknown';
@@ -165,6 +183,14 @@ function getCollapsedInfo({ query, queryType, maxLines, isValidStep }: Collapsed
 
   if (queryType === QueryType.Instant && maxLines) {
     items.push(`Line limit: ${query.maxLines ?? maxLines}`);
+  }
+
+  if (app !== CoreApp.Explore) {
+    if (query.isApplyExtraFiltersToRootQuery) {
+      items.push('Ad-hoc filters: root query');
+    } else {
+      items.push('Ad-hoc filters: extra_filters');
+    }
   }
 
   return items;
