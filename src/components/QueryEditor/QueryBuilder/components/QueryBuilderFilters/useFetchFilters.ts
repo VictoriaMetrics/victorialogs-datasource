@@ -1,13 +1,13 @@
-import { debounce } from "lodash";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { debounce } from 'lodash';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
-import { TimeRange } from "@grafana/data";
-import { ComboboxOption } from "@grafana/ui";
+import { TimeRange } from '@grafana/data';
+import { ComboboxOption } from '@grafana/ui';
 
-import { VictoriaLogsDatasource } from "../../../../../datasource";
-import { FilterFieldType, VisualQuery } from "../../../../../types";
-import { deleteByIndexPath } from "../../utils/modifyFilterVisualQuery/deleteByIndexPath";
-import { filterVisualQueryToString } from "../../utils/parseToString";
+import { VictoriaLogsDatasource } from '../../../../../datasource';
+import { FilterFieldType, VisualQuery } from '../../../../../types';
+import { deleteByIndexPath } from '../../utils/modifyFilterVisualQuery/deleteByIndexPath';
+import { filterVisualQueryToString } from '../../utils/parseToString';
 
 const DEBOUNCE_MS = 300;
 const MAX_VISIBLE_OPTIONS = 1000;
@@ -48,8 +48,8 @@ export const useFetchFilters = ({
     );
 
     const result: ComboboxOption[] = list ? list.map(({ value, hits }) => ({
-      value: value || "",
-      label: value || " ",
+      value: value || '',
+      label: value || ' ',
       description: `hits: ${hits}`,
     })) : [];
 
@@ -90,7 +90,7 @@ export const useFetchFilters = ({
       if (limitReached) {
         const warningOption: ComboboxOption = {
           value: '',
-          label: `Too many distinct values. Please type more characters`,
+          label: 'Too many distinct values. Please type more characters',
           description: `The server returned first ${limit} values. You can increase the limit in datasource settings, but be aware of potential performance issues.`,
           infoOption: true
         };

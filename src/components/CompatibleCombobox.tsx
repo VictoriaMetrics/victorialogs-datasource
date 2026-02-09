@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo } from 'react';
 
-import { AsyncSelect, Combobox, Select, SelectValue } from "@grafana/ui";
+import { AsyncSelect, Combobox, Select, SelectValue } from '@grafana/ui';
 
 /**
  * A compatibility wrapper for static select that uses Combobox in Grafana 11+
@@ -32,7 +32,7 @@ export const CompatibleCombobox: typeof Combobox = (props) => {
       return props.options(value);
     }
     return new Promise<SelectValue<any>>(() => {});
-  }, [props])
+  }, [props]);
 
   const selectOptions = useMemo(() => {
     if (Array.isArray(props.options)) {
@@ -66,7 +66,7 @@ export const CompatibleCombobox: typeof Combobox = (props) => {
         isLoading={props.loading}
         disabled={props.disabled}
       />
-    )
+    );
   }
 
   return (

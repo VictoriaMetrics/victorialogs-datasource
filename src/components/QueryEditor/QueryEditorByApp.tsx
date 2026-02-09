@@ -16,6 +16,6 @@ const QueryEditorByApp = (props: VictoriaLogsQueryEditorProps) => {
     default:
       return <QueryEditor {...props} />;
   }
-}
+};
 
 export default memo(QueryEditorByApp);

@@ -1,4 +1,4 @@
-import { from, isObservable, Observable } from "rxjs";
+import { from, isObservable, Observable } from 'rxjs';
 
 import {
   DataFrame,
@@ -11,14 +11,14 @@ import {
   LogLevel,
   MutableDataFrame,
   toDataFrame
-} from "@grafana/data";
-import { BarAlignment, GraphDrawStyle, StackingMode } from "@grafana/schema";
+} from '@grafana/data';
+import { BarAlignment, GraphDrawStyle, StackingMode } from '@grafana/schema';
 
-import { LOG_LEVEL_COLOR } from "./configuration/LogLevelRules/const";
-import { LogLevelRule } from "./configuration/LogLevelRules/types";
-import { extractLevelFromLabels } from "./configuration/LogLevelRules/utils";
-import { VictoriaLogsDatasource } from "./datasource";
-import { Query } from "./types";
+import { LOG_LEVEL_COLOR } from './configuration/LogLevelRules/const';
+import { LogLevelRule } from './configuration/LogLevelRules/types';
+import { extractLevelFromLabels } from './configuration/LogLevelRules/utils';
+import { VictoriaLogsDatasource } from './datasource';
+import { Query } from './types';
 
 export const LOGS_VOLUME_BARS = 100;
 
@@ -78,7 +78,7 @@ export const queryLogsVolume = (datasource: VictoriaLogsDatasource, request: Dat
       subscription?.unsubscribe();
     };
   });
-}
+};
 
 /**
  * Take multiple data frames, sum up values and group by level.
@@ -124,7 +124,7 @@ function aggregateFields(
     return aggregatedDataFrame;
   }
 
-  const totalSeconds = request.range.to.diff(request.range.from, "second");
+  const totalSeconds = request.range.to.diff(request.range.from, 'second');
   const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || 1;
   const uniqTimes = Array.from(
     { length: LOGS_VOLUME_BARS },
@@ -187,5 +187,5 @@ const extractLevel = (frame: DataFrame, rules: LogLevelRule[]): LogLevel => {
     return LogLevel.unknown;
   }
 
-  return extractLevelFromLabels(valueField.labels, rules)
-}
+  return extractLevelFromLabels(valueField.labels, rules);
+};

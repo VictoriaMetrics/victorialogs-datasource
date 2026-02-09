@@ -1,19 +1,19 @@
 import { groupBy } from 'lodash';
-import { useMemo } from "react";
+import { useMemo } from 'react';
 
-import { LogLevel } from "@grafana/data";
+import { LogLevel } from '@grafana/data';
 
 import {
   OperatorLabels,
   possibleLogValueByLevelType,
   UNIQ_LOG_LEVEL,
   UniqLogLevelKeys
-} from "../../../../configuration/LogLevelRules/const";
-import { LogLevelRule } from "../../../../configuration/LogLevelRules/types";
+} from '../../../../configuration/LogLevelRules/const';
+import { LogLevelRule } from '../../../../configuration/LogLevelRules/types';
 
-import { QueryHint, QueryHintSectionBase } from "./types";
+import { QueryHint, QueryHintSectionBase } from './types';
 
-type LevelHint = Pick<QueryHint, "title" | "queryExpr">;
+type LevelHint = Pick<QueryHint, 'title' | 'queryExpr'>;
 
 export const useLevelQueryHintSection = (levelRules: LogLevelRule[]): QueryHintSectionBase<LevelHint> => {
   return useMemo(() => {

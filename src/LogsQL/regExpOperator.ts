@@ -138,5 +138,5 @@ export function doubleQuoteRegExp(queryExpr: string, variables: string[]): strin
 export function correctRegExpValueAll(queryExpr: string): string {
   return queryExpr
     .replace(/:\s*~\s*"\*"/g, ':~".*"') // for regexp operator
-    .replace(/:\s*!\s*~\s*"\*"/g, ':!~".*"') // for negative regexp operator
+    .replace(/:\s*!\s*~\s*"\*"/g, ':!~".*"'); // for negative regexp operator
 }

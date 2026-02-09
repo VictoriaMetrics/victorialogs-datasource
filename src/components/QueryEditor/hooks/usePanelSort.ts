@@ -1,11 +1,11 @@
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
-import { CoreApp, LogSortOrderChangeEvent } from "@grafana/data";
-import { getAppEvents } from "@grafana/runtime";
+import { CoreApp, LogSortOrderChangeEvent } from '@grafana/data';
+import { getAppEvents } from '@grafana/runtime';
 
-import { storeKeys } from "../../../store/constants";
-import store from "../../../store/store";
-import { Query } from "../../../types";
+import { storeKeys } from '../../../store/constants';
+import store from '../../../store/store';
+import { Query } from '../../../types';
 
 export const useLogsSort = (
   app: CoreApp | undefined,

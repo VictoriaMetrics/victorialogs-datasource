@@ -68,17 +68,17 @@ export const DerivedField = (props: Props) => {
   const invalidName = !validateName(value.name);
 
   return (
-    <div className={className} data-testid="derived-field">
-      <div className="gf-form">
-        <Field className={styles.nameField} label="Name" invalid={invalidName} error="The name is already in use">
-          <Input value={value.name} onChange={handleChange('name')} placeholder="Field name" invalid={invalidName}/>
+    <div className={className} data-testid='derived-field'>
+      <div className='gf-form'>
+        <Field className={styles.nameField} label='Name' invalid={invalidName} error='The name is already in use'>
+          <Input value={value.name} onChange={handleChange('name')} placeholder='Field name' invalid={invalidName} />
         </Field>
         <Field
           className={styles.nameMatcherField}
           label={
             <TooltipLabel
-              label="Type"
-              content="Derived fields can be created from labels or by applying a regular expression to the log message."
+              label='Type'
+              content='Derived fields can be created from labels or by applying a regular expression to the log message.'
             />
           }
         >
@@ -106,23 +106,23 @@ export const DerivedField = (props: Props) => {
             <>
               {fieldType === 'regex' && (
                 <TooltipLabel
-                  label="Regex"
-                  content="Use to parse and capture some part of the log message. You can use the captured groups in the template."
+                  label='Regex'
+                  content='Use to parse and capture some part of the log message. You can use the captured groups in the template.'
                 />
               )}
 
-              {fieldType === 'label' && <TooltipLabel label="Label" content="Use to derive the field from a label."/>}
+              {fieldType === 'label' && <TooltipLabel label='Label' content='Use to derive the field from a label.' />}
             </>
           }
         >
-          <Input value={value.matcherRegex} onChange={handleChange('matcherRegex')}/>
+          <Input value={value.matcherRegex} onChange={handleChange('matcherRegex')} />
         </Field>
-        <Field label="">
+        <Field label=''>
           <Button
-            aria-label="Remove field"
-            variant="destructive"
-            title="Remove field"
-            icon="times"
+            aria-label='Remove field'
+            variant='destructive'
+            title='Remove field'
+            icon='times'
             onClick={(event) => {
               event.preventDefault();
               onDelete();
@@ -131,7 +131,7 @@ export const DerivedField = (props: Props) => {
         </Field>
       </div>
 
-      <div className="gf-form">
+      <div className='gf-form'>
         <Field label={isVisibleInternalLink ? 'Query' : 'URL'} className={styles.urlField}>
           <DataLinkInput
             placeholder={isVisibleInternalLink ? '${__value.raw}' : 'http://example.com/${__value.raw}'}
@@ -149,17 +149,17 @@ export const DerivedField = (props: Props) => {
           className={styles.urlDisplayLabelField}
           label={
             <TooltipLabel
-              label="URL Label"
-              content="Use to override the button label when this derived field is found in a log."
+              label='URL Label'
+              content='Use to override the button label when this derived field is found in a log.'
             />
           }
         >
-          <Input value={value.urlDisplayLabel} onChange={handleChange('urlDisplayLabel')}/>
+          <Input value={value.urlDisplayLabel} onChange={handleChange('urlDisplayLabel')} />
         </Field>
       </div>
 
-      <div className="gf-form">
-        <Field label="Internal link" className={styles.internalLink}>
+      <div className='gf-form'>
+        <Field label='Internal link' className={styles.internalLink}>
           <Switch
             value={showInternalLink}
             onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -176,7 +176,7 @@ export const DerivedField = (props: Props) => {
         </Field>
 
         {showInternalLink && (
-          <Field label="" className={styles.dataSource}>
+          <Field label='' className={styles.dataSource}>
             <DataSourcePicker
               tracing={true}
               onChange={(ds: DataSourceInstanceSettings) =>
@@ -198,8 +198,8 @@ export const DerivedField = (props: Props) => {
 const TooltipLabel = ({ content, label }: { content: string; label: string }) => (
   <Label>
     {label}
-    <Tooltip placement="top" content={content} theme="info">
-      <Icon tabIndex={0} name="info-circle" size="sm" style={{ marginLeft: '10px' }}/>
+    <Tooltip placement='top' content={content} theme='info'>
+      <Icon tabIndex={0} name='info-circle' size='sm' style={{ marginLeft: '10px' }} />
     </Tooltip>
   </Label>
 );

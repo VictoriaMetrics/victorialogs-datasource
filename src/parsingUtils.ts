@@ -7,7 +7,7 @@ const varTypeFunc = [
 export const variableRegex = /\$(\w+)|\[\[([\s\S]+?)(?::(\w+))?]]|\${(\w+)(?:\.([^:^}]+))?(?::([^}]+))?}/g;
 
 export function returnVariables(expr: string) {
-  const replacer = (match: string, type: any, v: any, f: any) => varTypeFunc[parseInt(type, 10)](v, f)
+  const replacer = (match: string, type: any, v: any, f: any) => varTypeFunc[parseInt(type, 10)](v, f);
   return expr.replace(/__V_(\d)__(.+?)__V__(?:__F__(\w+)__F__)?/g, replacer);
 }
 
@@ -150,7 +150,7 @@ function detectOperator(queryExpr: string, varIndex: number): OperatorInfo {
   length = 2;
   leftSpaces = countLeftSpaces(queryExpr, startOperatorIndex);
   const twoCharsBeforeSpaces = queryExpr.slice(Math.max(0, startOperatorIndex), endOperatorPos);
-  const twoCharsOperators = [':=', ':!']
+  const twoCharsOperators = [':=', ':!'];
   if (twoCharsOperators.includes(twoCharsBeforeSpaces)) {
     const type = twoCharsBeforeSpaces.includes('!') ? OperatorType.NEGATED_EQUALS : OperatorType.EQUALS;
     return { type, length, leftSpaces, rightSpaces, startOperatorIndex };
@@ -161,7 +161,7 @@ function detectOperator(queryExpr: string, varIndex: number): OperatorInfo {
   length = 3;
   leftSpaces = countLeftSpaces(queryExpr, startOperatorIndex);
   const threeCharsBeforeSpaces = queryExpr.slice(Math.max(0, startOperatorIndex), endOperatorPos);
-  const threeCharsOperators = [':!=']
+  const threeCharsOperators = [':!='];
   if (threeCharsOperators.includes(threeCharsBeforeSpaces)) {
     return { type: OperatorType.NEGATED_EQUALS, length, leftSpaces, rightSpaces, startOperatorIndex };
   }
@@ -196,9 +196,9 @@ function transformNegatedOperator(
 
   let filterPart: string;
   if(operatorInfo.isStreamOperator){
-    filterPart = `${fieldName.trimEnd()} not_in(${varPattern})`
+    filterPart = `${fieldName.trimEnd()} not_in(${varPattern})`;
   } else {
-    filterPart = `!${fieldName.trimEnd()}:in(${varPattern})`
+    filterPart = `!${fieldName.trimEnd()}:in(${varPattern})`;
   }
 
   const transformed = `${beforeField}${filterPart}${afterVariable}`;

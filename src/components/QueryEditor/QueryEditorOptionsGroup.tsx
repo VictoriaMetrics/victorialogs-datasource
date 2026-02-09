@@ -17,7 +17,7 @@ const QueryEditorOptionsGroup = ({ title, children, collapsedInfo }: Props)  => 
 
   return (
     <div>
-      <div className={styles.header} onClick={toggleOpen} title="Click to edit options">
+      <div className={styles.header} onClick={toggleOpen} title='Click to edit options'>
         <div className={styles.toggle}>
           <Icon name={isOpen ? 'angle-down' : 'angle-right'} />
         </div>
@@ -33,7 +33,7 @@ const QueryEditorOptionsGroup = ({ title, children, collapsedInfo }: Props)  => 
       {isOpen && <div className={styles.body}>{children}</div>}
     </div>
   );
-}
+};
 
 export default QueryEditorOptionsGroup;
 

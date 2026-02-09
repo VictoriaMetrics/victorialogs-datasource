@@ -1,4 +1,4 @@
-import { FilterVisualQuery } from "../../../../../types";
+import { FilterVisualQuery } from '../../../../../types';
 
 import { deleteByIndexPath } from './deleteByIndexPath';
 
@@ -76,7 +76,7 @@ describe('deleteByIndexPath', () => {
             '_msg:info'
           ]
         },
-        "_msg:cpu"
+        '_msg:cpu'
       ]
     };
 
@@ -92,7 +92,7 @@ describe('deleteByIndexPath', () => {
             '_msg:info'
           ]
         },
-        "_msg:cpu"
+        '_msg:cpu'
       ]
     });
   });

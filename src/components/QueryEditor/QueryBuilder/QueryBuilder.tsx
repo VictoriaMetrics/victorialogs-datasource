@@ -1,16 +1,16 @@
-import { css } from "@emotion/css";
+import { css } from '@emotion/css';
 import React, { Fragment, memo } from 'react';
 
-import { GrafanaTheme2, TimeRange } from "@grafana/data";
-import { useStyles2 } from "@grafana/ui";
+import { GrafanaTheme2, TimeRange } from '@grafana/data';
+import { useStyles2 } from '@grafana/ui';
 
-import { VictoriaLogsDatasource } from "../../../datasource";
-import { FilterVisualQuery, VisualQuery } from "../../../types";
+import { VictoriaLogsDatasource } from '../../../datasource';
+import { FilterVisualQuery, VisualQuery } from '../../../types';
 
-import QueryBuilderAddFilter from "./components/QueryBuilderAddFilter";
-import QueryBuilderFieldFilter from "./components/QueryBuilderFilters/QueryBuilderFieldFilter";
-import QueryBuilderSelectOperator from "./components/QueryBuilderOperators/QueryBuilderSelectOperator";
-import { DEFAULT_FILTER_OPERATOR } from "./utils/parseToString";
+import QueryBuilderAddFilter from './components/QueryBuilderAddFilter';
+import QueryBuilderFieldFilter from './components/QueryBuilderFilters/QueryBuilderFieldFilter';
+import QueryBuilderSelectOperator from './components/QueryBuilderOperators/QueryBuilderSelectOperator';
+import { DEFAULT_FILTER_OPERATOR } from './utils/parseToString';
 
 interface Props {
   query: VisualQuery;
@@ -22,7 +22,7 @@ interface Props {
 
 const QueryBuilder = memo<Props>(({ datasource, query, onChange, timeRange }) => {
   const styles = useStyles2(getStyles);
-  const { filters } = query
+  const { filters } = query;
 
   return (
     <div className={styles.builderWrapper}>
@@ -35,7 +35,7 @@ const QueryBuilder = memo<Props>(({ datasource, query, onChange, timeRange }) =>
         indexPath={[]}
       />
     </div>
-  )
+  );
 });
 
 interface QueryBuilderFilterProps {
@@ -49,8 +49,8 @@ interface QueryBuilderFilterProps {
 
 const QueryBuilderFilter = (props: QueryBuilderFilterProps) => {
   const styles = useStyles2(getStyles);
-  const { datasource, filters, query, indexPath, timeRange, onChange } = props
-  const isRoot = !indexPath.length
+  const { datasource, filters, query, indexPath, timeRange, onChange } = props;
+  const isRoot = !indexPath.length;
   return (
     <div className={isRoot ? styles.builderWrapper : styles.filterWrapper}>
       {filters.values.map((filter, index) => (
@@ -99,10 +99,10 @@ const QueryBuilderFilter = (props: QueryBuilderFilterProps) => {
           onChange={onChange}
         />
       )}
-      <QueryBuilderAddFilter query={query} onAddFilter={onChange}/>
+      <QueryBuilderAddFilter query={query} onAddFilter={onChange} />
     </div>
-  )
-}
+  );
+};
 
 const getStyles = (theme: GrafanaTheme2) => {
   return {

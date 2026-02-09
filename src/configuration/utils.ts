@@ -1,6 +1,6 @@
-import { SyntheticEvent } from "react";
+import { SyntheticEvent } from 'react';
 
-import { SelectableValue } from "@grafana/data";
+import { SelectableValue } from '@grafana/data';
 
 
 export const getValueFromEventItem = (eventItem: SyntheticEvent<HTMLInputElement> | SelectableValue<string>) => {

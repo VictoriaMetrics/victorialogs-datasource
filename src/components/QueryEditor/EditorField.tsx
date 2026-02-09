@@ -27,8 +27,8 @@ const EditorField: FC<EditorFieldProps> = (props) => {
         {label}
         {optional && <span className={styles.optional}> - optional</span>}
         {tooltip && (
-          <Tooltip placement="top" content={tooltip} theme="info">
-            <Icon name="info-circle" size="sm" className={styles.icon} />
+          <Tooltip placement='top' content={tooltip} theme='info'>
+            <Icon name='info-circle' size='sm' className={styles.icon} />
           </Tooltip>
         )}
       </label>

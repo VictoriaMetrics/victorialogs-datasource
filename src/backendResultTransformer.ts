@@ -10,14 +10,14 @@ import {
   QueryResultMeta
 } from '@grafana/data';
 
-import { LogLevelRule } from "./configuration/LogLevelRules/types";
-import { extractLevelFromLabels } from "./configuration/LogLevelRules/utils";
+import { LogLevelRule } from './configuration/LogLevelRules/types';
+import { extractLevelFromLabels } from './configuration/LogLevelRules/utils';
 import { getDerivedFields } from './getDerivedFields';
 import { makeTableFrames } from './makeTableFrames';
 import { getHighlighterExpressionsFromQuery } from './queryUtils';
 import { dataFrameHasError } from './responseUtils';
 import { DerivedFieldConfig, Query, QueryType } from './types';
-import { getMillisecondsFromDuration } from "./utils/timeUtils";
+import { getMillisecondsFromDuration } from './utils/timeUtils';
 
 const ANNOTATIONS_REF_ID = 'Anno';
 
@@ -111,7 +111,7 @@ function processStreamsFrames(
 ): DataFrame[] {
   return frames.map((frame) => {
     const query = frame.refId !== undefined ? queryMap.get(frame.refId) : undefined;
-    const isAnnotations = query?.refId === ANNOTATIONS_REF_ID
+    const isAnnotations = query?.refId === ANNOTATIONS_REF_ID;
     return processStreamFrame(frame, query, derivedFieldConfigs, logLevelRules, isAnnotations);
   });
 }
@@ -214,8 +214,8 @@ const fillFrameWithNullValues = (frame: DataFrame, query: Query, startMs: number
       ...frame.fields[1],
       values: values,
     }]
-  }
-}
+  };
+};
 
 function getQueryMap(queries: Query[]) {
   return new Map(queries.map((query) => [query.refId, query]));

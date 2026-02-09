@@ -1,30 +1,30 @@
-import { css } from "@emotion/css";
+import { css } from '@emotion/css';
 import { isEqual } from 'lodash';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { CoreApp, GrafanaTheme2, LoadingState } from '@grafana/data';
 import { Button, ConfirmModal, Stack, useStyles2 } from '@grafana/ui';
 
-import { getQueryExprVariableRegExp } from "../../LogsQL/regExpOperator";
-import { isExprHasStatsPipeFunctions } from "../../LogsQL/statsPipeFunctions";
-import { LevelQueryFilter } from "../../configuration/LogLevelRules/LevelQueryFilter/LeveQueryFilter";
-import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from "../../types";
-import QueryEditorStatsWarn from "../QueryEditorStatsWarn";
+import { getQueryExprVariableRegExp } from '../../LogsQL/regExpOperator';
+import { isExprHasStatsPipeFunctions } from '../../LogsQL/statsPipeFunctions';
+import { LevelQueryFilter } from '../../configuration/LogLevelRules/LevelQueryFilter/LeveQueryFilter';
+import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from '../../types';
+import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 
-import { EditorHeader } from "./EditorHeader";
-import { QueryBuilderContainer } from "./QueryBuilder/QueryBuilderContainer";
-import { QueryEditorModeToggle } from "./QueryBuilder/QueryEditorModeToggle";
-import { buildVisualQueryFromString } from "./QueryBuilder/utils/parseFromString";
-import QueryCodeEditor from "./QueryCodeEditor";
-import { QueryEditorHelp } from "./QueryEditorHelp";
-import { QueryEditorOptions } from "./QueryEditorOptions";
-import QueryEditorVariableRegexpError from "./QueryEditorVariableRegexpError";
-import { QueryHintsExample } from "./QueryHints";
-import VmuiLink from "./VmuiLink";
-import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from "./constants";
-import { useDefaultExploreGraph } from "./hooks/useDefaultExploreGraph";
-import { useLogsSort } from "./hooks/usePanelSort";
-import { changeEditorMode, getQueryWithDefaults } from "./state";
+import { EditorHeader } from './EditorHeader';
+import { QueryBuilderContainer } from './QueryBuilder/QueryBuilderContainer';
+import { QueryEditorModeToggle } from './QueryBuilder/QueryEditorModeToggle';
+import { buildVisualQueryFromString } from './QueryBuilder/utils/parseFromString';
+import QueryCodeEditor from './QueryCodeEditor';
+import { QueryEditorHelp } from './QueryEditorHelp';
+import { QueryEditorOptions } from './QueryEditorOptions';
+import QueryEditorVariableRegexpError from './QueryEditorVariableRegexpError';
+import { QueryHintsExample } from './QueryHints';
+import VmuiLink from './VmuiLink';
+import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from './constants';
+import { useDefaultExploreGraph } from './hooks/useDefaultExploreGraph';
+import { useLogsSort } from './hooks/usePanelSort';
+import { changeEditorMode, getQueryWithDefaults } from './state';
 
 const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const styles = useStyles2(getStyles);
@@ -61,7 +61,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       onAddQuery?.({
         expr: newExpr,
         refId: '' // if empty, refId will be assigned in onAddQuery automatically
-      })
+      });
     } else {
       onChange({ ...query, expr: newExpr });
     }
@@ -90,9 +90,9 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     <>
       <ConfirmModal
         isOpen={parseModalOpen}
-        title="Query parsing"
-        body="There were errors while trying to parse the query. Continuing to visual builder may lose some parts of the query."
-        confirmText="Continue"
+        title='Query parsing'
+        body='There were errors while trying to parse the query. Continuing to visual builder may lose some parts of the query.'
+        confirmText='Continue'
         onConfirm={() => {
           onChange({ ...query, editorMode: QueryEditorMode.Builder });
           setParseModalOpen(false);
@@ -101,33 +101,33 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       />
       <div className={styles.wrapper}>
         <EditorHeader>
-          <Stack direction={"row"} alignItems={"center"}>
-            <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr}/>
+          <Stack direction={'row'} alignItems={'center'}>
+            <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr} />
             {app === CoreApp.Explore &&
-            <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange}/>}
+            <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />}
           </Stack>
-          <Stack direction={"row"} justifyContent={"flex-end"} alignItems={"center"}>
-            <QueryEditorHelp/>
+          <Stack direction={'row'} justifyContent={'flex-end'} alignItems={'center'}>
+            <QueryEditorHelp />
             <VmuiLink
               query={query}
               panelData={data}
               datasource={datasource}
             />
-            <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange}/>
+            <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange} />
             {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
               <Button
                 variant={dataIsStale ? 'primary' : 'secondary'}
-                size="sm"
+                size='sm'
                 onClick={onRunQuery}
                 icon={data?.state === LoadingState.Loading ? 'fa fa-spinner' : undefined}
                 disabled={data?.state === LoadingState.Loading}
               >
-                {queries && queries.length > 1 ? `Run queries` : `Run query`}
+                {queries && queries.length > 1 ? 'Run queries' : 'Run query'}
               </Button>
             )}
           </Stack>
         </EditorHeader>
-        <div className="flex-grow-1">
+        <div className='flex-grow-1'>
           {editorMode === QueryEditorMode.Builder ? (
             <QueryBuilderContainer
               datasource={props.datasource}
@@ -138,10 +138,10 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
               timeRange={timeRange}
             />
           ) : (
-            <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true}/>
+            <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
           )}
-          {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange}/>)}
-          {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType}/>)}
+          {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange} />)}
+          {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType} />)}
           <QueryEditorOptions
             query={query}
             onChange={onChange}
@@ -152,7 +152,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
         </div>
       </div>
     </>
-  )
+  );
 });
 
 const getStyles = (theme: GrafanaTheme2) => {
@@ -166,4 +166,4 @@ const getStyles = (theme: GrafanaTheme2) => {
 };
 
 QueryEditor.displayName = 'QueryEditor';
-export default QueryEditor
+export default QueryEditor;

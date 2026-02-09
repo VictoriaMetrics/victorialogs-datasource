@@ -181,7 +181,7 @@ describe('regExpOperator', () => {
   describe('lookRegExpOperatorBehind', () => {
     it('should return false for an empty string', () => {
       const result = isRegExpOperatorInLastFilter('');
-      expect(result).toBeFalsy()
+      expect(result).toBeFalsy();
     });
 
     it('should return false for a string without regexp operator', () => {
@@ -253,12 +253,12 @@ describe('regExpOperator', () => {
     });
 
     it('should return true if regexp filter contain |', () => {
-      const result = isRegExpOperatorInLastFilter(`filterName1:~"(a|b)$filter`);
+      const result = isRegExpOperatorInLastFilter('filterName1:~"(a|b)$filter');
       expect(result).toBeTruthy();
     });
 
     it('should return true if regexp filter contain escaping double quotes', () => {
-      const result = isRegExpOperatorInLastFilter(`filterName1:~ "\\"([^\\"]*)\\"$filter`);
+      const result = isRegExpOperatorInLastFilter('filterName1:~ "\\"([^\\"]*)\\"$filter');
       expect(result).toBeTruthy();
     });
   });
@@ -332,8 +332,8 @@ describe('regExpOperator', () => {
     });
 
     it('should handle newlines/tabs after :~ (whitespace is allowed)', () => {
-      const input = `f1:~\n"*"\nf2:~\t"*"`;
-      const output = `f1:~".*"\nf2:~".*"`;
+      const input = 'f1:~\n"*"\nf2:~\t"*"';
+      const output = 'f1:~".*"\nf2:~".*"';
       expect(correctRegExpValueAll(input)).toEqual(output);
     });
 
@@ -371,8 +371,8 @@ describe('regExpOperator', () => {
     });
 
     it('should replace :!~   "*": with spaces/newlines after operator', () => {
-      const input = `field:!~\n"*"\nother:1`;
-      const output = `field:!~".*"\nother:1`;
+      const input = 'field:!~\n"*"\nother:1';
+      const output = 'field:!~".*"\nother:1';
       expect(correctRegExpValueAll(input)).toEqual(output);
     });
 

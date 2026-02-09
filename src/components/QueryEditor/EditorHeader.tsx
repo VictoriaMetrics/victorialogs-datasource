@@ -11,7 +11,7 @@ interface EditorHeaderProps {
 export const EditorHeader: React.FC<EditorHeaderProps> = ({ children }) => {
   const styles = useStyles2(getStyles);
 
-  return <div className={styles.root}>{children}</div>
+  return <div className={styles.root}>{children}</div>;
 };
 
 const getStyles = (theme: GrafanaTheme2) => ({

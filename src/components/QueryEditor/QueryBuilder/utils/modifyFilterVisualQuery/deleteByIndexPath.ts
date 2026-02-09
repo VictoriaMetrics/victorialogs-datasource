@@ -1,4 +1,4 @@
-import { FilterVisualQuery } from "../../../../../types";
+import { FilterVisualQuery } from '../../../../../types';
 
 export function deleteByIndexPath(obj: FilterVisualQuery, indexPath: number[]): FilterVisualQuery {
   // Helper function to recursively navigate the object and create a new copy

@@ -48,8 +48,8 @@ export const HintItem = ({ hint, query, onQueryChange }: HintItemComponentProps)
             <>
               <TextLink
                 href={`${VICTORIA_LOGS_DOCS_HOST}/victorialogs/logsql/#${hint.id}`}
-                icon="external-link-alt"
-                variant={"body"}
+                icon='external-link-alt'
+                variant={'body'}
                 external
               >Documentation</TextLink>
             </>
@@ -70,40 +70,40 @@ export const HintItem = ({ hint, query, onQueryChange }: HintItemComponentProps)
           <code className={styles.code}>{hint.example}</code>
           <Card.Actions>
             <Button
-              size="sm"
-              variant="primary"
+              size='sm'
+              variant='primary'
               onClick={handleReplaceQuery}
-              aria-label="Replace current query with this example"
-              tooltip="Replace current query with this example"
+              aria-label='Replace current query with this example'
+              tooltip='Replace current query with this example'
             >
               Replace
             </Button>
             <Button
-              size="sm"
-              variant="secondary"
+              size='sm'
+              variant='secondary'
               onClick={handleAppendQuery}
-              aria-label="Append this example to current query"
-              tooltip="Append this example to current query as a pipe"
+              aria-label='Append this example to current query'
+              tooltip='Append this example to current query as a pipe'
             >
               Append
             </Button>
             <div className={styles.divider} />
             <ClipboardButton
-              icon="copy"
+              icon='copy'
               getText={() => hint.example}
-              size="sm"
-              aria-label="Copy this example to clipboard"
-              tooltip="Copy this example to clipboard"
-              variant="secondary"
+              size='sm'
+              aria-label='Copy this example to clipboard'
+              tooltip='Copy this example to clipboard'
+              variant='secondary'
             >
               Copy
             </ClipboardButton>
             <Button
-              size="sm"
-              variant="secondary"
+              size='sm'
+              variant='secondary'
               onClick={handleCreateNewQuery}
-              aria-label="Add this example as a new query"
-              tooltip="Add this example as a new query"
+              aria-label='Add this example as a new query'
+              tooltip='Add this example as a new query'
             >
               Add new query
             </Button>

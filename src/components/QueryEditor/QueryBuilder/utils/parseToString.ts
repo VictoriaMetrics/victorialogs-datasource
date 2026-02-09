@@ -1,7 +1,7 @@
-import { FilterVisualQuery, VisualQuery } from "../../../../types";
+import { FilterVisualQuery, VisualQuery } from '../../../../types';
 
-export const DEFAULT_FILTER_OPERATOR = "AND";
-export const DEFAULT_FIELD = "_msg";
+export const DEFAULT_FILTER_OPERATOR = 'AND';
+export const DEFAULT_FIELD = '_msg';
 
 export const filterVisualQueryToString = (
   query: FilterVisualQuery,
@@ -33,6 +33,6 @@ export const filterVisualQueryToString = (
 };
 
 export const parseVisualQueryToString = (query: VisualQuery): string => {
-  const pipesPart = query.pipes?.length ? ` | ${query.pipes.join(' | ')}` : ''
+  const pipesPart = query.pipes?.length ? ` | ${query.pipes.join(' | ')}` : '';
   return filterVisualQueryToString(query.filters) + pipesPart;
-}
+};

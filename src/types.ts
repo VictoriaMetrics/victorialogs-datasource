@@ -1,9 +1,9 @@
 import { DataFrame, DataSourceJsonData, KeyValue, QueryEditorProps } from '@grafana/data';
-import { BackendSrvRequest } from "@grafana/runtime";
+import { BackendSrvRequest } from '@grafana/runtime';
 import { DataQuery } from '@grafana/schema';
 
-import { LogLevelRule } from "./configuration/LogLevelRules/types";
-import { VictoriaLogsDatasource } from "./datasource";
+import { LogLevelRule } from './configuration/LogLevelRules/types';
+import { VictoriaLogsDatasource } from './datasource';
 
 export interface Options extends DataSourceJsonData {
   maxLines?: string;

@@ -1,6 +1,6 @@
-import { CoreApp } from "@grafana/data";
+import { CoreApp } from '@grafana/data';
 
-import { Query, QueryEditorMode, QueryType } from "../../types";
+import { Query, QueryEditorMode, QueryType } from '../../types';
 
 const queryEditorModeDefaultLocalStorageKey = 'VictoriaLogsQueryEditorModeDefault';
 
@@ -19,7 +19,7 @@ export function getQueryWithDefaults(query: Query, app?: CoreApp, panelPluginId?
     result = {
       ...result,
       queryType: getDefaultQueryTypeByPanel(panelPluginId) ?? getDefaultQueryTypeByApp(app),
-    }
+    };
   }
 
   return result;

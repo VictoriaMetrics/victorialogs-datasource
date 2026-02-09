@@ -1,4 +1,4 @@
-import { DataFrame, Labels } from "@grafana/data";
+import { DataFrame, Labels } from '@grafana/data';
 
 export function dataFrameHasError(frame: DataFrame): boolean {
   const labelSets: Labels[] = frame.fields.find((f) => f.name === 'labels')?.values ?? [];

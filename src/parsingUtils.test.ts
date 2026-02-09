@@ -30,7 +30,7 @@ describe('replaceOperatorWithIn', () => {
           expect(output).toBe('field1:in($variableName)');
         });
       });
-    })
+    });
 
     const negativeOperators = [':!', ':!='];
     negativeOperators.forEach(operator => {
@@ -268,7 +268,7 @@ describe('replaceOperatorWithIn', () => {
           expect(output).toBe(`field1${operator}$variableName1 field2:in($variableName2)`);
         });
       });
-    })
+    });
 
     const negativeOperators = [':!', ':!='];
     negativeOperators.forEach(operator => {

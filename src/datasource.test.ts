@@ -1,10 +1,10 @@
 import { AdHocVariableFilter } from '@grafana/data';
-import { TemplateSrv } from "@grafana/runtime";
+import { TemplateSrv } from '@grafana/runtime';
 
 // eslint-disable-next-line jest/no-mocks-import
-import { createDatasource } from "./__mocks__/datasource";
-import { VARIABLE_ALL_VALUE } from "./constants";
-import { VictoriaLogsDatasource } from "./datasource";
+import { createDatasource } from './__mocks__/datasource';
+import { VARIABLE_ALL_VALUE } from './constants';
+import { VictoriaLogsDatasource } from './datasource';
 
 const replaceMock = jest.fn().mockImplementation((a: string) => a);
 
@@ -50,7 +50,7 @@ describe('VictoriaLogsDatasource', () => {
     });
 
     it('should return a value escaped by stringify for one array element', () => {
-      expect(ds.interpolateQueryExpr(['arg // for &  test " this string ` end test'] as any, customVariable)).toEqual("$_StartMultiVariable_arg // for &  test \" this string ` end test_EndMultiVariable");
+      expect(ds.interpolateQueryExpr(['arg // for &  test " this string ` end test'] as any, customVariable)).toEqual('$_StartMultiVariable_arg // for &  test " this string ` end test_EndMultiVariable');
     });
   });
 
@@ -60,7 +60,7 @@ describe('VictoriaLogsDatasource', () => {
       const variables = { name: 'bar' };
       replaceMock.mockImplementation(() => `_stream:{app!~"${variables.name}"}`);
       const interpolatedQuery = ds.applyTemplateVariables({ expr, refId: 'A' }, {});
-      expect(interpolatedQuery.expr).toBe(`_stream:{app!~"bar"}`);
+      expect(interpolatedQuery.expr).toBe('_stream:{app!~"bar"}');
     });
 
     it('should retain the original query when no variables are present', () => {
@@ -127,7 +127,7 @@ describe('VictoriaLogsDatasource', () => {
       const scopedVars = {
         var: { text: 'foo,bar', value: ['foo', 'bar'] },
       };
-      const replaceValue = `$_StartMultiVariable_${scopedVars.var.value.join("_separator_")}_EndMultiVariable`
+      const replaceValue = `$_StartMultiVariable_${scopedVars.var.value.join('_separator_')}_EndMultiVariable`;
       const templateSrvMock = {
         replace: jest.fn((a: string) => a?.replace('$var', replaceValue)),
         getVariables: jest.fn().mockReturnValue([]),
@@ -247,11 +247,11 @@ describe('VictoriaLogsDatasource', () => {
       const variables = [
         {
           name: 'var1',
-          current: [{ value: "foo" }, { value: "bar" }],
+          current: [{ value: 'foo' }, { value: 'bar' }],
           multi: true,
-          type: "query",
+          type: 'query',
           query: {
-            type: "fieldValue"
+            type: 'fieldValue'
           }
         }, {
           name: 'var2',

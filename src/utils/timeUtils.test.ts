@@ -84,4 +84,4 @@ describe('timeUtils', () => {
       expect(getMillisecondsFromDuration('invalid')).toBe(0);
     });
   });
-})
+});

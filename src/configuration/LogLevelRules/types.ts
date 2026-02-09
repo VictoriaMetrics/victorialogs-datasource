@@ -1,4 +1,4 @@
-import { LogLevel } from "@grafana/data";
+import { LogLevel } from '@grafana/data';
 
 export interface LogLevelRule {
   field: string;

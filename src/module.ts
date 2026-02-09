@@ -6,4 +6,4 @@ import { VictoriaLogsDatasource } from './datasource';
 
 export const plugin = new DataSourcePlugin(VictoriaLogsDatasource)
   .setQueryEditor(QueryEditorByApp)
-  .setConfigEditor(ConfigEditor)
+  .setConfigEditor(ConfigEditor);

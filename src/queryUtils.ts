@@ -1,7 +1,7 @@
-import { SyntaxNode } from "@lezer/common";
+import { SyntaxNode } from '@lezer/common';
 import { escapeRegExp } from 'lodash';
 
-import { Filter, FilterOp, LineFilter, OrFilter, parser, PipeExact, PipeMatch, String } from "@grafana/lezer-logql"
+import { Filter, FilterOp, LineFilter, OrFilter, parser, PipeExact, PipeMatch, String } from '@grafana/lezer-logql';
 
 export function getNodesFromQuery(query: string, nodeTypes?: number[]): SyntaxNode[] {
   const nodes: SyntaxNode[] = [];

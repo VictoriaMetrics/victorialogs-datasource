@@ -41,7 +41,7 @@ describe('buildVisualQueryFromString', () => {
       operators: ['or'],
       values: [
         { operators: ['and'], values: ['field1:value1', 'field2:value2'] },
-        "field3:value3"
+        'field3:value3'
       ],
     });
     expect(result.query.pipes).toEqual([]);

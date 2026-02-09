@@ -1,6 +1,6 @@
-import { groupBy } from "lodash";
+import { groupBy } from 'lodash';
 
-import { DataFrame, Field, FieldType } from "@grafana/data";
+import { DataFrame, Field, FieldType } from '@grafana/data';
 
 export function makeTableFrames(instantMetricFrames: DataFrame[]): DataFrame[] {
   // first we remove frames that have no refId

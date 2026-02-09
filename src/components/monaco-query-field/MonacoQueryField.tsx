@@ -86,7 +86,7 @@ const MonacoQueryField = (props: Props) => {
           ...options,
           readOnly
         }}
-        language="promql"
+        language='promql'
         value={initialValue}
         onMount={(editor, monaco) => {
           // we setup on-blur
@@ -110,10 +110,10 @@ const MonacoQueryField = (props: Props) => {
 
           // handle: shift + enter
           editor.addAction({
-            id: "execute-shift-enter",
-            label: "Execute",
+            id: 'execute-shift-enter',
+            label: 'Execute',
             keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.Enter],
-            run: () => onRunQueryRef.current(editor.getValue() || "")
+            run: () => onRunQueryRef.current(editor.getValue() || '')
           });
 
           /* Something in this configuration of monaco doesn't bubble up [mod]+K, which the
@@ -128,7 +128,7 @@ const MonacoQueryField = (props: Props) => {
               {
                 range: new monaco.Range(1, 1, 1, 1),
                 contents: [
-                  { value: "**bold** _italics_ regular `code`" }
+                  { value: '**bold** _italics_ regular `code`' }
                 ],
                 options: {
                   className: styles.placeholder,

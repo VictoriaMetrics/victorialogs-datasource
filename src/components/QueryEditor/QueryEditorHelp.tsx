@@ -1,7 +1,7 @@
-import { useMemo } from "react";
-import * as React from "react";
+import { useMemo } from 'react';
+import * as React from 'react';
 
-import { Icon, Tooltip } from "@grafana/ui";
+import { Icon, Tooltip } from '@grafana/ui';
 
 export const QueryEditorHelp = () => {
   const helpTooltipContent = useMemo(() => {
@@ -28,12 +28,12 @@ export const QueryEditorHelp = () => {
 5. Restrictions:
    • Interpolation is NOT allowed in regexp (e.g., field:~$var)
    • Invalid usage will show an error message`;
-    return <pre>{helpText}</pre>
+    return <pre>{helpText}</pre>;
   }, []);
 
   return (
-    <Tooltip placement="top" content={helpTooltipContent} theme="info">
-      <Icon name="info-circle" size="sm" width={16} height={16} />
+    <Tooltip placement='top' content={helpTooltipContent} theme='info'>
+      <Icon name='info-circle' size='sm' width={16} height={16} />
     </Tooltip>
-  )
-}
+  );
+};

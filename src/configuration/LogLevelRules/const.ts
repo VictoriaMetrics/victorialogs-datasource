@@ -1,5 +1,5 @@
-import { LogLevel } from "@grafana/data";
-import { colors, ComboboxOption } from "@grafana/ui";
+import { LogLevel } from '@grafana/data';
+import { colors, ComboboxOption } from '@grafana/ui';
 
 import { LogLevelRuleType } from './types';
 
@@ -61,5 +61,5 @@ export const LOG_LEVEL_COLOR = {
   [LogLevel.info]: colors[0],
   [LogLevel.debug]: colors[5],
   [LogLevel.trace]: colors[2],
-  [LogLevel.unknown]: "#8e8e8e",
+  [LogLevel.unknown]: '#8e8e8e',
 };

@@ -1,8 +1,8 @@
-import { CoreApp } from "@grafana/data";
+import { CoreApp } from '@grafana/data';
 
 import { addLabelToQuery, addSortPipeToQuery, removeLabelFromQuery } from './modifyQuery';
-import store from "./store/store";
-import { Query, QueryType } from "./types";
+import store from './store/store';
+import { Query, QueryType } from './types';
 
 describe('modifyQuery', () => {
   describe('addLabelToQuery', () => {

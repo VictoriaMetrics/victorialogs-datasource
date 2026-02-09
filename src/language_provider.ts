@@ -75,7 +75,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
 
     const params = Object.fromEntries(urlParams);
 
-    const url = options.type === FilterFieldType.FieldName ? 'select/logsql/field_names' : `select/logsql/field_values`;
+    const url = options.type === FilterFieldType.FieldName ? 'select/logsql/field_names' : 'select/logsql/field_values';
     const key = `${url}?${urlParams.toString()}`;
 
     if (this.cacheValues.has(key)) {
@@ -128,7 +128,7 @@ function getArrayType(data: FieldHits[]): HitsValueType {
 }
 
 function sortFieldHits(data: FieldHits[]): FieldHits[] {
-  const filteredData = data.filter(item => item.value !== "");
+  const filteredData = data.filter(item => item.value !== '');
   const arrayType = getArrayType(filteredData);
 
   return filteredData.sort((a, b) => {

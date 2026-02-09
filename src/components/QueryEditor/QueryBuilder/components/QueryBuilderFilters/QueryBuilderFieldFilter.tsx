@@ -1,19 +1,19 @@
-import { css } from "@emotion/css";
-import React, { useCallback, useMemo } from "react";
+import { css } from '@emotion/css';
+import React, { useCallback, useMemo } from 'react';
 
-import { GrafanaTheme2, TimeRange } from "@grafana/data";
-import { IconButton, Label, useStyles2 } from "@grafana/ui";
+import { GrafanaTheme2, TimeRange } from '@grafana/data';
+import { IconButton, Label, useStyles2 } from '@grafana/ui';
 
-import { VictoriaLogsDatasource } from "../../../../../datasource";
-import { escapeLabelValueInExactSelector } from "../../../../../languageUtils";
-import { normalizeKey } from "../../../../../modifyQuery";
-import { VisualQuery } from "../../../../../types";
-import { CompatibleCombobox } from "../../../../CompatibleCombobox";
+import { VictoriaLogsDatasource } from '../../../../../datasource';
+import { escapeLabelValueInExactSelector } from '../../../../../languageUtils';
+import { normalizeKey } from '../../../../../modifyQuery';
+import { VisualQuery } from '../../../../../types';
+import { CompatibleCombobox } from '../../../../CompatibleCombobox';
 import { deleteByIndexPath } from '../../utils/modifyFilterVisualQuery/deleteByIndexPath';
-import { updateValueByIndexPath } from "../../utils/modifyFilterVisualQuery/updateByIndexPath";
-import { DEFAULT_FIELD } from "../../utils/parseToString";
+import { updateValueByIndexPath } from '../../utils/modifyFilterVisualQuery/updateByIndexPath';
+import { DEFAULT_FIELD } from '../../utils/parseToString';
 
-import { useFetchFilters } from "./useFetchFilters";
+import { useFetchFilters } from './useFetchFilters';
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -34,7 +34,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
       return {};
     }
     const field = matches[1] || DEFAULT_FIELD;
-    let fieldValue = matches[2] ?? (matches[1] ? "" : matches[0]);
+    let fieldValue = matches[2] ?? (matches[1] ? '' : matches[0]);
 
     // Remove surrounding quotes from fieldValue
     if (
@@ -98,11 +98,11 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
     <div className={styles.wrapper}>
       <div className={styles.header}>
         <Label>Filter</Label>
-        <IconButton name={'times'} tooltip={'Remove filter'} size="sm" onClick={handleRemoveFilter} />
+        <IconButton name={'times'} tooltip={'Remove filter'} size='sm' onClick={handleRemoveFilter} />
       </div>
       <div className={styles.content}>
         <CompatibleCombobox
-          placeholder="Select field name"
+          placeholder='Select field name'
           value={field ? { label: field, value: field } : null}
           options={loadFieldNames}
           onChange={handleSelectFieldName}
@@ -113,7 +113,7 @@ const QueryBuilderFieldFilter = ({ datasource, filter, query, indexPath, timeRan
         <span>:</span>
         <CompatibleCombobox
           key={field}
-          placeholder="Select field value"
+          placeholder='Select field value'
           value={fieldValue ? { label: fieldValue, value: fieldValue } : null}
           options={loadFieldValues}
           onChange={handleSelectFieldValue}

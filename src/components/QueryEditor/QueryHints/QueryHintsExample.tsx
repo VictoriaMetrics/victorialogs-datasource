@@ -44,13 +44,13 @@ export const QueryHintsExample = ({ query, onQueryChange }: QueryHintsExamplePro
 
   return (
     <>
-      <Button icon="question-circle" variant="secondary" size="sm" onClick={() => setIsModalOpen(true)}>
+      <Button icon='question-circle' variant='secondary' size='sm' onClick={() => setIsModalOpen(true)}>
         Quick start
       </Button>
 
       <Modal
         className={styles.modal}
-        title="LogsQL Query Examples"
+        title='LogsQL Query Examples'
         isOpen={isModalOpen}
         onDismiss={() => setIsModalOpen(false)}
         closeOnEscape

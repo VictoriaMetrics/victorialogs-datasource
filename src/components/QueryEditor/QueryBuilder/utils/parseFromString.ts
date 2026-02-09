@@ -1,6 +1,6 @@
-import { FilterVisualQuery, VisualQuery } from "../../../../types";
+import { FilterVisualQuery, VisualQuery } from '../../../../types';
 
-import { BUILDER_OPERATORS, isEmptyQuery } from "./parsing";
+import { BUILDER_OPERATORS, isEmptyQuery } from './parsing';
 
 interface Context {
   query: VisualQuery;
@@ -22,8 +22,8 @@ export const buildVisualQueryFromString = (expr: string): Context => {
 
   try {
     const { filters, pipes } = handleExpression(expr);
-    visQuery.filters = filters
-    visQuery.pipes = pipes
+    visQuery.filters = filters;
+    visQuery.pipes = pipes;
   } catch (err) {
     console.error(err);
     if (err instanceof Error) {
@@ -37,30 +37,30 @@ export const buildVisualQueryFromString = (expr: string): Context => {
   }
 
   return context;
-}
+};
 
 const handleExpression = (expr: string) => {
   const [filterStrPart, ...pipeParts] = expr.split('|').map(part => part.trim());
-  const filters = parseStringToFilterVisualQuery(filterStrPart)
+  const filters = parseStringToFilterVisualQuery(filterStrPart);
   return { filters, pipes: pipeParts };
-}
+};
 
 export const splitExpression = (expr: string): string[] => {
   return expr.split('|').map(part => part.trim());
 };
 
 const parseStringToFilterVisualQuery = (expression: string): FilterVisualQuery => {
-  const parsedExpressions = parseExpression(expression)
+  const parsedExpressions = parseExpression(expression);
 
   const groupFilterQuery = (parts: ParsedExpression[]): FilterVisualQuery => {
     const filter: FilterVisualQuery = {
       values: [],
       operators: [],
-    }
+    };
 
     const parsePart = (part: ParsedExpression, _index: number) => {
       if (!part) {
-        return
+        return;
       }
       if (typeof part === 'string') {
         if (BUILDER_OPERATORS.includes(part.toUpperCase())) {
@@ -71,14 +71,14 @@ const parseStringToFilterVisualQuery = (expression: string): FilterVisualQuery =
       } else {
         filter.values.push(groupFilterQuery(part));
       }
-    }
+    };
     parts.forEach(parsePart);
 
     return filter;
-  }
+  };
 
-  return groupFilterQuery(parsedExpressions)
-}
+  return groupFilterQuery(parsedExpressions);
+};
 
 const splitByTopLevelParentheses = (input: string) => {
   const result = [];
@@ -132,7 +132,7 @@ const splitByTopLevelParentheses = (input: string) => {
 
   return result.flatMap(splitPartByOperators).filter(Boolean);
 
-}
+};
 
 const parseExpression = (input: string): ParsedExpression[] => {
   const parts = splitByTopLevelParentheses(input);
@@ -145,11 +145,11 @@ const parseExpression = (input: string): ParsedExpression[] => {
       return part.trim();
     }
   });
-}
+};
 
 const parseStringPart = (expression: string) => {
   // Regex updated to handle :in(...) or simple key:value
   const regex = /("[^"]*"|'[^']*'|\S+)\s*:\s*(in\s*\([^)]*\)|"[^"]*"|'[^']*'|\S+)?|\S+/g;
   const matches = expression.match(regex) || [];
   return matches.map(match => match.trim());
-}
+};

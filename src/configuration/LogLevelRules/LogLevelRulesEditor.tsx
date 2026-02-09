@@ -3,10 +3,10 @@ import React from 'react';
 import { LogLevel, } from '@grafana/data';
 import { Button, Stack, InlineSwitch, Input, Select, Text, Tooltip, Badge } from '@grafana/ui';
 
-import { PropsConfigEditor } from "../ConfigEditor";
+import { PropsConfigEditor } from '../ConfigEditor';
 
-import { LOG_LEVEL_COLOR, LOG_LEVEL_OPTIONS, LOG_OPERATOR_OPTIONS } from "./const";
-import { LogLevelRule, LogLevelRuleType } from "./types";
+import { LOG_LEVEL_COLOR, LOG_LEVEL_OPTIONS, LOG_OPERATOR_OPTIONS } from './const';
+import { LogLevelRule, LogLevelRuleType } from './types';
 
 export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
   const { options, onOptionsChange } = props;
@@ -19,7 +19,7 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
         logLevelRules: rules,
       },
     });
-  }
+  };
 
   const rules = options.jsonData.logLevelRules || [];
 
@@ -49,10 +49,10 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
   };
 
   return (
-    <Stack direction="column" gap={2}>
+    <Stack direction='column' gap={2}>
       <div>
-        <Text variant="h4">Log Level Rules</Text>
-        <Text variant="bodySmall" color="disabled" element="p">
+        <Text variant='h4'>Log Level Rules</Text>
+        <Text variant='bodySmall' color='disabled' element='p'>
           Define rules to normalize log levels based on specific field values.
           Useful for mapping custom log formats to structured levels
           like <code>info</code>, <code>error</code>, <code>critical</code>, etc.
@@ -60,29 +60,29 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
       </div>
 
       {rules.length > 0 && (
-        <Stack direction="column" gap={0}>
+        <Stack direction='column' gap={0}>
           {rules.map(({ enabled = true, field, value, level = LogLevel.unknown, operator }, index) => (
-            <Stack direction="row" gap={0} key={index}>
+            <Stack direction='row' gap={0} key={index}>
 
               <div>
                 <InlineSwitch
-                  label="Enabled"
+                  label='Enabled'
                   value={enabled}
                   onChange={(e) => handleRuleChange(index, { enabled: e.currentTarget.checked })}
                 />
               </div>
 
               <Input
-                placeholder={"Field name"}
+                placeholder={'Field name'}
                 value={field}
                 onChange={(e) => handleRuleChange(index, { field: e.currentTarget.value })}
-                suffix={field === "level" && (
-                  <Tooltip content={"This rule will be ignored if the log entry already contains a level field."}>
+                suffix={field === 'level' && (
+                  <Tooltip content={'This rule will be ignored if the log entry already contains a level field.'}>
                     <div>
                       <Badge
-                        text={"May be skipped"}
-                        color={"orange"}
-                        icon="exclamation-triangle"
+                        text={'May be skipped'}
+                        color={'orange'}
+                        icon='exclamation-triangle'
                       />
                     </div>
                   </Tooltip>
@@ -99,7 +99,7 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
               </div>
 
               <Input
-                placeholder="Value"
+                placeholder='Value'
                 value={String(value ?? '')}
                 onChange={(e) => handleRuleChange(index, { value: e.currentTarget.value })}
               />
@@ -113,7 +113,7 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
                 />
               </div>
 
-              <div className="gf-form-label">
+              <div className='gf-form-label'>
                 {LOG_LEVEL_COLOR[level] && (
                   <div
                     style={{
@@ -129,10 +129,10 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
               </div>
 
               <Button
-                aria-label="Remove rule"
-                variant={"secondary"}
+                aria-label='Remove rule'
+                variant={'secondary'}
                 onClick={() => removeRule(index)}
-                icon="times"
+                icon='times'
               />
             </Stack>
           ))}
@@ -140,7 +140,7 @@ export const LogLevelRulesEditor = (props: PropsConfigEditor) => {
       )}
 
       <div>
-        <Button icon="plus" onClick={addRule} variant="secondary">
+        <Button icon='plus' onClick={addRule} variant='secondary'>
           Add rule
         </Button>
       </div>

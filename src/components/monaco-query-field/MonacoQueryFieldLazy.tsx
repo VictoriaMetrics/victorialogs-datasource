@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 
-import Field from './MonacoQueryField'
+import Field from './MonacoQueryField';
 import { Props } from './MonacoQueryFieldProps';
 
 export const MonacoQueryFieldLazy = (props: Props) => {

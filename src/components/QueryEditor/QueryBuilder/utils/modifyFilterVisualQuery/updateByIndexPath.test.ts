@@ -1,4 +1,4 @@
-import { FilterVisualQuery } from "../../../../../types";
+import { FilterVisualQuery } from '../../../../../types';
 
 import { updateValueByIndexPath, updateOperatorByIndexPath } from './updateByIndexPath';
 

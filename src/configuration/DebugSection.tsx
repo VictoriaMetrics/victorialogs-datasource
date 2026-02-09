@@ -1,6 +1,6 @@
 import React, { ReactNode, useState } from 'react';
 
-import { textUtil } from "@grafana/data";
+import { textUtil } from '@grafana/data';
 import { getTemplateSrv } from '@grafana/runtime';
 import { InlineField, TextArea } from '@grafana/ui';
 
@@ -21,11 +21,11 @@ export const DebugSection = (props: Props) => {
 
   return (
     <div className={className}>
-      <InlineField label="Debug log message" labelWidth={24} grow>
+      <InlineField label='Debug log message' labelWidth={24} grow>
         <TextArea
-          type="text"
-          aria-label="Loki query"
-          placeholder="Paste an example log line here to test the regular expressions of your derived fields"
+          type='text'
+          aria-label='Loki query'
+          placeholder='Paste an example log line here to test the regular expressions of your derived fields'
           value={debugText}
           onChange={(event) => setDebugText(event.currentTarget.value)}
         />

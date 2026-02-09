@@ -23,7 +23,7 @@ export const usePlotTimeSeriesHintsSection = (): QueryHintSection => {
         },
         {
           title: 'Stats with additional filters',
-          queryExpr: `<q> | stats by (_time:5m) count() if (<word1>) as <result_field1>, count() if (<word2>) as <result_field2>, count() as <result_field3>`,
+          queryExpr: '<q> | stats by (_time:5m) count() if (<word1>) as <result_field1>, count() if (<word2>) as <result_field2>, count() as <result_field3>',
           example: `* | stats by (_time:5m)
   count() if (error) as errors,
   count() if (warn) as warnings,

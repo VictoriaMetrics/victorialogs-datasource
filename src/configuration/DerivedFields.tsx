@@ -44,14 +44,14 @@ export const DerivedFields = ({ fields = [], onChange }: Props) => {
   );
 
   return (
-    <Stack direction="column" gap={2}>
+    <Stack direction='column' gap={2}>
       <div>
-        <Text variant="h4">Derived fields</Text>
-        <Text variant="bodySmall" color="disabled" element="p">
+        <Text variant='h4'>Derived fields</Text>
+        <Text variant='bodySmall' color='disabled' element='p'>
           <ConfigDescriptionLink
-            description="Derived fields can be used to extract new fields from a log message and create a link from its value."
-            suffix="loki/configure-loki-data-source/#derived-fields"
-            feature="derived fields"
+            description='Derived fields can be used to extract new fields from a log message and create a link from its value.'
+            suffix='loki/configure-loki-data-source/#derived-fields'
+            feature='derived fields'
           />
         </Text>
       </div>
@@ -86,9 +86,9 @@ export const DerivedFields = ({ fields = [], onChange }: Props) => {
 
         <div>
           <Button
-            variant="secondary"
+            variant='secondary'
             className={styles.addButton}
-            icon="plus"
+            icon='plus'
             onClick={(event) => {
               event.preventDefault();
               const emptyConfig: DerivedFieldConfig = {
@@ -106,7 +106,7 @@ export const DerivedFields = ({ fields = [], onChange }: Props) => {
           </Button>
 
           {fields.length > 0 && (
-            <Button variant="secondary" type="button" onClick={() => setShowDebug(!showDebug)}>
+            <Button variant='secondary' type='button' onClick={() => setShowDebug(!showDebug)}>
               {showDebug ? 'Hide example log message' : 'Show example log message'}
             </Button>
           )}
