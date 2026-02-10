@@ -17,6 +17,7 @@ import { QueryEditorModeToggle } from './QueryBuilder/QueryEditorModeToggle';
 import { buildVisualQueryFromString } from './QueryBuilder/utils/parseFromString';
 import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorHelp } from './QueryEditorHelp';
+import { LogsQLSyntaxHelp } from './LogsQLSyntaxHelp';
 import { QueryEditorOptions } from './QueryEditorOptions';
 import QueryEditorVariableRegexpError from './QueryEditorVariableRegexpError';
 import { QueryHintsExample } from './QueryHints';
@@ -53,7 +54,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     }
     changeEditorMode(query, newEditorMode, onChange);
   },
-  [query, onChange]
+    [query, onChange]
   );
 
   const onQueryExprChange = useCallback((newExpr: string, newQuery?: boolean) => {
@@ -104,9 +105,10 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
           <Stack direction={'row'} alignItems={'center'}>
             <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr} />
             {app === CoreApp.Explore &&
-            <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />}
+              <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />}
           </Stack>
           <Stack direction={'row'} justifyContent={'flex-end'} alignItems={'center'}>
+            <LogsQLSyntaxHelp />
             <QueryEditorHelp />
             <VmuiLink
               query={query}
