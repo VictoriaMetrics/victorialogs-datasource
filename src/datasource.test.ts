@@ -100,10 +100,7 @@ describe('VictoriaLogsDatasource', () => {
         getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
-      const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'foo: $var', refId: 'A' },
-        scopedVars
-      );
+      const replacedQuery = ds.applyTemplateVariables({ expr: 'foo: $var', refId: 'A' }, scopedVars);
       expect(replacedQuery.expr).toBe('foo: $var');
     });
 
@@ -116,10 +113,7 @@ describe('VictoriaLogsDatasource', () => {
         getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
-      const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'foo: $var', refId: 'A' },
-        scopedVars
-      );
+      const replacedQuery = ds.applyTemplateVariables({ expr: 'foo: $var', refId: 'A' }, scopedVars);
       expect(replacedQuery.expr).toBe('foo: "bar"');
     });
 
@@ -133,10 +127,7 @@ describe('VictoriaLogsDatasource', () => {
         getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
-      const replacedQuery = ds.applyTemplateVariables(
-        { expr: '_stream{val=~"$var"}', refId: 'A' },
-        scopedVars
-      );
+      const replacedQuery = ds.applyTemplateVariables({ expr: '_stream{val=~"$var"}', refId: 'A' }, scopedVars);
       expect(replacedQuery.expr).toBe('_stream{val=~"(foo|bar)"}');
     });
 
@@ -149,10 +140,7 @@ describe('VictoriaLogsDatasource', () => {
         getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
-      const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'foo: $var', refId: 'A' },
-        scopedVars
-      );
+      const replacedQuery = ds.applyTemplateVariables({ expr: 'foo: $var', refId: 'A' }, scopedVars);
       expect(replacedQuery.expr).toBe('foo: ("foo" OR "bar")');
     });
 
@@ -165,10 +153,7 @@ describe('VictoriaLogsDatasource', () => {
         getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
-      const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'foo: $var', refId: 'A' },
-        scopedVars
-      );
+      const replacedQuery = ds.applyTemplateVariables({ expr: 'foo: $var', refId: 'A' }, scopedVars);
       expect(replacedQuery.expr).toBe('foo: "0.0.0.0:3000"');
     });
 
@@ -184,10 +169,7 @@ describe('VictoriaLogsDatasource', () => {
         getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
-      const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'foo: $var', refId: 'A' },
-        scopedVars
-      );
+      const replacedQuery = ds.applyTemplateVariables({ expr: 'foo: $var', refId: 'A' }, scopedVars);
       expect(replacedQuery.expr).toBe('foo: ("http://localhost:3001/" OR "http://192.168.50.60:3000/foo")');
     });
 
@@ -200,10 +182,7 @@ describe('VictoriaLogsDatasource', () => {
         getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
-      const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'foo: $var', refId: 'A' },
-        scopedVars
-      );
+      const replacedQuery = ds.applyTemplateVariables({ expr: 'foo: $var', refId: 'A' }, scopedVars);
       expect(replacedQuery.expr).toBe('foo: ');
     });
 
@@ -217,12 +196,99 @@ describe('VictoriaLogsDatasource', () => {
         getVariables: jest.fn().mockReturnValue([]),
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
-      const replacedQuery = ds.applyTemplateVariables(
-        { expr: 'baz: $var1 AND qux: $var2', refId: 'A' },
-        scopedVars
-      );
+      const replacedQuery = ds.applyTemplateVariables({ expr: 'baz: $var1 AND qux: $var2', refId: 'A' }, scopedVars);
       expect(replacedQuery.expr).toBe('baz: "foo" AND qux: "bar"');
     });
+
+    it('should apply ad-hoc filters to root query when isApplyExtraFiltersToRootQuery is true', () => {
+      const adhocFilters: AdHocVariableFilter[] = [
+        { key: 'level', operator: '=', value: 'error' },
+      ];
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', isApplyExtraFiltersToRootQuery: true },
+        {},
+        adhocFilters
+      );
+      expect(replacedQuery.expr).toBe('level:="error" | _time:5m');
+      expect(replacedQuery.extraFilters).toBeUndefined();
+    });
+
+    it('should not apply ad-hoc filters to root query when isApplyExtraFiltersToRootQuery is false', () => {
+      const adhocFilters: AdHocVariableFilter[] = [
+        { key: 'level', operator: '=', value: 'error' },
+      ];
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', isApplyExtraFiltersToRootQuery: false },
+        {},
+        adhocFilters
+      );
+      expect(replacedQuery.expr).toBe('_time:5m');
+      expect(replacedQuery.extraFilters).toBe('level:="error"');
+    });
+
+    it('should apply multiple ad-hoc filters to root query when isApplyExtraFiltersToRootQuery is true', () => {
+      const adhocFilters: AdHocVariableFilter[] = [
+        { key: 'level', operator: '=', value: 'error' },
+        { key: 'app', operator: '!=', value: 'test' },
+      ];
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', isApplyExtraFiltersToRootQuery: true },
+        {},
+        adhocFilters
+      );
+      expect(replacedQuery.expr).toBe('level:="error" AND app:!="test" | _time:5m');
+      expect(replacedQuery.extraFilters).toBeUndefined();
+    });
+
+    it('should handle isApplyExtraFiltersToRootQuery when no ad-hoc filters are present', () => {
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', isApplyExtraFiltersToRootQuery: true },
+        {}
+      );
+      expect(replacedQuery.expr).toBe('_time:5m');
+      expect(replacedQuery.extraFilters).toBeUndefined();
+    });
+
+    it('should preserve existing extraFilters and apply them to root query when isApplyExtraFiltersToRootQuery is true', () => {
+      const adhocFilters: AdHocVariableFilter[] = [
+        { key: 'level', operator: '=', value: 'error' },
+      ];
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', extraFilters: 'app:="frontend"', isApplyExtraFiltersToRootQuery: true },
+        {},
+        adhocFilters
+      );
+      expect(replacedQuery.expr).toBe('app:="frontend" AND level:="error" | _time:5m');
+      expect(replacedQuery.extraFilters).toBeUndefined();
+    });
+
+
+
   });
 
   describe('getExtraFilters', () => {
