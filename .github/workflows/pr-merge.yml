@@ -1,7 +1,7 @@
 name: PR Merge - Update Related Issues with the 'waiting for release' label and comment
 
 on:
-  pull_request:
+  pull_request_target:
     types: [closed]
 
 jobs:
