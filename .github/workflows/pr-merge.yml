@@ -19,7 +19,6 @@ jobs:
         with:
           script: |
             const prBody = context.payload.pull_request.body || '';
-            const prNumber = context.payload.pull_request.number;
             
             let issueNumbers = new Set();
             
