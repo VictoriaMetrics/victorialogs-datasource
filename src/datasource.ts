@@ -33,7 +33,6 @@ import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, Templ
 
 import { correctMultiExactOperatorValueAll } from './LogsQL/multiExactOperator';
 import { correctRegExpValueAll, doubleQuoteRegExp, isRegExpOperatorInLastFilter } from './LogsQL/regExpOperator';
-import { transformBackendResult } from './backendResultTransformer';
 import QueryEditor from './components/QueryEditor/QueryEditor';
 import { LogLevelRule } from './configuration/LogLevelRules/types';
 import { TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
@@ -43,6 +42,7 @@ import { LOGS_VOLUME_BARS, queryLogsVolume } from './logsVolumeLegacy';
 import { addLabelToQuery, addSortPipeToQuery, queryHasFilter, removeLabelFromQuery } from './modifyQuery';
 import { removeDoubleQuotesAroundVar } from './parsing';
 import { replaceOperatorWithIn, returnVariables } from './parsingUtils';
+import { transformBackendResult } from './transformers';
 import {
   DerivedFieldConfig,
   FilterActionType,
