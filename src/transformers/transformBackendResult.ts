@@ -4,6 +4,7 @@ import { LogLevelRule } from '../configuration/LogLevelRules/types';
 import { DerivedFieldConfig, Query } from '../types';
 
 import {
+  processHistogramFrames,
   processMetricInstantFrames,
   processMetricRangeFrames,
   processStreamsFrames
@@ -33,7 +34,7 @@ export function transformBackendResult(
 
   const queryMap = getQueryMap(queries) as Map<string, Query>;
 
-  const { streamsFrames, metricInstantFrames, metricRangeFrames } = groupFrames(dataFrames, queryMap);
+  const { streamsFrames, metricInstantFrames, metricRangeFrames, histogramFrames } = groupFrames(dataFrames, queryMap);
 
   const improvedErrors = errors && errors.map((error) => improveError(error, queryMap)).filter((e) => e !== undefined);
 
@@ -44,6 +45,7 @@ export function transformBackendResult(
       ...processMetricRangeFrames(metricRangeFrames, request.targets, request.range.from.valueOf(), request.range.to.valueOf()),
       ...processMetricInstantFrames(metricInstantFrames),
       ...processStreamsFrames(streamsFrames, queryMap, derivedFieldConfigs, logLevelRules),
+      ...processHistogramFrames(histogramFrames),
     ],
   };
 }

@@ -41,6 +41,12 @@ export function groupFrames(
   const histogramFrames: DataFrame[] = [];
 
   frames.forEach((frame) => {
+    const isHistogramFrame = frame.refId != null && queryMap.get(frame.refId)?.format === 'histogram';
+    if (isHistogramFrame) {
+      histogramFrames.push(frame);
+      return;
+    }
+
     if (!isMetricFrame(frame)) {
       streamsFrames.push(frame);
     } else {

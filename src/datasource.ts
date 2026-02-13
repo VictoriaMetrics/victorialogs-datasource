@@ -39,7 +39,13 @@ import { TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { escapeLabelValueInSelector } from './languageUtils';
 import LogsQlLanguageProvider from './language_provider';
 import { LOGS_VOLUME_BARS, queryLogsVolume } from './logsVolumeLegacy';
-import { addLabelToQuery, addSortPipeToQuery, queryHasFilter, removeLabelFromQuery } from './modifyQuery';
+import {
+  addLabelToQuery,
+  addSortPipeToQuery,
+  getQueryFormat,
+  queryHasFilter,
+  removeLabelFromQuery
+} from './modifyQuery';
 import { removeDoubleQuotesAroundVar } from './parsing';
 import { replaceOperatorWithIn, returnVariables } from './parsingUtils';
 import { transformBackendResult } from './transformers';
@@ -126,6 +132,7 @@ export class VictoriaLogsDatasource
           expr: addSortPipeToQuery(q, request.app, request.liveStreaming),
           maxLines: q.maxLines ?? this.maxLines,
           timezoneOffset,
+          format: getQueryFormat(q.expr)
         };
       });
 

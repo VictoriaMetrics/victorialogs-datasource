@@ -10,3 +10,10 @@ export enum FrameField {
    * */
   DetectedLevel = 'detected_level'
 }
+
+export interface ParsedBucket {
+  yMin: number;
+  yMax: number;
+  timestamps: number[];
+  values: Array<number | null>;
+}
