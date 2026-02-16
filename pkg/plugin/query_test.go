@@ -9,16 +9,17 @@ import (
 
 func TestQuery_getQueryURL(t *testing.T) {
 	type opts struct {
-		RefID        string
-		Expr         string
-		MaxLines     int
-		TimeRange    backend.TimeRange
-		QueryType    QueryType
-		ExtraFilters string
-		rawURL       string
-		queryParams  string
-		want         string
-		wantErr      bool
+		RefID          string
+		Expr           string
+		MaxLines       int
+		TimeRange      backend.TimeRange
+		QueryType      QueryType
+		ExtraFilters   string
+		TimezoneOffset string
+		rawURL         string
+		queryParams    string
+		want           string
+		wantErr        bool
 	}
 
 	f := func(opts opts) {
@@ -28,11 +29,11 @@ func TestQuery_getQueryURL(t *testing.T) {
 				RefID:     opts.RefID,
 				TimeRange: opts.TimeRange,
 			},
-			Expr:     opts.Expr,
-			MaxLines: opts.MaxLines,
-
-			QueryType:    opts.QueryType,
-			ExtraFilters: opts.ExtraFilters,
+			Expr:           opts.Expr,
+			MaxLines:       opts.MaxLines,
+			QueryType:      opts.QueryType,
+			ExtraFilters:   opts.ExtraFilters,
+			TimezoneOffset: opts.TimezoneOffset,
 		}
 		got, err := q.getQueryURL(opts.rawURL, opts.queryParams)
 		if (err != nil) != opts.wantErr {
@@ -398,6 +399,70 @@ func TestQuery_getQueryURL(t *testing.T) {
 		QueryType: QueryTypeHits,
 		rawURL:    "http://127.0.0.1:9429",
 		want:      "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=%2A+and+syslog+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
+	}
+	f(o)
+
+	// stats range with timezone offset
+	o = opts{
+		RefID:    "1",
+		Expr:     "_time:1s | stats by(type) count()",
+		MaxLines: 10,
+		TimeRange: backend.TimeRange{
+			From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		QueryType:      QueryTypeStatsRange,
+		TimezoneOffset: "2h",
+		rawURL:         "http://127.0.0.1:9428",
+		want:           "http://127.0.0.1:9428/select/logsql/stats_query_range?end=1609462800&offset=2h&query=_time%3A1s+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
+	}
+	f(o)
+
+	// stats range with negative timezone offset
+	o = opts{
+		RefID:    "1",
+		Expr:     "_time:1s | stats by(type) count()",
+		MaxLines: 10,
+		TimeRange: backend.TimeRange{
+			From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		QueryType:      QueryTypeStatsRange,
+		TimezoneOffset: "-5h30m",
+		rawURL:         "http://127.0.0.1:9428",
+		want:           "http://127.0.0.1:9428/select/logsql/stats_query_range?end=1609462800&offset=-5h30m&query=_time%3A1s+%7C+stats+by%28type%29+count%28%29&start=1609459200&step=15s",
+	}
+	f(o)
+
+	// hits with timezone offset
+	o = opts{
+		RefID:    "1",
+		Expr:     "_time:1s",
+		MaxLines: 10,
+		TimeRange: backend.TimeRange{
+			From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		QueryType:      QueryTypeHits,
+		TimezoneOffset: "5h30m",
+		rawURL:         "http://127.0.0.1:9429",
+		want:           "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&offset=5h30m&query=_time%3A1s&start=1609459200&step=15s",
+	}
+	f(o)
+
+	// hits without timezone offset (empty string) - should not include offset param
+	o = opts{
+		RefID:    "1",
+		Expr:     "_time:1s",
+		MaxLines: 10,
+		TimeRange: backend.TimeRange{
+			From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		QueryType:      QueryTypeHits,
+		TimezoneOffset: "",
+		rawURL:         "http://127.0.0.1:9429",
+		want:           "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=_time%3A1s&start=1609459200&step=15s",
 	}
 	f(o)
 }

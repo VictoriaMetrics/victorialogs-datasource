@@ -29,7 +29,7 @@ import {
   toUtc,
   TypedVariableModel,
 } from '@grafana/data';
-import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, TemplateSrv, } from '@grafana/runtime';
+import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, TemplateSrv } from '@grafana/runtime';
 
 import { correctMultiExactOperatorValueAll } from './LogsQL/multiExactOperator';
 import { correctRegExpValueAll, doubleQuoteRegExp, isRegExpOperatorInLastFilter } from './LogsQL/regExpOperator';
@@ -59,7 +59,10 @@ import {
   ToggleFilterAction,
   VariableQuery,
 } from './types';
-import { getMillisecondsFromDuration } from './utils/timeUtils';
+import {
+  formatOffsetDuration,
+  getMillisecondsFromDuration,
+} from './utils/timeUtils';
 import { VariableSupport } from './variableSupport/VariableSupport';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
@@ -88,7 +91,7 @@ export class VictoriaLogsDatasource
   constructor(
     instanceSettings: DataSourceInstanceSettings<Options>,
     private readonly templateSrv: TemplateSrv = getTemplateSrv(),
-    languageProvider?: LogsQlLanguageProvider,
+    languageProvider?: LogsQlLanguageProvider
   ) {
     super(instanceSettings);
 
@@ -113,14 +116,18 @@ export class VictoriaLogsDatasource
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-    const queries = request.targets.filter(q => q.expr || config.publicDashboardAccessToken !== '').map((q) => {
-      return {
-        ...q,
-        // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
-        expr: addSortPipeToQuery(q, request.app, request.liveStreaming),
-        maxLines: q.maxLines ?? this.maxLines,
-      };
-    });
+    const timezoneOffset = formatOffsetDuration(request.timezone, request.range.from.utcOffset());
+    const queries = request.targets
+      .filter((q) => q.expr || config.publicDashboardAccessToken !== '')
+      .map((q) => {
+        return {
+          ...q,
+          // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
+          expr: addSortPipeToQuery(q, request.app, request.liveStreaming),
+          maxLines: q.maxLines ?? this.maxLines,
+          timezoneOffset,
+        };
+      });
 
     // if step is defined, use it as the request interval to set the width of bars correctly
     request.intervalMs = queries[0]?.step ? getMillisecondsFromDuration(queries[0]?.step) : request.intervalMs;
@@ -358,22 +365,26 @@ export class VictoriaLogsDatasource
 
   private runLiveQueryThroughBackend(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
     const observables = request.targets.map((query) => {
-      return getGrafanaLiveSrv().getDataStream({
-        addr: {
-          scope: LiveChannelScope.DataSource,
-          namespace: this.uid,
-          path: `${request.requestId}/${query.refId}`,
-          data: {
-            ...query,
+      return getGrafanaLiveSrv()
+        .getDataStream({
+          addr: {
+            scope: LiveChannelScope.DataSource,
+            namespace: this.uid,
+            path: `${request.requestId}/${query.refId}`,
+            data: {
+              ...query,
+            },
           },
-        },
-      }).pipe(map((response) => {
-        return {
-          data: response.data || [],
-          key: `victoriametrics-logs-datasource-${request.requestId}-${query.refId}`,
-          state: LoadingState.Streaming,
-        };
-      }));
+        })
+        .pipe(
+          map((response) => {
+            return {
+              data: response.data || [],
+              key: `victoriametrics-logs-datasource-${request.requestId}-${query.refId}`,
+              state: LoadingState.Streaming,
+            };
+          })
+        );
     });
 
     return merge(...observables);
@@ -421,6 +432,7 @@ export class VictoriaLogsDatasource
           queryType: QueryType.Hits,
           refId: `${REF_ID_STARTER_LOG_VOLUME}${query.refId}`,
           supportingQueryType: SupportingQueryType.LogsVolume,
+          timezoneOffset: formatOffsetDuration(request.timezone, request.range.from.utcOffset()),
         };
       }
       case SupplementaryQueryType.LogsSample:
