@@ -58,6 +58,8 @@ export interface Query extends DataQuery {
   interval?: string;
   /** groups the results by the specified field value for /select/logsql/hits */
   fields?: string[];
+  /** timezone offset for bucket alignment in stats_query_range and hits endpoints (e.g. "2h", "-5h30m") */
+  timezoneOffset?: string;
   /** if true, adhoc filters will be applied as the root filter, otherwise as an extra_filters */
   isApplyExtraFiltersToRootQuery?: boolean;
 }
@@ -73,7 +75,7 @@ export type DerivedFieldConfig = {
   matcherType?: 'label' | 'regex';
 };
 
-export type QueryFilterOptions = KeyValue<string>
+export type QueryFilterOptions = KeyValue<string>;
 
 export enum FilterActionType {
   FILTER_FOR = 'FILTER_FOR',
@@ -98,7 +100,7 @@ export interface PipeVisualQuery {
 
 export interface VisualQuery {
   filters: FilterVisualQuery;
-  pipes: string[]//PipeVisualQuery[];
+  pipes: string[]; //PipeVisualQuery[];
 }
 
 export interface RequestArguments {
@@ -143,4 +145,4 @@ export type MultitenancyHeaders = Record<TenantHeaderNames, string>;
 export type Tenant = {
   account_id: string;
   project_id: string;
-}
+};

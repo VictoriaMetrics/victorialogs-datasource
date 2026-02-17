@@ -46,18 +46,19 @@ const (
 type Query struct {
 	backend.DataQuery `json:"inline"`
 
-	Expr         string    `json:"expr"`
-	LegendFormat string    `json:"legendFormat"`
-	TimeInterval string    `json:"timeInterval"`
-	Interval     string    `json:"interval"`
-	IntervalMs   int64     `json:"intervalMs"`
-	MaxLines     int       `json:"maxLines"`
-	Step         string    `json:"step"`
-	Fields       []string  `json:"fields"`
-	QueryType    QueryType `json:"queryType"`
-	ExtraFilters string    `json:"extraFilters"`
-	url          *url.URL
-	ForAlerting  bool `json:"-"`
+	Expr           string    `json:"expr"`
+	LegendFormat   string    `json:"legendFormat"`
+	TimeInterval   string    `json:"timeInterval"`
+	Interval       string    `json:"interval"`
+	IntervalMs     int64     `json:"intervalMs"`
+	MaxLines       int       `json:"maxLines"`
+	Step           string    `json:"step"`
+	Fields         []string  `json:"fields"`
+	QueryType      QueryType `json:"queryType"`
+	ExtraFilters   string    `json:"extraFilters"`
+	TimezoneOffset string    `json:"timezoneOffset"`
+	url            *url.URL
+	ForAlerting    bool `json:"-"`
 }
 
 // GetQueryURL calculates step and clear expression from template variables,
@@ -95,7 +96,7 @@ func (q *Query) getQueryURL(rawURL string, queryParams string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to calculate minimal interval: %w", err)
 		}
-		return q.histQueryURL(params, minInterval), nil
+		return q.hitsQueryURL(params, minInterval), nil
 	default:
 		return q.queryInstantURL(params), nil
 	}
@@ -226,13 +227,16 @@ func (q *Query) statsQueryRangeURL(queryParams url.Values, minInterval time.Dura
 	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
 	values.Set("end", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
 	values.Set("step", step)
+	if q.TimezoneOffset != "" {
+		values.Set("offset", q.TimezoneOffset)
+	}
 
 	q.url.RawQuery = values.Encode()
 	return q.url.String()
 }
 
-// histQueryURL prepare query url for querying log hits
-func (q *Query) histQueryURL(queryParams url.Values, minInterval time.Duration) string {
+// hitsQueryURL prepare query url for querying log hits
+func (q *Query) hitsQueryURL(queryParams url.Values, minInterval time.Duration) string {
 	q.url.Path = path.Join(q.url.Path, hitsQueryPath)
 	values := q.url.Query()
 
@@ -261,6 +265,9 @@ func (q *Query) histQueryURL(queryParams url.Values, minInterval time.Duration) 
 	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
 	values.Set("end", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
 	values.Set("step", step)
+	if q.TimezoneOffset != "" {
+		values.Set("offset", q.TimezoneOffset)
+	}
 	for _, f := range q.Fields {
 		values.Add("field", f)
 	}
