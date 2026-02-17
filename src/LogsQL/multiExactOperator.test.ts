@@ -20,8 +20,8 @@ describe('multiExactOperator', () => {
       expect(correctMultiExactOperatorValueAll(input)).toBe(expected);
     });
 
-    it('should NOT replace if the pattern is slightly different (e.g., missing dot)', () => {
-      const input = 'label: in(*)'; // already corrected
+    it('should  replace if the pattern is slightly different: extra space', () => {
+      const input = 'label:in(*)'; // already corrected
       expect(correctMultiExactOperatorValueAll(input)).toBe(input);
     });
 
@@ -48,6 +48,30 @@ describe('multiExactOperator', () => {
     it('should handle stream label with double quotes', () => {
       const input = '_stream:{"label" in(.*)} | count() by (level)';
       const expected = '_stream:{"label" in(*)} | count() by (level)';
+      expect(correctMultiExactOperatorValueAll(input)).toBe(expected);
+    });
+
+    it('should replace ": in(".*")" with ":in(*)"', () => {
+      const input = 'label: in(".*")';
+      const expected = 'label:in(*)';
+      expect(correctMultiExactOperatorValueAll(input)).toBe(expected);
+    });
+
+    it('should replace "word in(".*")" with "word in(*)"', () => {
+      const input = '_stream:{label in(".*")}';
+      const expected = '_stream:{label in(*)}';
+      expect(correctMultiExactOperatorValueAll(input)).toBe(expected);
+    });
+
+    it('should replace ": in("*")" with ":in(*)"', () => {
+      const input = 'label: in("*")';
+      const expected = 'label:in(*)';
+      expect(correctMultiExactOperatorValueAll(input)).toBe(expected);
+    });
+
+    it('should replace "word in("*")" with "word in(*)"', () => {
+      const input = '_stream:{label in("*")}';
+      const expected = '_stream:{label in(*)}';
       expect(correctMultiExactOperatorValueAll(input)).toBe(expected);
     });
   });
