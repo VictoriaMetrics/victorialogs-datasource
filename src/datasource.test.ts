@@ -331,7 +331,7 @@ describe('VictoriaLogsDatasource', () => {
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const result = ds.interpolateString('foo: $var1 bar: $var2', scopedVars);
-      expect(result).toStrictEqual('foo: in(\"foo\",\"bar\") bar: in(*)');
+      expect(result).toStrictEqual('foo: in(\"foo\",\"bar\") bar:in(*)');
     });
   });
 });

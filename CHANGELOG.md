@@ -4,6 +4,8 @@
 
 * FEATURE: pass the selected timezone offset to the offset query arg at `/select/logsql/hits` and `/select/logsql/stats_query_range` endpoints. See [#561](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/561).
 
+* BUGFIX: fix an interpolation query by handling additional patterns like `:in("*")` and `word in(".*")`. See [#573](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/573).
+
 ## v0.25.0
 
 * FEATURE: limit the number of field values. This limit can be configured in the datasource settings. See [#543](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/543).
