@@ -198,7 +198,7 @@ VictoriaLogs datasource supports automatic variable interpolation with the follo
 ## Correlations
 
 Signals can be correlated together if they share the same list of attributes, so they can uniquely identify the
-same system or event. Grafana provides various interfaces for the [correlations](https://grafana.com/docs/grafana/latest/administration/correlations/) feature
+same system or event. Grafana provides various interfaces for the [correlations](https://grafana.com/docs/grafana/latest/administration/correlations/)
 feature for interactive links between visualizations.
 
 ### Trace to logs
