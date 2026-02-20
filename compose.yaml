@@ -1,6 +1,6 @@
 services:
   victorialogs:
-    image: victoriametrics/victoria-logs:v1.36.0
+    image: victoriametrics/victoria-logs:latest
     ports:
      - 9428:9428
     networks:
