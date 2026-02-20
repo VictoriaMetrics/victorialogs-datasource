@@ -1,5 +1,6 @@
 import { AdHocVariableFilter, CoreApp, LogsSortOrder } from '@grafana/data';
 
+import { isExprHasStatsPipeFunc } from './LogsQL/statsPipeFunctions';
 import {
   buildVisualQueryFromString,
   splitExpression
@@ -7,7 +8,7 @@ import {
 import { parseVisualQueryToString } from './components/QueryEditor/QueryBuilder/utils/parseToString';
 import { storeKeys } from './store/constants';
 import store from './store/store';
-import { FilterVisualQuery, Query, QueryDirection, QueryType } from './types';
+import { FilterVisualQuery, Format, Query, QueryDirection, QueryType } from './types';
 
 const operators = ['=', '!=', '=~', '!~', '<', '>'];
 const multiValueOperators = ['=|', '!=|'];
@@ -142,4 +143,13 @@ export const addSortPipeToQuery = ({ expr, queryType, direction }: Query, app: C
   }
   const sortPipe = `sort by (_time) ${sortDirection}`;
   return `${expr} | ${sortPipe}`;
+};
+
+
+export const getQueryFormat = (expr: string): Format | undefined => {
+  if (isExprHasStatsPipeFunc(expr, 'histogram')) {
+    return 'histogram' as const;
+  }
+
+  return undefined;
 };

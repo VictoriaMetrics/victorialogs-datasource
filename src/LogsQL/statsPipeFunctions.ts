@@ -19,9 +19,16 @@ export const statsPipeFunctions = [
   'sum_len',
   'uniq_values',
   'values'
-];
+] as const;
+
+type StatsPipeFunctions = typeof statsPipeFunctions[number];
 
 export const isExprHasStatsPipeFunctions = (expr: string) => {
   const regex = new RegExp(`.*\\|.*\\b(${statsPipeFunctions.join('|')})\\b`, 'mi');
+  return regex.test(expr);
+};
+
+export const isExprHasStatsPipeFunc = (expr: string, statFunc: StatsPipeFunctions) => {
+  const regex = new RegExp(`.*\\|.*\\b(${statFunc})\\b`, 'mi');
   return regex.test(expr);
 };

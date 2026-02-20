@@ -1,8 +1,9 @@
 import { DataQueryRequest, DataQueryResponse, dateTime, LogLevel } from '@grafana/data';
 
-import { transformBackendResult } from './backendResultTransformer';
-import { LogLevelRule, LogLevelRuleType } from './configuration/LogLevelRules/types';
-import { DerivedFieldConfig, Query, QueryType } from './types';
+import { LogLevelRule, LogLevelRuleType } from '../configuration/LogLevelRules/types';
+import { DerivedFieldConfig, Query, QueryType } from '../types';
+
+import { transformBackendResult } from './transformBackendResult';
 
 describe('transformBackendResult', () => {
   const labels = [

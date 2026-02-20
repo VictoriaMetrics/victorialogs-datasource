@@ -44,6 +44,8 @@ export enum QueryEditorMode {
   Code = 'code',
 }
 
+export type Format = 'histogram';
+
 export interface Query extends DataQuery {
   editorMode?: QueryEditorMode;
   expr: string;
@@ -62,6 +64,8 @@ export interface Query extends DataQuery {
   timezoneOffset?: string;
   /** if true, adhoc filters will be applied as the root filter, otherwise as an extra_filters */
   isApplyExtraFiltersToRootQuery?: boolean;
+  /** shows which format of data is used */
+  format?: Format;
 }
 
 export type VictoriaLogsQueryEditorProps = QueryEditorProps<VictoriaLogsDatasource, Query, Options>;

@@ -35,6 +35,13 @@ export const usePlotPiechartHistogramHintsSection = (): QueryHintSection => {
           description: 'Analyze logs by IP address ranges',
           id: 'stats-by-ipv4-buckets'
         },
+        {
+          title: 'Heatmap',
+          queryExpr: '<q> | stats histogram(<numeric_field>)',
+          example: '* | stats by (host) histogram(response_size)',
+          description: 'Show a heatmap of numeric values',
+          id: 'histogram-stats'
+        }
       ],
     };
   }, []);

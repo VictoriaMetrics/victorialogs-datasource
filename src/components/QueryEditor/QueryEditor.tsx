@@ -12,12 +12,12 @@ import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from 
 import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 
 import { EditorHeader } from './EditorHeader';
+import { LogsQLSyntaxHelp } from './LogsQLSyntaxHelp';
 import { QueryBuilderContainer } from './QueryBuilder/QueryBuilderContainer';
 import { QueryEditorModeToggle } from './QueryBuilder/QueryEditorModeToggle';
 import { buildVisualQueryFromString } from './QueryBuilder/utils/parseFromString';
 import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorHelp } from './QueryEditorHelp';
-import { LogsQLSyntaxHelp } from './LogsQLSyntaxHelp';
 import { QueryEditorOptions } from './QueryEditorOptions';
 import QueryEditorVariableRegexpError from './QueryEditorVariableRegexpError';
 import { QueryHintsExample } from './QueryHints';
@@ -54,7 +54,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     }
     changeEditorMode(query, newEditorMode, onChange);
   },
-    [query, onChange]
+  [query, onChange]
   );
 
   const onQueryExprChange = useCallback((newExpr: string, newQuery?: boolean) => {
