@@ -409,6 +409,21 @@ When frontend and backend parts of the plugin is required, run the following com
 make vl-plugin-build
 ```
 
+### 7. How to build and run plugin via docker compose:
+
+From the root folder of the project run the following command:
+```
+make vl-plugin-build
+```
+
+Then you can run grafana with the installed plugin by running the following command:
+```
+docker compose up [-d]
+```
+
+The `-d` flag is optional and will run grafana in detached mode.
+The grafana data is stored in `./grafana` folder, so you can stop and start grafana without losing data.
+
 This command will build frontend part and backend part or the plugin and locate both parts into `victoriametrics-logs-datasource` folder.
 
 ## How to make new release
