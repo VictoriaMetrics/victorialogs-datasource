@@ -1,11 +1,10 @@
 services:
-  socks-proxy:
-    image: serjs/go-socks5-proxy
-    restart: always
   victorialogs:
-    image: victoriametrics/victoria-logs:v1.26.0
+    image: victoriametrics/victoria-logs:v1.36.0
     ports:
      - 9428:9428
+    networks:
+      - grafana-network
   grafana:
     build:
       context: .config
@@ -16,14 +15,15 @@ services:
     ports:
       - 3000:3000/tcp
     environment:
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_AUTH_BASIC_ENABLED: "false"
       GF_DEFAULT_APP_MODE: development
-      GF_FEATURE_TOGGLES_ENABLE: secureSocksDSProxyEnabled
-      GF_SECURE_SOCKS_DATASOURCE_PROXY_ENABLED: true
-      GF_SECURE_SOCKS_DATASOURCE_PROXY_PROXY_ADDRESS: socks-proxy:1080
-      GF_SECURE_SOCKS_DATASOURCE_PROXY_ALLOW_INSECURE: true
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: victoriametrics-logs-datasource
     volumes:
-      - ./plugins/victoriametrics-logs-datasource:/var/lib/grafana/plugins/victoriametrics-logs-datasource
       - ./provisioning:/etc/grafana/provisioning
+      - ./.grafana:/var/lib/grafana
+      - ./plugins/victoriametrics-logs-datasource:/var/lib/grafana/plugins/victoriametrics-logs-datasource
+    networks:
+      - grafana-network
+
+networks:
+  grafana-network:
+    driver: bridge
