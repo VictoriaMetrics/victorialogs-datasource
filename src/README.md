@@ -104,7 +104,7 @@ Query example:
   | extract "duration: <duration>" 
   | stats histogram(duration)
 ```
-<img alt="Heatmap panel" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/panel_heatmap.png?raw=true">
+<img alt="Heatmap panel" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/panel_heatmap.png?raw=true">
 
 ### Log level rules
 
