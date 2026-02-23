@@ -38,7 +38,9 @@ export const usePlotPiechartHistogramHintsSection = (): QueryHintSection => {
         {
           title: 'Heatmap',
           queryExpr: '<q> | stats histogram(<numeric_field>)',
-          example: '* | stats by (host) histogram(response_size)',
+          example: `{collector="otel-collector",k8s.namespace.name="play-otel", service.name="checkout"} "duration:"
+  | extract "duration: <duration>"
+  | stats histogram(duration)`,
           description: 'Show a heatmap of numeric values',
           id: 'histogram-stats'
         }
