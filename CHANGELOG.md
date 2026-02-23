@@ -3,6 +3,7 @@
 ## tip
 
 * FEATURE: pass the selected timezone offset to the offset query arg at `/select/logsql/hits` and `/select/logsql/stats_query_range` endpoints. See [#561](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/561).
+* FEATURE: add support for a heatmap panel. For using [Heatmap panel](https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/heatmap/) switch to `Range` query type and use [`histogram` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#histogram-stats). See [#62](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/62).
 
 * BUGFIX: fix an interpolation query by handling additional patterns like `:in("*")` and `word in(".*")`. See [#573](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/573).
 
@@ -10,7 +11,7 @@
 
 * FEATURE: limit the number of field values. This limit can be configured in the datasource settings. See [#543](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/543).
 * FEATURE: add "Ad-hoc filters to root query" checkbox to Query Editor options. When enabled, ad-hoc filters are applied directly to the root query expression instead of using the `extra_filters` parameter, preventing filter propagation into subqueries (join, union, etc.). See [#511](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/511).
-* FEATURE: add support for a heatmap panel. For using [Heatmap panel](https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/heatmap/) switch to `Range` query type and use [`histogram` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#histogram-stats). See [#62](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/62).
+* FEATURE: add LogsQL syntax tooltips. See [#21](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/21). Thanks to @JeelDasvani for contributing.
 
 ## v0.24.1
 
