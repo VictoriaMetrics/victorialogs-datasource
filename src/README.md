@@ -95,6 +95,17 @@ And apply `Transformations` by labels:
 
 <img alt="Transformations" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/panel_table_transformation.png?raw=true">
 
+### Heatmap panel
+For using [Heatmap panel](https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/heatmap/)
+switch to `Range` query type and use [`histogram` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#histogram-stats). Use the step to adjust the granularity of the heatmap.
+Query example:
+```logsql
+{collector="otel-collector", k8s.namespace.name="play-otel", service.name="checkout"} "duration:" 
+  | extract "duration: <duration>" 
+  | stats histogram(duration)
+```
+<img alt="Heatmap panel" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/panel_heatmap.png?raw=true">
+
 ### Log level rules
 
 The **Log level rules** section in the datasource configuration allows you to assign log levels based on custom field conditions. This helps classify logs dynamically (e.g., as `error`, `info`, `debug`, etc.) using rules you define.
