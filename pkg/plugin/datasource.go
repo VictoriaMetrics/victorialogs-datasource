@@ -109,7 +109,7 @@ func newDatasourceInstance(ctx context.Context, settings backend.DataSourceInsta
 
 	grafanaSettings, err := NewGrafanaSettings(settings)
 	if err != nil {
-		logger.Error("error create a new GrafanaSettings: %w", err)
+		logger.Error("error create a new GrafanaSettings", "error", err)
 		return nil, err
 	}
 
