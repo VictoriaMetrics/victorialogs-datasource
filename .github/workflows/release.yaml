@@ -10,9 +10,26 @@ on:
         - development
 
 jobs:
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Run OSV Scanner
+        uses: google/osv-scanner-action/osv-scanner-action@v2.3.3
+        with:
+          scan-args: |-
+            --recursive
+            --min-severity=4.0
+            ./
+
   release:
     name: Release on GitHub
     runs-on: ubuntu-latest
+    needs: security-scan
     outputs:
       PKG_TAG: ${{ env.PKG_TAG }}
     permissions:
