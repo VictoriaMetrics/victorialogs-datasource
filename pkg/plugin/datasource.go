@@ -533,18 +533,17 @@ func (d *Datasource) RootHandler(rw http.ResponseWriter, req *http.Request) {
 func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	pluginCxt := backend.PluginConfigFromContext(ctx)
+	defer func() {
+		if err := req.Body.Close(); err != nil {
+			d.logger.Error("VLAPIQuery: failed to close request body", "err", err.Error())
+		}
+	}()
 
 	fieldsQuery, err := getFieldsQueryFromRaw(req.Body)
 	if err != nil {
 		writeError(rw, http.StatusInternalServerError, err)
 		return
 	}
-
-	defer func() {
-		if err := req.Body.Close(); err != nil {
-			d.logger.Error("VLAPIQuery: failed to close request body", "err", err.Error())
-		}
-	}()
 
 	di, err := d.getInstance(ctx, pluginCxt)
 	if err != nil {
