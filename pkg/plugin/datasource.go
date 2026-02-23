@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -590,27 +589,26 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	reader := resp.Body
-	if resp.Header.Get("Content-Encoding") == "gzip" {
-		reader, err = gzip.NewReader(reader)
+	if resp.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to create gzip reader: %w", err))
+			d.logger.Error("Failed to read response body", "error", err)
+			writeError(rw, http.StatusInternalServerError, fmt.Errorf("failed to read response: %w", err))
 			return
 		}
-		defer reader.Close()
-	}
-
-	bodyBytes, err := io.ReadAll(reader)
-	if err != nil {
-		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to read http response body: %w", err))
+		d.logger.Error("VL returned error", "status", resp.StatusCode, "body", string(body))
+		writeError(rw, resp.StatusCode, fmt.Errorf("VictoriaLogs returned status %d: %s", resp.StatusCode, string(body)))
 		return
 	}
 
-	rw.Header().Add("Content-Type", "application/json")
+	rw.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+	if ce := resp.Header.Get("Content-Encoding"); ce != "" {
+		rw.Header().Set("Content-Encoding", ce)
+	}
+
 	rw.WriteHeader(http.StatusOK)
-	_, err = rw.Write(bodyBytes)
-	if err != nil {
-		log.DefaultLogger.Warn("Error writing response")
+	if _, err := io.Copy(rw, resp.Body); err != nil {
+		d.logger.Error("Error streaming response", "error", err)
 	}
 }
 

@@ -2,9 +2,12 @@ package plugin
 
 import (
 	"bytes"
+	"compress/flate"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,8 +15,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/snappy"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
+	"github.com/klauspost/compress/zstd"
 )
 
 func TestQueryData(t *testing.T) {
@@ -1127,6 +1132,182 @@ func TestParseMultitenancyHeaders(t *testing.T) {
 				if got != tt.want {
 					t.Errorf("parseMultitenancyHeaders() got %v, want %v", got, tt.want)
 				}
+			}
+		})
+	}
+}
+
+func TestVLAPIQuery_ContentEncoding(t *testing.T) {
+	expectedJSON := `{"status":"success","data":{"resultType":"vector","result":[]}}`
+
+	gzipCompress := func(data []byte) []byte {
+		var buf bytes.Buffer
+		w := gzip.NewWriter(&buf)
+		if _, err := w.Write(data); err != nil {
+			t.Fatalf("failed to write gzip data: %s", err)
+		}
+		if err := w.Close(); err != nil {
+			t.Fatalf("failed to close gzip writer: %s", err)
+		}
+		return buf.Bytes()
+	}
+
+	deflateCompress := func(data []byte) []byte {
+		var buf bytes.Buffer
+		w, err := flate.NewWriter(&buf, flate.DefaultCompression)
+		if err != nil {
+			t.Fatalf("failed to create deflate writer: %s", err)
+		}
+		if _, err := w.Write(data); err != nil {
+			t.Fatalf("failed to write deflate data: %s", err)
+		}
+		if err := w.Close(); err != nil {
+			t.Fatalf("failed to close deflate writer: %s", err)
+		}
+		return buf.Bytes()
+	}
+
+	zstdCompress := func(data []byte) []byte {
+		var buf bytes.Buffer
+		w, err := zstd.NewWriter(&buf)
+		if err != nil {
+			t.Fatalf("failed to create zstd writer: %s", err)
+		}
+		if _, err := w.Write(data); err != nil {
+			t.Fatalf("failed to write zstd data: %s", err)
+		}
+		if err := w.Close(); err != nil {
+			t.Fatalf("failed to close zstd writer: %s", err)
+		}
+		return buf.Bytes()
+	}
+
+	deflateDecompress := func(data []byte) ([]byte, error) {
+		r := flate.NewReader(bytes.NewReader(data))
+		defer r.Close()
+		return io.ReadAll(r)
+	}
+
+	zstdDecompress := func(data []byte) ([]byte, error) {
+		r, err := zstd.NewReader(bytes.NewReader(data))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create zstd reader: %w", err)
+		}
+		defer r.Close()
+		return io.ReadAll(r)
+	}
+
+	snappyCompress := func(data []byte) []byte {
+		return snappy.Encode(nil, data)
+	}
+
+	snappyDecompress := func(data []byte) ([]byte, error) {
+		return snappy.Decode(nil, data)
+	}
+
+	tests := []struct {
+		name string
+		// contentEncoding is the Content-Encoding the upstream VM server sets on its response.
+		contentEncoding string
+		compressBody    func([]byte) []byte
+		decompressBody  func([]byte) ([]byte, error)
+		// expectedEncoding is the Content-Encoding we expect the handler to proxy to the client.
+		// For gzip this is "" because Go's http.Transport transparently decodes gzip responses
+		// and strips the Content-Encoding header before the handler sees it.
+		expectedEncoding string
+	}{
+		{
+			name:             "no encoding",
+			contentEncoding:  "",
+			compressBody:     nil,
+			decompressBody:   nil,
+			expectedEncoding: "",
+		},
+		{
+			name:             "gzip",
+			contentEncoding:  "gzip",
+			compressBody:     gzipCompress,
+			decompressBody:   nil, // Go http.Transport already decompresses gzip
+			expectedEncoding: "",  // Transport strips the header
+		},
+		{
+			name:             "deflate",
+			contentEncoding:  "deflate",
+			compressBody:     deflateCompress,
+			decompressBody:   deflateDecompress,
+			expectedEncoding: "deflate",
+		},
+		{
+			name:             "zstd",
+			contentEncoding:  "zstd",
+			compressBody:     zstdCompress,
+			decompressBody:   zstdDecompress,
+			expectedEncoding: "zstd",
+		},
+		{
+			name:             "snappy",
+			contentEncoding:  "snappy",
+			compressBody:     snappyCompress,
+			decompressBody:   snappyDecompress,
+			expectedEncoding: "snappy",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create mock upstream VM server that returns compressed response
+			mockSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				body := []byte(expectedJSON)
+				if tc.compressBody != nil {
+					body = tc.compressBody(body)
+				}
+				if tc.contentEncoding != "" {
+					w.Header().Set("Content-Encoding", tc.contentEncoding)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				if _, err := w.Write(body); err != nil {
+					t.Errorf("failed to write mock response: %s", err)
+				}
+			}))
+			defer mockSrv.Close()
+
+			ds := NewDatasource()
+			pluginCtx := backend.PluginContext{
+				DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+					URL:      mockSrv.URL,
+					JSONData: []byte(`{"httpMethod":"GET","customQueryParameters":""}`),
+				},
+			}
+
+			ctx := backend.WithPluginContext(context.Background(), pluginCtx)
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/field_values", nil)
+			req = req.WithContext(ctx)
+
+			rr := httptest.NewRecorder()
+			ds.VLAPIQuery(rr, req)
+
+			if rr.Code != http.StatusOK {
+				t.Fatalf("expected status %d, got %d; body: %s", http.StatusOK, rr.Code, rr.Body.String())
+			}
+
+			// Verify Content-Encoding header is proxied correctly
+			gotEncoding := rr.Header().Get("Content-Encoding")
+			if gotEncoding != tc.expectedEncoding {
+				t.Fatalf("expected Content-Encoding %q, got %q", tc.expectedEncoding, gotEncoding)
+			}
+
+			// Decompress the response body (as a client would) and verify it matches the original JSON
+			responseBody := rr.Body.Bytes()
+			if tc.decompressBody != nil {
+				decompressed, err := tc.decompressBody(responseBody)
+				if err != nil {
+					t.Fatalf("failed to decompress response body: %s", err)
+				}
+				responseBody = decompressed
+			}
+
+			if string(responseBody) != expectedJSON {
+				t.Fatalf("expected body:\n%s\ngot:\n%s", expectedJSON, string(responseBody))
 			}
 		})
 	}
