@@ -52,7 +52,7 @@ const getStyles = (theme: GrafanaTheme2, width?: number | string) => {
       minWidth: theme.spacing(width ?? 0),
     }),
     label: css({
-      fontSize: 12,
+      fontSize: theme.typography.bodySmall.fontSize,
       fontWeight: theme.typography.fontWeightMedium,
       paddingBottom: theme.spacing(0.5),
     }),

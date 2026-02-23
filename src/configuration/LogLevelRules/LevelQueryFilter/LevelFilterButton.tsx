@@ -1,7 +1,7 @@
 import { css } from '@emotion/css';
 import React, { MouseEvent } from 'react';
 
-import { LogLevel } from '@grafana/data';
+import { GrafanaTheme2, LogLevel } from '@grafana/data';
 import { Button, Stack, useStyles2 } from '@grafana/ui';
 
 import { LOG_LEVEL_COLOR } from '../const';
@@ -36,13 +36,13 @@ const getLogLevelColor = (level: LogLevel): string => {
   return LOG_LEVEL_COLOR[level] || LOG_LEVEL_COLOR[LogLevel.unknown];
 };
 
-const getStyles = () => {
+const getStyles = (theme: GrafanaTheme2) => {
   return {
     colorCircle: css({
       width: 12,
       height: 12,
       borderRadius: '50%',
-      marginRight: 5,
+      marginRight: theme.spacing(0.5),
     }),
   };
 };

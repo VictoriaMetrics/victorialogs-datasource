@@ -51,16 +51,14 @@ export const HintItem = ({ hint, query, onQueryChange }: HintItemComponentProps)
                 icon='external-link-alt'
                 variant={'body'}
                 external
-              >Documentation</TextLink>
+              >
+                Documentation
+              </TextLink>
             </>
           )}
         </h5>
         <div className={styles.content}>
-          {hint.description && (
-            <div className={styles.description}>
-              {hint.description}:
-            </div>
-          )}
+          {hint.description && <div className={styles.description}>{hint.description}:</div>}
           <code className={styles.queryExpr}>{hint.queryExpr}</code>
         </div>
       </Card.Heading>
@@ -127,21 +125,21 @@ const getStyles = (theme: GrafanaTheme2) => {
       align-items: flex-start;
     `,
     content: css`
-      margin-bottom: 8px;
+      margin-bottom: ${theme.spacing(1)};
     `,
     title: css`
       display: flex;
       direction: row;
       justify-content: space-between;
-      margin-bottom: 4px;
+      margin-bottom: ${theme.spacing(0.5)};
       width: 100%;
       font-weight: ${theme.typography.fontWeightMedium};
       color: ${theme.colors.text.primary};
     `,
     description: css`
-      font-size: 12px;
+      font-size: ${theme.typography.bodySmall.fontSize};
       color: ${theme.colors.text.secondary};
-      margin-bottom: 8px;
+      margin-bottom: ${theme.spacing(1)};
     `,
     queryExpr: css`
       white-space: pre-wrap;
@@ -149,8 +147,8 @@ const getStyles = (theme: GrafanaTheme2) => {
     code: css`
       width: 100%;
       display: block;
-      padding: 8px;
-      font-size: 14px;
+      padding: ${theme.spacing(1)};
+      font-size: ${theme.typography.body.fontSize};
       white-space: pre-wrap;
       word-break: break-all;
     `,
@@ -158,7 +156,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       width: 1px;
       height: 24px;
       background: ${theme.colors.border.medium};
-      margin: 0 4px;
+      margin: 0 ${theme.spacing(0.5)};
     `,
   };
 };
