@@ -1,8 +1,10 @@
 import { CoreApp } from '@grafana/data';
 
+import { PLUGIN_ID } from '../../constants';
+import store from '../../store/store';
 import { Query, QueryEditorMode, QueryType } from '../../types';
 
-const queryEditorModeDefaultLocalStorageKey = 'VictoriaLogsQueryEditorModeDefault';
+const queryEditorModeDefaultLocalStorageKey = `${PLUGIN_ID}:QueryEditorMode`;
 
 export function getQueryWithDefaults(query: Query, app?: CoreApp, panelPluginId?: string): Query {
   let result = query;
@@ -27,7 +29,7 @@ export function getQueryWithDefaults(query: Query, app?: CoreApp, panelPluginId?
 
 export function changeEditorMode(query: Query, editorMode: QueryEditorMode, onChange: (query: Query) => void) {
   if (query.expr === '') {
-    window.localStorage.setItem(queryEditorModeDefaultLocalStorageKey, editorMode);
+    store.set(queryEditorModeDefaultLocalStorageKey, editorMode);
   }
 
   onChange({ ...query, editorMode });
@@ -38,7 +40,7 @@ export function getDefaultEditorMode(expr: string) {
     return QueryEditorMode.Code;
   }
 
-  const value = window.localStorage.getItem(queryEditorModeDefaultLocalStorageKey);
+  const value = store.get(queryEditorModeDefaultLocalStorageKey);
   return value === QueryEditorMode.Builder ? QueryEditorMode.Builder : QueryEditorMode.Code;
 }
 

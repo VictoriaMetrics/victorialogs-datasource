@@ -4,7 +4,19 @@ import { ChangeEvent, useState } from 'react';
 
 import { DataSourceInstanceSettings, GrafanaTheme2, VariableSuggestion } from '@grafana/data';
 import { DataSourcePicker } from '@grafana/runtime';
-import { Button, DataLinkInput, Field, Icon, Input, Label, Select, Switch, Tooltip, useStyles2 } from '@grafana/ui';
+import {
+  Button,
+  DataLinkInput,
+  Field,
+  Icon,
+  Input,
+  Label,
+  Select,
+  Switch,
+  Tooltip,
+  useStyles2,
+  useTheme2,
+} from '@grafana/ui';
 
 import { DerivedFieldConfig } from '../types';
 
@@ -195,11 +207,14 @@ export const DerivedField = (props: Props) => {
   );
 };
 
-const TooltipLabel = ({ content, label }: { content: string; label: string }) => (
-  <Label>
-    {label}
-    <Tooltip placement='top' content={content} theme='info'>
-      <Icon tabIndex={0} name='info-circle' size='sm' style={{ marginLeft: '10px' }} />
-    </Tooltip>
-  </Label>
-);
+const TooltipLabel = ({ content, label }: { content: string; label: string }) => {
+  const theme = useTheme2();
+  return (
+    <Label>
+      {label}
+      <Tooltip placement='top' content={content} theme='info'>
+        <Icon tabIndex={0} name='info-circle' size='sm' style={{ marginLeft: theme.spacing(1) }} />
+      </Tooltip>
+    </Label>
+  );
+};

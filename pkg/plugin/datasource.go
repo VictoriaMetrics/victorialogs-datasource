@@ -109,7 +109,7 @@ func newDatasourceInstance(ctx context.Context, settings backend.DataSourceInsta
 
 	grafanaSettings, err := NewGrafanaSettings(settings)
 	if err != nil {
-		logger.Error("error create a new GrafanaSettings: %w", err)
+		logger.Error("error create a new GrafanaSettings", "error", err)
 		return nil, err
 	}
 
@@ -533,18 +533,17 @@ func (d *Datasource) RootHandler(rw http.ResponseWriter, req *http.Request) {
 func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	pluginCxt := backend.PluginConfigFromContext(ctx)
+	defer func() {
+		if err := req.Body.Close(); err != nil {
+			d.logger.Error("VLAPIQuery: failed to close request body", "err", err.Error())
+		}
+	}()
 
 	fieldsQuery, err := getFieldsQueryFromRaw(req.Body)
 	if err != nil {
 		writeError(rw, http.StatusInternalServerError, err)
 		return
 	}
-
-	defer func() {
-		if err := req.Body.Close(); err != nil {
-			d.logger.Error("VLAPIQuery: failed to close request body", "err", err.Error())
-		}
-	}()
 
 	di, err := d.getInstance(ctx, pluginCxt)
 	if err != nil {

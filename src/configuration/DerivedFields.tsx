@@ -12,7 +12,7 @@ import { DerivedField } from './DerivedField';
 
 const getStyles = (theme: GrafanaTheme2) => ({
   addButton: css({
-    marginRight: '10px',
+    marginRight: theme.spacing(1),
   }),
   derivedField: css({
     marginBottom: theme.spacing(1),
@@ -116,7 +116,7 @@ export const DerivedFields = ({ fields = [], onChange }: Props) => {
           <div className={styles.debugSection}>
             <DebugSection
               className={css({
-                marginBottom: '10px',
+                marginBottom: theme.spacing(1),
               })}
               derivedFields={fields}
             />

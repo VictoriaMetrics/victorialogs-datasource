@@ -33,9 +33,10 @@ export const QueryHintsExample = ({ query, onQueryChange }: QueryHintsExamplePro
   const formatLogsOutputSection = useFormatLogsOutputHintsSection();
   const plotTimeSeriesSection = usePlotTimeSeriesHintsSection();
   const plotPiechartHistogramSection = usePlotPiechartHistogramHintsSection();
-  const sections = useMemo(() =>
-    [printRecentLogsSection,  formatLogsOutputSection, plotTimeSeriesSection, plotPiechartHistogramSection],
-  [formatLogsOutputSection, plotPiechartHistogramSection, plotTimeSeriesSection, printRecentLogsSection]);
+  const sections = useMemo(
+    () => [printRecentLogsSection, formatLogsOutputSection, plotTimeSeriesSection, plotPiechartHistogramSection],
+    [formatLogsOutputSection, plotPiechartHistogramSection, plotTimeSeriesSection, printRecentLogsSection]
+  );
 
   const handleQueryChange = (newQuery: string, isAddQuery?: boolean) => {
     onQueryChange(newQuery, isAddQuery);
@@ -65,7 +66,8 @@ export const QueryHintsExample = ({ query, onQueryChange }: QueryHintsExamplePro
             section={section}
             query={query}
             onQueryChange={handleQueryChange}
-          />))}
+          />
+        ))}
       </Modal>
     </>
   );
@@ -78,7 +80,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       max-width: 1400px;
     `,
     description: css`
-      margin-bottom: 16px;
+      margin-bottom: ${theme.spacing(2)};
       color: ${theme.colors.text.secondary};
     `,
   };
