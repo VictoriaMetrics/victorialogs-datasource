@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.26.0
+
 * FEATURE: pass the selected timezone offset to the offset query arg at `/select/logsql/hits` and `/select/logsql/stats_query_range` endpoints. See [#561](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/561).
 * FEATURE: add support for a heatmap panel. For using [Heatmap panel](https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/heatmap/) switch to `Range` query type and use [`histogram` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#histogram-stats). See [#62](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/62).
 
