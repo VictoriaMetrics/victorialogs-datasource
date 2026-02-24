@@ -1280,7 +1280,7 @@ func TestVLAPIQuery_ContentEncoding(t *testing.T) {
 			}
 
 			ctx := backend.WithPluginContext(context.Background(), pluginCtx)
-			req := httptest.NewRequest(http.MethodGet, "/api/v1/field_values", nil)
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/field_values", bytes.NewReader([]byte("{}")))
 			req = req.WithContext(ctx)
 
 			rr := httptest.NewRecorder()
