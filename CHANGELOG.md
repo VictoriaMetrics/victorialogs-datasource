@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix an issue where requests failed with compression formats other than gzip, resulting in no field names and no field values errors. See [pr #588](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/588).
+
 ## v0.26.0
 
 * FEATURE: pass the selected timezone offset to the offset query arg at `/select/logsql/hits` and `/select/logsql/stats_query_range` endpoints. See [#561](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/561).

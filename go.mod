@@ -4,7 +4,9 @@ go 1.25.7
 
 require (
 	github.com/VictoriaMetrics/metricsql v0.84.4
+	github.com/golang/snappy v1.0.0
 	github.com/grafana/grafana-plugin-sdk-go v0.285.0
+	github.com/klauspost/compress v1.18.2
 	github.com/magefile/mage v1.15.0
 	github.com/valyala/fastjson v1.6.4
 )
@@ -39,7 +41,6 @@ require (
 	github.com/jaegertracing/jaeger-idl v0.6.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/jszwedko/go-datemath v0.1.1-0.20230526204004-640a500621d6 // indirect
-	github.com/klauspost/compress v1.18.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/mattetti/filebuffer v1.0.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
