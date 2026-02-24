@@ -23,7 +23,6 @@ jobs:
         with:
           scan-args: |-
             --recursive
-            --min-severity=4.0
             ./
 
   release:
