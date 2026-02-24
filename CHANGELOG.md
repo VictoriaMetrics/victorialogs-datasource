@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.26.2
+
 * VULNERABILITY: update `minimatch` dependency to fix [CVE-2026-26996](https://github.com/advisories/GHSA-3ppc-4f35-3m26). 
 
 ## v0.26.1
