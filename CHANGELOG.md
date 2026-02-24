@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.26.1
+
 * BUGFIX: fix an issue where requests failed with compression formats other than gzip, resulting in no field names and no field values errors. See [pr #588](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/588).
 
 ## v0.26.0
