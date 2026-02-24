@@ -15,16 +15,9 @@ const makeFrame = (
 });
 
 describe('processHistogramFrames', () => {
-  it('should return a single frame with empty arrays when given an empty input', () => {
+  it('should return an empty array array when given an empty input', () => {
     const result = processHistogramFrames([]);
-    expect(result).toHaveLength(1);
-    expect(result[0].length).toBe(0);
-    expect(result[0].meta?.type).toBe(DataFrameType.HeatmapCells);
-    expect(result[0].fields).toHaveLength(4);
-    expect(result[0].fields[0].values).toEqual([]);
-    expect(result[0].fields[1].values).toEqual([]);
-    expect(result[0].fields[2].values).toEqual([]);
-    expect(result[0].fields[3].values).toEqual([]);
+    expect(result).toHaveLength(0);
   });
 
   it('should skip frames without a time field', () => {

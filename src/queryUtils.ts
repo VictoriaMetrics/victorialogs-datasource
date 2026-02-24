@@ -53,7 +53,7 @@ export function getHighlighterExpressionsFromQuery(input = ''): string[] {
         continue;
       }
 
-      let resultTerm = '';
+      let resultTerm;
 
       // Only filter expressions with |~ operator are treated as regular expressions
       if (pipeMatch) {

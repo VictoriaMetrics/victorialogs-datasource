@@ -1,24 +1,21 @@
-import eslint from '@eslint/js';
+ import eslint from '@eslint/js';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 import grafanaEslintConfig from '@grafana/eslint-config/flat.js';
-import react from 'eslint-plugin-react';
-import reactHooks from 'eslint-plugin-react-hooks';
 import jest from 'eslint-plugin-jest';
 import lodash from 'eslint-plugin-lodash';
-import deprecation from 'eslint-plugin-deprecation';
 import prettier from 'eslint-config-prettier';
 import unusedImports from 'eslint-plugin-unused-imports';
 import * as emotionPlugin from '@emotion/eslint-plugin';
-import { fixupPluginRules } from '@eslint/compat';
+import { fixupConfigRules, fixupPluginRules } from '@eslint/compat';
 import importPlugin from 'eslint-plugin-import';
 import stylistic from '@stylistic/eslint-plugin';
 
 export default defineConfig([
   eslint.configs.recommended,
-  tseslint.configs.recommended,
+  ...fixupConfigRules(tseslint.configs.recommended),
   prettier,
-  grafanaEslintConfig,
+  ...fixupConfigRules(grafanaEslintConfig),
   {
     ignores: [
       '**/node_modules/**',
@@ -42,15 +39,11 @@ export default defineConfig([
   {
     files: ['**/*.{ts,tsx,js,jsx}'],
     plugins: {
-      '@typescript-eslint': tseslint.plugin,
-      'react-hooks': reactHooks,
-      react: react,
       jest: jest,
       lodash: lodash,
-      deprecation: deprecation,
       'unused-imports': unusedImports,
       '@emotion': fixupPluginRules(emotionPlugin),
-      import: importPlugin,
+      import: fixupPluginRules(importPlugin),
       '@stylistic': stylistic,
     },
     languageOptions: {

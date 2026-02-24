@@ -3,6 +3,10 @@ import { DataFrame, DataFrameType, FieldType } from '@grafana/data';
 import { ParsedBucket } from '../types';
 
 export function processHistogramFrames(frames: DataFrame[]): DataFrame[] {
+  if (frames.length === 0) {
+    return [];
+  }
+
   const buckets: ParsedBucket[] = [];
   for (const frame of frames) {
     const timeField = frame.fields.find((f) => f.type === FieldType.time);
