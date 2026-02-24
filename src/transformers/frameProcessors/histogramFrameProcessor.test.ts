@@ -15,7 +15,7 @@ const makeFrame = (
 });
 
 describe('processHistogramFrames', () => {
-  it('should return a single frame with empty arrays when given an empty input', () => {
+  it('should return an empty array array when given an empty input', () => {
     const result = processHistogramFrames([]);
     expect(result).toHaveLength(0);
   });
