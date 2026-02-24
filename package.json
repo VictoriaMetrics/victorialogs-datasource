@@ -1,6 +1,6 @@
 {
   "name": "victoriametrics-logs-datasource",
-  "version": "0.26.1",
+  "version": "0.26.2",
   "description": "VictoriaLogs datasource plugin for grafana",
   "scripts": {
     "build": "webpack -c ./webpack.config.ts --env production",
@@ -80,7 +80,8 @@
     "react-router": "6.30.3",
     "react-router-dom": "6.30.3",
     "react-router-dom-v5-compat": "6.30.3",
-    "@isaacs/brace-expansion": "5.0.1"
+    "@isaacs/brace-expansion": "5.0.1",
+    "minimatch": "^10.2.1"
   },
   "engines": {
     "node": ">=24.11.1"

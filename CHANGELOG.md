@@ -2,6 +2,8 @@
 
 ## tip
 
+* VULNERABILITY: update `minimatch` dependency to fix [CVE-2026-26996](https://github.com/advisories/GHSA-3ppc-4f35-3m26). 
+
 ## v0.26.1
 
 * BUGFIX: fix an issue where requests failed with compression formats other than gzip, resulting in no field names and no field values errors. See [pr #588](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/588).
