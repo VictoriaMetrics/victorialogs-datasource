@@ -3,7 +3,6 @@ import { DataFrame, DataFrameType, FieldType } from '@grafana/data';
 import { ParsedBucket } from '../types';
 
 export function processHistogramFrames(frames: DataFrame[]): DataFrame[] {
-  console.log('processHistogramFrames', frames);
   if (frames.length === 0) {
     return [];
   }
