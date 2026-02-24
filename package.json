@@ -80,7 +80,8 @@
     "react-router": "6.30.3",
     "react-router-dom": "6.30.3",
     "react-router-dom-v5-compat": "6.30.3",
-    "@isaacs/brace-expansion": "5.0.1"
+    "@isaacs/brace-expansion": "5.0.1",
+    "minimatch": "^10.2.1"
   },
   "engines": {
     "node": ">=24.11.1"
