@@ -8,10 +8,17 @@ on:
     permissions:
       teams:
         - development
+    inputs:
+      run_security_scan:
+        description: 'Run security vulnerability scan'
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   security-scan:
     name: Security Vulnerability Scan
+    if: ${{ inputs.run_security_scan == true }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -61,6 +68,7 @@ jobs:
     name: Release on GitHub
     runs-on: ubuntu-latest
     needs: security-scan
+    if: ${{ always() && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') }}
     outputs:
       PKG_TAG: ${{ env.PKG_TAG }}
     permissions:
