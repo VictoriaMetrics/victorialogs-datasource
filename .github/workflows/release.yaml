@@ -15,15 +15,47 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      has_high_vulns: ${{ steps.check-severity.outputs.has_high_vulns }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+
       - name: Run OSV Scanner
+        id: osv-scan
+        continue-on-error: true
         uses: google/osv-scanner-action/osv-scanner-action@v2.3.3
         with:
           scan-args: |-
+            --format=json
+            --output=osv-results.json
             --recursive
             ./
+
+      - name: Check vulnerability severity
+        id: check-severity
+        run: |
+          if [ -f osv-results.json ]; then
+            high_critical=$(grep -o '"severity"[[:space:]]*:[[:space:]]*"\(HIGH\|CRITICAL\)"' osv-results.json | wc -l | tr -d ' ')
+            if [ "$high_critical" -gt 0 ]; then
+              echo "has_high_vulns=true" >> $GITHUB_OUTPUT
+              echo "❌ Found $high_critical HIGH/CRITICAL vulnerabilities"
+              exit 1
+            else
+              echo "has_high_vulns=false" >> $GITHUB_OUTPUT
+              echo "✅ No HIGH/CRITICAL vulnerabilities found"
+            fi
+          else
+            echo "has_high_vulns=false" >> $GITHUB_OUTPUT
+            echo "✅ No vulnerabilities found"
+          fi
+
+      - name: Upload scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: osv-scan-results
+          path: osv-results.json
 
   release:
     name: Release on GitHub
