@@ -596,7 +596,7 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 			writeError(rw, http.StatusInternalServerError, fmt.Errorf("failed to read response: %w", err))
 			return
 		}
-		d.logger.Error("VL returned error", "status", resp.StatusCode, "body", string(body))
+		d.logger.Error("VictoriaLogs returned error", "status", resp.StatusCode, "body", string(body))
 		writeError(rw, resp.StatusCode, fmt.Errorf("VictoriaLogs returned status %d: %s", resp.StatusCode, string(body)))
 		return
 	}
