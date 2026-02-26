@@ -1,4 +1,4 @@
-import { DataFrame, QueryResultMeta } from '@grafana/data';
+import { DataFrame, DataFrameType, QueryResultMeta } from '@grafana/data';
 
 import { LogLevelRule } from '../../configuration/LogLevelRules/types';
 import { getHighlighterExpressionsFromQuery } from '../../queryUtils';
@@ -7,19 +7,20 @@ import { getDerivedFields } from '../fields/derivedField';
 import { getStreamFields } from '../fields/labelField';
 import { addLevelField } from '../fields/levelField';
 import { getStreamIds } from '../fields/streamUtils';
-import { ANNOTATIONS_REF_ID } from '../types';
+import { ANNOTATIONS_REF_ID, FrameField } from '../types';
 import { dataFrameHasError, setFrameMeta } from '../utils/frame/frameUtils';
 
 export function processStreamsFrames(
   frames: DataFrame[],
   queryMap: Map<string, Query>,
   derivedFieldConfigs: DerivedFieldConfig[],
-  logLevelRules: LogLevelRule[]
+  logLevelRules: LogLevelRule[],
+  useDataplaneFormat = false,
 ): DataFrame[] {
   return frames.map((frame) => {
     const query = frame.refId !== undefined ? queryMap.get(frame.refId) : undefined;
     const isAnnotations = query?.refId === ANNOTATIONS_REF_ID;
-    return processStreamFrame(frame, query, derivedFieldConfigs, logLevelRules, isAnnotations);
+    return processStreamFrame(frame, query, derivedFieldConfigs, logLevelRules, isAnnotations, useDataplaneFormat);
   });
 }
 
@@ -28,7 +29,8 @@ function processStreamFrame(
   query: Query | undefined,
   derivedFieldConfigs: DerivedFieldConfig[],
   logLevelRules: LogLevelRule[],
-  transformLabels = false
+  transformLabels = false,
+  useDataplaneFormat = false,
 ): DataFrame {
   const custom: Record<string, string> = {
     ...frame.meta?.custom, // keep the original meta.custom
@@ -55,11 +57,26 @@ function processStreamFrame(
   const derivedFields = getDerivedFields(frameWithLevel, derivedFieldConfigs);
   const baseFields = getStreamFields(frameWithLevel.fields, transformLabels);
 
+  const fields = [...baseFields, ...derivedFields];
+
+  if (useDataplaneFormat) {
+    return {
+      ...frameWithLevel,
+      fields: fields.map((f) => {
+        if (f.name === 'Time') { return { ...f, name: 'timestamp' }; }
+        if (f.name === FrameField.Line) { return { ...f, name: 'body' }; }
+        return f;
+      }),
+      meta: {
+        ...frameWithLevel.meta,
+        type: DataFrameType.LogLines,
+        typeVersion: [0, 0],
+      },
+    };
+  }
+
   return {
     ...frameWithLevel,
-    fields: [
-      ...baseFields,
-      ...derivedFields
-    ]
+    fields,
   };
 }
