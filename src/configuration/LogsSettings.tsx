@@ -1,7 +1,7 @@
 import React, { SyntheticEvent, useMemo } from 'react';
 
 import { SelectableValue } from '@grafana/data';
-import { InlineField, Input, Stack, Text } from '@grafana/ui';
+import { InlineField, InlineSwitch, Input, Stack, Text } from '@grafana/ui';
 
 import { Options } from '../types';
 
@@ -50,6 +50,26 @@ export const LogsSettings = (props: PropsConfigEditor) => {
               onChange={onChangeHandler('vmuiUrl', optionsWithHttpMethod, onOptionsChange)}
               spellCheck={false}
               placeholder={getDefaultVmuiUrl(optionsWithHttpMethod.url)}
+            />
+          </InlineField>
+        </div>
+        <div className='gf-form max-width-30'>
+          <InlineField
+            label='Use dataplane format'
+            labelWidth={28}
+            tooltip='Use Grafana dataplane log format (timestamp/body field names, DataFrameType.LogLines). Enables automatic label variables in correlations. May break existing client-side transformations that reference Time/Line field names.'
+          >
+            <InlineSwitch
+              value={options.jsonData.useDataplaneFormat}
+              onChange={(e) => {
+                onOptionsChange({
+                  ...options,
+                  jsonData: {
+                    ...options.jsonData,
+                    useDataplaneFormat: e.currentTarget.checked,
+                  },
+                });
+              }}
             />
           </InlineField>
         </div>
