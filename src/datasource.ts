@@ -99,6 +99,7 @@ export class VictoriaLogsDatasource
   logLevelRules: LogLevelRule[];
   multitenancyHeaders?: MultitenancyHeaders;
   logContextProvider: LogContextProvider;
+  useDataplaneFormat: boolean;
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<Options>,
@@ -134,6 +135,7 @@ export class VictoriaLogsDatasource
     this.queryBuilderLimits = settingsData.queryBuilderLimits;
     this.multitenancyHeaders = this.parseMultitenancyHeaders(settingsData.multitenancyHeaders);
     this.logContextProvider = new LogContextProvider(this);
+    this.useDataplaneFormat = settingsData.useDataplaneFormat ?? false;
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
@@ -172,7 +174,8 @@ export class VictoriaLogsDatasource
             response,
             fixedRequest,
             this.derivedFields ?? [],
-            this.getActiveLevelRules()
+            this.getActiveLevelRules(),
+            this.useDataplaneFormat
           )
         )
       );

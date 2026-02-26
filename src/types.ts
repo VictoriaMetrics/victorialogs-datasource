@@ -21,6 +21,7 @@ export interface Options extends DataSourceJsonData {
   multitenancyHeaders?: Partial<Record<TenantHeaderNames, string>>;
   vmuiUrl?: string;
   otelPreset?: OpenTelemetryPreset;
+  useDataplaneFormat?: boolean;
 }
 
 export const QUERY_DIRECTION = {
