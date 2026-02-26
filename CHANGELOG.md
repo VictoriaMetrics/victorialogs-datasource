@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: add opt-in Grafana dataplane log format support. When enabled in datasource settings, log frames use standard field names (`timestamp`, `body`) and `DataFrameType.LogLines` metadata, enabling automatic `${labelKey}` variables in correlations.
+
 ## v0.26.2
 
 * VULNERABILITY: update `minimatch` dependency to fix [CVE-2026-26996](https://github.com/advisories/GHSA-3ppc-4f35-3m26). 

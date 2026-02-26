@@ -18,6 +18,7 @@ export interface Options extends DataSourceJsonData {
   logLevelRules?: LogLevelRule[];
   multitenancyHeaders?: Partial<Record<TenantHeaderNames, string>>;
   vmuiUrl?: string;
+  useDataplaneFormat?: boolean;
 }
 
 export const QUERY_DIRECTION = {

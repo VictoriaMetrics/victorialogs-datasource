@@ -1,4 +1,4 @@
-import { DataQueryRequest, DataQueryResponse, dateTime, LogLevel } from '@grafana/data';
+import { DataFrameType, DataQueryRequest, DataQueryResponse, dateTime, LogLevel } from '@grafana/data';
 
 import { LogLevelRule, LogLevelRuleType } from '../configuration/LogLevelRules/types';
 import { DerivedFieldConfig, Query, QueryType } from '../types';
@@ -185,6 +185,95 @@ describe('transformBackendResult', () => {
       'debug',
       'trace',
     ]);
+  });
+
+  it('should use dataplane format when useDataplaneFormat is true', () => {
+    const response = {
+      'data': [
+        {
+          'refId': 'A',
+          'meta': {
+            'typeVersion': [0, 0]
+          },
+          'fields': [
+            {
+              'name': 'Time',
+              'type': 'time',
+              'typeInfo': { 'frame': 'time.Time' },
+              'config': {},
+              'values': [1760598702731],
+              'entities': {},
+              'nanos': [713000]
+            },
+            {
+              'name': 'Line',
+              'type': 'string',
+              'typeInfo': { 'frame': 'string' },
+              'config': {},
+              'values': ['starting application'],
+              'entities': {}
+            },
+            {
+              'name': 'labels',
+              'type': 'other',
+              'typeInfo': { 'frame': 'json.RawMessage' },
+              'config': {},
+              'values': [labels[0]],
+              'entities': {}
+            }
+          ],
+          'length': 1
+        }
+      ],
+      'state': 'Done'
+    } as DataQueryResponse;
+    const request = {
+      'app': 'dashboard',
+      'requestId': 'SQR100',
+      'timezone': 'browser',
+      'range': {
+        'to': '2025-10-16T07:28:02.475Z',
+        'from': '2025-10-16T01:28:02.475Z',
+        'raw': { 'from': 'now-6h', 'to': 'now' }
+      },
+      'interval': '20s',
+      'intervalMs': 20000,
+      'targets': [
+        {
+          'datasource': { 'type': 'victoriametrics-logs-datasource', 'uid': 'bexw8wod6s4jke' },
+          'editorMode': 'code',
+          'expr': '*',
+          'queryType': 'instant',
+          'refId': 'A',
+          'maxLines': 1000
+        }
+      ],
+      'maxDataPoints': 913,
+      'scopedVars': {
+        '__sceneObject': { 'text': '__sceneObject' },
+        '__interval': { 'text': '20s', 'value': '20s' },
+        '__interval_ms': { 'text': '20000', 'value': 20000 }
+      },
+      'startTime': 1760599682628,
+      'rangeRaw': { 'from': 'now-6h', 'to': 'now' },
+      'dashboardUID': '886b7b9f-97a7-47ee-93b6-9ec7342f6d3e',
+      'panelId': 1,
+      'panelName': 'New panel',
+      'panelPluginId': 'table',
+      'dashboardTitle': 'double label info'
+    } as unknown as DataQueryRequest<Query>;
+    const result = transformBackendResult(response, request, [], [], true);
+    const frame = result.data[0];
+
+    // Field names should be renamed to dataplane format
+    expect(frame.fields[0].name).toBe('timestamp');
+    expect(frame.fields[1].name).toBe('body');
+    expect(frame.fields[2].name).toBe('labels');
+    expect(frame.fields[3].name).toBe('detected_level');
+
+    // Meta should have dataplane type
+    expect(frame.meta?.type).toBe(DataFrameType.LogLines);
+    expect(frame.meta?.typeVersion).toStrictEqual([0, 0]);
   });
 
   it('should parse level according to rules, apply the origin level labels then rule labels', () => {
