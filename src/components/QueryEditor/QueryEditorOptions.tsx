@@ -131,7 +131,7 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
             label='Step'
             tooltip='Use the `step` parameter when making metric queries. If not specified, Grafana will use a calculated interval. Example values: 1s, 5m, 10h, 1d.'
             invalid={!isValidStep}
-            error={'Invalid step. Example valid values: 1s, 5m, 10h, 1d. Use $var to use a variable.'}
+            error={'Invalid step. Example valid values: 1s, 5m, 10h, 1d. Supports $variable referencing.'}
           >
             <AutoSizeInput
               className='width-6'
