@@ -44,16 +44,14 @@ const getTimeUrlParams = (panelData?: PanelData) => {
   };
 };
 
-const getQueryWithTemplate = (datasource: VictoriaLogsDatasource, query: string, panelData?: PanelData,) => {
+const getQueryWithTemplate = (datasource: VictoriaLogsDatasource, query: Query, panelData?: PanelData,) => {
   const scopedVars = panelData?.request?.scopedVars || {};
-  let expr = mergeTemplateWithQuery(query);
+  let expr = query.expr;
   expr = datasource.getExtraFilters(panelData?.request?.filters, expr) ?? expr;
   expr = datasource.interpolateString(expr, scopedVars);
-  return expr;
-};
 
-export const mergeTemplateWithQuery = (query = '') => {
-  return query;
+  const streamExpr = datasource.getExtraStreamFilters(query.streamFilters, scopedVars);
+  return `${streamExpr} | ${expr}`;
 };
 
 interface Props {
@@ -122,7 +120,7 @@ const VmuiLink: FC<Props> = ({
 
   const href = useMemo(() => {
     const timeParams = getTimeUrlParams(panelData);
-    const queryExpr = getQueryWithTemplate(datasource, query.expr, panelData);
+    const queryExpr = getQueryWithTemplate(datasource, query, panelData);
 
     return `${baseVmuiUrl}/#/?` + new URLSearchParams({
       ...timeParams,
@@ -130,7 +128,7 @@ const VmuiLink: FC<Props> = ({
       query: queryExpr,
       tab: '0',
     }).toString();
-  }, [baseVmuiUrl, datasource, panelData, query.expr, tenant]);
+  }, [baseVmuiUrl, datasource, panelData, query, tenant]);
 
   return (
     <a
