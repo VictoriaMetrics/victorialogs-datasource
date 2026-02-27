@@ -33,6 +33,9 @@ import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, Templ
 
 import { correctMultiExactOperatorValueAll } from './LogsQL/multiExactOperator';
 import { correctRegExpValueAll, doubleQuoteRegExp, isRegExpOperatorInLastFilter } from './LogsQL/regExpOperator';
+import {
+  buildStreamExtraFilters
+} from './components/QueryEditor/QueryBuilder/components/StreamFilters/streamFilterUtils';
 import QueryEditor from './components/QueryEditor/QueryEditor';
 import { LogLevelRule } from './configuration/LogLevelRules/types';
 import { TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
@@ -44,7 +47,7 @@ import {
   addSortPipeToQuery,
   getQueryFormat,
   queryHasFilter,
-  removeLabelFromQuery
+  removeLabelFromQuery,
 } from './modifyQuery';
 import { removeDoubleQuotesAroundVar } from './parsing';
 import { replaceOperatorWithIn, returnVariables } from './parsingUtils';
@@ -59,16 +62,14 @@ import {
   QueryBuilderLimits,
   QueryFilterOptions,
   QueryType,
+  StreamFilterState,
   SupportingQueryType,
   Tenant,
   TenantHeaderNames,
   ToggleFilterAction,
   VariableQuery,
 } from './types';
-import {
-  formatOffsetDuration,
-  getMillisecondsFromDuration,
-} from './utils/timeUtils';
+import { formatOffsetDuration, getMillisecondsFromDuration } from './utils/timeUtils';
 import { VariableSupport } from './variableSupport/VariableSupport';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
@@ -152,12 +153,14 @@ export class VictoriaLogsDatasource
     return super
       .query(fixedRequest)
       .pipe(
-        map((response) => transformBackendResult(
-          response,
-          fixedRequest,
-          this.derivedFields ?? [],
-          this.getActiveLevelRules()
-        ))
+        map((response) =>
+          transformBackendResult(
+            response,
+            fixedRequest,
+            this.derivedFields ?? [],
+            this.getActiveLevelRules()
+          )
+        )
       );
   }
 
@@ -218,11 +221,13 @@ export class VictoriaLogsDatasource
       extraFilters = undefined;
     }
 
+    const extraStreamFilters = this.getExtraStreamFilters(target.streamFilters, scopedVars);
     return {
       ...target,
       legendFormat: this.templateSrv.replace(target.legendFormat, rest),
       expr,
       extraFilters,
+      extraStreamFilters,
     };
   }
 
@@ -236,6 +241,14 @@ export class VictoriaLogsDatasource
     }, initialExpr);
 
     return returnVariables(expr);
+  }
+
+  getExtraStreamFilters(streamFilters: StreamFilterState[] | undefined, scopedVars: ScopedVars): string | undefined {
+    if (!streamFilters) {
+      return undefined;
+    }
+
+    return this.interpolateString(buildStreamExtraFilters(streamFilters), scopedVars) || undefined;
   }
 
   interpolateQueryExpr(value: any, _variable: any) {
@@ -259,6 +272,7 @@ export class VictoriaLogsDatasource
         expr: this.interpolateString(query.expr, scopedVars),
         interval: this.templateSrv.replace(query.interval, scopedVars),
         extraFilters: this.getExtraFilters(filters, query.extraFilters),
+        extraStreamFilters: this.getExtraStreamFilters(query.streamFilters, scopedVars)
       }));
     }
     return expandedQueries;
@@ -483,7 +497,7 @@ export class VictoriaLogsDatasource
   }
 
   getQueryDisplayText(query: Query): string {
-    return (query.expr || '');
+    return query.expr || '';
   }
 
   getActiveLevelRules(): LogLevelRule[] {

@@ -2,7 +2,7 @@ import { css } from '@emotion/css';
 import React, { useState } from 'react';
 
 import { CoreApp, GrafanaTheme2, TimeRange } from '@grafana/data';
-import { useStyles2 } from '@grafana/ui';
+import { Divider, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../datasource';
 import { Query, VisualQuery } from '../../../types';
@@ -11,7 +11,6 @@ import { AdHocFiltersControl } from '../AdHocFiltersControl';
 import QueryBuilder from './QueryBuilder';
 import { buildVisualQueryFromString } from './utils/parseFromString';
 import { parseVisualQueryToString } from './utils/parseToString';
-
 
 export interface Props {
   query: Query;
@@ -45,6 +44,7 @@ export function QueryBuilderContainer(props: Props) {
 
   return (
     <>
+      <Divider />
       <QueryBuilder
         query={state.visQuery}
         datasource={datasource}
@@ -54,7 +54,7 @@ export function QueryBuilderContainer(props: Props) {
       />
       {query.extraFilters && <AdHocFiltersControl query={query} onChange={onAdhocFilterChange} onRunQuery={onRunQuery} app={app} />}
 
-      <hr />
+      <Divider />
 
       <p className={styles.previewText}>
         {query.expr !== '' && query.expr}
