@@ -16,7 +16,7 @@ interface FetchFieldsOptions {
 enum HitsValueType {
   NUMBER = 'number',
   DATE = 'date',
-  STRING = 'string'
+  STRING = 'string',
 }
 
 export default class LogsQlLanguageProvider extends LanguageProvider {
@@ -76,6 +76,60 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     const params = Object.fromEntries(urlParams);
 
     const url = options.type === FilterFieldType.FieldName ? 'select/logsql/field_names' : 'select/logsql/field_values';
+    const key = `${url}?${urlParams.toString()}`;
+
+    if (this.cacheValues.has(key)) {
+      return this.cacheValues.get(key)!;
+    }
+
+    if (this.cacheValues.size >= this.cacheSize) {
+      const firstKey = this.cacheValues.keys().next().value;
+      if (firstKey) {
+        this.cacheValues.delete(firstKey);
+      }
+    }
+
+    const res = (await this.datasource.postResource(url, params)) as FieldHitsResponse;
+    const result = (res?.values || []) as FieldHits[];
+    const sortedResult = sortFieldHits(result);
+    this.cacheValues.set(key, sortedResult);
+    return sortedResult;
+  }
+
+  async getStreamFieldList(options: FetchFieldsOptions, customParams?: URLSearchParams): Promise<FieldHits[]> {
+    if (options.type === FilterFieldType.FieldValue && !options.field) {
+      console.warn('getStreamFieldList: field is required for FieldValue type');
+      return [];
+    }
+
+    const urlParams = new URLSearchParams();
+    if (customParams) {
+      for (const [key, value] of customParams) {
+        urlParams.append(key, value);
+      }
+    }
+
+    // as stream filters are top level filter in the query, we need to get all values for the field
+    urlParams.append('query', '*');
+
+    const timeRange = this.getTimeRangeParams(options.timeRange);
+    urlParams.append('start', timeRange.start.toString());
+    urlParams.append('end', timeRange.end.toString());
+
+    if (options.type === FilterFieldType.FieldValue && options.field) {
+      urlParams.append('field', options.field);
+    }
+
+    if (options.limit && options.limit > 0 && options.type === FilterFieldType.FieldValue) {
+      urlParams.append('limit', options.limit.toString());
+    }
+
+    const params = Object.fromEntries(urlParams);
+
+    const url =
+      options.type === FilterFieldType.FieldName
+        ? 'select/logsql/stream_field_names'
+        : 'select/logsql/stream_field_values';
     const key = `${url}?${urlParams.toString()}`;
 
     if (this.cacheValues.has(key)) {

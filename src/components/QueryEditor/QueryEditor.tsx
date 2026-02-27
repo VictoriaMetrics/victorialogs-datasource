@@ -15,6 +15,7 @@ import { EditorHeader } from './EditorHeader';
 import { LogsQLSyntaxHelp } from './LogsQLSyntaxHelp';
 import { QueryBuilderContainer } from './QueryBuilder/QueryBuilderContainer';
 import { QueryEditorModeToggle } from './QueryBuilder/QueryEditorModeToggle';
+import { StreamFilters } from './QueryBuilder/components/StreamFilters/StreamFilters';
 import { buildVisualQueryFromString } from './QueryBuilder/utils/parseFromString';
 import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorHelp } from './QueryEditorHelp';
@@ -130,6 +131,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
           </Stack>
         </EditorHeader>
         <div className='flex-grow-1'>
+          <StreamFilters datasource={datasource} query={query} timeRange={timeRange} onChange={onChange} />
           {editorMode === QueryEditorMode.Builder ? (
             <QueryBuilderContainer
               datasource={props.datasource}

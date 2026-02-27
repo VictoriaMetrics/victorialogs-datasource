@@ -46,6 +46,14 @@ export enum QueryEditorMode {
 
 export type Format = 'histogram';
 
+export type StreamFilterOperator = '=' | '!=';
+
+export interface StreamFilterState {
+  label: string;
+  operator: StreamFilterOperator;
+  values: string[];
+}
+
 export interface Query extends DataQuery {
   editorMode?: QueryEditorMode;
   expr: string;
@@ -53,6 +61,10 @@ export interface Query extends DataQuery {
   maxLines?: number;
   step?: string;
   extraFilters?: string;
+  /** serialized stream filters for extra_stream_filters query param (set during applyTemplateVariables) */
+  extraStreamFilters?: string;
+  /** stream filters stored as structured data, serialized to extraStreamFilters before request */
+  streamFilters?: StreamFilterState[];
   direction?: QueryDirection;
   supportingQueryType?: SupportingQueryType;
   queryType?: QueryType;
