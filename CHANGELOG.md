@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix time range provided in `field_names` and `field_values` requests. Instead of being rounded to a 24-hour time range, the selected time range is now provided. See [pr #581](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/581).
+
 ## v0.26.2
 
 * VULNERABILITY: update `minimatch` dependency to fix [CVE-2026-26996](https://github.com/advisories/GHSA-3ppc-4f35-3m26). 
