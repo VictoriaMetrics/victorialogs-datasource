@@ -46,19 +46,20 @@ const (
 type Query struct {
 	backend.DataQuery `json:"inline"`
 
-	Expr           string    `json:"expr"`
-	LegendFormat   string    `json:"legendFormat"`
-	TimeInterval   string    `json:"timeInterval"`
-	Interval       string    `json:"interval"`
-	IntervalMs     int64     `json:"intervalMs"`
-	MaxLines       int       `json:"maxLines"`
-	Step           string    `json:"step"`
-	Fields         []string  `json:"fields"`
-	QueryType      QueryType `json:"queryType"`
-	ExtraFilters   string    `json:"extraFilters"`
-	TimezoneOffset string    `json:"timezoneOffset"`
-	url            *url.URL
-	ForAlerting    bool `json:"-"`
+	Expr               string    `json:"expr"`
+	LegendFormat       string    `json:"legendFormat"`
+	TimeInterval       string    `json:"timeInterval"`
+	Interval           string    `json:"interval"`
+	IntervalMs         int64     `json:"intervalMs"`
+	MaxLines           int       `json:"maxLines"`
+	Step               string    `json:"step"`
+	Fields             []string  `json:"fields"`
+	QueryType          QueryType `json:"queryType"`
+	ExtraFilters       string    `json:"extraFilters"`
+	ExtraStreamFilters string    `json:"extraStreamFilters"`
+	TimezoneOffset     string    `json:"timezoneOffset"`
+	url                *url.URL
+	ForAlerting        bool `json:"-"`
 }
 
 // GetQueryURL calculates step and clear expression from template variables,
@@ -78,6 +79,10 @@ func (q *Query) getQueryURL(rawURL string, queryParams string) (string, error) {
 
 	if q.ExtraFilters != "" {
 		params.Set("extra_filters", q.ExtraFilters)
+	}
+
+	if q.ExtraStreamFilters != "" {
+		params.Set("extra_stream_filters", q.ExtraStreamFilters)
 	}
 
 	q.url = u
