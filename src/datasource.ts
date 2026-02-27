@@ -132,7 +132,8 @@ export class VictoriaLogsDatasource
           expr: addSortPipeToQuery(q, request.app, request.liveStreaming),
           maxLines: q.maxLines ?? this.maxLines,
           timezoneOffset,
-          format: getQueryFormat(q.expr)
+          format: getQueryFormat(q.expr),
+          step: this.templateSrv.replace(q.step, request.scopedVars),
         };
       });
 

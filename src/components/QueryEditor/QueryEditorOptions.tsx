@@ -42,7 +42,7 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
   const queryType = query.queryType;
 
   const isValidStep = useMemo(() => {
-    return !query.step || isValidGrafanaDuration(query.step) || !isNaN(+query.step);
+    return !query.step || isValidGrafanaDuration(query.step) || !isNaN(+query.step) || query.step.startsWith('$');
   }, [query.step]);
 
   const collapsedInfo = getCollapsedInfo({
@@ -131,7 +131,7 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
             label='Step'
             tooltip='Use the `step` parameter when making metric queries. If not specified, Grafana will use a calculated interval. Example values: 1s, 5m, 10h, 1d.'
             invalid={!isValidStep}
-            error={'Invalid step. Example valid values: 1s, 5m, 10h, 1d.'}
+            error={'Invalid step. Example valid values: 1s, 5m, 10h, 1d. Use $var to use a variable.'}
           >
             <AutoSizeInput
               className='width-6'
