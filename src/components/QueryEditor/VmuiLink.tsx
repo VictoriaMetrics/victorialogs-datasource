@@ -51,7 +51,7 @@ const getQueryWithTemplate = (datasource: VictoriaLogsDatasource, query: Query, 
   expr = datasource.interpolateString(expr, scopedVars);
 
   const streamExpr = datasource.getExtraStreamFilters(query.streamFilters, scopedVars);
-  return `${streamExpr} | ${expr}`;
+  return streamExpr ? `${streamExpr} | ${expr}` : expr;
 };
 
 interface Props {
