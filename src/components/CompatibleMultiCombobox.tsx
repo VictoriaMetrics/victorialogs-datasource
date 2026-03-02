@@ -33,7 +33,7 @@ export const CompatibleMultiCombobox: typeof MultiCombobox = (props) => {
     if (typeof props.options === 'function') {
       return props.options(value);
     }
-    return new Promise<SelectValue<any>[]>(() => {});
+    return Promise.resolve([]);
   }, [props]);
 
   const selectOptions = useMemo(() => {
