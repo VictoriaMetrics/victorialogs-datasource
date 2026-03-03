@@ -43,6 +43,6 @@ jobs:
 
       - name: Run typecheck
         run: yarn typecheck
-# turn off for now cause need to fix the minimatch package version, in a result the lint is not working now
-#      - name: Run lint
-#        run: yarn lint
+
+      - name: Run lint
+        run: yarn lint

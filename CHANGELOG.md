@@ -3,6 +3,8 @@
 ## tip
 
 * FEATURE: add opt-in Grafana dataplane log format support. When enabled in datasource settings, log frames use standard field names (`timestamp`, `body`) and `DataFrameType.LogLines` metadata, enabling automatic `${labelKey}` variables in correlations.
+* BUGFIX: fix time range provided in `field_names` and `field_values` requests. Instead of being rounded to a 24-hour time range, the selected time range is now provided. See [pr #581](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/581).
+* BUGFIX: fix template variables not being interpolated in the `Step` field of the query editor. See [pr #594](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/594).
 
 ## v0.26.2
 
