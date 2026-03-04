@@ -10,16 +10,17 @@ import { Query, StreamFilterState } from '../../../../../types';
 import StreamFilterRow from './StreamFilterRow';
 import { buildPrecedingStreamFilters, getUsedLabelNames } from './streamFilterUtils';
 
-
-const TooltipText = () =>
+const TooltipText = () => (
   <Text>
     Stream filters improve query performance by narrowing the search to specific log streams before executing the rest
-    of the query.<br />
+    of the query.
+    <br />
     Instead of scanning all logs, VictoriaLogs first selects only the relevant streams (e.g. {"{app='nginx'}"}), which
-    significantly reduces the amount of data to process and makes queries faster and more efficient.<br />
+    significantly reduces the amount of data to process and makes queries faster and more efficient.
+    <br />
     Stream filters are applied as extra_stream_filters parameter
   </Text>
-;
+);
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -71,11 +72,7 @@ export const StreamFilters = ({ datasource, query, timeRange, onChange }: Props)
     <div className={styles.wrapper}>
       <Label className={styles.label}>
         Stream filters
-        <IconButton
-          style={{ marginLeft: '5px' }}
-          name='info-circle'
-          tooltip={TooltipText}
-        />
+        <IconButton style={{ marginLeft: '5px' }} name='info-circle' tooltip={TooltipText} />
       </Label>
       <div className={styles.filtersRow}>
         {streamFilters.map((filter, index) => (
@@ -86,6 +83,7 @@ export const StreamFilters = ({ datasource, query, timeRange, onChange }: Props)
             timeRange={timeRange}
             extraStreamFilters={precedingFiltersMap[index]}
             excludeLabels={excludeLabelsMap[index]}
+            queryExpr={query.expr}
             onChange={(f) => handleFilterChange(index, f)}
             onRemove={() => handleRemoveFilter(index)}
           />

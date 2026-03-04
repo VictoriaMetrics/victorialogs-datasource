@@ -109,8 +109,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       }
     }
 
-    // as stream filters are top level filter in the query, we need to get all values for the field
-    urlParams.append('query', '*');
+    urlParams.append('query', options.query || '*');
 
     const timeRange = this.getTimeRangeParams(options.timeRange);
     urlParams.append('start', timeRange.start.toString());

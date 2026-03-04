@@ -17,6 +17,8 @@ interface Props {
   datasource: VictoriaLogsDatasource;
   fieldName?: string;
   timeRange?: TimeRange;
+  /** query expression from the editor to scope stream filter results */
+  queryExpr?: string;
   /** extra_stream_filters built from preceding filters to scope values */
   extraStreamFilters?: string;
   /** label names already used by other filters — will be excluded from the dropdown */
@@ -27,6 +29,7 @@ export const useFetchStreamFilters = ({
   datasource,
   fieldName,
   timeRange,
+  queryExpr,
   extraStreamFilters,
   excludeLabels,
 }: Props) => {
@@ -49,7 +52,7 @@ export const useFetchStreamFilters = ({
     }
 
     const list = await datasource.languageProvider?.getStreamFieldList(
-      { type: FilterFieldType.FieldName, timeRange },
+      { type: FilterFieldType.FieldName, timeRange, query: queryExpr },
       customParams
     );
 
@@ -67,7 +70,7 @@ export const useFetchStreamFilters = ({
 
     fieldNamesCache.current = result;
     return result;
-  }, [datasource, timeRange, extraStreamFilters]);
+  }, [datasource, timeRange, extraStreamFilters, queryExpr]);
 
   // Fetch stream field values with server-side filtering
   const fetchStreamFieldValues = useCallback(
@@ -95,6 +98,7 @@ export const useFetchStreamFilters = ({
           field: fieldName,
           limit,
           fieldValueFilter: inputValue || undefined,
+          query: queryExpr,
         },
         customParams
       );
@@ -125,7 +129,7 @@ export const useFetchStreamFilters = ({
 
       return options;
     },
-    [datasource, fieldName, timeRange, extraStreamFilters]
+    [datasource, fieldName, timeRange, extraStreamFilters, queryExpr]
   );
 
   // Client-side filter for field names — also excludes already-used labels
@@ -196,7 +200,7 @@ export const useFetchStreamFilters = ({
   // Reset field names cache when dependencies change
   useEffect(() => {
     fieldNamesCache.current = [];
-  }, [timeRange, extraStreamFilters]);
+  }, [timeRange, extraStreamFilters, queryExpr]);
 
   // Cleanup debounce on unmount
   useEffect(() => {

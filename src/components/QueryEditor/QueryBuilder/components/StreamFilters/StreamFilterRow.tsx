@@ -27,6 +27,8 @@ interface Props {
   extraStreamFilters?: string;
   /** label names already used by other filters */
   excludeLabels: Set<string>;
+  /** query expression from the editor to scope stream filter results */
+  queryExpr?: string;
   onChange: (filter: StreamFilterState) => void;
   onRemove: () => void;
 }
@@ -37,6 +39,7 @@ const StreamFilterRow = ({
   timeRange,
   extraStreamFilters,
   excludeLabels,
+  queryExpr,
   onChange,
   onRemove,
 }: Props) => {
@@ -46,6 +49,7 @@ const StreamFilterRow = ({
     datasource,
     fieldName: filter.label,
     timeRange,
+    queryExpr,
     extraStreamFilters,
     excludeLabels,
   });
@@ -88,9 +92,7 @@ const StreamFilterRow = ({
 
   const handleSelectValues = useCallback(
     (selected: ComboboxOption[]) => {
-      const values = selected
-        .map((s) => s.value)
-        .filter((v): v is string => v !== undefined && v !== '');
+      const values = selected.map((s) => s.value).filter((v): v is string => v !== undefined && v !== '');
 
       // If the last added value is a variable — keep only that variable (single variable mode)
       const lastSelected = values[values.length - 1];
@@ -124,7 +126,7 @@ const StreamFilterRow = ({
 
   const labelValue = useMemo(() => {
     return filter.label ? { label: filter.label, value: filter.label } : null;
-  },[filter.label]);
+  }, [filter.label]);
 
   return (
     <div className={styles.wrapper}>
