@@ -33,7 +33,7 @@ export const StreamFilters = ({ datasource, query, timeRange, onChange }: Props)
   const streamFilters = useMemo(() => query.streamFilters || [], [query]);
 
   const handleAddFilter = useCallback(() => {
-    const newFilters: StreamFilterState[] = [...streamFilters, { label: '', operator: '=', values: [] }];
+    const newFilters: StreamFilterState[] = [...streamFilters, { label: '', operator: 'in', values: [] }];
     onChange({ ...query, streamFilters: newFilters });
   }, [onChange, query, streamFilters]);
 
