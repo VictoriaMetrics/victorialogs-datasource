@@ -1,7 +1,7 @@
 import { debounce } from 'lodash';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
-import { TimeRange } from '@grafana/data';
+import { formattedValueToString, getValueFormat, TimeRange } from '@grafana/data';
 import { ComboboxOption } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
@@ -9,6 +9,9 @@ import { FilterFieldType } from '../../../../../types';
 
 const DEBOUNCE_MS = 300;
 const MAX_VISIBLE_OPTIONS = 1000;
+
+const shortFormat = getValueFormat('short');
+const formatHits = (hits: number): string => formattedValueToString(shortFormat(hits));
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -50,13 +53,17 @@ export const useFetchStreamFilters = ({
       customParams
     );
 
-    const result: ComboboxOption[] = list
-      ? list.map(({ value, hits }) => ({
-        value: value || '',
-        label: value || ' ',
-        description: `hits: ${hits}`,
-      })) 
-      : [];
+    if (!list || list.length === 0) {
+      fieldNamesCache.current = [];
+      return [];
+    }
+
+    const totalHits = list.reduce((sum, item) => sum + item.hits, 0);
+    const result: ComboboxOption[] = list.map(({ value, hits }) => ({
+      value: value || '',
+      label: value || ' ',
+      description: `hits: ${formatHits(hits)}${totalHits > 0 ? ` (${((hits / totalHits) * 100).toFixed(1)}%)` : ''}`,
+    }));
 
     fieldNamesCache.current = result;
     return result;
@@ -104,14 +111,15 @@ export const useFetchStreamFilters = ({
           value: '',
           label: 'Too many distinct values. Please type more characters',
           description: `The server returned first ${limit} values. You can increase the limit in datasource settings`,
-          infoOption: true
+          infoOption: true,
         });
       }
 
+      const totalHits = list.reduce((sum, item) => sum + item.hits, 0);
       const mappedOptions = list.map(({ value, hits }) => ({
         value: value || '',
         label: value || ' ',
-        description: `hits: ${hits}`,
+        description: `hits: ${formatHits(hits)}${totalHits > 0 ? ` (${((hits / totalHits) * 100).toFixed(1)}%)` : ''}`,
       }));
       options.push(...mappedOptions);
 

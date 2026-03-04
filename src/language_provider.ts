@@ -145,7 +145,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
 
     const res = (await this.datasource.postResource(url, params)) as FieldHitsResponse;
     const result = (res?.values || []) as FieldHits[];
-    const sortedResult = sortFieldHits(result);
+    const sortedResult = sortByHits(result, 'desc');
     this.cacheValues.set(key, sortedResult);
     return sortedResult;
   }
@@ -176,7 +176,7 @@ function getArrayType(data: FieldHits[]): HitsValueType {
 }
 
 function sortFieldHits(data: FieldHits[]): FieldHits[] {
-  const filteredData = data.filter(item => item.value !== '');
+  const filteredData = data.filter((item) => item.value !== '');
   const arrayType = getArrayType(filteredData);
 
   return filteredData.sort((a, b) => {
@@ -190,4 +190,9 @@ function sortFieldHits(data: FieldHits[]): FieldHits[] {
         return a.value.localeCompare(b.value);
     }
   });
+}
+
+function sortByHits(data: FieldHits[], direction: 'asc' | 'desc' = 'desc'): FieldHits[] {
+  const order = direction === 'asc' ? 1 : -1;
+  return data.filter((item) => item.value !== '').sort((a, b) => (a.hits - b.hits) * order);
 }
