@@ -18,7 +18,9 @@ const TooltipText = () => (
     Instead of scanning all logs, VictoriaLogs first selects only the relevant streams (e.g. {"{app='nginx'}"}), which
     significantly reduces the amount of data to process and makes queries faster and more efficient.
     <br />
-    Stream filters are applied as extra_stream_filters parameter
+    Stream filters are applied as extra_stream_filters parameter.
+    <br />
+    Stream labels depend on the query&#39;s input.
   </Text>
 );
 
@@ -27,9 +29,10 @@ interface Props {
   query: Query;
   timeRange?: TimeRange;
   onChange: (query: Query) => void;
+  onRunQuery: () => void;
 }
 
-export const StreamFilters = ({ datasource, query, timeRange, onChange }: Props) => {
+export const StreamFilters = ({ datasource, query, timeRange, onChange, onRunQuery }: Props) => {
   const styles = useStyles2(getStyles);
   const streamFilters = useMemo(() => query.streamFilters || [], [query]);
 
@@ -86,10 +89,11 @@ export const StreamFilters = ({ datasource, query, timeRange, onChange }: Props)
             queryExpr={query.expr}
             onChange={(f) => handleFilterChange(index, f)}
             onRemove={() => handleRemoveFilter(index)}
+            onRunQuery={onRunQuery}
           />
         ))}
         <div className={styles.addButton}>
-          <Button variant='secondary' onClick={handleAddFilter} icon='plus'>
+          <Button variant='secondary' onClick={handleAddFilter} icon='plus' size={'xs'}>
             Stream filter
           </Button>
         </div>

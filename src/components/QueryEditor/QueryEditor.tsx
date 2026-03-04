@@ -105,17 +105,14 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
         <EditorHeader>
           <Stack direction={'row'} alignItems={'center'}>
             <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr} />
-            {app === CoreApp.Explore &&
-              <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />}
+            {app === CoreApp.Explore && (
+              <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />
+            )}
           </Stack>
           <Stack direction={'row'} justifyContent={'flex-end'} alignItems={'center'}>
             <LogsQLSyntaxHelp />
             <QueryEditorHelp />
-            <VmuiLink
-              query={query}
-              panelData={data}
-              datasource={datasource}
-            />
+            <VmuiLink query={query} panelData={data} datasource={datasource} />
             <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange} />
             {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
               <Button
@@ -131,7 +128,13 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
           </Stack>
         </EditorHeader>
         <div className='flex-grow-1'>
-          <StreamFilters datasource={datasource} query={query} timeRange={timeRange} onChange={onChange} />
+          <StreamFilters
+            datasource={datasource}
+            query={query}
+            timeRange={timeRange}
+            onChange={onChange}
+            onRunQuery={onRunQuery}
+          />
           {editorMode === QueryEditorMode.Builder ? (
             <QueryBuilderContainer
               datasource={props.datasource}
@@ -165,7 +168,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       display: flex;
       flex-direction: column;
       gap: ${theme.spacing(0.5)};
-    `
+    `,
   };
 };
 
