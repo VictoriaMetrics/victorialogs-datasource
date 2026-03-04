@@ -31,6 +31,7 @@ interface Props {
   queryExpr?: string;
   onChange: (filter: StreamFilterState) => void;
   onRemove: () => void;
+  onRunQuery: () => void;
 }
 
 const StreamFilterRow = ({
@@ -42,6 +43,7 @@ const StreamFilterRow = ({
   queryExpr,
   onChange,
   onRemove,
+  onRunQuery,
 }: Props) => {
   const styles = useStyles2(getStyles);
 
@@ -81,9 +83,12 @@ const StreamFilterRow = ({
     (option: SelectableValue<StreamFilterOperator>) => {
       if (option.value) {
         onChange({ ...filter, operator: option.value });
+        if (filter.label && filter.values.length > 0) {
+          onRunQuery();
+        }
       }
     },
-    [onChange, filter]
+    [onChange, filter, onRunQuery]
   );
 
   const selectedValues = useMemo<ComboboxOption[]>(() => {
@@ -92,19 +97,27 @@ const StreamFilterRow = ({
 
   const handleSelectValues = useCallback(
     (selected: ComboboxOption[]) => {
+      console.log('selected', selected);
       const values = selected.map((s) => s.value).filter((v): v is string => v !== undefined && v !== '');
 
       // If the last added value is a variable — keep only that variable (single variable mode)
       const lastSelected = values[values.length - 1];
       if (lastSelected && isVariable(lastSelected)) {
         onChange({ ...filter, values: [lastSelected] });
+        if (filter.label) {
+          onRunQuery();
+        }
         return;
       }
 
       // Otherwise strip any variables from the selection (regular multi-value mode)
-      onChange({ ...filter, values: values.filter((v) => !isVariable(v)) });
+      const newValues = values.filter((v) => !isVariable(v));
+      onChange({ ...filter, values: newValues });
+      if (filter.label && newValues.length > 0) {
+        onRunQuery();
+      }
     },
-    [onChange, filter]
+    [onChange, filter, onRunQuery]
   );
 
   const loadValuesOptions = useCallback(
@@ -143,7 +156,8 @@ const StreamFilterRow = ({
           options={OPERATOR_OPTIONS}
           value={filter.operator || 'in'}
           onChange={handleSelectOperator}
-          width={8}
+          width={'auto'}
+          minWidth={2}
         />
         <CompatibleMultiCombobox
           key={filter.label}
