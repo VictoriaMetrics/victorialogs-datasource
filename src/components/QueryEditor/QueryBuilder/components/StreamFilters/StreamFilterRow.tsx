@@ -7,6 +7,7 @@ import { ComboboxOption, IconButton, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { FilterFieldType, StreamFilterOperator, StreamFilterState } from '../../../../../types';
+import { isVariable } from '../../../../../utils/isVariable';
 import { CompatibleCombobox } from '../../../../CompatibleCombobox';
 import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
 
@@ -16,8 +17,6 @@ const OPERATOR_OPTIONS: ComboboxOption<StreamFilterOperator>[] = [
   { label: 'in', value: 'in' },
   { label: 'not in', value: 'not_in' },
 ];
-
-const isVariable = (v: string) => v.startsWith('$');
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -97,7 +96,6 @@ const StreamFilterRow = ({
 
   const handleSelectValues = useCallback(
     (selected: ComboboxOption[]) => {
-      console.log('selected', selected);
       const values = selected.map((s) => s.value).filter((v): v is string => v !== undefined && v !== '');
 
       // If the last added value is a variable — keep only that variable (single variable mode)
