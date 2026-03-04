@@ -1,4 +1,5 @@
 import { StreamFilterState } from '../../../../../types';
+import { isVariable } from '../../../../../utils/isVariable';
 
 /**
  * Escapes double quotes in a stream filter value.
@@ -13,7 +14,7 @@ function escapeStreamValue(value: string): string {
  * be interpolated later; regular values are wrapped in double quotes.
  */
 function formatStreamValue(value: string): string {
-  return value.startsWith('$') ? value : `"${escapeStreamValue(value)}"`;
+  return isVariable(value) ? value : `"${escapeStreamValue(value)}"`;
 }
 
 /**
@@ -57,7 +58,9 @@ export function buildStreamExtraFilters(filters: StreamFilterState[]): string {
  * Used to scope subsequent filter dropdowns by already selected values.
  */
 export function buildPrecedingStreamFilters(filters: StreamFilterState[], currentIndex: number): string {
-  const preceding = filters.slice(0, currentIndex);
+  const preceding = filters
+    .slice(0, currentIndex)
+    .filter((f) => f.values.length > 0 && f.values.every((v) => !isVariable(v)));
   return buildStreamExtraFilters(preceding);
 }
 
