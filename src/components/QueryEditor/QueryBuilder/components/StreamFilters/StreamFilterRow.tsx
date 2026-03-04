@@ -13,8 +13,8 @@ import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
 import { useFetchStreamFilters } from './useFetchStreamFilters';
 
 const OPERATOR_OPTIONS: ComboboxOption<StreamFilterOperator>[] = [
-  { label: '=', value: '=' },
-  { label: '!=', value: '!=' },
+  { label: 'in', value: 'in' },
+  { label: 'not in', value: 'not_in' },
 ];
 
 const isVariable = (v: string) => v.startsWith('$');
@@ -139,7 +139,7 @@ const StreamFilterRow = ({
         />
         <CompatibleCombobox<StreamFilterOperator>
           options={OPERATOR_OPTIONS}
-          value={filter.operator || '='}
+          value={filter.operator || 'in'}
           onChange={handleSelectOperator}
           width={8}
         />

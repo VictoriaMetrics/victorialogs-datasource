@@ -20,23 +20,21 @@ function formatStreamValue(value: string): string {
  * Serializes a single StreamFilterState into a LogsQL stream filter string.
  *
  * Examples:
- *   {label: "app", operator: "=", values: ["nginx"]}           -> '_stream:{app in ("nginx")}'
- *   {label: "app", operator: "=", values: ["nginx", "apache"]}  -> '_stream:{app in ("nginx", "apache")}'
- *   {label: "app", operator: "!=", values: ["nginx"]}           -> '_stream:{app not_in ("nginx")}'
- *   {label: "app", operator: "!=", values: ["nginx", "apache"]} -> '_stream:{app not_in ("nginx", "apache")}'
- *   {label: "app", operator: "=", values: ["$myVar"]}           -> '_stream:{app in ($myVar)}'
+ *   {label: "app", operator: "in", values: ["nginx"]}           -> '_stream:{app in ("nginx")}'
+ *   {label: "app", operator: "in", values: ["nginx", "apache"]}  -> '_stream:{app in ("nginx", "apache")}'
+ *   {label: "app", operator: "not_in", values: ["nginx"]}           -> '_stream:{app not_in ("nginx")}'
+ *   {label: "app", operator: "not_in", values: ["nginx", "apache"]} -> '_stream:{app not_in ("nginx", "apache")}'
+ *   {label: "app", operator: "in", values: ["$myVar"]}           -> '_stream:{app in ($myVar)}'
  */
 export function streamFilterToString(filter: StreamFilterState): string {
   if (!filter.label || filter.values.length === 0) {
     return '';
   }
 
-  const op = filter.operator || '=';
-  const isNeg = op === '!=';
+  const op = filter.operator || 'in';
 
   const valuesList = filter.values.map(formatStreamValue).join(', ');
-  const inOp = isNeg ? 'not_in' : 'in';
-  return `_stream:{${filter.label} ${inOp} (${valuesList})}`;
+  return `_stream:{${filter.label} ${op} (${valuesList})}`;
 }
 
 /**
@@ -45,7 +43,7 @@ export function streamFilterToString(filter: StreamFilterState): string {
  * Multiple filters are joined with AND.
  *
  * Example:
- *   [{label: "app", operator: "=", values: ["nginx"]}, {label: "host", operator: "=", values: ["h1", "h2"]}]
+ *   [{label: "app", operator: "in", values: ["nginx"]}, {label: "host", operator: "in", values: ["h1", "h2"]}]
  *   -> '_stream:{app="nginx"} AND _stream:{host in ("h1", "h2")}'
  */
 export function buildStreamExtraFilters(filters: StreamFilterState[]): string {
