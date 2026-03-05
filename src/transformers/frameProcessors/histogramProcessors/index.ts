@@ -1,0 +1,1 @@
+export { processHistogramFrames } from './processHistogramFrames';

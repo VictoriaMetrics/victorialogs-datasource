@@ -45,7 +45,7 @@ export function transformBackendResult(
       ...processMetricRangeFrames(metricRangeFrames, request.targets, request.range.from.valueOf(), request.range.to.valueOf()),
       ...processMetricInstantFrames(metricInstantFrames),
       ...processStreamsFrames(streamsFrames, queryMap, derivedFieldConfigs, logLevelRules),
-      ...processHistogramFrames(histogramFrames),
+      ...processHistogramFrames(histogramFrames, request.panelPluginId),
     ],
   };
 }
