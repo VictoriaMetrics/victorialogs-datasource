@@ -1,4 +1,4 @@
-import { getDefaultTimeRange, LanguageProvider, TimeRange } from '@grafana/data';
+import { escapeRegex, getDefaultTimeRange, LanguageProvider, TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from './datasource';
 import { FieldHits, FieldHitsResponse, FilterFieldType } from './types';
@@ -56,7 +56,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     // Build query with optional field value filter (prefix match for server-side filtering)
     let finalQuery = options.query || '*';
     if (options.type === FilterFieldType.FieldValue && options.field && options.fieldValueFilter) {
-      const fieldFilter = `${options.field}: i("${options.fieldValueFilter}")`;
+      const fieldFilter = `${options.field}:~"(?i)${escapeRegex(options.fieldValueFilter)}"`;
       finalQuery = finalQuery === '*' ? fieldFilter : `(${finalQuery}) AND ${fieldFilter}`;
     }
     urlParams.append('query', finalQuery);
