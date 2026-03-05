@@ -17,6 +17,7 @@ export function transformBackendResult(
   request: DataQueryRequest<Query>,
   derivedFieldConfigs: DerivedFieldConfig[],
   logLevelRules: LogLevelRule[],
+  useDataplaneFormat = false,
 ): DataQueryResponse {
   const { data, errors, ...rest } = response;
   const queries = request.targets;
@@ -44,7 +45,7 @@ export function transformBackendResult(
     data: [
       ...processMetricRangeFrames(metricRangeFrames, request.targets, request.range.from.valueOf(), request.range.to.valueOf()),
       ...processMetricInstantFrames(metricInstantFrames),
-      ...processStreamsFrames(streamsFrames, queryMap, derivedFieldConfigs, logLevelRules),
+      ...processStreamsFrames(streamsFrames, queryMap, derivedFieldConfigs, logLevelRules, useDataplaneFormat),
       ...processHistogramFrames(histogramFrames),
     ],
   };
