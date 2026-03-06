@@ -1,7 +1,6 @@
 import { DataFrame, FieldType } from '@grafana/data';
 
 import {
-  formatBucketNumber,
   formatBucketRange,
   getLabelGroupKey,
   getLabelGroupDisplayName,
@@ -22,28 +21,6 @@ const makeFrame = (
     { name: 'Time', type: FieldType.time, config: {}, values: timeValues },
     { name: 'Value', type: FieldType.number, config: {}, values: numberValues, labels },
   ],
-});
-
-describe('formatBucketNumber', () => {
-  it('should convert integer to string', () => {
-    expect(formatBucketNumber(100)).toBe('100');
-  });
-
-  it('should convert float to string', () => {
-    expect(formatBucketNumber(1.5)).toBe('1.5');
-  });
-
-  it('should convert scientific notation to readable string', () => {
-    expect(formatBucketNumber(1e6)).toBe('1000000');
-  });
-
-  it('should handle zero', () => {
-    expect(formatBucketNumber(0)).toBe('0');
-  });
-
-  it('should handle negative numbers', () => {
-    expect(formatBucketNumber(-50)).toBe('-50');
-  });
 });
 
 describe('formatBucketRange', () => {

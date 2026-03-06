@@ -1,6 +1,5 @@
 import { DataFrame } from '@grafana/data';
 
-import { processHistogramToBarChart } from './barChartProcessor';
 import { processHistogramToHeatmap } from './heatmapProcessor';
 import { processHistogramToNativeHistogram } from './histogramProcessor';
 
@@ -14,8 +13,6 @@ import { processHistogramToNativeHistogram } from './histogramProcessor';
  */
 export function processHistogramFrames(frames: DataFrame[], panelPluginId?: string): DataFrame[] {
   switch (panelPluginId) {
-    case 'barchart':
-      return processHistogramToBarChart(frames);
     case 'histogram':
       return processHistogramToNativeHistogram(frames);
     case 'heatmap':

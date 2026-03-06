@@ -5,20 +5,11 @@ import { ParsedBucket } from '../../types';
 export const IGNORED_LABELS = new Set(['vmrange', '__name__']);
 
 /**
- * Formats a number for bucket display
- * and converting scientific notation to readable form.
- * Examples: 1.000e+06 → "1000000", 1.5 → "1.5", 0.001 → "0.001"
- */
-export function formatBucketNumber(n: number): string {
-  return String(n);
-}
-
-/**
  * Formats a bucket range from yMin/yMax into a human-readable string.
  * Example: yMin=1000000, yMax=1136000 → "1000000 - 1136000"
  */
 export function formatBucketRange(yMin: number, yMax: number): string {
-  return `${formatBucketNumber(yMin)} - ${formatBucketNumber(yMax)}`;
+  return `${String(yMin)} - ${String(yMax)}`;
 }
 
 /**
