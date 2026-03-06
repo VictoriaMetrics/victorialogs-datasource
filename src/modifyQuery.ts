@@ -1,14 +1,14 @@
 import { AdHocVariableFilter, CoreApp, LogsSortOrder } from '@grafana/data';
 
 import { isExprHasStatsPipeFunc } from './LogsQL/statsPipeFunctions';
-import {
-  buildVisualQueryFromString,
-  splitExpression
-} from './components/QueryEditor/QueryBuilder/utils/parseFromString';
-import { parseVisualQueryToString } from './components/QueryEditor/QueryBuilder/utils/parseToString';
 import { storeKeys } from './store/constants';
 import store from './store/store';
 import { FilterVisualQuery, Format, Query, QueryDirection, QueryType } from './types';
+import {
+  buildVisualQueryFromString,
+  splitExpression
+} from './utils/query/parseFromString';
+import { parseVisualQueryToString } from './utils/query/parseToString';
 
 const operators = ['=', '!=', '=~', '!~', '<', '>'];
 const multiValueOperators = ['=|', '!=|'];

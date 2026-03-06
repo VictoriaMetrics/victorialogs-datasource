@@ -11,7 +11,7 @@
     "test:coverage": "jest --collectCoverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint --cache .",
-    "lint:fix": "yarn lint -- --fix",
+    "lint:fix": "eslint --cache --fix .",
     "server": "docker compose up",
     "sign": "[ -z $GRAFANA_ACCESS_POLICY_TOKEN ] && echo 'skip plugin signing' || npx --yes @grafana/sign-plugin@latest"
   },
@@ -85,7 +85,7 @@
     "@grafana/plugin-ui": "^0.13.1",
     "@grafana/runtime": "^12.4.1",
     "@grafana/schema": "^12.4.1",
-    "@grafana/ui": "^12.4.1",
+    "@grafana/ui": "^12.4.2",
     "@lezer/common": "^1.5.1",
     "@lezer/lr": "^1.4.8",
     "lodash": "^4.18.0",

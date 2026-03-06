@@ -2,6 +2,7 @@ import { DataFrame, DataSourceJsonData, KeyValue, QueryEditorProps } from '@graf
 import { BackendSrvRequest } from '@grafana/runtime';
 import { DataQuery } from '@grafana/schema';
 
+import { TemplateQueryModel } from './components/QueryEditor/TemplateBuilder/types';
 import { LogLevelRule } from './configuration/LogLevelRules/types';
 import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
 import { VictoriaLogsDatasource } from './datasource';
@@ -56,6 +57,10 @@ export interface StreamFilterState {
   values: string[];
 }
 
+export interface BuilderState {
+  steps: unknown[];
+}
+
 export interface Query extends DataQuery {
   editorMode?: QueryEditorMode;
   expr: string;
@@ -80,6 +85,9 @@ export interface Query extends DataQuery {
   isApplyExtraFiltersToRootQuery?: boolean;
   /** shows which format of data is used */
   format?: Format;
+  builder?: BuilderState;
+  /** Template builder state (new visual builder) */
+  templateBuilder?: TemplateQueryModel;
 }
 
 export type VictoriaLogsQueryEditorProps = QueryEditorProps<VictoriaLogsDatasource, Query, Options>;
