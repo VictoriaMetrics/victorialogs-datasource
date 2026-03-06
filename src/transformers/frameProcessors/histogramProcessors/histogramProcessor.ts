@@ -47,7 +47,9 @@ export function processHistogramToNativeHistogram(frames: DataFrame[]): DataFram
     fields.push({
       name: seriesName,
       type: FieldType.number,
-      config: {},
+      config: {
+        unit: 'none',
+      },
       values,
     });
   }
