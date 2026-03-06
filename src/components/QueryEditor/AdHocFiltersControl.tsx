@@ -5,8 +5,7 @@ import { CoreApp, GrafanaTheme2 } from '@grafana/data';
 import { Button, Icon, useStyles2 } from '@grafana/ui';
 
 import { FilterVisualQuery, Query } from '../../types';
-
-import { buildVisualQueryFromString } from './QueryBuilder/utils/parseFromString';
+import { buildVisualQueryFromString } from '../../utils/query/parseFromString';
 
 interface AdHocFiltersControlProps {
   query: Query;

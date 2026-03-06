@@ -1,6 +1,14 @@
+import { css } from '@emotion/css';
 import React, { useCallback, useMemo } from 'react';
 
-import { AsyncMultiSelect, ComboboxOption, MultiCombobox, MultiSelect, SelectValue } from '@grafana/ui';
+import {
+  AsyncMultiSelect,
+  ComboboxOption,
+  MultiCombobox,
+  MultiSelect,
+  SelectValue,
+  useStyles2
+} from '@grafana/ui';
 
 const isComboboxOption = (option: unknown): option is ComboboxOption => {
   return Boolean(option && typeof option === 'object' && 'value' in option && option.value !== undefined);
@@ -15,6 +23,7 @@ const isComboboxSelectedValue = (option: unknown): option is ComboboxOption[] =>
  * and Select in older versions.
  */
 export const CompatibleMultiCombobox: typeof MultiCombobox = (props) => {
+  const styles = useStyles2(getStyles);
   // Normalize value to Select format
   const normalizedValue = useMemo<SelectValue<any>[] | undefined>(() => {
     const selectedValue = props.value;
@@ -50,7 +59,9 @@ export const CompatibleMultiCombobox: typeof MultiCombobox = (props) => {
 
   if (MultiCombobox) {
     return (
-      <MultiCombobox {...props} />
+      <div className={styles.multiComboboxWrapper}>
+        <MultiCombobox {...props} />
+      </div>
     );
   }
 
@@ -85,3 +96,20 @@ export const CompatibleMultiCombobox: typeof MultiCombobox = (props) => {
     />
   );
 };
+
+const getStyles = () => ({
+  // adjust height with the default height of Combobox input to prevent layout shift when switching between Grafana versions
+  multiComboboxWrapper: css(`
+    & > div > div {
+      height: 32px;
+      max-width: 90%;
+      overflow: hidden;
+    }
+    &:focus-within > div > div {
+      height: auto;
+    }
+    & > div > div > span > span:has(> span + span) {
+      max-width: 100%;
+    }
+  `),
+});
