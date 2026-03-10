@@ -42,7 +42,7 @@
     "@typescript-eslint/parser": "^8.56.1",
     "copy-webpack-plugin": "^12.0.2",
     "css-loader": "^7.1.2",
-    "eslint": "^10.0.2",
+    "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jest": "^29.15.0",
@@ -80,7 +80,10 @@
     "react-router": "6.30.3",
     "react-router-dom": "6.30.3",
     "react-router-dom-v5-compat": "6.30.3",
-    "@isaacs/brace-expansion": "5.0.1"
+    "@isaacs/brace-expansion": "5.0.1",
+    "dompurify": "3.3.2",
+    "immutable": "5.1.5",
+    "serialize-javascript": "7.0.3"
   },
   "engines": {
     "node": ">=24.11.1"
