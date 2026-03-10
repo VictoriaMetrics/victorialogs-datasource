@@ -32,7 +32,7 @@ frontend-build: frontend-package-base-image
 		--env YARN_CACHE_FOLDER="/$(PLUGIN_ID)/.cache" \
 		--env GRAFANA_ACCESS_POLICY_TOKEN=$$GRAFANA_ACCESS_POLICY_TOKEN \
 		--entrypoint=/bin/bash \
-		frontent-builder-image -c "yarn install && yarn build && yarn sign --distDir plugins/$(PLUGIN_ID)"
+		frontent-builder-image -c "yarn install --frozen-lockfile && yarn build && yarn sign --distDir plugins/$(PLUGIN_ID)"
 
 app-via-docker-local:
 	$(eval OS := $(shell docker run $(GO_BUILDER_IMAGE) go env GOOS))
