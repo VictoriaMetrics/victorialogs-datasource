@@ -39,6 +39,7 @@ ci/
 .eslintcache
 tsconfig.tsbuildinfo
 .yarn/install-state.gz
+.yarn/berry/
 
 # Docker
 .cache
