@@ -95,5 +95,9 @@
     "semver": "^7.7.4",
     "tslib": "2.8.1"
   },
+  "resolutions": {
+    "dompurify": "^3.3.2",
+    "immutable": "^4.3.6"
+  },
   "packageManager": "yarn@4.13.0"
 }
