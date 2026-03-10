@@ -86,6 +86,7 @@ vet:
 check-all: fmt vet golangci-lint
 
 vl-plugin-check: vl-plugin-release plugincheck2
+	rm -rf node_modules
 	$(eval PACKAGE_NAME := $(PLUGIN_ID)-$(PKG_TAG)) \
 	$(PLUGINCHECK2) \
 		-config $(shell pwd)/plugincheck.yaml \
