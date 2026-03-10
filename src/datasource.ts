@@ -80,7 +80,7 @@ export const LABEL_STREAM_ID = '_stream_id';
 export class VictoriaLogsDatasource
   extends DataSourceWithBackend<Query, Options>
   implements DataSourceWithLogsContextSupport {
-  id: number;
+  id: number | undefined;
   uid: string;
   url: string;
   maxLines: number;
@@ -377,10 +377,10 @@ export class VictoriaLogsDatasource
         .getDataStream({
           addr: {
             scope: LiveChannelScope.DataSource,
-            namespace: this.uid,
-            // @ts-expect-error - from the Grafana with React 19 version,
+            // @ts-expect-error - for the Grafana with React version < 19,
             // the interface of the Live feature expects the `stream` field instead of the `namespace`,
             // so we need to send both for compatibility with older versions
+            namespace: this.uid,
             stream: this.uid,
             path: `${request.requestId}/${query.refId}`,
             data: {

@@ -32,7 +32,7 @@ frontend-build: frontend-package-base-image
 		--env YARN_CACHE_FOLDER="/$(PLUGIN_ID)/.cache" \
 		--env GRAFANA_ACCESS_POLICY_TOKEN=$$GRAFANA_ACCESS_POLICY_TOKEN \
 		--entrypoint=/bin/bash \
-		frontent-builder-image -c "yarn install --omit=dev && yarn build && yarn sign --distDir plugins/$(PLUGIN_ID)"
+		frontent-builder-image -c "yarn install --frozen-lockfile && yarn build && yarn sign --distDir plugins/$(PLUGIN_ID)"
 
 app-via-docker-local:
 	$(eval OS := $(shell docker run $(GO_BUILDER_IMAGE) go env GOOS))
@@ -86,6 +86,7 @@ vet:
 check-all: fmt vet golangci-lint
 
 vl-plugin-check: vl-plugin-release plugincheck2
+	rm -rf node_modules
 	$(eval PACKAGE_NAME := $(PLUGIN_ID)-$(PKG_TAG)) \
 	$(PLUGINCHECK2) \
 		-config $(shell pwd)/plugincheck.yaml \
@@ -100,7 +101,7 @@ PLUGINCHECK2 = $(LOCALBIN)/plugincheck2-$(PLUGINCHECK2_VERSION)
 MAGE = $(LOCALBIN)/mage-$(MAGE_VERSION)
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
-PLUGINCHECK2_VERSION = v0.28.1
+PLUGINCHECK2_VERSION = v0.38.0
 MAGE_VERSION = v1.15.0
 GOLANGCI_LINT_VERSION = v2.2.2
 
