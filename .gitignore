@@ -38,6 +38,7 @@ ci/
 .npm
 .eslintcache
 tsconfig.tsbuildinfo
+.yarn/install-state.gz
 
 # Docker
 .cache
