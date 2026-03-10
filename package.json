@@ -75,19 +75,17 @@
     "webpack-subresource-integrity": "^5.2.0-rc.1",
     "webpack-virtual-modules": "^0.6.2"
   },
-  "resolutions": {
-  },
   "engines": {
     "node": ">=24.11.1"
   },
   "dependencies": {
     "@emotion/css": "11.13.5",
-    "@grafana/data": "12.4.1",
+    "@grafana/data": "^12.4.1",
     "@grafana/lezer-logql": "^0.3.0",
     "@grafana/plugin-ui": "^0.13.1",
-    "@grafana/runtime": "12.4.1",
+    "@grafana/runtime": "^12.4.1",
     "@grafana/schema": "^12.4.1",
-    "@grafana/ui": "12.4.1",
+    "@grafana/ui": "^12.4.1",
     "@lezer/common": "^1.5.1",
     "@lezer/lr": "^1.4.8",
     "lodash": "^4.17.23",
@@ -96,5 +94,6 @@
     "rxjs": "^7.8.2",
     "semver": "^7.7.4",
     "tslib": "2.8.1"
-  }
+  },
+  "packageManager": "yarn@4.13.0"
 }
