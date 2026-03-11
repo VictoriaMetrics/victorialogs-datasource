@@ -149,6 +149,8 @@ export const useFetchStreamFilters = ({
     [excludeLabels]
   );
 
+  const pendingResolve = useRef<((options: ComboboxOption[]) => void) | null>(null);
+
   const debouncedFilter = useMemo(
     () =>
       debounce(
@@ -167,6 +169,26 @@ export const useFetchStreamFilters = ({
     []
   );
 
+  // Resolve any superseded pending promise before scheduling a new debounced call
+  const scheduleDebouncedFilter = useCallback(
+    (
+      inputValue: string,
+      resolve: (options: ComboboxOption[]) => void,
+      fetchFn: (inputValue: string) => Promise<ComboboxOption[]>,
+      filterFn?: (options: ComboboxOption[], input: string) => ComboboxOption[]
+    ) => {
+      if (pendingResolve.current) {
+        pendingResolve.current([]);
+      }
+      pendingResolve.current = resolve;
+      debouncedFilter(inputValue, (...args) => {
+        pendingResolve.current = null;
+        resolve(...args);
+      }, fetchFn, filterFn);
+    },
+    [debouncedFilter]
+  );
+
   // Async options loader for stream field names with debounce (client-side filtering)
   const loadStreamFieldNames = useCallback(
     (inputValue: string): Promise<ComboboxOption[]> => {
@@ -176,11 +198,11 @@ export const useFetchStreamFilters = ({
             resolve(filterFieldNamesOptions(allOptions, inputValue));
           });
         } else {
-          debouncedFilter(inputValue, resolve, fetchStreamFieldNames, filterFieldNamesOptions);
+          scheduleDebouncedFilter(inputValue, resolve, fetchStreamFieldNames, filterFieldNamesOptions);
         }
       });
     },
-    [fetchStreamFieldNames, filterFieldNamesOptions, debouncedFilter]
+    [fetchStreamFieldNames, filterFieldNamesOptions, scheduleDebouncedFilter]
   );
 
   // Async options loader for stream field values with debounce (server-side filtering)
@@ -192,11 +214,11 @@ export const useFetchStreamFilters = ({
             resolve(allOptions);
           });
         } else {
-          debouncedFilter(inputValue, resolve, fetchStreamFieldValues, filterOptions);
+          scheduleDebouncedFilter(inputValue, resolve, fetchStreamFieldValues, filterOptions);
         }
       });
     },
-    [fetchStreamFieldValues, debouncedFilter]
+    [fetchStreamFieldValues, scheduleDebouncedFilter]
   );
 
   // Reset field names cache when dependencies change
