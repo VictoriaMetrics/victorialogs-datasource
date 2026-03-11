@@ -5,6 +5,7 @@ import { AutoSizeInput, InlineSwitch, RadioButtonGroup, TextLink } from '@grafan
 
 import { VICTORIA_LOGS_DOCS_HOST } from '../../conf';
 import { Query, QueryType } from '../../types';
+import { isVariable } from '../../utils/isVariable';
 
 import EditorField from './EditorField';
 import { EditorRow } from './EditorRow';
@@ -42,7 +43,7 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
   const queryType = query.queryType;
 
   const isValidStep = useMemo(() => {
-    return !query.step || isValidGrafanaDuration(query.step) || !isNaN(+query.step) || query.step.startsWith('$');
+    return !query.step || isValidGrafanaDuration(query.step) || !isNaN(+query.step) || isVariable(query.step);
   }, [query.step]);
 
   const collapsedInfo = getCollapsedInfo({

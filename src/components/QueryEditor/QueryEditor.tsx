@@ -15,6 +15,7 @@ import { EditorHeader } from './EditorHeader';
 import { LogsQLSyntaxHelp } from './LogsQLSyntaxHelp';
 import { QueryBuilderContainer } from './QueryBuilder/QueryBuilderContainer';
 import { QueryEditorModeToggle } from './QueryBuilder/QueryEditorModeToggle';
+import { StreamFilters } from './QueryBuilder/components/StreamFilters/StreamFilters';
 import { buildVisualQueryFromString } from './QueryBuilder/utils/parseFromString';
 import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorHelp } from './QueryEditorHelp';
@@ -104,17 +105,14 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
         <EditorHeader>
           <Stack direction={'row'} alignItems={'center'}>
             <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr} />
-            {app === CoreApp.Explore &&
-              <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />}
+            {app === CoreApp.Explore && (
+              <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />
+            )}
           </Stack>
           <Stack direction={'row'} justifyContent={'flex-end'} alignItems={'center'}>
             <LogsQLSyntaxHelp />
             <QueryEditorHelp />
-            <VmuiLink
-              query={query}
-              panelData={data}
-              datasource={datasource}
-            />
+            <VmuiLink query={query} panelData={data} datasource={datasource} />
             <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange} />
             {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
               <Button
@@ -130,6 +128,15 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
           </Stack>
         </EditorHeader>
         <div className='flex-grow-1'>
+          {app === CoreApp.Explore && (
+            <StreamFilters
+              datasource={datasource}
+              query={query}
+              timeRange={timeRange}
+              onChange={onChange}
+              onRunQuery={onRunQuery}
+            />
+          )}
           {editorMode === QueryEditorMode.Builder ? (
             <QueryBuilderContainer
               datasource={props.datasource}
@@ -163,7 +170,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       display: flex;
       flex-direction: column;
       gap: ${theme.spacing(0.5)};
-    `
+    `,
   };
 };
 

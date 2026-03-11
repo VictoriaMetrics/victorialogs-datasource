@@ -1,30 +1,32 @@
 import React, { useCallback, useMemo } from 'react';
 
-import { AsyncSelect, Combobox, Select, SelectValue } from '@grafana/ui';
+import { AsyncMultiSelect, ComboboxOption, MultiCombobox, MultiSelect, SelectValue } from '@grafana/ui';
+
+const isComboboxOption = (option: unknown): option is ComboboxOption => {
+  return Boolean(option && typeof option === 'object' && 'value' in option && option.value !== undefined);
+};
+
+const isComboboxSelectedValue = (option: unknown): option is ComboboxOption[] => {
+  return Boolean(option && Array.isArray(option) && option.every(isComboboxOption));
+};
 
 /**
- * A compatibility wrapper for static select that uses Combobox in Grafana 11+
+ * A compatibility wrapper for multi select that uses Combobox in Grafana 11+
  * and Select in older versions.
  */
-export const CompatibleCombobox: typeof Combobox = (props) => {
+export const CompatibleMultiCombobox: typeof MultiCombobox = (props) => {
   // Normalize value to Select format
-  const normalizedValue = useMemo<SelectValue<any>>(() => {
-    if (!props.value) {
-      return null;
-    }
-    if (typeof props.value === 'string') {
-      return { value: props.value, label: props.value };
+  const normalizedValue = useMemo<SelectValue<any>[] | undefined>(() => {
+    const selectedValue = props.value;
+    if (isComboboxSelectedValue(selectedValue)) {
+      return selectedValue.map(v => ({ value: v.value, label: v.label }));
     }
     return props.value;
   }, [props.value]);
 
 
-  const handleSelectChange = (selected: SelectValue<any> | null) => {
-    props.onChange({
-      value: selected.value,
-      label: selected.label ?? selected.value,
-      description: selected.description,
-    });
+  const handleSelectChange = (selected: SelectValue<any>[] | null) => {
+    props.onChange(selected?.map((s) => ({ value: s.value, label: s.label ?? s.value })) ?? []);
   };
 
   const asyncOption = useCallback((value: SelectValue<any>) => {
@@ -46,15 +48,15 @@ export const CompatibleCombobox: typeof Combobox = (props) => {
     return asyncOption;
   }, [asyncOption, props.options]);
 
-  if (Combobox) {
+  if (MultiCombobox) {
     return (
-      <Combobox {...props} />
+      <MultiCombobox {...props} />
     );
   }
 
   if (typeof selectOptions === 'function') {
     return (
-      <AsyncSelect
+      <AsyncMultiSelect
         placeholder={props.placeholder}
         width={props.width}
         value={normalizedValue}
@@ -70,7 +72,7 @@ export const CompatibleCombobox: typeof Combobox = (props) => {
   }
 
   return (
-    <Select
+    <MultiSelect
       placeholder={props.placeholder}
       width={props.width}
       value={normalizedValue}
