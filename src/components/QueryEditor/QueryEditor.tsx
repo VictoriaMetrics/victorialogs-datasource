@@ -128,13 +128,15 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
           </Stack>
         </EditorHeader>
         <div className='flex-grow-1'>
-          <StreamFilters
-            datasource={datasource}
-            query={query}
-            timeRange={timeRange}
-            onChange={onChange}
-            onRunQuery={onRunQuery}
-          />
+          {app === CoreApp.Explore && (
+            <StreamFilters
+              datasource={datasource}
+              query={query}
+              timeRange={timeRange}
+              onChange={onChange}
+              onRunQuery={onRunQuery}
+            />
+          )}
           {editorMode === QueryEditorMode.Builder ? (
             <QueryBuilderContainer
               datasource={props.datasource}
