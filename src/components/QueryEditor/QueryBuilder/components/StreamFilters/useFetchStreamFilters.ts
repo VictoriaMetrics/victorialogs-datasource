@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { formattedValueToString, getValueFormat, TimeRange } from '@grafana/data';
 import { ComboboxOption } from '@grafana/ui';
 
+import { splitByPipes } from '../../../../../LogsQL/splitByPipes';
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { FilterFieldType } from '../../../../../types';
 
@@ -33,6 +34,7 @@ export const useFetchStreamFilters = ({
   extraStreamFilters,
   excludeLabels,
 }: Props) => {
+  const queryBeforePipe = useMemo(() => splitByPipes(queryExpr || '')[0], [queryExpr]);
   const fieldNamesCache = useRef<ComboboxOption[]>([]);
 
   // Fetch and cache stream field names (client-side filtering)
@@ -52,7 +54,7 @@ export const useFetchStreamFilters = ({
     }
 
     const list = await datasource.languageProvider?.getStreamFieldList(
-      { type: FilterFieldType.FieldName, timeRange, query: queryExpr },
+      { type: FilterFieldType.FieldName, timeRange, query: queryBeforePipe || undefined },
       customParams
     );
 
@@ -70,7 +72,7 @@ export const useFetchStreamFilters = ({
 
     fieldNamesCache.current = result;
     return result;
-  }, [datasource, timeRange, extraStreamFilters, queryExpr]);
+  }, [datasource.customQueryParameters, datasource.languageProvider, extraStreamFilters, timeRange, queryBeforePipe]);
 
   // Fetch stream field values with server-side filtering
   const fetchStreamFieldValues = useCallback(
@@ -98,7 +100,7 @@ export const useFetchStreamFilters = ({
           field: fieldName,
           limit,
           fieldValueFilter: inputValue || undefined,
-          query: queryExpr,
+          query: queryBeforePipe || undefined,
         },
         customParams
       );
@@ -129,7 +131,7 @@ export const useFetchStreamFilters = ({
 
       return options;
     },
-    [datasource, fieldName, timeRange, extraStreamFilters, queryExpr]
+    [fieldName, datasource, extraStreamFilters, timeRange, queryBeforePipe]
   );
 
   // Client-side filter for field names — also excludes already-used labels
@@ -200,7 +202,7 @@ export const useFetchStreamFilters = ({
   // Reset field names cache when dependencies change
   useEffect(() => {
     fieldNamesCache.current = [];
-  }, [timeRange, extraStreamFilters, queryExpr]);
+  }, [timeRange, extraStreamFilters, queryBeforePipe]);
 
   // Cleanup debounce on unmount
   useEffect(() => {
