@@ -1,8 +1,10 @@
 import { css } from '@emotion/css';
 import React, { Fragment, memo, useCallback, useMemo } from 'react';
 
-import { GrafanaTheme2 } from '@grafana/data';
+import { GrafanaTheme2, TimeRange } from '@grafana/data';
 import { Button, Stack, useStyles2 } from '@grafana/ui';
+
+import { VictoriaLogsDatasource } from '../../../../datasource';
 
 import PipelineInsertControl from './PipelineInsertControl';
 import PipelineStep from './PipelineStep';
@@ -10,9 +12,14 @@ import { getAllowedAppendTypes, getAllowedInsertTypes } from './pipelineRules';
 import { PipelineStepType, STEP_TYPE_LABELS } from './types';
 import { usePipelineState } from './usePipelineState';
 
-const PipelineBuilder = memo(() => {
+interface Props {
+  datasource: VictoriaLogsDatasource;
+  timeRange?: TimeRange;
+}
+
+const PipelineBuilder = memo<Props>(({ datasource, timeRange }) => {
   const styles = useStyles2(getStyles);
-  const { steps, addStep, insertStep, deleteStep } = usePipelineState();
+  const { steps, addStep, insertStep, deleteStep, updateStep } = usePipelineState();
 
   const allowedAppendTypes = useMemo(() => getAllowedAppendTypes(steps), [steps]);
 
@@ -20,7 +27,7 @@ const PipelineBuilder = memo(() => {
 
   return (
     <div className={styles.container}>
-      <Stack direction='column' gap={0}>
+      <Stack direction="column" gap={0}>
         {steps.map((step, index) => (
           <Fragment key={step.id}>
             {/* Insert control above each step except the first */}
@@ -30,7 +37,14 @@ const PipelineBuilder = memo(() => {
                 onInsert={(type) => insertStep(index, type)}
               />
             )}
-            <PipelineStep step={step} index={index} onDelete={deleteStep} />
+            <PipelineStep
+              step={step}
+              index={index}
+              datasource={datasource}
+              timeRange={timeRange}
+              onDelete={deleteStep}
+              onStepChange={updateStep}
+            />
           </Fragment>
         ))}
       </Stack>
@@ -39,7 +53,7 @@ const PipelineBuilder = memo(() => {
       {allowedAppendTypes.length > 0 && (
         <div className={styles.addStepRow}>
           {allowedAppendTypes.map((type) => (
-            <Button key={type} variant='secondary' icon='plus' onClick={handleAppend(type)}>
+            <Button key={type} variant="secondary" icon="plus" onClick={handleAppend(type)}>
               {STEP_TYPE_LABELS[type]}
             </Button>
           ))}

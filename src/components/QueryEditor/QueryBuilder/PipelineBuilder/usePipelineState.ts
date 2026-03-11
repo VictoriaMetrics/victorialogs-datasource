@@ -1,9 +1,18 @@
 import { useCallback, useState } from 'react';
 
 import { getAllowedAppendTypes, getAllowedInsertTypes, removeInvalidSteps } from './pipelineRules';
-import { generateStepId, PIPELINE_STEP_TYPE, PipelineStepItem, PipelineStepType } from './types';
+import {
+  createFilterRow,
+  FILTER_TYPE,
+  generateStepId,
+  PIPELINE_STEP_TYPE,
+  PipelineStepItem,
+  PipelineStepType,
+} from './types';
 
-const createInitialSteps = (): PipelineStepItem[] => [{ id: generateStepId(), type: PIPELINE_STEP_TYPE.Filter }];
+const createInitialSteps = (): PipelineStepItem[] => [
+  { id: generateStepId(), type: PIPELINE_STEP_TYPE.Filter, filterRows: [createFilterRow(FILTER_TYPE.Exact, 'in')] },
+];
 
 export const usePipelineState = () => {
   const [steps, setSteps] = useState<PipelineStepItem[]>(createInitialSteps);
@@ -65,10 +74,27 @@ export const usePipelineState = () => {
     });
   }, []);
 
+  /**
+   * Update a step in-place by its ID.
+   * Accepts a partial update that is merged into the existing step.
+   */
+  const updateStep = useCallback((id: string, patch: Partial<Omit<PipelineStepItem, 'id' | 'type'>>): void => {
+    setSteps((prev) => {
+      const index = prev.findIndex((s) => s.id === id);
+      if (index < 0) {
+        return prev;
+      }
+      const next = [...prev];
+      next[index] = { ...next[index], ...patch };
+      return next;
+    });
+  }, []);
+
   return {
     steps,
     addStep,
     insertStep,
     deleteStep,
+    updateStep,
   };
 };

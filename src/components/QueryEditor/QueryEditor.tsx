@@ -13,7 +13,7 @@ import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 
 import { EditorHeader } from './EditorHeader';
 import { LogsQLSyntaxHelp } from './LogsQLSyntaxHelp';
-import { QueryBuilderContainer } from './QueryBuilder/QueryBuilderContainer';
+import PipelineBuilder from './QueryBuilder/PipelineBuilder/PipelineBuilder';
 import { QueryEditorModeToggle } from './QueryBuilder/QueryEditorModeToggle';
 import { StreamFilters } from './QueryBuilder/components/StreamFilters/StreamFilters';
 import { buildVisualQueryFromString } from './QueryBuilder/utils/parseFromString';
@@ -138,7 +138,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
             />
           )}
           {editorMode === QueryEditorMode.Builder ? (
-            <QueryBuilderContainer
+            <PipelineBuilder
               datasource={props.datasource}
               query={query}
               app={app}
