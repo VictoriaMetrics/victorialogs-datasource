@@ -2,13 +2,13 @@ import { css } from '@emotion/css';
 import React, { useCallback, useMemo } from 'react';
 
 import { GrafanaTheme2, TimeRange } from '@grafana/data';
-import { Button, IconButton, Label, Text, useStyles2 } from '@grafana/ui';
+import { Button, ClipboardButton, IconButton, Label, Text, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { Query, StreamFilterState } from '../../../../../types';
 
 import StreamFilterRow from './StreamFilterRow';
-import { buildPrecedingStreamFilters, getUsedLabelNames } from './streamFilterUtils';
+import { buildPrecedingStreamFilters, buildStreamExtraFilters, getUsedLabelNames } from './streamFilterUtils';
 
 const TooltipText = () => (
   <Text>
@@ -92,10 +92,22 @@ export const StreamFilters = ({ datasource, query, timeRange, onChange, onRunQue
             onRunQuery={onRunQuery}
           />
         ))}
-        <div className={styles.addButton}>
+        <div className={styles.controls}>
           <Button variant='secondary' onClick={handleAddFilter} icon='plus' size={'xs'}>
             Stream filter
           </Button>
+          {streamFilters.length > 0 && (
+            <ClipboardButton
+              variant='secondary'
+              fill='solid'
+              icon='copy'
+              size='xs'
+              tooltip='Copy stream filters as LogsQL expression'
+              getText={() => buildStreamExtraFilters(streamFilters)}
+            >
+              Copy filters
+            </ClipboardButton>
+          )}
         </div>
       </div>
     </div>
@@ -119,10 +131,11 @@ const getStyles = (theme: GrafanaTheme2) => {
       align-items: center;
       gap: ${theme.spacing(1)};
     `,
-    addButton: css`
+    controls: css`
       align-self: flex-end;
       display: flex;
       align-items: center;
+      gap: ${theme.spacing(1)};
       justify-content: center;
     `,
   };

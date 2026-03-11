@@ -164,7 +164,7 @@ const StreamFilterRow = ({
           options={loadValuesOptions}
           onChange={handleSelectValues}
           isClearable
-          minWidth={25}
+          minWidth={20}
           width={'auto'}
         />
         <div className={styles.actions}>
