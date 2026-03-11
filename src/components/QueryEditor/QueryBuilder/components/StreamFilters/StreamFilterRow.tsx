@@ -1,15 +1,15 @@
-import { css } from '@emotion/css';
 import React, { useCallback, useMemo } from 'react';
 
-import { GrafanaTheme2, SelectableValue, TimeRange } from '@grafana/data';
+import { SelectableValue, TimeRange } from '@grafana/data';
 import { getTemplateSrv } from '@grafana/runtime';
-import { ComboboxOption, IconButton, Stack, useStyles2 } from '@grafana/ui';
+import { ComboboxOption } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { FilterFieldType, StreamFilterOperator, StreamFilterState } from '../../../../../types';
 import { isVariable } from '../../../../../utils/isVariable';
 import { CompatibleCombobox } from '../../../../CompatibleCombobox';
 import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
+import FilterRowLayout from '../FilterRowLayout';
 
 import { useFetchStreamFilters } from './useFetchStreamFilters';
 
@@ -44,8 +44,6 @@ const StreamFilterRow = ({
   onRemove,
   onRunQuery,
 }: Props) => {
-  const styles = useStyles2(getStyles);
-
   const { loadStreamFieldNames, loadStreamFieldValues } = useFetchStreamFilters({
     datasource,
     fieldName: filter.label,
@@ -140,63 +138,34 @@ const StreamFilterRow = ({
   }, [filter.label]);
 
   return (
-    <div className={styles.wrapper}>
-      <Stack direction={'row'} gap={0.5} alignItems={'center'} justifyContent={'flex-start'}>
-        <CompatibleCombobox
-          placeholder='Select stream label'
-          value={labelValue}
-          options={loadStreamFieldNames}
-          onChange={handleSelectLabel}
-          width={'auto'}
-          minWidth={10}
-        />
-        <CompatibleCombobox<StreamFilterOperator>
-          options={OPERATOR_OPTIONS}
-          value={filter.operator || 'in'}
-          onChange={handleSelectOperator}
-          width={'auto'}
-          minWidth={2}
-        />
-        <CompatibleMultiCombobox
-          key={filter.label}
-          placeholder='Select values'
-          value={selectedValues}
-          options={loadValuesOptions}
-          onChange={handleSelectValues}
-          isClearable
-          minWidth={20}
-          width={'auto'}
-        />
-        <div className={styles.actions}>
-          <IconButton name={'times'} tooltip={'Remove stream filter'} size='sm' onClick={onRemove} />
-        </div>
-      </Stack>
-    </div>
+    <FilterRowLayout onDelete={onRemove}>
+      <CompatibleCombobox
+        placeholder='Select stream label'
+        value={labelValue}
+        options={loadStreamFieldNames}
+        onChange={handleSelectLabel}
+        width={'auto'}
+        minWidth={10}
+      />
+      <CompatibleCombobox<StreamFilterOperator>
+        options={OPERATOR_OPTIONS}
+        value={filter.operator || 'in'}
+        onChange={handleSelectOperator}
+        width={'auto'}
+        minWidth={2}
+      />
+      <CompatibleMultiCombobox
+        key={filter.label}
+        placeholder='Select values'
+        value={selectedValues}
+        options={loadValuesOptions}
+        onChange={handleSelectValues}
+        isClearable
+        minWidth={20}
+        width={'auto'}
+      />
+    </FilterRowLayout>
   );
-};
-
-const getStyles = (theme: GrafanaTheme2) => {
-  return {
-    wrapper: css`
-      display: grid;
-      gap: ${theme.spacing(0.5)};
-      width: max-content;
-      border: 1px solid ${theme.colors.border.strong};
-      background-color: ${theme.colors.background.secondary};
-      padding: ${theme.spacing(1)};
-    `,
-    header: css`
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    `,
-    actions: css`
-      margin-left: ${theme.spacing(0.5)};
-      display: flex;
-      align-items: center;
-      gap: ${theme.spacing(0.5)};
-    `,
-  };
 };
 
 export default StreamFilterRow;
