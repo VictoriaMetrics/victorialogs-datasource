@@ -182,7 +182,9 @@ export const useFetchStreamFilters = ({
       }
       pendingResolve.current = resolve;
       debouncedFilter(inputValue, (...args) => {
-        pendingResolve.current = null;
+        if (pendingResolve.current === resolve) {
+          pendingResolve.current = null;
+        }
         resolve(...args);
       }, fetchFn, filterFn);
     },
