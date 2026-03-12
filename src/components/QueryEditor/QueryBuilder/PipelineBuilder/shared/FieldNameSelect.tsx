@@ -2,9 +2,10 @@ import React, { memo, useMemo } from 'react';
 
 import { TimeRange } from '@grafana/data';
 
-import { VictoriaLogsDatasource } from '../../../../../../datasource';
-import { CompatibleCombobox } from '../../../../../CompatibleCombobox';
-import { useFilterFetch } from '../useFilterFetch';
+import { VictoriaLogsDatasource } from '../../../../../datasource';
+import { CompatibleCombobox } from '../../../../CompatibleCombobox';
+
+import { useFieldFetch } from './useFieldFetch';
 
 export interface FieldComponentProps {
   value: string;
@@ -14,7 +15,7 @@ export interface FieldComponentProps {
 }
 
 const FieldNameSelect = memo<FieldComponentProps>(({ value, onChange, datasource, timeRange }) => {
-  const { loadFieldNames } = useFilterFetch({ datasource, timeRange });
+  const { loadFieldNames } = useFieldFetch({ datasource, timeRange });
 
   const handleChange = (option: { value?: string; label?: string } | null) => {
     if (option?.value) {

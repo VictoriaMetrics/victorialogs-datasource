@@ -16,7 +16,7 @@ interface Props {
   timeRange?: TimeRange;
 }
 
-export const useFilterFetch = ({ datasource, field, timeRange }: Props) => {
+export const useFieldFetch = ({ datasource, field, timeRange }: Props) => {
   const fieldNamesCache = useRef<ComboboxOption[]>([]);
 
   const fetchFieldNames = useCallback(async (): Promise<ComboboxOption[]> => {

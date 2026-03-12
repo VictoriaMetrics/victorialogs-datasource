@@ -5,6 +5,7 @@ import { GrafanaTheme2, TimeRange } from '@grafana/data';
 import { Button, Dropdown, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
+import { useRowManagement } from '../shared/useRowManagement';
 import { createModifyRow, ModifyRow, ModifyType, PipelineStepItem } from '../types';
 
 import ModifyRowContainer from './ModifyRowContainer';
@@ -21,30 +22,18 @@ const ModifyStepContent = memo(function ModifyStepContent({ step, datasource, ti
   const styles = useStyles2(getStyles);
   const rows = step.modifyRows ?? [];
 
-  const handleRowChange = useCallback(
-    (updatedRow: ModifyRow) => {
-      const newRows = rows.map((r) => (r.id === updatedRow.id ? updatedRow : r));
-      onStepChange(step.id, { modifyRows: newRows });
-    },
-    [rows, onStepChange, step.id]
-  );
+  const { handleRowChange, handleRowDelete, handleAddRow } = useRowManagement<ModifyRow>({
+    rows,
+    stepId: step.id,
+    rowsKey: 'modifyRows',
+    onStepChange,
+  });
 
-  const handleRowDelete = useCallback(
-    (rowId: string) => {
-      if (rows.length <= 1) {
-        return;
-      }
-      const newRows = rows.filter((r) => r.id !== rowId);
-      onStepChange(step.id, { modifyRows: newRows });
-    },
-    [rows, onStepChange, step.id]
-  );
-
-  const handleAddRow = useCallback(
+  const onAddModify = useCallback(
     (modifyType: ModifyType) => {
-      onStepChange(step.id, { modifyRows: [...rows, createModifyRow(modifyType)] });
+      handleAddRow(createModifyRow(modifyType));
     },
-    [rows, onStepChange, step.id]
+    [handleAddRow]
   );
 
   const menu = (
@@ -58,7 +47,7 @@ const ModifyStepContent = memo(function ModifyStepContent({ step, datasource, ti
               key={modifyType}
               label={label}
               description={description}
-              onClick={() => handleAddRow(modifyType)}
+              onClick={() => onAddModify(modifyType)}
             />
           ))}
         />

@@ -4,12 +4,11 @@ import React, { memo, useCallback } from 'react';
 import { GrafanaTheme2 } from '@grafana/data';
 import { AutoSizeInput, IconButton, Stack, useStyles2 } from '@grafana/ui';
 
-import FieldNameSelect from '../../FilterStep/parts/FieldNameSelect';
+import FieldNameSelect from '../../shared/FieldNameSelect';
+import IfFilterInput from '../../shared/IfFilterInput';
+import OptionalField from '../../shared/OptionalField';
+import ResultFlagSelect from '../../shared/ResultFlagSelect';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
-
-import IfFilterInput from './IfFilterInput';
-import OptionalField from './OptionalField';
-import ResultFlagSelect from './ResultFlagSelect';
 
 const UnpackEditor = memo(function UnpackEditor({ row, onChange, datasource, timeRange }: ModifyRowContentProps) {
   const styles = useStyles2(getStyles);

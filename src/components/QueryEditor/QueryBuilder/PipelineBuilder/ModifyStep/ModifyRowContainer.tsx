@@ -5,7 +5,7 @@ import { GrafanaTheme2, TimeRange } from '@grafana/data';
 import { useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
-import FilterRowLayout from '../../components/FilterRowLayout';
+import StepRowLayout from '../../components/StepRowLayout';
 import { ModifyRow } from '../types';
 
 import MODIFY_TYPE_CONFIG from './modifyTypeConfig';
@@ -32,14 +32,14 @@ const ModifyRowContainer = memo(function ModifyRowContainer({
   const { ContentComponent } = config;
 
   return (
-    <FilterRowLayout
+    <StepRowLayout
       onDelete={onDelete}
       canDelete={canDelete}
       disabledDeleteTooltip='At least one modify row is required'
     >
       <span className={styles.typeLabel}>{config.label}</span>
       <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} />
-    </FilterRowLayout>
+    </StepRowLayout>
   );
 });
 

@@ -3,11 +3,11 @@ import React, { memo, useCallback, useMemo } from 'react';
 import { Stack } from '@grafana/ui';
 
 import { CompatibleMultiCombobox } from '../../../../../CompatibleMultiCombobox';
-import { useFilterFetch } from '../../FilterStep/useFilterFetch';
+import { useFieldFetch } from '../../shared/useFieldFetch';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
 
 const FieldListEditor = memo(function FieldListEditor({ row, onChange, datasource, timeRange }: ModifyRowContentProps) {
-  const { loadFieldNames } = useFilterFetch({ datasource, timeRange });
+  const { loadFieldNames } = useFieldFetch({ datasource, timeRange });
   const fields = row.fieldList ?? [];
 
   const selectedFields = useMemo(() => fields.map((f) => ({ label: f, value: f })), [fields]);

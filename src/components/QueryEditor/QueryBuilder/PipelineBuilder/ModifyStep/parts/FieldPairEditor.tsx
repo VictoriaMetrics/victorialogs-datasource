@@ -4,7 +4,7 @@ import React, { memo, useCallback } from 'react';
 import { GrafanaTheme2 } from '@grafana/data';
 import { AutoSizeInput, IconButton, Stack, useStyles2 } from '@grafana/ui';
 
-import FieldNameSelect from '../../FilterStep/parts/FieldNameSelect';
+import FieldNameSelect from '../../shared/FieldNameSelect';
 import { FieldPair } from '../../types';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
 

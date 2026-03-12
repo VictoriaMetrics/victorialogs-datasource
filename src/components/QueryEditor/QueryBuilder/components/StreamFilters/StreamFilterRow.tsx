@@ -9,7 +9,7 @@ import { FilterFieldType, StreamFilterOperator, StreamFilterState } from '../../
 import { isVariable } from '../../../../../utils/isVariable';
 import { CompatibleCombobox } from '../../../../CompatibleCombobox';
 import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
-import FilterRowLayout from '../FilterRowLayout';
+import StepRowLayout from '../StepRowLayout';
 
 import { useFetchStreamFilters } from './useFetchStreamFilters';
 
@@ -138,7 +138,7 @@ const StreamFilterRow = ({
   }, [filter.label]);
 
   return (
-    <FilterRowLayout onDelete={onRemove}>
+    <StepRowLayout onDelete={onRemove}>
       <CompatibleCombobox
         placeholder='Select stream label'
         value={labelValue}
@@ -164,7 +164,7 @@ const StreamFilterRow = ({
         minWidth={20}
         width={'auto'}
       />
-    </FilterRowLayout>
+    </StepRowLayout>
   );
 };
 

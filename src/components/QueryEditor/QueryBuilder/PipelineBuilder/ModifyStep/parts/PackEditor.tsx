@@ -5,14 +5,14 @@ import { GrafanaTheme2 } from '@grafana/data';
 import { AutoSizeInput, Stack, useStyles2 } from '@grafana/ui';
 
 import { CompatibleMultiCombobox } from '../../../../../CompatibleMultiCombobox';
-import { useFilterFetch } from '../../FilterStep/useFilterFetch';
+import OptionalField from '../../shared/OptionalField';
+import { useFieldFetch } from '../../shared/useFieldFetch';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
 
-import OptionalField from './OptionalField';
 
 const PackEditor = memo(function PackEditor({ row, onChange, datasource, timeRange }: ModifyRowContentProps) {
   const styles = useStyles2(getStyles);
-  const { loadFieldNames } = useFilterFetch({ datasource, timeRange });
+  const { loadFieldNames } = useFieldFetch({ datasource, timeRange });
   const fields = row.fieldList ?? [];
 
   const selectedFields = useMemo(() => fields.map((f) => ({ label: f, value: f })), [fields]);

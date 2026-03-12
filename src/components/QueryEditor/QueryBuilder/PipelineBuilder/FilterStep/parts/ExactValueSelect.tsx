@@ -2,12 +2,12 @@ import React, { memo, useMemo } from 'react';
 
 
 import { CompatibleMultiCombobox } from '../../../../../CompatibleMultiCombobox';
-import { useFilterFetch } from '../useFilterFetch';
+import { useFieldFetch } from '../../shared/useFieldFetch';
 
 import { ValueComponentProps } from './TextValueInput';
 
 const ExactValueSelect = ({ values, onChange, fieldName, datasource, timeRange }: ValueComponentProps) => {
-  const { loadFieldValues } = useFilterFetch({
+  const { loadFieldValues } = useFieldFetch({
     datasource,
     field: fieldName || undefined,
     timeRange,

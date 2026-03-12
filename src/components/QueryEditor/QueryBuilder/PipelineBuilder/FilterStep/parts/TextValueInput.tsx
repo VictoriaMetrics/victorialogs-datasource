@@ -1,8 +1,8 @@
 import React, { memo } from 'react';
 
+import { TimeRange } from '@grafana/data';
 import { AutoSizeInput } from '@grafana/ui';
 
-import { TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../../../datasource';
 
@@ -20,7 +20,7 @@ const TextValueInput = memo<ValueComponentProps>(({ values, onChange }) => {
   };
 
   return (
-    <AutoSizeInput placeholder="Value" defaultValue={values[0] ?? ''} minWidth={12} onCommitChange={handleCommit} />
+    <AutoSizeInput placeholder='Value' defaultValue={values[0] ?? ''} minWidth={12} onCommitChange={handleCommit} />
   );
 });
 

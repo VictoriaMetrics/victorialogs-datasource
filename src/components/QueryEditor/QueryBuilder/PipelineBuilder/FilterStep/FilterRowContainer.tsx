@@ -3,7 +3,7 @@ import React, { memo, useCallback } from 'react';
 import { TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
-import FilterRowLayout from '../../components/FilterRowLayout';
+import StepRowLayout from '../../components/StepRowLayout';
 import { FilterRow } from '../types';
 
 import FILTER_TYPE_CONFIG from './filterTypeConfig';
@@ -43,7 +43,7 @@ const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete,
   );
 
   return (
-    <FilterRowLayout
+    <StepRowLayout
       onDelete={onDelete}
       canDelete={canDelete}
       disabledDeleteTooltip='At least one filter is required'
@@ -63,7 +63,7 @@ const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete,
         datasource={datasource}
         timeRange={timeRange}
       />
-    </FilterRowLayout>
+    </StepRowLayout>
   );
 });
 

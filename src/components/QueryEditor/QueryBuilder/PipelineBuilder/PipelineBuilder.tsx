@@ -27,7 +27,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange }) => {
 
   return (
     <div className={styles.container}>
-      <Stack direction="column" gap={0}>
+      <Stack direction='column' gap={0}>
         {steps.map((step, index) => (
           <Fragment key={step.id}>
             {/* Insert control above each step except the first */}
@@ -53,7 +53,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange }) => {
       {allowedAppendTypes.length > 0 && (
         <div className={styles.addStepRow}>
           {allowedAppendTypes.map((type) => (
-            <Button key={type} variant="secondary" icon="plus" onClick={handleAppend(type)}>
+            <Button key={type} variant='secondary' icon='plus' onClick={handleAppend(type)}>
               {STEP_TYPE_LABELS[type]}
             </Button>
           ))}

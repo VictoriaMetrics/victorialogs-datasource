@@ -4,11 +4,10 @@ import React, { memo, useCallback } from 'react';
 import { GrafanaTheme2 } from '@grafana/data';
 import { AutoSizeInput, Stack, useStyles2 } from '@grafana/ui';
 
-import FieldNameSelect from '../../FilterStep/parts/FieldNameSelect';
+import FieldNameSelect from '../../shared/FieldNameSelect';
+import IfFilterInput from '../../shared/IfFilterInput';
+import OptionalField from '../../shared/OptionalField';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
-
-import IfFilterInput from './IfFilterInput';
-import OptionalField from './OptionalField';
 
 const ReplaceEditor = memo(function ReplaceEditor({ row, onChange, datasource, timeRange }: ModifyRowContentProps) {
   const styles = useStyles2(getStyles);

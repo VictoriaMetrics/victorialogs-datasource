@@ -5,6 +5,7 @@ import { GrafanaTheme2, TimeRange } from '@grafana/data';
 import { Button, Dropdown, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
+import { useRowManagement } from '../shared/useRowManagement';
 import { createFilterRow, FilterRow, FilterType, PipelineStepItem } from '../types';
 
 import FilterRowContainer from './FilterRowContainer';
@@ -21,30 +22,18 @@ const FilterStepContent = memo<Props>(({ step, datasource, timeRange, onStepChan
   const styles = useStyles2(getStyles);
   const rows = step.filterRows ?? [];
 
-  const handleRowChange = useCallback(
-    (updatedRow: FilterRow) => {
-      const newRows = rows.map((r) => (r.id === updatedRow.id ? updatedRow : r));
-      onStepChange(step.id, { filterRows: newRows });
-    },
-    [rows, onStepChange, step.id]
-  );
+  const { handleRowChange, handleRowDelete, handleAddRow } = useRowManagement<FilterRow>({
+    rows,
+    stepId: step.id,
+    rowsKey: 'filterRows',
+    onStepChange,
+  });
 
-  const handleRowDelete = useCallback(
-    (rowId: string) => {
-      if (rows.length <= 1) {
-        return;
-      }
-      const newRows = rows.filter((r) => r.id !== rowId);
-      onStepChange(step.id, { filterRows: newRows });
-    },
-    [rows, onStepChange, step.id]
-  );
-
-  const handleAddRow = useCallback(
+  const onAddFilter = useCallback(
     (filterType: FilterType, defaultOperator: string) => {
-      onStepChange(step.id, { filterRows: [...rows, createFilterRow(filterType, defaultOperator)] });
+      handleAddRow(createFilterRow(filterType, defaultOperator));
     },
-    [rows, onStepChange, step.id]
+    [handleAddRow]
   );
 
   const menu = (
@@ -53,7 +42,7 @@ const FilterStepContent = memo<Props>(({ step, datasource, timeRange, onStepChan
         <Menu.Item
           key={entry.filterType}
           label={entry.label}
-          onClick={() => handleAddRow(entry.filterType, entry.defaultOperator)}
+          onClick={() => onAddFilter(entry.filterType, entry.defaultOperator)}
         />
       ))}
     </Menu>

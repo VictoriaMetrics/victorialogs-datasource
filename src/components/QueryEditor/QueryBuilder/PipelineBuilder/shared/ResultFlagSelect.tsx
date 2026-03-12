@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react';
 
-import { CompatibleCombobox } from '../../../../../CompatibleCombobox';
+import { CompatibleCombobox } from '../../../../CompatibleCombobox';
 
 import OptionalField from './OptionalField';
 

@@ -4,7 +4,7 @@ import React, { ReactNode } from 'react';
 import { GrafanaTheme2 } from '@grafana/data';
 import { IconButton, Stack, useStyles2 } from '@grafana/ui';
 
-interface FilterRowLayoutProps {
+interface StepRowLayoutProps {
   children: ReactNode;
   onDelete: () => void;
   canDelete?: boolean;
@@ -12,13 +12,13 @@ interface FilterRowLayoutProps {
   className?: string;
 }
 
-const FilterRowLayout = ({
+const StepRowLayout = ({
   children,
   onDelete,
   canDelete = true,
   disabledDeleteTooltip,
   className,
-}: FilterRowLayoutProps) => {
+}: StepRowLayoutProps) => {
   const styles = useStyles2(getStyles);
 
   return (
@@ -28,7 +28,7 @@ const FilterRowLayout = ({
         <div className={styles.actions}>
           <IconButton
             name={'times'}
-            tooltip={canDelete ? 'Remove filter' : disabledDeleteTooltip ?? 'Cannot remove the filter'}
+            tooltip={canDelete ? 'Remove row' : disabledDeleteTooltip ?? 'Cannot remove the row'}
             size='sm'
             onClick={onDelete}
             disabled={!canDelete}
@@ -56,4 +56,4 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
 });
 
-export default FilterRowLayout;
+export default StepRowLayout;
