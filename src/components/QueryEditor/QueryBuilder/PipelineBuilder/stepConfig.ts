@@ -10,7 +10,6 @@ import AggregateStepContent from './AggregateStep/AggregateStepContent';
 import FilterStepContent from './FilterStep/FilterStepContent';
 import { createFilterRow, FILTER_TYPE } from './FilterStep/types';
 import LimitStepContent from './LimitStep/LimitStepContent';
-import { createLimitRow, LIMIT_TYPE } from './LimitStep/types';
 import ModifyStepContent from './ModifyStep/ModifyStepContent';
 import SortStepContent from './SortStep/SortStepContent';
 import { createSortField } from './SortStep/types';
@@ -62,6 +61,11 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
     ContentComponent: AggregateModifyStepContent,
     createInitialData: () => undefined,
   },
+  [PIPELINE_STEP_TYPE.AggregateModifyFilter]: {
+    label: 'Filter modified aggregated values',
+    ContentComponent: AggregateFilterStepContent,
+    createInitialData: () => undefined,
+  },
   [PIPELINE_STEP_TYPE.Sort]: {
     label: 'Sort',
     ContentComponent: SortStepContent,
@@ -70,6 +74,6 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   [PIPELINE_STEP_TYPE.Limit]: {
     label: 'Limit',
     ContentComponent: LimitStepContent,
-    createInitialData: () => ({ rows: [createLimitRow(LIMIT_TYPE.Limit)] }),
+    createInitialData: () => undefined,
   },
 };

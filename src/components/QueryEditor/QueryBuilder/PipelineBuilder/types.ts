@@ -12,6 +12,7 @@ export const PIPELINE_STEP_TYPE = {
   Aggregate: 'aggregate',
   AggregateFilter: 'aggregateFilter',
   AggregateModify: 'aggregateModify',
+  AggregateModifyFilter: 'aggregateModifyFilter',
   Sort: 'sort',
   Limit: 'limit',
 } as const;
@@ -53,6 +54,11 @@ export interface AggregateModifyStep extends BaseStep {
   rows: AggregateModifyRow[];
 }
 
+export interface AggregateModifyFilterStep extends BaseStep {
+  type: typeof PIPELINE_STEP_TYPE.AggregateModifyFilter;
+  condition?: string;
+}
+
 export interface SortStep extends BaseStep {
   type: typeof PIPELINE_STEP_TYPE.Sort;
   rows: SortField[];
@@ -74,6 +80,7 @@ export type PipelineStepItem =
   | AggregateStep
   | AggregateFilterStep
   | AggregateModifyStep
+  | AggregateModifyFilterStep
   | SortStep
   | LimitStep;
 
