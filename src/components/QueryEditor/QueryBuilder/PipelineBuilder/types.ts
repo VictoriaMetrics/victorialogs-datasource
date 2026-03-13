@@ -20,6 +20,7 @@ export interface PipelineStepItem {
   modifyRows?: ModifyRow[];
   aggregateRows?: AggregateRow[];
   aggregateByFields?: string[];
+  aggregateFilterCondition?: string;
 }
 
 let stepIdCounter = 0;

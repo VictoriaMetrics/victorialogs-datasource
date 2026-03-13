@@ -4,6 +4,7 @@ import { TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 
+import AggregateFilterStepContent from './AggregateFilterStep/AggregateFilterStepContent';
 import AggregateStepContent from './AggregateStep/AggregateStepContent';
 import FilterStepContent from './FilterStep/FilterStepContent';
 import { createFilterRow, FILTER_TYPE } from './FilterStep/types';
@@ -48,7 +49,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.AggregateFilter]: {
     label: 'Filter aggregated values',
-    ContentComponent: null,
+    ContentComponent: AggregateFilterStepContent,
     createInitialData: () => undefined,
   },
   [PIPELINE_STEP_TYPE.Sort]: {
