@@ -4,12 +4,14 @@ import { PIPELINE_STEP_TYPE, PipelineStepItem, PipelineStepType } from './types'
  * Transition rules define which step types are allowed after a given step type.
  */
 const TRANSITIONS: Record<PipelineStepType, PipelineStepType[]> = {
-  [PIPELINE_STEP_TYPE.Filter]: [PIPELINE_STEP_TYPE.Modify, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort],
-  [PIPELINE_STEP_TYPE.Modify]: [PIPELINE_STEP_TYPE.ModifyFilter, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort],
-  [PIPELINE_STEP_TYPE.ModifyFilter]: [PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort],
-  [PIPELINE_STEP_TYPE.Aggregate]: [PIPELINE_STEP_TYPE.AggregateFilter, PIPELINE_STEP_TYPE.Sort],
-  [PIPELINE_STEP_TYPE.AggregateFilter]: [PIPELINE_STEP_TYPE.Sort],
-  [PIPELINE_STEP_TYPE.Sort]: [],
+  [PIPELINE_STEP_TYPE.Filter]: [PIPELINE_STEP_TYPE.Modify, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
+  [PIPELINE_STEP_TYPE.Modify]: [PIPELINE_STEP_TYPE.ModifyFilter, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
+  [PIPELINE_STEP_TYPE.ModifyFilter]: [PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
+  [PIPELINE_STEP_TYPE.Aggregate]: [PIPELINE_STEP_TYPE.AggregateFilter, PIPELINE_STEP_TYPE.AggregateModify, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
+  [PIPELINE_STEP_TYPE.AggregateFilter]: [PIPELINE_STEP_TYPE.AggregateModify, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
+  [PIPELINE_STEP_TYPE.AggregateModify]: [PIPELINE_STEP_TYPE.AggregateFilter, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
+  [PIPELINE_STEP_TYPE.Sort]: [PIPELINE_STEP_TYPE.Limit],
+  [PIPELINE_STEP_TYPE.Limit]: [],
 };
 
 /**

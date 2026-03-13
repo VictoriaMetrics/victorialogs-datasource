@@ -5,10 +5,15 @@ import { TimeRange } from '@grafana/data';
 import { VictoriaLogsDatasource } from '../../../../datasource';
 
 import AggregateFilterStepContent from './AggregateFilterStep/AggregateFilterStepContent';
+import AggregateModifyStepContent from './AggregateModifyStep/AggregateModifyStepContent';
 import AggregateStepContent from './AggregateStep/AggregateStepContent';
 import FilterStepContent from './FilterStep/FilterStepContent';
 import { createFilterRow, FILTER_TYPE } from './FilterStep/types';
+import LimitStepContent from './LimitStep/LimitStepContent';
+import { createLimitRow, LIMIT_TYPE } from './LimitStep/types';
 import ModifyStepContent from './ModifyStep/ModifyStepContent';
+import SortStepContent from './SortStep/SortStepContent';
+import { createSortField } from './SortStep/types';
 import { PIPELINE_STEP_TYPE, PipelineStepItem, PipelineStepType } from './types';
 
 export interface StepContentProps {
@@ -52,9 +57,19 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
     ContentComponent: AggregateFilterStepContent,
     createInitialData: () => undefined,
   },
+  [PIPELINE_STEP_TYPE.AggregateModify]: {
+    label: 'Modify aggregated values',
+    ContentComponent: AggregateModifyStepContent,
+    createInitialData: () => undefined,
+  },
   [PIPELINE_STEP_TYPE.Sort]: {
     label: 'Sort',
-    ContentComponent: null,
-    createInitialData: () => undefined,
+    ContentComponent: SortStepContent,
+    createInitialData: () => ({ sortFields: [createSortField()] }),
+  },
+  [PIPELINE_STEP_TYPE.Limit]: {
+    label: 'Limit',
+    ContentComponent: LimitStepContent,
+    createInitialData: () => ({ limitRows: [createLimitRow(LIMIT_TYPE.Limit)] }),
   },
 };
