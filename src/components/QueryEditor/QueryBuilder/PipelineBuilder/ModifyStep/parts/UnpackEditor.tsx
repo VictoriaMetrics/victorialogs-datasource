@@ -2,7 +2,7 @@ import { css } from '@emotion/css';
 import React, { memo, useCallback } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
-import { AutoSizeInput, IconButton, Stack, useStyles2 } from '@grafana/ui';
+import { AutoSizeInput, Button, IconButton, Stack, useStyles2 } from '@grafana/ui';
 
 import FieldNameSelect from '../../shared/FieldNameSelect';
 import IfFilterInput from '../../shared/IfFilterInput';
@@ -36,7 +36,7 @@ const UnpackEditor = memo(function UnpackEditor({ row, onChange, datasource, tim
   const isFieldsActive = row.fieldList !== undefined;
 
   const handleAddFields = useCallback(() => {
-    onChange({ ...row, fieldList: [] });
+    onChange({ ...row, fieldList: [''] });
   }, [onChange, row]);
 
   const handleRemoveFields = useCallback(() => {
@@ -84,24 +84,29 @@ const UnpackEditor = memo(function UnpackEditor({ row, onChange, datasource, tim
         datasource={datasource}
         timeRange={timeRange}
       />
+      <span className={styles.label}>fields (</span>
       <OptionalField label='fields' isActive={isFieldsActive} onAdd={handleAddFields} onRemove={handleRemoveFields}>
         <Stack direction='row' gap={0.5} alignItems='center' wrap='wrap'>
-          <span className={styles.label}>fields (</span>
           {fields.map((field, index) => (
             <Stack key={index} direction='row' gap={0} alignItems='center'>
-              <AutoSizeInput
-                placeholder='field name'
-                defaultValue={field}
-                minWidth={10}
-                onCommitChange={(e) => handleFieldChange(index, e.currentTarget.value)}
-              />
-              <IconButton name='times' size='sm' tooltip='Remove field' onClick={() => handleRemoveField(index)} />
+              <div className={styles.inputNoRightRadius}>
+                <AutoSizeInput
+                  placeholder='field name'
+                  defaultValue={field}
+                  minWidth={10}
+                  onCommitChange={(e) => handleFieldChange(index, e.currentTarget.value)}
+                />
+              </div>
+              <div className={styles.removeButtonContainer}>
+                <IconButton className={styles.removeButton} name='times' size='sm' tooltip='Remove field' onClick={() => handleRemoveField(index)} />
+              </div>
+              <span>,</span>
             </Stack>
           ))}
-          <IconButton name='plus' size='sm' tooltip='Add field' onClick={handleAddField} />
-          <span className={styles.label}>)</span>
+          <Button variant='secondary' size='sm' icon='plus' onClick={handleAddField}>Add field</Button>
         </Stack>
       </OptionalField>
+      <span className={styles.label}>)</span>
       <OptionalField
         label='result_prefix'
         isActive={isPrefixActive}
@@ -133,5 +138,31 @@ const getStyles = (theme: GrafanaTheme2) => ({
   label: css`
     color: ${theme.colors.text.secondary};
     font-size: ${theme.typography.bodySmall.fontSize};
+  `,
+  inputNoRightRadius: css`
+    & * {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+  `,
+  removeButtonContainer: css`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    width: 23px;
+    border: 1px solid ${theme.colors.border.medium};
+    border-left: none;
+    border-radius: 0 ${theme.shape.radius.default} ${theme.shape.radius.default} 0;
+  `,
+  removeButton: css`
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    &::before {
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+    }
   `,
 });

@@ -6,7 +6,7 @@ import ExactValueSelect from './parts/ExactValueSelect';
 import { createOperatorSelect } from './parts/OperatorSelect';
 import StaticOperatorLabel, { OperatorComponentProps } from './parts/StaticOperatorLabel';
 import TextValueInput, { ValueComponentProps } from './parts/TextValueInput';
-import { EXACT_OPERATORS, FILTER_TYPE, FilterType, RANGE_OPERATORS } from './types';
+import { CASE_INSENSITIVE_OPERATORS, EXACT_OPERATORS, FILTER_TYPE, FilterType, RANGE_OPERATORS, REGEXP_OPERATORS } from './types';
 
 const ExactOperatorSelect = createOperatorSelect([
   { label: 'in', value: EXACT_OPERATORS.In },
@@ -20,12 +20,28 @@ const RangeOperatorSelect = createOperatorSelect([
   { label: '<=', value: RANGE_OPERATORS.Lte },
 ]);
 
+const RegexpOperatorSelect = createOperatorSelect([
+  { label: '~', value: REGEXP_OPERATORS.Match },
+  { label: '!~', value: REGEXP_OPERATORS.NotMatch },
+]);
+
+const CaseInsensitiveOperatorSelect = createOperatorSelect([
+  { label: 'i', value: CASE_INSENSITIVE_OPERATORS.Match },
+  { label: '!i', value: CASE_INSENSITIVE_OPERATORS.NotMatch },
+]);
+
+export interface ValueWrapper {
+  open: string;
+  close: string;
+}
+
 export interface FilterTypeDefinition {
   label: string;
   defaultOperator: string;
   FieldComponent: React.FC<FieldComponentProps>;
   OperatorComponent: React.FC<OperatorComponentProps>;
   ValueComponent: React.FC<ValueComponentProps>;
+  valueWrapper?: ValueWrapper;
 }
 
 const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
@@ -52,17 +68,19 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
   },
   [FILTER_TYPE.Regexp]: {
     label: 'Regexp',
-    defaultOperator: '~',
+    defaultOperator: REGEXP_OPERATORS.Match,
     FieldComponent: FieldNameSelect,
-    OperatorComponent: StaticOperatorLabel,
+    OperatorComponent: RegexpOperatorSelect,
     ValueComponent: TextValueInput,
+    valueWrapper: { open: '"', close: '"' },
   },
   [FILTER_TYPE.CaseInsensitive]: {
     label: 'Case-insensitive',
-    defaultOperator: ':i',
+    defaultOperator: CASE_INSENSITIVE_OPERATORS.Match,
     FieldComponent: FieldNameSelect,
-    OperatorComponent: StaticOperatorLabel,
+    OperatorComponent: CaseInsensitiveOperatorSelect,
     ValueComponent: TextValueInput,
+    valueWrapper: { open: '(', close: ')' },
   },
 };
 

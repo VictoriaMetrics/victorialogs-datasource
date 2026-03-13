@@ -1,6 +1,8 @@
+import { css } from '@emotion/css';
 import React, { memo, useCallback } from 'react';
 
-import { TimeRange } from '@grafana/data';
+import { GrafanaTheme2, TimeRange } from '@grafana/data';
+import { useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import StepRowLayout from '../../components/StepRowLayout';
@@ -18,8 +20,9 @@ interface Props {
 }
 
 const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete, onChange, onDelete }) => {
+  const styles = useStyles2(getStyles);
   const config = FILTER_TYPE_CONFIG[row.filterType];
-  const { FieldComponent, OperatorComponent, ValueComponent } = config;
+  const { FieldComponent, OperatorComponent, ValueComponent, valueWrapper } = config;
 
   const handleFieldChange = useCallback(
     (value: string) => {
@@ -55,6 +58,7 @@ const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete,
         timeRange={timeRange}
       />
       <OperatorComponent value={row.operator} onChange={handleOperatorChange} />
+      {valueWrapper && <span className={styles.wrapper}>{valueWrapper.open}</span>}
       <ValueComponent
         key={row.fieldName}
         values={row.values}
@@ -63,6 +67,7 @@ const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete,
         datasource={datasource}
         timeRange={timeRange}
       />
+      {valueWrapper && <span className={styles.wrapper}>{valueWrapper.close}</span>}
     </StepRowLayout>
   );
 });
@@ -70,3 +75,11 @@ const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete,
 FilterRowContainer.displayName = 'FilterRowContainer';
 
 export default FilterRowContainer;
+
+const getStyles = (theme: GrafanaTheme2) => ({
+  wrapper: css`
+    color: ${theme.colors.text.secondary};
+    font-size: ${theme.typography.bodySmall.fontSize};
+    font-weight: ${theme.typography.fontWeightMedium};
+  `,
+});

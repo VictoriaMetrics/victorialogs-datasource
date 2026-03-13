@@ -49,8 +49,8 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Field Manipulation',
     ContentComponent: FieldPairEditor,
   },
-  [MODIFY_TYPE.Fields]: {
-    label: 'fields',
+  [MODIFY_TYPE.Keep]: {
+    label: 'keep',
     description: 'Keeps only specified fields, removing all others',
     group: 'Field Manipulation',
     ContentComponent: FieldListEditor,

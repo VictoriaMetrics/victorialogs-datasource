@@ -2,7 +2,7 @@ import { css } from '@emotion/css';
 import React, { memo, useCallback } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
-import { AutoSizeInput, IconButton, Stack, useStyles2 } from '@grafana/ui';
+import { AutoSizeInput, Button, IconButton, Stack, useStyles2 } from '@grafana/ui';
 
 import FieldNameSelect from '../../shared/FieldNameSelect';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
@@ -35,9 +35,10 @@ const FieldPairEditor = memo(function FieldPairEditor({ row, onChange, datasourc
   );
 
   return (
-    <Stack direction='column' gap={0.5}>
+    <Stack direction='row' gap={0.5} alignItems='center' wrap='wrap'>
       {pairs.map((pair, index) => (
-        <Stack key={index} direction='row' gap={0.5} alignItems='center'>
+        <React.Fragment key={index}>
+          {index > 0 && <span className={styles.separator}>,</span>}
           <FieldNameSelect
             value={pair.src}
             onChange={(v) => handlePairChange(index, 'src', v)}
@@ -45,18 +46,22 @@ const FieldPairEditor = memo(function FieldPairEditor({ row, onChange, datasourc
             timeRange={timeRange}
           />
           <span className={styles.label}>as</span>
-          <AutoSizeInput
-            placeholder='new field name'
-            defaultValue={pair.dst}
-            minWidth={12}
-            onCommitChange={(e) => handlePairChange(index, 'dst', e.currentTarget.value)}
-          />
+          <div className={pairs.length > 1 ? styles.inputNoRightRadius : undefined}>
+            <AutoSizeInput
+              placeholder='new field name'
+              defaultValue={pair.dst}
+              minWidth={12}
+              onCommitChange={(e) => handlePairChange(index, 'dst', e.currentTarget.value)}
+            />
+          </div>
           {pairs.length > 1 && (
-            <IconButton name='times' size='sm' tooltip='Remove pair' onClick={() => handleRemovePair(index)} />
+            <div className={styles.removeButtonContainer}>
+              <IconButton className={styles.removeButton} name='times' size='sm' tooltip='Remove pair' onClick={() => handleRemovePair(index)} />
+            </div>
           )}
-        </Stack>
+        </React.Fragment>
       ))}
-      <IconButton name='plus' size='sm' tooltip='Add pair' onClick={handleAddPair} />
+      <Button variant='secondary' size='sm' icon='plus' onClick={handleAddPair}>Add pair</Button>
     </Stack>
   );
 });
@@ -67,5 +72,35 @@ const getStyles = (theme: GrafanaTheme2) => ({
   label: css`
     color: ${theme.colors.text.secondary};
     font-size: ${theme.typography.bodySmall.fontSize};
+  `,
+  separator: css`
+    color: ${theme.colors.text.secondary};
+    font-size: ${theme.typography.bodySmall.fontSize};
+  `,
+  inputNoRightRadius: css`
+    & * {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+  `,
+  removeButtonContainer: css`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    width: 23px;
+    border: 1px solid ${theme.colors.border.medium};
+    border-left: none;
+    border-radius: 0 ${theme.shape.radius.default} ${theme.shape.radius.default} 0;
+  `,
+  removeButton: css`
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    &::before {
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+    }
   `,
 });

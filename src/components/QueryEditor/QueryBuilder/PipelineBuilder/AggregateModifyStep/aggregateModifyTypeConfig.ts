@@ -3,6 +3,7 @@ import React from 'react';
 import { TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
+import PackJsonEditor from '../shared/PackJsonEditor';
 
 import ExpressionEditor from './parts/ExpressionEditor';
 import { AGGREGATE_MODIFY_TYPE, AggregateModifyRow, AggregateModifyType } from './types';
@@ -30,6 +31,11 @@ const AGGREGATE_MODIFY_TYPE_CONFIG: Record<AggregateModifyType, AggregateModifyT
     label: 'format',
     description: 'Formats fields using a pattern template',
     ContentComponent: ExpressionEditor,
+  },
+  [AGGREGATE_MODIFY_TYPE.PackJson]: {
+    label: 'pack_json',
+    description: 'Packs specified fields into a JSON object',
+    ContentComponent: PackJsonEditor as React.FC<AggregateModifyRowContentProps>,
   },
 };
 

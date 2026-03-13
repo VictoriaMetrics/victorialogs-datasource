@@ -2,7 +2,7 @@ export const MODIFY_TYPE = {
   Rename: 'rename',
   Delete: 'delete',
   Copy: 'copy',
-  Fields: 'fields',
+  Keep: 'keep',
   Replace: 'replace',
   ReplaceRegexp: 'replace_regexp',
   Extract: 'extract',
@@ -52,5 +52,5 @@ export const createModifyRow = (modifyType: ModifyType): ModifyRow => ({
   id: generateModifyRowId(),
   modifyType,
   fieldPairs: modifyType === MODIFY_TYPE.Rename || modifyType === MODIFY_TYPE.Copy ? [{ src: '', dst: '' }] : undefined,
-  fieldList: modifyType === MODIFY_TYPE.Delete || modifyType === MODIFY_TYPE.Fields ? [] : undefined,
+  fieldList: modifyType === MODIFY_TYPE.Delete || modifyType === MODIFY_TYPE.Keep ? [] : undefined,
 });

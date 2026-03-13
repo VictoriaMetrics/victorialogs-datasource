@@ -24,6 +24,20 @@ export const RANGE_OPERATORS = {
 
 export type RangeOperator = (typeof RANGE_OPERATORS)[keyof typeof RANGE_OPERATORS];
 
+export const REGEXP_OPERATORS = {
+  Match: '~',
+  NotMatch: '!~',
+} as const;
+
+export type RegexpOperator = (typeof REGEXP_OPERATORS)[keyof typeof REGEXP_OPERATORS];
+
+export const CASE_INSENSITIVE_OPERATORS = {
+  Match: 'i',
+  NotMatch: '!i',
+} as const;
+
+export type CaseInsensitiveOperator = (typeof CASE_INSENSITIVE_OPERATORS)[keyof typeof CASE_INSENSITIVE_OPERATORS];
+
 export interface FilterRow {
   id: string;
   filterType: FilterType;
