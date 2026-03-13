@@ -6,7 +6,7 @@ import { Button, Dropdown, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { useRowManagement } from '../shared/useRowManagement';
-import { PipelineStepItem } from '../types';
+import { ModifyStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import ModifyRowContainer from './ModifyRowContainer';
 import { MODIFY_TYPE_GROUPED_ENTRIES } from './modifyTypeConfig';
@@ -16,17 +16,16 @@ interface Props {
   step: PipelineStepItem;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
-  onStepChange: (id: string, patch: Partial<Omit<PipelineStepItem, 'id' | 'type'>>) => void;
+  onStepChange: (id: string, patch: PipelineStepPatch) => void;
 }
 
 const ModifyStepContent = memo(function ModifyStepContent({ step, datasource, timeRange, onStepChange }: Props) {
   const styles = useStyles2(getStyles);
-  const rows = step.modifyRows ?? [];
+  const rows = (step as ModifyStep).rows ?? [];
 
   const { handleRowChange, handleRowDelete, handleAddRow } = useRowManagement<ModifyRow>({
     rows,
     stepId: step.id,
-    rowsKey: 'modifyRows',
     onStepChange,
   });
 

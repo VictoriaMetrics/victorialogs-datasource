@@ -14,22 +14,22 @@ import { createLimitRow, LIMIT_TYPE } from './LimitStep/types';
 import ModifyStepContent from './ModifyStep/ModifyStepContent';
 import SortStepContent from './SortStep/SortStepContent';
 import { createSortField } from './SortStep/types';
-import { PIPELINE_STEP_TYPE, PipelineStepItem, PipelineStepType } from './types';
+import { PIPELINE_STEP_TYPE, PipelineStepItem, PipelineStepPatch, PipelineStepType } from './types';
 
 export interface StepContentProps {
   step: PipelineStepItem;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
-  onStepChange: (id: string, patch: Partial<Omit<PipelineStepItem, 'id' | 'type'>>) => void;
+  onStepChange: (id: string, patch: PipelineStepPatch) => void;
 }
 
 interface StepConfig {
   label: string;
   ContentComponent: ComponentType<StepContentProps> | null;
-  createInitialData: () => Partial<Omit<PipelineStepItem, 'id' | 'type'>> | undefined;
+  createInitialData: () => PipelineStepPatch | undefined;
 }
 
-const createFilterInitialData = () => ({ filterRows: [createFilterRow(FILTER_TYPE.Exact, 'in')] });
+const createFilterInitialData = (): PipelineStepPatch => ({ rows: [createFilterRow(FILTER_TYPE.Exact, 'in')] });
 
 export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   [PIPELINE_STEP_TYPE.Filter]: {
@@ -65,11 +65,11 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   [PIPELINE_STEP_TYPE.Sort]: {
     label: 'Sort',
     ContentComponent: SortStepContent,
-    createInitialData: () => ({ sortFields: [createSortField()] }),
+    createInitialData: () => ({ rows: [createSortField()] }),
   },
   [PIPELINE_STEP_TYPE.Limit]: {
     label: 'Limit',
     ContentComponent: LimitStepContent,
-    createInitialData: () => ({ limitRows: [createLimitRow(LIMIT_TYPE.Limit)] }),
+    createInitialData: () => ({ rows: [createLimitRow(LIMIT_TYPE.Limit)] }),
   },
 };

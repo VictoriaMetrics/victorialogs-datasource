@@ -5,13 +5,13 @@ import { GrafanaTheme2, TimeRange } from '@grafana/data';
 import { AutoSizeInput, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
-import { PipelineStepItem } from '../types';
+import { AggregateFilterStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 interface Props {
   step: PipelineStepItem;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
-  onStepChange: (id: string, patch: Partial<Omit<PipelineStepItem, 'id' | 'type'>>) => void;
+  onStepChange: (id: string, patch: PipelineStepPatch) => void;
 }
 
 const AggregateFilterStepContent = memo(function AggregateFilterStepContent({
@@ -22,7 +22,7 @@ const AggregateFilterStepContent = memo(function AggregateFilterStepContent({
 
   const handleConditionChange = useCallback(
     (e: React.FormEvent<HTMLInputElement>) => {
-      onStepChange(step.id, { aggregateFilterCondition: e.currentTarget.value });
+      onStepChange(step.id, { condition: e.currentTarget.value });
     },
     [onStepChange, step.id]
   );
@@ -32,7 +32,7 @@ const AggregateFilterStepContent = memo(function AggregateFilterStepContent({
       <span className={styles.label}>filter</span>
       <AutoSizeInput
         placeholder='e.g. logs_count:> 1000'
-        defaultValue={step.aggregateFilterCondition ?? ''}
+        defaultValue={(step as AggregateFilterStep).condition ?? ''}
         minWidth={20}
         onCommitChange={handleConditionChange}
       />

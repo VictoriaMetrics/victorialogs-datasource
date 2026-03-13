@@ -1,12 +1,11 @@
 import { useCallback } from 'react';
 
-import { PipelineStepItem } from '../types';
+import { PipelineStepPatch } from '../types';
 
 interface UseRowManagementOptions<TRow extends { id: string }> {
   rows: TRow[];
   stepId: string;
-  rowsKey: string;
-  onStepChange: (id: string, patch: Partial<Omit<PipelineStepItem, 'id' | 'type'>>) => void;
+  onStepChange: (id: string, patch: PipelineStepPatch) => void;
 }
 
 interface UseRowManagementResult<TRow> {
@@ -18,15 +17,14 @@ interface UseRowManagementResult<TRow> {
 export const useRowManagement = <TRow extends { id: string }>({
   rows,
   stepId,
-  rowsKey,
   onStepChange,
 }: UseRowManagementOptions<TRow>): UseRowManagementResult<TRow> => {
   const handleRowChange = useCallback(
     (updatedRow: TRow) => {
       const newRows = rows.map((r) => (r.id === updatedRow.id ? updatedRow : r));
-      onStepChange(stepId, { [rowsKey]: newRows });
+      onStepChange(stepId, { rows: newRows } as PipelineStepPatch);
     },
-    [rows, onStepChange, stepId, rowsKey]
+    [rows, onStepChange, stepId]
   );
 
   const handleRowDelete = useCallback(
@@ -35,16 +33,16 @@ export const useRowManagement = <TRow extends { id: string }>({
         return;
       }
       const newRows = rows.filter((r) => r.id !== rowId);
-      onStepChange(stepId, { [rowsKey]: newRows });
+      onStepChange(stepId, { rows: newRows } as PipelineStepPatch);
     },
-    [rows, onStepChange, stepId, rowsKey]
+    [rows, onStepChange, stepId]
   );
 
   const handleAddRow = useCallback(
     (newRow: TRow) => {
-      onStepChange(stepId, { [rowsKey]: [...rows, newRow] });
+      onStepChange(stepId, { rows: [...rows, newRow] } as PipelineStepPatch);
     },
-    [rows, onStepChange, stepId, rowsKey]
+    [rows, onStepChange, stepId]
   );
 
   return { handleRowChange, handleRowDelete, handleAddRow };

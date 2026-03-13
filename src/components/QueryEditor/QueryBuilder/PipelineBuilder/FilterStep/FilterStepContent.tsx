@@ -6,7 +6,7 @@ import { Button, Dropdown, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { useRowManagement } from '../shared/useRowManagement';
-import { PipelineStepItem } from '../types';
+import { FilterStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import FilterRowContainer from './FilterRowContainer';
 import { FILTER_TYPE_ENTRIES } from './filterTypeConfig';
@@ -16,17 +16,16 @@ interface Props {
   step: PipelineStepItem;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
-  onStepChange: (id: string, patch: Partial<Omit<PipelineStepItem, 'id' | 'type'>>) => void;
+  onStepChange: (id: string, patch: PipelineStepPatch) => void;
 }
 
 const FilterStepContent = memo<Props>(({ step, datasource, timeRange, onStepChange }) => {
   const styles = useStyles2(getStyles);
-  const rows = step.filterRows ?? [];
+  const rows = (step as FilterStep).rows ?? [];
 
   const { handleRowChange, handleRowDelete, handleAddRow } = useRowManagement<FilterRow>({
     rows,
     stepId: step.id,
-    rowsKey: 'filterRows',
     onStepChange,
   });
 

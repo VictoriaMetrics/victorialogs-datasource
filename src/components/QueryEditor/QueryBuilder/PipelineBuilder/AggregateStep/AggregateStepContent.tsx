@@ -9,7 +9,7 @@ import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
 import OptionalField from '../shared/OptionalField';
 import { useFieldFetch } from '../shared/useFieldFetch';
 import { useRowManagement } from '../shared/useRowManagement';
-import { PipelineStepItem } from '../types';
+import { AggregateStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import AggregateRowContainer from './AggregateRowContainer';
 import { AGGREGATE_TYPE_GROUPED_ENTRIES } from './aggregateTypeConfig';
@@ -19,7 +19,7 @@ interface Props {
   step: PipelineStepItem;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
-  onStepChange: (id: string, patch: Partial<Omit<PipelineStepItem, 'id' | 'type'>>) => void;
+  onStepChange: (id: string, patch: PipelineStepPatch) => void;
 }
 
 const AggregateStepContent = memo(function AggregateStepContent({
@@ -29,13 +29,13 @@ const AggregateStepContent = memo(function AggregateStepContent({
   onStepChange,
 }: Props) {
   const styles = useStyles2(getStyles);
-  const rows = step.aggregateRows ?? [];
+  const aggregateStep = step as AggregateStep;
+  const rows = aggregateStep.rows ?? [];
   const { loadFieldNames } = useFieldFetch({ datasource, timeRange });
 
   const { handleRowChange, handleRowDelete, handleAddRow } = useRowManagement<AggregateRow>({
     rows,
     stepId: step.id,
-    rowsKey: 'aggregateRows',
     onStepChange,
   });
 
@@ -47,28 +47,28 @@ const AggregateStepContent = memo(function AggregateStepContent({
   );
 
   const selectedByFields = useMemo(
-    () => (step.aggregateByFields ?? []).map((f) => ({ label: f, value: f })),
-    [step.aggregateByFields]
+    () => (aggregateStep.byFields ?? []).map((f) => ({ label: f, value: f })),
+    [aggregateStep.byFields]
   );
 
   const handleByFieldsChange = useCallback(
     (selected: Array<{ value?: string; label?: string }>) => {
       onStepChange(step.id, {
-        aggregateByFields: selected.map((s) => s.value ?? '').filter(Boolean),
+        byFields: selected.map((s) => s.value ?? '').filter(Boolean),
       });
     },
     [onStepChange, step.id]
   );
 
-  const isByFieldsActive = step.aggregateByFields !== undefined;
+  const isByFieldsActive = aggregateStep.byFields !== undefined;
 
   const handleAddByFields = useCallback(
-    () => onStepChange(step.id, { aggregateByFields: [] }),
+    () => onStepChange(step.id, { byFields: [] }),
     [onStepChange, step.id]
   );
 
   const handleRemoveByFields = useCallback(
-    () => onStepChange(step.id, { aggregateByFields: undefined }),
+    () => onStepChange(step.id, { byFields: undefined }),
     [onStepChange, step.id]
   );
 

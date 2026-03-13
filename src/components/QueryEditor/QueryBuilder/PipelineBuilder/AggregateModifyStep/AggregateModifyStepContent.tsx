@@ -6,7 +6,7 @@ import { Button, Dropdown, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { useRowManagement } from '../shared/useRowManagement';
-import { PipelineStepItem } from '../types';
+import { AggregateModifyStep as AggregateModifyStepType, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import AggregateModifyRowContainer from './AggregateModifyRowContainer';
 import { AGGREGATE_MODIFY_TYPE_ENTRIES } from './aggregateModifyTypeConfig';
@@ -16,7 +16,7 @@ interface Props {
   step: PipelineStepItem;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
-  onStepChange: (id: string, patch: Partial<Omit<PipelineStepItem, 'id' | 'type'>>) => void;
+  onStepChange: (id: string, patch: PipelineStepPatch) => void;
 }
 
 const AggregateModifyStepContent = memo(function AggregateModifyStepContent({
@@ -26,12 +26,11 @@ const AggregateModifyStepContent = memo(function AggregateModifyStepContent({
   onStepChange,
 }: Props) {
   const styles = useStyles2(getStyles);
-  const rows = step.aggregateModifyRows ?? [];
+  const rows = (step as AggregateModifyStepType).rows ?? [];
 
   const { handleRowChange, handleRowDelete, handleAddRow } = useRowManagement<AggregateModifyRow>({
     rows,
     stepId: step.id,
-    rowsKey: 'aggregateModifyRows',
     onStepChange,
   });
 

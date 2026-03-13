@@ -6,7 +6,7 @@ import { Button, Dropdown, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { useRowManagement } from '../shared/useRowManagement';
-import { PipelineStepItem } from '../types';
+import { LimitStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import LimitRowContainer from './LimitRowContainer';
 import { LIMIT_TYPE_GROUPED_ENTRIES } from './limitTypeConfig';
@@ -16,17 +16,16 @@ interface Props {
   step: PipelineStepItem;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
-  onStepChange: (id: string, patch: Partial<Omit<PipelineStepItem, 'id' | 'type'>>) => void;
+  onStepChange: (id: string, patch: PipelineStepPatch) => void;
 }
 
 const LimitStepContent = memo(function LimitStepContent({ step, datasource, timeRange, onStepChange }: Props) {
   const styles = useStyles2(getStyles);
-  const rows = step.limitRows ?? [];
+  const rows = (step as LimitStep).rows ?? [];
 
   const { handleRowChange, handleRowDelete, handleAddRow } = useRowManagement<LimitRow>({
     rows,
     stepId: step.id,
-    rowsKey: 'limitRows',
     onStepChange,
   });
 

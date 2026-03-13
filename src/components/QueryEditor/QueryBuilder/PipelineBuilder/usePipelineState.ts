@@ -6,6 +6,7 @@ import {
   generateStepId,
   PIPELINE_STEP_TYPE,
   PipelineStepItem,
+  PipelineStepPatch,
   PipelineStepType,
 } from './types';
 
@@ -13,7 +14,7 @@ const createStep = (type: PipelineStepType): PipelineStepItem => ({
   id: generateStepId(),
   type,
   ...STEP_CONFIG[type].createInitialData(),
-});
+} as PipelineStepItem);
 
 const createInitialSteps = (): PipelineStepItem[] => [
   createStep(PIPELINE_STEP_TYPE.Filter),
@@ -83,14 +84,14 @@ export const usePipelineState = () => {
    * Update a step in-place by its ID.
    * Accepts a partial update that is merged into the existing step.
    */
-  const updateStep = useCallback((id: string, patch: Partial<Omit<PipelineStepItem, 'id' | 'type'>>): void => {
+  const updateStep = useCallback((id: string, patch: PipelineStepPatch): void => {
     setSteps((prev) => {
       const index = prev.findIndex((s) => s.id === id);
       if (index < 0) {
         return prev;
       }
       const next = [...prev];
-      next[index] = { ...next[index], ...patch };
+      next[index] = { ...next[index], ...patch } as PipelineStepItem;
       return next;
     });
   }, []);

@@ -7,7 +7,7 @@ import { IconButton, Stack, useStyles2 } from '@grafana/ui';
 import { VictoriaLogsDatasource } from '../../../../datasource';
 
 import { STEP_CONFIG } from './stepConfig';
-import { PipelineStepItem } from './types';
+import { PipelineStepItem, PipelineStepPatch } from './types';
 
 interface Props {
   step: PipelineStepItem;
@@ -15,7 +15,7 @@ interface Props {
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
   onDelete: (id: string) => void;
-  onStepChange: (id: string, patch: Partial<Omit<PipelineStepItem, 'id' | 'type'>>) => void;
+  onStepChange: (id: string, patch: PipelineStepPatch) => void;
 }
 
 const PipelineStep = memo<Props>(({ step, index, datasource, timeRange, onDelete, onStepChange }) => {
