@@ -4,7 +4,8 @@ import React, { memo, useCallback } from 'react';
 import { GrafanaTheme2 } from '@grafana/data';
 import { Button, useStyles2 } from '@grafana/ui';
 
-import { PipelineStepType, STEP_TYPE_LABELS } from './types';
+import { STEP_CONFIG } from './stepConfig';
+import { PipelineStepType } from './types';
 
 interface Props {
   allowedTypes: PipelineStepType[];
@@ -31,7 +32,7 @@ const PipelineInsertControl = memo<Props>(({ allowedTypes, onInsert }) => {
           onClick={handleClick(type)}
           className={styles.button}
         >
-          {STEP_TYPE_LABELS[type]}
+          {STEP_CONFIG[type].label}
         </Button>
       ))}
     </div>

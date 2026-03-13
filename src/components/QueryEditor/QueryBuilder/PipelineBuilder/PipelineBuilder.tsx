@@ -9,7 +9,8 @@ import { VictoriaLogsDatasource } from '../../../../datasource';
 import PipelineInsertControl from './PipelineInsertControl';
 import PipelineStep from './PipelineStep';
 import { getAllowedAppendTypes, getAllowedInsertTypes } from './pipelineRules';
-import { PipelineStepType, STEP_TYPE_LABELS } from './types';
+import { STEP_CONFIG } from './stepConfig';
+import { PipelineStepType } from './types';
 import { usePipelineState } from './usePipelineState';
 
 interface Props {
@@ -54,7 +55,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange }) => {
         <div className={styles.addStepRow}>
           {allowedAppendTypes.map((type) => (
             <Button key={type} variant='secondary' icon='plus' onClick={handleAppend(type)}>
-              {STEP_TYPE_LABELS[type]}
+              {STEP_CONFIG[type].label}
             </Button>
           ))}
         </div>

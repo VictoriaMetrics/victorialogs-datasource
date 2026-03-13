@@ -4,9 +4,9 @@ import { TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import StepRowLayout from '../../components/StepRowLayout';
-import { FilterRow } from '../types';
 
 import FILTER_TYPE_CONFIG from './filterTypeConfig';
+import { FilterRow } from './types';
 
 interface Props {
   row: FilterRow;

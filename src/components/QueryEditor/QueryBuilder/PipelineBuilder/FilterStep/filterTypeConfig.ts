@@ -1,12 +1,12 @@
 import React from 'react';
 
 import FieldNameSelect, { FieldComponentProps } from '../shared/FieldNameSelect';
-import { EXACT_OPERATORS, FILTER_TYPE, FilterType, RANGE_OPERATORS } from '../types';
 
 import ExactValueSelect from './parts/ExactValueSelect';
 import { createOperatorSelect } from './parts/OperatorSelect';
 import StaticOperatorLabel, { OperatorComponentProps } from './parts/StaticOperatorLabel';
 import TextValueInput, { ValueComponentProps } from './parts/TextValueInput';
+import { EXACT_OPERATORS, FILTER_TYPE, FilterType, RANGE_OPERATORS } from './types';
 
 const ExactOperatorSelect = createOperatorSelect([
   { label: 'in', value: EXACT_OPERATORS.In },

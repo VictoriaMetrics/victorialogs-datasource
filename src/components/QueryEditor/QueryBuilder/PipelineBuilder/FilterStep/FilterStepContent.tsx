@@ -6,10 +6,11 @@ import { Button, Dropdown, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { useRowManagement } from '../shared/useRowManagement';
-import { createFilterRow, FilterRow, FilterType, PipelineStepItem } from '../types';
+import { PipelineStepItem } from '../types';
 
 import FilterRowContainer from './FilterRowContainer';
 import { FILTER_TYPE_ENTRIES } from './filterTypeConfig';
+import { createFilterRow, FilterRow, FilterType } from './types';
 
 interface Props {
   step: PipelineStepItem;

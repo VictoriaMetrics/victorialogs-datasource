@@ -6,10 +6,11 @@ import { Button, Dropdown, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { useRowManagement } from '../shared/useRowManagement';
-import { createModifyRow, ModifyRow, ModifyType, PipelineStepItem } from '../types';
+import { PipelineStepItem } from '../types';
 
 import ModifyRowContainer from './ModifyRowContainer';
 import { MODIFY_TYPE_GROUPED_ENTRIES } from './modifyTypeConfig';
+import { createModifyRow, ModifyRow, ModifyType } from './types';
 
 interface Props {
   step: PipelineStepItem;

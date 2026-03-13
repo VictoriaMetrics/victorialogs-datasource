@@ -1,17 +1,22 @@
 import { useCallback, useState } from 'react';
 
 import { getAllowedAppendTypes, getAllowedInsertTypes, removeInvalidSteps } from './pipelineRules';
+import { STEP_CONFIG } from './stepConfig';
 import {
-  createFilterRow,
-  FILTER_TYPE,
   generateStepId,
   PIPELINE_STEP_TYPE,
   PipelineStepItem,
   PipelineStepType,
 } from './types';
 
+const createStep = (type: PipelineStepType): PipelineStepItem => ({
+  id: generateStepId(),
+  type,
+  ...STEP_CONFIG[type].createInitialData(),
+});
+
 const createInitialSteps = (): PipelineStepItem[] => [
-  { id: generateStepId(), type: PIPELINE_STEP_TYPE.Filter, filterRows: [createFilterRow(FILTER_TYPE.Exact, 'in')] },
+  createStep(PIPELINE_STEP_TYPE.Filter),
 ];
 
 export const usePipelineState = () => {
@@ -29,7 +34,7 @@ export const usePipelineState = () => {
         return prev;
       }
       added = true;
-      return [...prev, { id: generateStepId(), type }];
+      return [...prev, createStep(type)];
     });
     return added;
   }, []);
@@ -51,7 +56,7 @@ export const usePipelineState = () => {
       }
       inserted = true;
       const next = [...prev];
-      next.splice(index, 0, { id: generateStepId(), type });
+      next.splice(index, 0, createStep(type));
       return next;
     });
     return inserted;

@@ -3,7 +3,6 @@ import React from 'react';
 import { TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
-import { MODIFY_TYPE, ModifyRow, ModifyType } from '../types';
 
 import EmptyContent from './parts/EmptyContent';
 import ExtractEditor from './parts/ExtractEditor';
@@ -13,6 +12,7 @@ import FormatEditor from './parts/FormatEditor';
 import PackEditor from './parts/PackEditor';
 import ReplaceEditor from './parts/ReplaceEditor';
 import UnpackEditor from './parts/UnpackEditor';
+import { MODIFY_TYPE, ModifyRow, ModifyType } from './types';
 
 export interface ModifyRowContentProps {
   row: ModifyRow;

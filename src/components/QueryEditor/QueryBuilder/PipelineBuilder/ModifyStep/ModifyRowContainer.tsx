@@ -6,9 +6,9 @@ import { useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import StepRowLayout from '../../components/StepRowLayout';
-import { ModifyRow } from '../types';
 
 import MODIFY_TYPE_CONFIG from './modifyTypeConfig';
+import { ModifyRow } from './types';
 
 interface Props {
   row: ModifyRow;

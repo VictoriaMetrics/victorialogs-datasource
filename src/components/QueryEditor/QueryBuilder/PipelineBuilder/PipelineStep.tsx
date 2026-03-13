@@ -6,9 +6,8 @@ import { IconButton, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 
-import FilterStepContent from './FilterStep/FilterStepContent';
-import ModifyStepContent from './ModifyStep/ModifyStepContent';
-import { PIPELINE_STEP_TYPE, PipelineStepItem, STEP_TYPE_LABELS } from './types';
+import { STEP_CONFIG } from './stepConfig';
+import { PipelineStepItem } from './types';
 
 interface Props {
   step: PipelineStepItem;
@@ -22,8 +21,8 @@ interface Props {
 const PipelineStep = memo<Props>(({ step, index, datasource, timeRange, onDelete, onStepChange }) => {
   const styles = useStyles2(getStyles);
   const isFirst = index === 0;
-  const isFilterStep = step.type === PIPELINE_STEP_TYPE.Filter;
-  const isModifyStep = step.type === PIPELINE_STEP_TYPE.Modify;
+  const config = STEP_CONFIG[step.type];
+  const ContentComponent = config.ContentComponent;
 
   const handleDelete = useCallback(() => onDelete(step.id), [onDelete, step.id]);
 
@@ -41,12 +40,10 @@ const PipelineStep = memo<Props>(({ step, index, datasource, timeRange, onDelete
       </div>
       <Stack direction='row' alignItems='flex-start' gap={1}>
         <span className={styles.index}>{index + 1}</span>
-        <span className={styles.typeLabel}>{STEP_TYPE_LABELS[step.type] ?? step.type}</span>
+        <span className={styles.typeLabel}>{config.label}</span>
         <div className={styles.content}>
-          {isFilterStep ? (
-            <FilterStepContent step={step} datasource={datasource} timeRange={timeRange} onStepChange={onStepChange} />
-          ) : isModifyStep ? (
-            <ModifyStepContent step={step} datasource={datasource} timeRange={timeRange} onStepChange={onStepChange} />
+          {ContentComponent ? (
+            <ContentComponent step={step} datasource={datasource} timeRange={timeRange} onStepChange={onStepChange} />
           ) : (
             <span className={styles.placeholder}>{'Step content goes here'}</span>
           )}
