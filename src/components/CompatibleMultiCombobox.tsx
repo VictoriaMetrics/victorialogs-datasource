@@ -98,6 +98,7 @@ export const CompatibleMultiCombobox: typeof MultiCombobox = (props) => {
 };
 
 const getStyles = () => ({
+  // adjust height with the default height of Combobox input to prevent layout shift when switching between Grafana versions
   multiComboboxWrapper: css(`
     & > div > div {
       height: 32px;
