@@ -38,9 +38,11 @@ const PipelineStep = memo<Props>(({ step, index, datasource, timeRange, onDelete
           tooltip={isFirst ? 'Cannot delete the initial Filter' : 'Delete step'}
         />
       </div>
-      <Stack direction='row' alignItems='flex-start' gap={1}>
-        <span className={styles.index}>{index + 1}</span>
-        <span className={styles.typeLabel}>{config.label}</span>
+      <Stack direction='column' alignItems='flex-start' gap={1}>
+        <Stack direction='row' alignItems='center' justifyContent={'flex-start'} gap={1}>
+          <span className={styles.index}>{index + 1}</span>
+          <span className={styles.typeLabel}>{config.label}</span>
+        </Stack>
         <div className={styles.content}>
           {ContentComponent ? (
             <ContentComponent step={step} datasource={datasource} timeRange={timeRange} onStepChange={onStepChange} />
@@ -67,8 +69,8 @@ const getStyles = (theme: GrafanaTheme2) => ({
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: ${theme.spacing(3)};
-    height: ${theme.spacing(3)};
+    width: ${theme.spacing(2)};
+    height: ${theme.spacing(2)};
     border-radius: ${theme.shape.radius.circle};
     background-color: ${theme.colors.primary.main};
     color: ${theme.colors.primary.contrastText};

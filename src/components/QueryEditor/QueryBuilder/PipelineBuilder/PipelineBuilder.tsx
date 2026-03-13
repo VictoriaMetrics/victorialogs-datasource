@@ -28,7 +28,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange }) => {
 
   return (
     <div className={styles.container}>
-      <Stack direction='column' gap={0}>
+      <Stack direction='column' gap={1}>
         {steps.map((step, index) => (
           <Fragment key={step.id}>
             {/* Insert control above each step except the first */}

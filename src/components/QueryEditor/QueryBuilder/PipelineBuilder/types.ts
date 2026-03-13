@@ -1,3 +1,4 @@
+import { AggregateRow } from './AggregateStep/types';
 import { FilterRow } from './FilterStep/types';
 import { ModifyRow } from './ModifyStep/types';
 
@@ -17,6 +18,8 @@ export interface PipelineStepItem {
   type: PipelineStepType;
   filterRows?: FilterRow[];
   modifyRows?: ModifyRow[];
+  aggregateRows?: AggregateRow[];
+  aggregateByFields?: string[];
 }
 
 let stepIdCounter = 0;
