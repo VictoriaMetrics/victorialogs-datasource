@@ -118,9 +118,10 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
 
   return (
     <Stack direction='row' gap={0.5} alignItems='center' wrap='wrap'>
+      <span className={styles.label}>by (</span>
       {sortFields.map((sf, index) => (
         <Stack key={sf.id} direction='row' gap={0.5} alignItems='center'>
-          {index > 0 && <span className={styles.comma}>,</span>}
+          {index > 0 && <span className={styles.label}>,</span>}
           <FieldNameSelect
             value={sf.field}
             onChange={(value) => handleFieldChange(index, value)}
@@ -135,24 +136,29 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
             minWidth={7}
           />
           {sortFields.length > 1 && (
-            <IconButton
-              name='times'
-              size='sm'
-              tooltip='Remove sort field'
-              onClick={() => handleDeleteField(index)}
-            />
+            <div className={styles.removeButtonContainer}>
+              <IconButton className={styles.removeButton} name='times' size='sm' tooltip='Remove sort field' onClick={() => handleDeleteField(index)} />
+            </div>
           )}
         </Stack>
       ))}
       <Button variant='secondary' icon='plus' size='sm' onClick={handleAddField}>
         Add field
       </Button>
+      <span className={styles.label}>)</span>
       <OptionalField label='offset' isActive={isOffsetActive} onAdd={handleAddOffset} onRemove={handleRemoveOffset}>
-        <AutoSizeInput placeholder='N' defaultValue={step.sortOffset ?? ''} minWidth={4} onCommitChange={handleOffsetChange} />
+        <Stack direction='row' gap={0.5} alignItems='center'>
+          <span className={styles.label}>offset</span>
+          <AutoSizeInput placeholder='N' defaultValue={step.sortOffset ?? ''} minWidth={4} onCommitChange={handleOffsetChange} />
+        </Stack>
       </OptionalField>
       <OptionalField label='limit' isActive={isLimitActive} onAdd={handleAddLimit} onRemove={handleRemoveLimit}>
-        <AutoSizeInput placeholder='N' defaultValue={step.sortLimit ?? ''} minWidth={4} onCommitChange={handleLimitChange} />
+        <Stack direction='row' gap={0.5} alignItems='center'>
+          <span className={styles.label}>limit</span>
+          <AutoSizeInput placeholder='N' defaultValue={step.sortLimit ?? ''} minWidth={4} onCommitChange={handleLimitChange} />
+        </Stack>
       </OptionalField>
+      {isPartitionActive && <span className={styles.label}>partition by (</span>}
       <OptionalField label='partition by' isActive={isPartitionActive} onAdd={handleAddPartition} onRemove={handleRemovePartition}>
         <CompatibleMultiCombobox
           placeholder='Select fields'
@@ -164,8 +170,12 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
           createCustomValue
         />
       </OptionalField>
+      {isPartitionActive && <span className={styles.label}>)</span>}
       <OptionalField label='rank as' isActive={isRankActive} onAdd={handleAddRank} onRemove={handleRemoveRank}>
-        <AutoSizeInput placeholder='field name' defaultValue={step.sortRankField ?? ''} minWidth={10} onCommitChange={handleRankChange} />
+        <Stack direction='row' gap={0.5} alignItems='center'>
+          <span className={styles.label}>rank as</span>
+          <AutoSizeInput placeholder='field name' defaultValue={step.sortRankField ?? ''} minWidth={10} onCommitChange={handleRankChange} />
+        </Stack>
       </OptionalField>
     </Stack>
   );
@@ -174,8 +184,28 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
 export default SortStepContent;
 
 const getStyles = (theme: GrafanaTheme2) => ({
-  comma: css`
+  label: css`
     color: ${theme.colors.text.secondary};
     font-size: ${theme.typography.bodySmall.fontSize};
+  `,
+  removeButtonContainer: css`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    width: 23px;
+    border: 1px solid ${theme.colors.border.medium};
+    border-left: none;
+    border-radius: 0 ${theme.shape.radius.default} ${theme.shape.radius.default} 0;
+  `,
+  removeButton: css`
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    &::before {
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+    }
   `,
 });
