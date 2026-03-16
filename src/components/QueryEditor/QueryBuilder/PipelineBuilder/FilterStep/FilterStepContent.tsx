@@ -10,7 +10,7 @@ import { FilterStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import FilterRowContainer from './FilterRowContainer';
 import { FILTER_TYPE_ENTRIES } from './filterTypeConfig';
-import { createFilterRow, FilterRow, FilterType } from './types';
+import { createFilterRow, FILTER_TYPE, FilterRow, FilterType } from './types';
 
 interface Props {
   step: PipelineStepItem;
@@ -30,8 +30,8 @@ const FilterStepContent = memo<Props>(({ step, datasource, timeRange, onStepChan
   });
 
   const onAddFilter = useCallback(
-    (filterType: FilterType, defaultOperator: string) => {
-      handleAddRow(createFilterRow(filterType, defaultOperator));
+    (filterType: FilterType) => {
+      handleAddRow(createFilterRow(filterType));
     },
     [handleAddRow]
   );
@@ -42,9 +42,11 @@ const FilterStepContent = memo<Props>(({ step, datasource, timeRange, onStepChan
         <Menu.Item
           key={entry.filterType}
           label={entry.label}
-          onClick={() => onAddFilter(entry.filterType, entry.defaultOperator)}
+          onClick={() => onAddFilter(entry.filterType)}
         />
       ))}
+      <Menu.Divider />
+      <Menu.Item label='custom pipe' onClick={() => onAddFilter(FILTER_TYPE.CustomPipe)} />
     </Menu>
   );
 

@@ -54,10 +54,19 @@ export const generateFilterRowId = (): string => {
   return `filter-row-${Date.now()}-${filterRowIdCounter}`;
 };
 
-export const createFilterRow = ( filterType: FilterType, defaultOperator: string, fieldName = '', values = ['_msg']): FilterRow => ({
+const DEFAULT_OPERATORS: Record<FilterType, string> = {
+  [FILTER_TYPE.Exact]: EXACT_OPERATORS.In,
+  [FILTER_TYPE.Phrase]: ':',
+  [FILTER_TYPE.Range]: RANGE_OPERATORS.Gt,
+  [FILTER_TYPE.Regexp]: REGEXP_OPERATORS.Match,
+  [FILTER_TYPE.CaseInsensitive]: CASE_INSENSITIVE_OPERATORS.Match,
+  [FILTER_TYPE.CustomPipe]: '',
+};
+
+export const createFilterRow = (filterType: FilterType, operatorOverride?: string, fieldName = '', values = ['_msg']): FilterRow => ({
   id: generateFilterRowId(),
   filterType,
   fieldName,
-  operator: defaultOperator,
+  operator: operatorOverride ?? DEFAULT_OPERATORS[filterType],
   values,
 });

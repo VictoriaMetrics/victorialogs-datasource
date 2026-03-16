@@ -1,14 +1,14 @@
 import { css } from '@emotion/css';
-import React, { memo, useCallback } from 'react';
+import React, { memo } from 'react';
 
 import { GrafanaTheme2, TimeRange } from '@grafana/data';
-import { AutoSizeInput, useStyles2 } from '@grafana/ui';
+import { useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import StepRowLayout from '../../components/StepRowLayout';
 
 import FILTER_TYPE_CONFIG from './filterTypeConfig';
-import { FILTER_TYPE, FilterRow } from './types';
+import { FilterRow } from './types';
 
 interface Props {
   row: FilterRow;
@@ -21,55 +21,8 @@ interface Props {
 
 const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete, onChange, onDelete }) => {
   const styles = useStyles2(getStyles);
-  const isCustomPipe = row.filterType === FILTER_TYPE.CustomPipe;
   const config = FILTER_TYPE_CONFIG[row.filterType];
-
-  const handleFieldChange = useCallback(
-    (value: string) => {
-      onChange({ ...row, fieldName: value, values: [] });
-    },
-    [onChange, row]
-  );
-
-  const handleOperatorChange = useCallback(
-    (value: string) => {
-      onChange({ ...row, operator: value, values: [] });
-    },
-    [onChange, row]
-  );
-
-  const handleValueChange = useCallback(
-    (values: string[]) => {
-      onChange({ ...row, values });
-    },
-    [onChange, row]
-  );
-
-  const handleCustomPipeChange = useCallback(
-    (e: React.FormEvent<HTMLInputElement>) => {
-      onChange({ ...row, values: [e.currentTarget.value] });
-    },
-    [onChange, row]
-  );
-
-  if (isCustomPipe) {
-    return (
-      <StepRowLayout
-        onDelete={onDelete}
-        canDelete={canDelete}
-        disabledDeleteTooltip='At least one filter is required'
-      >
-        <AutoSizeInput
-          defaultValue={row.values[0] ?? ''}
-          minWidth={20}
-          placeholder='Custom value'
-          onCommitChange={handleCustomPipeChange}
-        />
-      </StepRowLayout>
-    );
-  }
-
-  const { FieldComponent, OperatorComponent, ValueComponent, valueWrapper } = config;
+  const { ContentComponent } = config;
 
   return (
     <StepRowLayout
@@ -77,23 +30,8 @@ const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete,
       canDelete={canDelete}
       disabledDeleteTooltip='At least one filter is required'
     >
-      <FieldComponent
-        value={row.fieldName}
-        onChange={handleFieldChange}
-        datasource={datasource}
-        timeRange={timeRange}
-      />
-      <OperatorComponent value={row.operator} onChange={handleOperatorChange} />
-      {valueWrapper && <span className={styles.wrapper}>{valueWrapper.open}</span>}
-      <ValueComponent
-        key={row.fieldName}
-        values={row.values}
-        onChange={handleValueChange}
-        fieldName={row.fieldName}
-        datasource={datasource}
-        timeRange={timeRange}
-      />
-      {valueWrapper && <span className={styles.wrapper}>{valueWrapper.close}</span>}
+      <span className={styles.typeLabel}>{config.label}</span>
+      <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} />
     </StepRowLayout>
   );
 });
@@ -103,9 +41,11 @@ FilterRowContainer.displayName = 'FilterRowContainer';
 export default FilterRowContainer;
 
 const getStyles = (theme: GrafanaTheme2) => ({
-  wrapper: css`
-    color: ${theme.colors.text.secondary};
-    font-size: ${theme.typography.bodySmall.fontSize};
+  typeLabel: css`
     font-weight: ${theme.typography.fontWeightMedium};
+    font-size: ${theme.typography.bodySmall.fontSize};
+    color: ${theme.colors.text.primary};
+    padding: 0 ${theme.spacing(0.5)};
+    white-space: nowrap;
   `,
 });

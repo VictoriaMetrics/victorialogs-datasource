@@ -1,13 +1,23 @@
 import React from 'react';
 
 import { escapeQuotes, RowSerializeResult } from '../serialization/types';
-import FieldNameSelect, { FieldComponentProps } from '../shared/FieldNameSelect';
 
+import CustomPipeContent from './parts/CustomPipeContent';
 import ExactValueSelect from './parts/ExactValueSelect';
 import { createOperatorSelect } from './parts/OperatorSelect';
-import StaticOperatorLabel, { OperatorComponentProps } from './parts/StaticOperatorLabel';
-import TextValueInput, { ValueComponentProps } from './parts/TextValueInput';
+import { FilterRowContentProps, createStandardFilterContent } from './parts/StandardFilterContent';
+import StaticOperatorLabel from './parts/StaticOperatorLabel';
+import TextValueInput from './parts/TextValueInput';
 import { CASE_INSENSITIVE_OPERATORS, EXACT_OPERATORS, FILTER_TYPE, FilterRow, FilterType, RANGE_OPERATORS, REGEXP_OPERATORS } from './types';
+
+export type { FilterRowContentProps } from './parts/StandardFilterContent';
+
+export interface FilterTypeDefinition {
+  label: string;
+  defaultOperator: string;
+  ContentComponent: React.FC<FilterRowContentProps>;
+  serialize: (row: FilterRow, stepId: string) => RowSerializeResult;
+}
 
 const ExactOperatorSelect = createOperatorSelect([
   { label: 'in', value: EXACT_OPERATORS.In },
@@ -31,30 +41,13 @@ const CaseInsensitiveOperatorSelect = createOperatorSelect([
   { label: '!i', value: CASE_INSENSITIVE_OPERATORS.NotMatch },
 ]);
 
-export interface ValueWrapper {
-  open: string;
-  close: string;
-}
-
 const isFilterRowEmpty = (row: FilterRow): boolean => !row.fieldName || !row.values.length;
-
-export interface FilterTypeDefinition {
-  label: string;
-  defaultOperator: string;
-  FieldComponent: React.FC<FieldComponentProps>;
-  OperatorComponent: React.FC<OperatorComponentProps>;
-  ValueComponent: React.FC<ValueComponentProps>;
-  valueWrapper?: ValueWrapper;
-  serialize: (row: FilterRow, stepId: string) => RowSerializeResult;
-}
 
 const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
   [FILTER_TYPE.Exact]: {
     label: 'Exact match',
     defaultOperator: EXACT_OPERATORS.In,
-    FieldComponent: FieldNameSelect,
-    OperatorComponent: ExactOperatorSelect,
-    ValueComponent: ExactValueSelect,
+    ContentComponent: createStandardFilterContent(ExactOperatorSelect, ExactValueSelect),
     serialize: (row) => {
       if (isFilterRowEmpty(row)) {
         return { result: '' };
@@ -66,9 +59,7 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
   [FILTER_TYPE.Phrase]: {
     label: 'Phrase',
     defaultOperator: ':',
-    FieldComponent: FieldNameSelect,
-    OperatorComponent: StaticOperatorLabel,
-    ValueComponent: TextValueInput,
+    ContentComponent: createStandardFilterContent(StaticOperatorLabel, TextValueInput),
     serialize: (row) => {
       if (isFilterRowEmpty(row)) {
         return { result: '' };
@@ -79,9 +70,7 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
   [FILTER_TYPE.Range]: {
     label: 'Range',
     defaultOperator: RANGE_OPERATORS.Gt,
-    FieldComponent: FieldNameSelect,
-    OperatorComponent: RangeOperatorSelect,
-    ValueComponent: TextValueInput,
+    ContentComponent: createStandardFilterContent(RangeOperatorSelect, TextValueInput),
     serialize: (row) => {
       if (isFilterRowEmpty(row)) {
         return { result: '' };
@@ -92,10 +81,7 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
   [FILTER_TYPE.Regexp]: {
     label: 'Regexp',
     defaultOperator: REGEXP_OPERATORS.Match,
-    FieldComponent: FieldNameSelect,
-    OperatorComponent: RegexpOperatorSelect,
-    ValueComponent: TextValueInput,
-    valueWrapper: { open: '"', close: '"' },
+    ContentComponent: createStandardFilterContent(RegexpOperatorSelect, TextValueInput, { open: '"', close: '"' }),
     serialize: (row) => {
       if (isFilterRowEmpty(row)) {
         return { result: '' };
@@ -106,10 +92,7 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
   [FILTER_TYPE.CaseInsensitive]: {
     label: 'Case-insensitive',
     defaultOperator: CASE_INSENSITIVE_OPERATORS.Match,
-    FieldComponent: FieldNameSelect,
-    OperatorComponent: CaseInsensitiveOperatorSelect,
-    ValueComponent: TextValueInput,
-    valueWrapper: { open: '(', close: ')' },
+    ContentComponent: createStandardFilterContent(CaseInsensitiveOperatorSelect, TextValueInput, { open: '(', close: ')' }),
     serialize: (row) => {
       if (isFilterRowEmpty(row)) {
         return { result: '' };
@@ -120,9 +103,7 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
   [FILTER_TYPE.CustomPipe]: {
     label: 'Custom value',
     defaultOperator: '',
-    FieldComponent: (() => null) as unknown as React.FC<FieldComponentProps>,
-    OperatorComponent: (() => null) as unknown as React.FC<OperatorComponentProps>,
-    ValueComponent: (() => null) as unknown as React.FC<ValueComponentProps>,
+    ContentComponent: CustomPipeContent as React.FC<FilterRowContentProps>,
     serialize: (row) => {
       if (!row.values[0]) {
         return { result: '' };
@@ -134,8 +115,10 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
 
 export default FILTER_TYPE_CONFIG;
 
-export const FILTER_TYPE_ENTRIES = Object.entries(FILTER_TYPE_CONFIG).map(([filterType, config]) => ({
-  filterType: filterType as FilterType,
-  label: config.label,
-  defaultOperator: config.defaultOperator,
-}));
+export const FILTER_TYPE_ENTRIES = Object.entries(FILTER_TYPE_CONFIG)
+  .filter(([key]) => key !== FILTER_TYPE.CustomPipe)
+  .map(([filterType, config]) => ({
+    filterType: filterType as FilterType,
+    label: config.label,
+    defaultOperator: config.defaultOperator,
+  }));
