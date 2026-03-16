@@ -1,5 +1,5 @@
 import AGGREGATE_TYPE_CONFIG from '../AggregateStep/aggregateTypeConfig';
-import { AggregateRow } from '../AggregateStep/types';
+import { AGGREGATE_TYPE, AggregateRow } from '../AggregateStep/types';
 
 import { SerializeResult } from './types';
 
@@ -33,24 +33,36 @@ export const serializeAggregateStep = (
   }
 
   const funcParts: string[] = [];
+  const customPipes: string[] = [];
 
   for (const row of rows) {
+    if (row.aggregateType === AGGREGATE_TYPE.CustomPipe) {
+      if (row.expression) {
+        customPipes.push(row.expression);
+      }
+      continue;
+    }
+
     const result = serializeAggregateRow(row, stepId);
     if (result) {
       funcParts.push(result);
     }
   }
 
-  if (!funcParts.length) {
-    return { pipes: [] };
+  const pipes: string[] = [];
+
+  if (funcParts.length) {
+    let pipe = `stats ${funcParts.join(', ')}`;
+
+    const validByFields = (byFields ?? []).filter(Boolean);
+    if (validByFields.length) {
+      pipe += ` by (${validByFields.join(', ')})`;
+    }
+
+    pipes.push(pipe);
   }
 
-  let pipe = `stats ${funcParts.join(', ')}`;
+  pipes.push(...customPipes);
 
-  const validByFields = (byFields ?? []).filter(Boolean);
-  if (validByFields.length) {
-    pipe += ` by (${validByFields.join(', ')})`;
-  }
-
-  return { pipes: [pipe] };
+  return { pipes };
 };

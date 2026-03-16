@@ -4,6 +4,7 @@ import { TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { escapeQuotes, RowSerializeResult } from '../serialization/types';
+import CustomPipeEditor from '../shared/CustomPipeEditor';
 
 import EmptyContent from './parts/EmptyContent';
 import ExtractEditor from './parts/ExtractEditor';
@@ -198,6 +199,13 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     ContentComponent: EmptyContent as React.FC<ModifyRowContentProps>,
     serialize: () => ({ result: 'drop_empty_fields' }),
   },
+  [MODIFY_TYPE.CustomPipe]: {
+    label: 'custom pipe',
+    description: 'Add a raw pipe expression',
+    group: 'Utility',
+    ContentComponent: CustomPipeEditor as React.FC<ModifyRowContentProps>,
+    serialize: (row) => ({ result: row.expression ?? '' }),
+  },
 };
 
 export default MODIFY_TYPE_CONFIG;
@@ -207,7 +215,7 @@ const MODIFY_GROUPS: ModifyGroup[] = ['Field Manipulation', 'Text Processing', '
 export const MODIFY_TYPE_GROUPED_ENTRIES = MODIFY_GROUPS.map((group) => ({
   group,
   entries: Object.entries(MODIFY_TYPE_CONFIG)
-    .filter(([, config]) => config.group === group)
+    .filter(([key, config]) => config.group === group && key !== MODIFY_TYPE.CustomPipe)
     .map(([modifyType, config]) => ({
       modifyType: modifyType as ModifyType,
       label: config.label,

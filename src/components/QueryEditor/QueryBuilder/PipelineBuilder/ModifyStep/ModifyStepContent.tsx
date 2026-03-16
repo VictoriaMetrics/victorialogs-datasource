@@ -10,7 +10,7 @@ import { ModifyStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import ModifyRowContainer from './ModifyRowContainer';
 import { MODIFY_TYPE_GROUPED_ENTRIES } from './modifyTypeConfig';
-import { createModifyRow, ModifyRow, ModifyType } from './types';
+import { createModifyRow, MODIFY_TYPE, ModifyRow, ModifyType } from './types';
 
 interface Props {
   step: PipelineStepItem;
@@ -52,6 +52,8 @@ const ModifyStepContent = memo(function ModifyStepContent({ step, datasource, ti
           ))}
         />
       ))}
+      <Menu.Divider />
+      <Menu.Item label='custom pipe' onClick={() => onAddModify(MODIFY_TYPE.CustomPipe)} />
     </Menu>
   );
 

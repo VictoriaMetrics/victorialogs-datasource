@@ -13,6 +13,7 @@ export const MODIFY_TYPE = {
   UnpackJson: 'unpack_json',
   UnpackLogfmt: 'unpack_logfmt',
   DropEmptyFields: 'drop_empty_fields',
+  CustomPipe: 'customPipe',
 } as const;
 
 export type ModifyType = (typeof MODIFY_TYPE)[keyof typeof MODIFY_TYPE];
@@ -39,6 +40,7 @@ export interface ModifyRow {
   keepOriginalFields?: boolean;
   skipEmptyResults?: boolean;
   ifFilter?: string;
+  expression?: string;
 }
 
 let modifyRowIdCounter = 0;

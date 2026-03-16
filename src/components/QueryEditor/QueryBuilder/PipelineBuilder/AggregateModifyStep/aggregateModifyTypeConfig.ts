@@ -4,6 +4,7 @@ import { TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { escapeQuotes, RowSerializeResult } from '../serialization/types';
+import CustomPipeEditor from '../shared/CustomPipeEditor';
 import PackJsonEditor from '../shared/PackJsonEditor';
 
 import ExpressionEditor from './parts/ExpressionEditor';
@@ -61,6 +62,12 @@ const AGGREGATE_MODIFY_TYPE_CONFIG: Record<AggregateModifyType, AggregateModifyT
       }
       return { result };
     },
+  },
+  [AGGREGATE_MODIFY_TYPE.CustomPipe]: {
+    label: 'custom pipe',
+    description: 'Add a raw pipe expression',
+    ContentComponent: CustomPipeEditor as React.FC<AggregateModifyRowContentProps>,
+    serialize: (row) => ({ result: row.expression ?? '' }),
   },
 };
 

@@ -13,7 +13,7 @@ import { AggregateStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import AggregateRowContainer from './AggregateRowContainer';
 import { AGGREGATE_TYPE_GROUPED_ENTRIES } from './aggregateTypeConfig';
-import { AggregateRow, AggregateType, createAggregateRow } from './types';
+import { AGGREGATE_TYPE, AggregateRow, AggregateType, createAggregateRow } from './types';
 
 interface Props {
   step: PipelineStepItem;
@@ -88,6 +88,8 @@ const AggregateStepContent = memo(function AggregateStepContent({
           ))}
         />
       ))}
+      <Menu.Divider />
+      <Menu.Item label='custom pipe' onClick={() => onAddAggregate(AGGREGATE_TYPE.CustomPipe)} />
     </Menu>
   );
 

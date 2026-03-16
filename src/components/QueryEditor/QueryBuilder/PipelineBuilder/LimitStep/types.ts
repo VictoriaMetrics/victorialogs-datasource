@@ -4,6 +4,7 @@ export const LIMIT_TYPE = {
   First: 'first',
   Last: 'last',
   Top: 'top',
+  CustomPipe: 'customPipe',
 } as const;
 
 export type LimitType = (typeof LIMIT_TYPE)[keyof typeof LIMIT_TYPE];
@@ -14,6 +15,7 @@ export interface LimitRow {
   count?: string;
   fieldList?: string[];
   partitionByFields?: string[];
+  expression?: string;
 }
 
 let limitRowIdCounter = 0;

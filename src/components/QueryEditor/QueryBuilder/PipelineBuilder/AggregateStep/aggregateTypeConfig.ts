@@ -5,6 +5,7 @@ import { TimeRange } from '@grafana/data';
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import EmptyContent from '../ModifyStep/parts/EmptyContent';
 import { RowSerializeResult } from '../serialization/types';
+import CustomPipeEditor from '../shared/CustomPipeEditor';
 
 import FieldListEditor from './parts/FieldListEditor';
 import FieldListWithLimitEditor from './parts/FieldListWithLimitEditor';
@@ -267,6 +268,13 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     ContentComponent: RowFunctionEditor,
     serialize: serializeRowFunction,
   },
+  [AGGREGATE_TYPE.CustomPipe]: {
+    label: 'custom pipe',
+    description: 'Add a raw pipe expression',
+    group: 'Row Functions',
+    ContentComponent: CustomPipeEditor as React.FC<AggregateRowContentProps>,
+    serialize: (row) => ({ result: row.expression ?? '' }),
+  },
 };
 
 export default AGGREGATE_TYPE_CONFIG;
@@ -284,7 +292,7 @@ const AGGREGATE_GROUPS: AggregateGroup[] = [
 export const AGGREGATE_TYPE_GROUPED_ENTRIES = AGGREGATE_GROUPS.map((group) => ({
   group,
   entries: Object.entries(AGGREGATE_TYPE_CONFIG)
-    .filter(([, config]) => config.group === group)
+    .filter(([key, config]) => config.group === group && key !== AGGREGATE_TYPE.CustomPipe)
     .map(([aggregateType, config]) => ({
       aggregateType: aggregateType as AggregateType,
       label: config.label,

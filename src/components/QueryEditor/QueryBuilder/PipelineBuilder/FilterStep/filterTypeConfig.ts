@@ -117,6 +117,19 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
       return { result: `${row.fieldName}:${row.operator}(${escapeQuotes(row.values[0])})` };
     },
   },
+  [FILTER_TYPE.CustomPipe]: {
+    label: 'Custom value',
+    defaultOperator: '',
+    FieldComponent: (() => null) as unknown as React.FC<FieldComponentProps>,
+    OperatorComponent: (() => null) as unknown as React.FC<OperatorComponentProps>,
+    ValueComponent: (() => null) as unknown as React.FC<ValueComponentProps>,
+    serialize: (row) => {
+      if (!row.values[0]) {
+        return { result: '' };
+      }
+      return { result: row.values[0] };
+    },
+  },
 };
 
 export default FILTER_TYPE_CONFIG;

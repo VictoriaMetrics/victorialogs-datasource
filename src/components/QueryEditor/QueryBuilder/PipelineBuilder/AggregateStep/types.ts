@@ -22,6 +22,7 @@ export const AGGREGATE_TYPE = {
   RowAny: 'row_any',
   RowMax: 'row_max',
   RowMin: 'row_min',
+  CustomPipe: 'customPipe',
 } as const;
 
 export type AggregateType = (typeof AGGREGATE_TYPE)[keyof typeof AGGREGATE_TYPE];
@@ -37,6 +38,7 @@ export interface AggregateRow {
   referenceField?: string;
   sortField?: string;
   sortDirection?: string;
+  expression?: string;
 }
 
 let aggregateRowIdCounter = 0;

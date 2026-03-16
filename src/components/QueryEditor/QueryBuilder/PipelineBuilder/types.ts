@@ -21,7 +21,6 @@ export type PipelineStepType = (typeof PIPELINE_STEP_TYPE)[keyof typeof PIPELINE
 
 interface BaseStep {
   id: string;
-  customPipes?: string[];
 }
 
 export interface FilterStep extends BaseStep {

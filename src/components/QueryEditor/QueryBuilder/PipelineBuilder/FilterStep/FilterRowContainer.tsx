@@ -2,13 +2,13 @@ import { css } from '@emotion/css';
 import React, { memo, useCallback } from 'react';
 
 import { GrafanaTheme2, TimeRange } from '@grafana/data';
-import { useStyles2 } from '@grafana/ui';
+import { AutoSizeInput, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import StepRowLayout from '../../components/StepRowLayout';
 
 import FILTER_TYPE_CONFIG from './filterTypeConfig';
-import { FilterRow } from './types';
+import { FILTER_TYPE, FilterRow } from './types';
 
 interface Props {
   row: FilterRow;
@@ -21,8 +21,8 @@ interface Props {
 
 const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete, onChange, onDelete }) => {
   const styles = useStyles2(getStyles);
+  const isCustomPipe = row.filterType === FILTER_TYPE.CustomPipe;
   const config = FILTER_TYPE_CONFIG[row.filterType];
-  const { FieldComponent, OperatorComponent, ValueComponent, valueWrapper } = config;
 
   const handleFieldChange = useCallback(
     (value: string) => {
@@ -44,6 +44,32 @@ const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete,
     },
     [onChange, row]
   );
+
+  const handleCustomPipeChange = useCallback(
+    (e: React.FormEvent<HTMLInputElement>) => {
+      onChange({ ...row, values: [e.currentTarget.value] });
+    },
+    [onChange, row]
+  );
+
+  if (isCustomPipe) {
+    return (
+      <StepRowLayout
+        onDelete={onDelete}
+        canDelete={canDelete}
+        disabledDeleteTooltip='At least one filter is required'
+      >
+        <AutoSizeInput
+          defaultValue={row.values[0] ?? ''}
+          minWidth={20}
+          placeholder='Custom value'
+          onCommitChange={handleCustomPipeChange}
+        />
+      </StepRowLayout>
+    );
+  }
+
+  const { FieldComponent, OperatorComponent, ValueComponent, valueWrapper } = config;
 
   return (
     <StepRowLayout

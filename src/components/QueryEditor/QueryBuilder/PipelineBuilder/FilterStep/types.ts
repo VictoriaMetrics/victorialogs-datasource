@@ -4,6 +4,7 @@ export const FILTER_TYPE = {
   Range: 'range',
   Regexp: 'regexp',
   CaseInsensitive: 'caseInsensitive',
+  CustomPipe: 'customPipe',
 } as const;
 
 export type FilterType = (typeof FILTER_TYPE)[keyof typeof FILTER_TYPE];

@@ -4,6 +4,7 @@ import { TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { RowSerializeResult } from '../serialization/types';
+import CustomPipeEditor from '../shared/CustomPipeEditor';
 
 import NumberEditor from './parts/NumberEditor';
 import NumberWithFieldsEditor from './parts/NumberWithFieldsEditor';
@@ -82,6 +83,13 @@ const LIMIT_TYPE_CONFIG: Record<LimitType, LimitTypeDefinition> = {
     ContentComponent: NumberWithFieldsEditor,
     serialize: serializeNumberWithFields,
   },
+  [LIMIT_TYPE.CustomPipe]: {
+    label: 'custom pipe',
+    description: 'Add a raw pipe expression',
+    group: 'Basic',
+    ContentComponent: CustomPipeEditor as React.FC<LimitRowContentProps>,
+    serialize: (row) => ({ result: row.expression ?? '' }),
+  },
 };
 
 export default LIMIT_TYPE_CONFIG;
@@ -91,7 +99,7 @@ const LIMIT_GROUPS: LimitGroup[] = ['Basic', 'Selection'];
 export const LIMIT_TYPE_GROUPED_ENTRIES = LIMIT_GROUPS.map((group) => ({
   group,
   entries: Object.entries(LIMIT_TYPE_CONFIG)
-    .filter(([, config]) => config.group === group)
+    .filter(([key, config]) => config.group === group && key !== LIMIT_TYPE.CustomPipe)
     .map(([limitType, config]) => ({
       limitType: limitType as LimitType,
       label: config.label,

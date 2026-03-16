@@ -8,7 +8,7 @@ import { VictoriaLogsDatasource } from '../../../../../datasource';
 import StepRowLayout from '../../components/StepRowLayout';
 
 import AGGREGATE_TYPE_CONFIG from './aggregateTypeConfig';
-import { AggregateRow } from './types';
+import { AGGREGATE_TYPE, AggregateRow } from './types';
 
 interface Props {
   row: AggregateRow;
@@ -37,6 +37,18 @@ const AggregateRowContainer = memo(function AggregateRowContainer({
     },
     [onChange, row]
   );
+
+  if (row.aggregateType === AGGREGATE_TYPE.CustomPipe) {
+    return (
+      <StepRowLayout
+        onDelete={onDelete}
+        canDelete={canDelete}
+        disabledDeleteTooltip='At least one aggregate row is required'
+      >
+        <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} />
+      </StepRowLayout>
+    );
+  }
 
   return (
     <StepRowLayout

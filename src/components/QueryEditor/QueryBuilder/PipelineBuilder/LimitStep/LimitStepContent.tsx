@@ -10,7 +10,7 @@ import { LimitStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import LimitRowContainer from './LimitRowContainer';
 import { LIMIT_TYPE_GROUPED_ENTRIES } from './limitTypeConfig';
-import { createLimitRow, LimitRow, LimitType } from './types';
+import { createLimitRow, LIMIT_TYPE, LimitRow, LimitType } from './types';
 
 interface Props {
   step: PipelineStepItem;
@@ -52,6 +52,8 @@ const LimitStepContent = memo(function LimitStepContent({ step, datasource, time
           ))}
         />
       ))}
+      <Menu.Divider />
+      <Menu.Item label='custom pipe' onClick={() => onAddLimit(LIMIT_TYPE.CustomPipe)} />
     </Menu>
   );
 

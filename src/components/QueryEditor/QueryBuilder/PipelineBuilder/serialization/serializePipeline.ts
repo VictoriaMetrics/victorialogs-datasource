@@ -75,12 +75,7 @@ export const serializePipeline = (steps: PipelineStepItem[]): string => {
 
   for (const step of steps) {
     const { pipes } = serializeStep(step);
-
     allPipes.push(...pipes);
-
-    if (step.customPipes?.length) {
-      allPipes.push(...step.customPipes);
-    }
   }
 
   return allPipes.join(' | ');
