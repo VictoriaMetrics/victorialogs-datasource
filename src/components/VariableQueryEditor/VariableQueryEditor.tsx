@@ -2,7 +2,9 @@ import { debounce } from 'lodash';
 import React, { FormEvent, useEffect, useState } from 'react';
 
 import { DEFAULT_FIELD_DISPLAY_VALUES_LIMIT, QueryEditorProps, SelectableValue } from '@grafana/data';
-import { Combobox, InlineField, InlineFieldRow, Input, Select } from '@grafana/ui';
+import { InlineField, InlineFieldRow, Input, Select } from '@grafana/ui';
+
+import { CompatibleCombobox } from '../CompatibleCombobox';
 
 import { VictoriaLogsDatasource } from '../../datasource';
 import { FilterFieldType, Options, Query, VariableQuery } from '../../types';
@@ -21,7 +23,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
   const [queryFilter, setQueryFilter] = useState<string>('');
   const [field, setField] = useState<string>('');
   const [limit, setLimit] = useState<number>(DEFAULT_FIELD_DISPLAY_VALUES_LIMIT);
-  const [fieldNames, setFieldNames] = useState<SelectableValue<string>[]>([]);
+  const [fieldNames, setFieldNames] = useState<Array<{ value: string; label: string; description?: string }>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
@@ -31,6 +33,10 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
     }
     setType(newType.value);
     onChange({ refId, type: newType.value, field, query: queryFilter });
+  };
+
+  const handleFieldChange = (option: { value: string }) => {
+    setField(String(option.value));
   };
 
   const handleBlur = () => {
@@ -127,13 +133,10 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
             error={error}
             invalid={!!error}
           >
-            <Combobox
+            <CompatibleCombobox
               placeholder='Select field'
-              onChange={(option) => {
-                const newField = String(option.value);
-                setField(newField);
-                onChange({ refId, type: type!, field: newField, query: queryFilter, limit });
-              }}
+              onChange={handleFieldChange}
+              onBlur={handleBlur}
               value={field || null}
               options={fieldNames}
               width={20}
