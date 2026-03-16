@@ -200,7 +200,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     serialize: () => ({ result: 'drop_empty_fields' }),
   },
   [MODIFY_TYPE.CustomPipe]: {
-    label: 'custom pipe',
+    label: 'Custom',
     description: 'Add a raw pipe expression',
     group: 'Utility',
     ContentComponent: CustomPipeEditor as React.FC<ModifyRowContentProps>,

@@ -53,7 +53,7 @@ const LimitStepContent = memo(function LimitStepContent({ step, datasource, time
         />
       ))}
       <Menu.Divider />
-      <Menu.Item label='custom pipe' onClick={() => onAddLimit(LIMIT_TYPE.CustomPipe)} />
+      <Menu.Item label='Custom' onClick={() => onAddLimit(LIMIT_TYPE.CustomPipe)} />
     </Menu>
   );
 

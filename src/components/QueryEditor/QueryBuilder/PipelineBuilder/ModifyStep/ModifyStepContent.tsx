@@ -53,7 +53,7 @@ const ModifyStepContent = memo(function ModifyStepContent({ step, datasource, ti
         />
       ))}
       <Menu.Divider />
-      <Menu.Item label='custom pipe' onClick={() => onAddModify(MODIFY_TYPE.CustomPipe)} />
+      <Menu.Item label='Custom' onClick={() => onAddModify(MODIFY_TYPE.CustomPipe)} />
     </Menu>
   );
 

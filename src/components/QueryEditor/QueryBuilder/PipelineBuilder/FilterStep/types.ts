@@ -45,6 +45,7 @@ export interface FilterRow {
   fieldName: string;
   operator: string;
   values: string[];
+  expression?: string;
 }
 
 let filterRowIdCounter = 0;
@@ -63,10 +64,10 @@ const DEFAULT_OPERATORS: Record<FilterType, string> = {
   [FILTER_TYPE.CustomPipe]: '',
 };
 
-export const createFilterRow = (filterType: FilterType, operatorOverride?: string, fieldName = '', values = ['_msg']): FilterRow => ({
+export const createFilterRow = (filterType: FilterType, operatorOverride?: string, fieldName = '', values?: string[]): FilterRow => ({
   id: generateFilterRowId(),
   filterType,
   fieldName,
   operator: operatorOverride ?? DEFAULT_OPERATORS[filterType],
-  values,
+  values: values ?? ['_msg'],
 });

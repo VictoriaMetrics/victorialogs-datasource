@@ -269,7 +269,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     serialize: serializeRowFunction,
   },
   [AGGREGATE_TYPE.CustomPipe]: {
-    label: 'custom pipe',
+    label: 'Custom',
     description: 'Add a raw pipe expression',
     group: 'Row Functions',
     ContentComponent: CustomPipeEditor as React.FC<AggregateRowContentProps>,

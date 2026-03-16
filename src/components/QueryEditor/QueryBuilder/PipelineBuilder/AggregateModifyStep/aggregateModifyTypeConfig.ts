@@ -64,7 +64,7 @@ const AGGREGATE_MODIFY_TYPE_CONFIG: Record<AggregateModifyType, AggregateModifyT
     },
   },
   [AGGREGATE_MODIFY_TYPE.CustomPipe]: {
-    label: 'custom pipe',
+    label: 'Custom',
     description: 'Add a raw pipe expression',
     ContentComponent: CustomPipeEditor as React.FC<AggregateModifyRowContentProps>,
     serialize: (row) => ({ result: row.expression ?? '' }),

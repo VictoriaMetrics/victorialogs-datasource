@@ -13,7 +13,7 @@ export const serializeFilterStep = (rows: FilterRow[] | undefined, stepId: strin
 
   for (const row of rows) {
     if (row.filterType === FILTER_TYPE.CustomPipe) {
-      const value = row.values[0];
+      const value = row.expression;
       if (value) {
         customPipes.push(value);
       }

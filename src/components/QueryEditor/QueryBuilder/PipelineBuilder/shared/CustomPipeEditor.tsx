@@ -23,7 +23,7 @@ const CustomPipeEditor = memo<Props>(({ row, onChange }) => {
     <AutoSizeInput
       defaultValue={row.expression ?? ''}
       minWidth={20}
-      placeholder='Custom value'
+      placeholder='custom expression'
       onCommitChange={handleCommit}
     />
   );

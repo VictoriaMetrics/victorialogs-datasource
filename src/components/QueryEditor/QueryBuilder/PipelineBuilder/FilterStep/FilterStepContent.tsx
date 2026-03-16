@@ -46,7 +46,7 @@ const FilterStepContent = memo<Props>(({ step, datasource, timeRange, onStepChan
         />
       ))}
       <Menu.Divider />
-      <Menu.Item label='custom pipe' onClick={() => onAddFilter(FILTER_TYPE.CustomPipe)} />
+      <Menu.Item label='Custom' onClick={() => onAddFilter(FILTER_TYPE.CustomPipe)} />
     </Menu>
   );
 

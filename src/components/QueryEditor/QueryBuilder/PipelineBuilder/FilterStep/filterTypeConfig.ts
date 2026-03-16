@@ -1,8 +1,8 @@
 import React from 'react';
 
 import { escapeQuotes, RowSerializeResult } from '../serialization/types';
+import CustomPipeEditor from '../shared/CustomPipeEditor';
 
-import CustomPipeContent from './parts/CustomPipeContent';
 import ExactValueSelect from './parts/ExactValueSelect';
 import { createOperatorSelect } from './parts/OperatorSelect';
 import { FilterRowContentProps, createStandardFilterContent } from './parts/StandardFilterContent';
@@ -101,14 +101,14 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
     },
   },
   [FILTER_TYPE.CustomPipe]: {
-    label: 'Custom value',
+    label: 'Custom',
     defaultOperator: '',
-    ContentComponent: CustomPipeContent as React.FC<FilterRowContentProps>,
+    ContentComponent: CustomPipeEditor as React.FC<FilterRowContentProps>,
     serialize: (row) => {
-      if (!row.values[0]) {
+      if (!row.expression) {
         return { result: '' };
       }
-      return { result: row.values[0] };
+      return { result: row.expression };
     },
   },
 };

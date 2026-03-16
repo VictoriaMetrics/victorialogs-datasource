@@ -84,7 +84,7 @@ const LIMIT_TYPE_CONFIG: Record<LimitType, LimitTypeDefinition> = {
     serialize: serializeNumberWithFields,
   },
   [LIMIT_TYPE.CustomPipe]: {
-    label: 'custom pipe',
+    label: 'Custom',
     description: 'Add a raw pipe expression',
     group: 'Basic',
     ContentComponent: CustomPipeEditor as React.FC<LimitRowContentProps>,

@@ -89,7 +89,7 @@ const AggregateStepContent = memo(function AggregateStepContent({
         />
       ))}
       <Menu.Divider />
-      <Menu.Item label='custom pipe' onClick={() => onAddAggregate(AGGREGATE_TYPE.CustomPipe)} />
+      <Menu.Item label='Custom' onClick={() => onAddAggregate(AGGREGATE_TYPE.CustomPipe)} />
     </Menu>
   );
 
