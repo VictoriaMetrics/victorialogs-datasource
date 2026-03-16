@@ -53,10 +53,10 @@ export const generateFilterRowId = (): string => {
   return `filter-row-${Date.now()}-${filterRowIdCounter}`;
 };
 
-export const createFilterRow = (filterType: FilterType, defaultOperator: string): FilterRow => ({
+export const createFilterRow = ( filterType: FilterType, defaultOperator: string, fieldName = '', values = ['_msg']): FilterRow => ({
   id: generateFilterRowId(),
   filterType,
-  fieldName: '',
+  fieldName,
   operator: defaultOperator,
-  values: [],
+  values,
 });

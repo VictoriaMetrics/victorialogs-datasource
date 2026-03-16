@@ -1,26 +1,44 @@
 import { css } from '@emotion/css';
 import React, { Fragment, memo, useCallback, useMemo } from 'react';
 
-import { GrafanaTheme2, TimeRange } from '@grafana/data';
+import { CoreApp, GrafanaTheme2, TimeRange } from '@grafana/data';
 import { Button, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
+import { Query } from '../../../../types';
 
 import PipelineInsertControl from './PipelineInsertControl';
 import PipelineStep from './PipelineStep';
 import { getAllowedAppendTypes, getAllowedInsertTypes } from './pipelineRules';
+import { serializePipeline } from './serialization/serializePipeline';
 import { STEP_CONFIG } from './stepConfig';
-import { PipelineStepType } from './types';
-import { usePipelineState } from './usePipelineState';
+import { PipelineStepItem, PipelineStepType } from './types';
+import { createInitialSteps, usePipelineActions } from './usePipelineActions';
 
 interface Props {
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
+  query: Query;
+  app?: CoreApp;
+  onChange: (query: Query) => void;
 }
 
-const PipelineBuilder = memo<Props>(({ datasource, timeRange }) => {
+const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange }) => {
   const styles = useStyles2(getStyles);
-  const { steps, addStep, insertStep, deleteStep, updateStep } = usePipelineState();
+  const steps = query.builder?.steps ?? createInitialSteps();
+
+  const handleStepsChange = useCallback((newSteps: PipelineStepItem[]) => {
+    const serializedQuery = serializePipeline(newSteps);
+    onChange({
+      ...query,
+      expr: serializedQuery,
+      builder: {
+        steps: newSteps,
+      },
+    });
+  }, [query, onChange]);
+
+  const { addStep, insertStep, deleteStep, updateStep } = usePipelineActions(steps, handleStepsChange);
 
   const allowedAppendTypes = useMemo(() => getAllowedAppendTypes(steps), [steps]);
 

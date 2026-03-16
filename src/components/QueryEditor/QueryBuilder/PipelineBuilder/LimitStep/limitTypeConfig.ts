@@ -3,6 +3,7 @@ import React from 'react';
 import { TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
+import { RowSerializeResult } from '../serialization/types';
 
 import NumberEditor from './parts/NumberEditor';
 import NumberWithFieldsEditor from './parts/NumberWithFieldsEditor';
@@ -22,7 +23,28 @@ export interface LimitTypeDefinition {
   description: string;
   group: LimitGroup;
   ContentComponent: React.FC<LimitRowContentProps>;
+  serialize: (row: LimitRow, stepId: string) => RowSerializeResult;
 }
+
+const serializeNumber = (row: LimitRow, _stepId: string): RowSerializeResult => {
+  if (!row.count) {
+    return { result: '' };
+  }
+  return { result: `${row.limitType} ${row.count}` };
+};
+
+const serializeNumberWithFields = (row: LimitRow, _stepId: string): RowSerializeResult => {
+  const fields = (row.fieldList ?? []).filter(Boolean);
+  if (!row.count || !fields.length) {
+    return { result: '' };
+  }
+  let result = `${row.limitType} ${row.count} by (${fields.join(', ')})`;
+  const partitionFields = (row.partitionByFields ?? []).filter(Boolean);
+  if (partitionFields.length) {
+    result += ` partition by (${partitionFields.join(', ')})`;
+  }
+  return { result };
+};
 
 const LIMIT_TYPE_CONFIG: Record<LimitType, LimitTypeDefinition> = {
   [LIMIT_TYPE.Limit]: {
@@ -30,30 +52,35 @@ const LIMIT_TYPE_CONFIG: Record<LimitType, LimitTypeDefinition> = {
     description: 'Limits the number of returned entries',
     group: 'Basic',
     ContentComponent: NumberEditor,
+    serialize: serializeNumber,
   },
   [LIMIT_TYPE.Offset]: {
     label: 'offset',
     description: 'Skips the specified number of entries',
     group: 'Basic',
     ContentComponent: NumberEditor,
+    serialize: serializeNumber,
   },
   [LIMIT_TYPE.First]: {
     label: 'first',
     description: 'Returns first N entries after sorting by fields',
     group: 'Selection',
     ContentComponent: NumberWithFieldsEditor,
+    serialize: serializeNumberWithFields,
   },
   [LIMIT_TYPE.Last]: {
     label: 'last',
     description: 'Returns last N entries after sorting by fields',
     group: 'Selection',
     ContentComponent: NumberWithFieldsEditor,
+    serialize: serializeNumberWithFields,
   },
   [LIMIT_TYPE.Top]: {
     label: 'top',
     description: 'Returns top N values with maximum count',
     group: 'Selection',
     ContentComponent: NumberWithFieldsEditor,
+    serialize: serializeNumberWithFields,
   },
 };
 

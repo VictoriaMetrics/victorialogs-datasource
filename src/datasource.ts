@@ -124,7 +124,7 @@ export class VictoriaLogsDatasource
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
     const timezoneOffset = formatOffsetDuration(request.timezone, request.range.from.utcOffset());
-    const queries = request.targets
+    const queries: Query[] = request.targets
       .filter((q) => q.expr || config.publicDashboardAccessToken !== '')
       .map((q) => {
         return {

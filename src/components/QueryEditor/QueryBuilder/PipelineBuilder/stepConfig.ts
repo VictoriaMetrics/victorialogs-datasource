@@ -28,7 +28,7 @@ interface StepConfig {
   createInitialData: () => PipelineStepPatch | undefined;
 }
 
-const createFilterInitialData = (): PipelineStepPatch => ({ rows: [createFilterRow(FILTER_TYPE.Exact, 'in')] });
+const createFilterInitialData = (): PipelineStepPatch => ({ rows: [createFilterRow(FILTER_TYPE.Phrase, 'in', '_msg', ['*'])] });
 
 export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   [PIPELINE_STEP_TYPE.Filter]: {
@@ -44,7 +44,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   [PIPELINE_STEP_TYPE.ModifyFilter]: {
     label: 'Filter modified fields',
     ContentComponent: FilterStepContent,
-    createInitialData: createFilterInitialData,
+    createInitialData: () => undefined,
   },
   [PIPELINE_STEP_TYPE.Aggregate]: {
     label: 'Aggregate',

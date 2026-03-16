@@ -6,6 +6,7 @@ import { IconButton, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 
+import CustomPipesEditor from './shared/CustomPipesEditor';
 import { STEP_CONFIG } from './stepConfig';
 import { PipelineStepItem, PipelineStepPatch } from './types';
 
@@ -25,6 +26,13 @@ const PipelineStep = memo<Props>(({ step, index, datasource, timeRange, onDelete
   const ContentComponent = config.ContentComponent;
 
   const handleDelete = useCallback(() => onDelete(step.id), [onDelete, step.id]);
+
+  const handleCustomPipesChange = useCallback(
+    (customPipes: string[]) => {
+      onStepChange(step.id, { customPipes: customPipes.length ? customPipes : undefined } as PipelineStepPatch);
+    },
+    [step.id, onStepChange]
+  );
 
   return (
     <div className={styles.card}>
@@ -48,6 +56,9 @@ const PipelineStep = memo<Props>(({ step, index, datasource, timeRange, onDelete
             <ContentComponent step={step} datasource={datasource} timeRange={timeRange} onStepChange={onStepChange} />
           ) : (
             <span className={styles.placeholder}>{'Step content goes here'}</span>
+          )}
+          {step.customPipes && step.customPipes.length > 0 && (
+            <CustomPipesEditor customPipes={step.customPipes} onChange={handleCustomPipesChange} />
           )}
         </div>
       </Stack>

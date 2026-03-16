@@ -96,11 +96,16 @@ export const usePipelineState = () => {
     });
   }, []);
 
+  const initSteps = useCallback((newSteps: PipelineStepItem[]) => {
+    setSteps(newSteps);
+  }, []);
+
   return {
     steps,
     addStep,
     insertStep,
     deleteStep,
     updateStep,
+    initSteps,
   };
 };

@@ -14,9 +14,9 @@ import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 import { EditorHeader } from './EditorHeader';
 import { LogsQLSyntaxHelp } from './LogsQLSyntaxHelp';
 import PipelineBuilder from './QueryBuilder/PipelineBuilder/PipelineBuilder';
+import { createInitialSteps } from './QueryBuilder/PipelineBuilder/usePipelineActions';
 import { QueryEditorModeToggle } from './QueryBuilder/QueryEditorModeToggle';
 import { StreamFilters } from './QueryBuilder/components/StreamFilters/StreamFilters';
-import { buildVisualQueryFromString } from './QueryBuilder/utils/parseFromString';
 import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorHelp } from './QueryEditorHelp';
 import { QueryEditorOptions } from './QueryEditorOptions';
@@ -46,12 +46,9 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   useLogsSort(app, query, onChange, onRunQuery);
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
-    if (newEditorMode === QueryEditorMode.Builder) {
-      const result = buildVisualQueryFromString(query.expr || '');
-      if (result.errors.length) {
-        setParseModalOpen(true);
-        return;
-      }
+    if (newEditorMode === QueryEditorMode.Builder && query.expr) {
+      setParseModalOpen(true);
+      return;
     }
     changeEditorMode(query, newEditorMode, onChange);
   },
@@ -92,11 +89,16 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     <>
       <ConfirmModal
         isOpen={parseModalOpen}
-        title='Query parsing'
-        body='There were errors while trying to parse the query. Continuing to visual builder may lose some parts of the query.'
+        title='Switch to visual builder'
+        body='Switching to visual builder will clear the current query. The query cannot be automatically converted to visual steps.'
         confirmText='Continue'
         onConfirm={() => {
-          onChange({ ...query, editorMode: QueryEditorMode.Builder });
+          onChange({
+            ...query,
+            expr: '',
+            editorMode: QueryEditorMode.Builder,
+            builder: { steps: createInitialSteps() },
+          });
           setParseModalOpen(false);
         }}
         onDismiss={() => setParseModalOpen(false)}
@@ -143,7 +145,6 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
               query={query}
               app={app}
               onChange={onChangeInternal}
-              onRunQuery={props.onRunQuery}
               timeRange={timeRange}
             />
           ) : (

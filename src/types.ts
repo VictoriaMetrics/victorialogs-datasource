@@ -2,6 +2,7 @@ import { DataFrame, DataSourceJsonData, KeyValue, QueryEditorProps } from '@graf
 import { BackendSrvRequest } from '@grafana/runtime';
 import { DataQuery } from '@grafana/schema';
 
+import { PipelineStepItem } from './components/QueryEditor/QueryBuilder/PipelineBuilder/types';
 import { LogLevelRule } from './configuration/LogLevelRules/types';
 import { VictoriaLogsDatasource } from './datasource';
 
@@ -54,6 +55,10 @@ export interface StreamFilterState {
   values: string[];
 }
 
+export interface BuilderState {
+  steps: PipelineStepItem[];
+}
+
 export interface Query extends DataQuery {
   editorMode?: QueryEditorMode;
   expr: string;
@@ -78,6 +83,7 @@ export interface Query extends DataQuery {
   isApplyExtraFiltersToRootQuery?: boolean;
   /** shows which format of data is used */
   format?: Format;
+  builder?: BuilderState;
 }
 
 export type VictoriaLogsQueryEditorProps = QueryEditorProps<VictoriaLogsDatasource, Query, Options>;
