@@ -64,10 +64,10 @@ const DEFAULT_OPERATORS: Record<FilterType, string> = {
   [FILTER_TYPE.CustomPipe]: '',
 };
 
-export const createFilterRow = (filterType: FilterType, operatorOverride?: string, fieldName = '', values?: string[]): FilterRow => ({
+export const createFilterRow = (filterType: FilterType, operatorOverride?: string, fieldName = '', values: string[] = []): FilterRow => ({
   id: generateFilterRowId(),
   filterType,
   fieldName,
   operator: operatorOverride ?? DEFAULT_OPERATORS[filterType],
-  values: values ?? ['_msg'],
+  values: values,
 });

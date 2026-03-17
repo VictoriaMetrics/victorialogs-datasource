@@ -29,9 +29,6 @@ export const useRowManagement = <TRow extends { id: string }>({
 
   const handleRowDelete = useCallback(
     (rowId: string) => {
-      if (rows.length <= 1) {
-        return;
-      }
       const newRows = rows.filter((r) => r.id !== rowId);
       onStepChange(stepId, { rows: newRows } as PipelineStepPatch);
     },

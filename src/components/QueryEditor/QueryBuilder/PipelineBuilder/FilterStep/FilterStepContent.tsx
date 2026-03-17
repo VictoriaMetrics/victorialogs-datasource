@@ -59,7 +59,7 @@ const FilterStepContent = memo<Props>(({ step, datasource, timeRange, onStepChan
             row={row}
             datasource={datasource}
             timeRange={timeRange}
-            canDelete={rows.length > 1}
+            canDelete={true}
             onChange={handleRowChange}
             onDelete={() => handleRowDelete(row.id)}
           />

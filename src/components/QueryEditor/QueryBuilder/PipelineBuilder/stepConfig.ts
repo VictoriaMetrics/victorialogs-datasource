@@ -8,7 +8,6 @@ import AggregateFilterStepContent from './AggregateFilterStep/AggregateFilterSte
 import AggregateModifyStepContent from './AggregateModifyStep/AggregateModifyStepContent';
 import AggregateStepContent from './AggregateStep/AggregateStepContent';
 import FilterStepContent from './FilterStep/FilterStepContent';
-import { createFilterRow, FILTER_TYPE } from './FilterStep/types';
 import LimitStepContent from './LimitStep/LimitStepContent';
 import ModifyStepContent from './ModifyStep/ModifyStepContent';
 import SortStepContent from './SortStep/SortStepContent';
@@ -28,13 +27,11 @@ interface StepConfig {
   createInitialData: () => PipelineStepPatch | undefined;
 }
 
-const createFilterInitialData = (): PipelineStepPatch => ({ rows: [createFilterRow(FILTER_TYPE.Phrase, 'in', '_msg', ['*'])] });
-
 export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   [PIPELINE_STEP_TYPE.Filter]: {
     label: 'Filter',
     ContentComponent: FilterStepContent,
-    createInitialData: createFilterInitialData,
+    createInitialData: () => undefined,
   },
   [PIPELINE_STEP_TYPE.Modify]: {
     label: 'Modify',
