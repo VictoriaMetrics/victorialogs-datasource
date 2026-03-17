@@ -6,11 +6,12 @@ import { useFieldFetch } from '../../shared/useFieldFetch';
 
 import { ValueComponentProps } from './TextValueInput';
 
-const ExactValueSelect = ({ values, onChange, fieldName, datasource, timeRange }: ValueComponentProps) => {
+const ExactValueSelect = ({ values, onChange, fieldName, datasource, timeRange, queryContext }: ValueComponentProps) => {
   const { loadFieldValues } = useFieldFetch({
     datasource,
     field: fieldName || undefined,
     timeRange,
+    queryContext,
   });
 
   const selectedValues = useMemo(() => values.map((v) => ({ label: v, value: v })), [values]);

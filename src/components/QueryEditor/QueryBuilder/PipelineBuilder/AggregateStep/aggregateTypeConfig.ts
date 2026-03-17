@@ -21,6 +21,7 @@ export interface AggregateRowContentProps {
   onChange: (updatedRow: AggregateRow) => void;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
+  queryContext?: string;
 }
 
 export type AggregateGroup =

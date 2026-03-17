@@ -12,6 +12,7 @@ export interface ValueComponentProps {
   fieldName: string;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
+  queryContext?: string;
 }
 
 const TextValueInput = memo<ValueComponentProps>(({ values, onChange }) => {

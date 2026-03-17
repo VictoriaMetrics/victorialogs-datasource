@@ -20,7 +20,7 @@ import { serializeModifyStep } from './serializeModifyStep';
 import { serializeSortStep } from './serializeSortStep';
 import { SerializeResult } from './types';
 
-const serializeStep = (step: PipelineStepItem): SerializeResult => {
+export const serializeStep = (step: PipelineStepItem): SerializeResult => {
   switch (step.type) {
     case PIPELINE_STEP_TYPE.Filter:
       return serializeFilterStep((step as FilterStepType).rows, step.id);

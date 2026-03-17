@@ -16,6 +16,7 @@ export interface FilterRowContentProps {
   onChange: (updatedRow: FilterRow) => void;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
+  queryContext?: string;
 }
 
 interface ValueWrapper {
@@ -36,7 +37,7 @@ export const createStandardFilterContent = (
   ValueComponent: React.FC<ValueComponentProps>,
   valueWrapper?: ValueWrapper
 ): React.FC<FilterRowContentProps> => {
-  const Component = memo<FilterRowContentProps>(function StandardFilterContent({ row, onChange, datasource, timeRange }) {
+  const Component = memo<FilterRowContentProps>(function StandardFilterContent({ row, onChange, datasource, timeRange, queryContext }) {
     const styles = useStyles2(getWrapperStyles);
 
     const handleFieldChange = useCallback(
@@ -56,7 +57,7 @@ export const createStandardFilterContent = (
 
     return (
       <>
-        <FieldNameSelect value={row.fieldName} onChange={handleFieldChange} datasource={datasource} timeRange={timeRange} />
+        <FieldNameSelect value={row.fieldName} onChange={handleFieldChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
         <OperatorComponent value={row.operator} onChange={handleOperatorChange} />
         {valueWrapper && <span className={styles.wrapper}>{valueWrapper.open}</span>}
         <ValueComponent
@@ -66,6 +67,7 @@ export const createStandardFilterContent = (
           fieldName={row.fieldName}
           datasource={datasource}
           timeRange={timeRange}
+          queryContext={queryContext}
         />
         {valueWrapper && <span className={styles.wrapper}>{valueWrapper.close}</span>}
       </>

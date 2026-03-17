@@ -63,6 +63,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
               timeRange={timeRange}
               onDelete={deleteStep}
               onStepChange={updateStep}
+              steps={steps}
             />
           </Fragment>
         ))}

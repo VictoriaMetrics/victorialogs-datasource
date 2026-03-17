@@ -17,6 +17,7 @@ interface Props {
   canDelete: boolean;
   onChange: (updatedRow: AggregateRow) => void;
   onDelete: () => void;
+  queryContext?: string;
 }
 
 const AggregateRowContainer = memo(function AggregateRowContainer({
@@ -26,6 +27,7 @@ const AggregateRowContainer = memo(function AggregateRowContainer({
   canDelete,
   onChange,
   onDelete,
+  queryContext,
 }: Props) {
   const styles = useStyles2(getStyles);
   const config = AGGREGATE_TYPE_CONFIG[row.aggregateType];
@@ -45,7 +47,7 @@ const AggregateRowContainer = memo(function AggregateRowContainer({
         canDelete={canDelete}
         disabledDeleteTooltip='At least one aggregate row is required'
       >
-        <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} />
+        <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
       </StepRowLayout>
     );
   }
@@ -58,7 +60,7 @@ const AggregateRowContainer = memo(function AggregateRowContainer({
     >
       <Stack direction='row' gap={0.5} alignItems='center' wrap='wrap'>
         <span className={styles.typeLabel}>{config.label}</span>
-        <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} />
+        <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
         <span className={styles.asLabel}>as</span>
         <AutoSizeInput
           placeholder='result name'

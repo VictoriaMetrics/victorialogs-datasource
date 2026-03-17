@@ -5,6 +5,7 @@ import { GrafanaTheme2, TimeRange } from '@grafana/data';
 import { Button, Dropdown, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
+import { serializePartialPipeline } from '../serialization/serializePartialPipeline';
 import { useRowManagement } from '../shared/useRowManagement';
 import { ModifyStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
@@ -17,9 +18,11 @@ interface Props {
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
   onStepChange: (id: string, patch: PipelineStepPatch) => void;
+  steps: PipelineStepItem[];
+  stepIndex: number;
 }
 
-const ModifyStepContent = memo(function ModifyStepContent({ step, datasource, timeRange, onStepChange }: Props) {
+const ModifyStepContent = memo(function ModifyStepContent({ step, datasource, timeRange, onStepChange, steps, stepIndex }: Props) {
   const styles = useStyles2(getStyles);
   const rows = (step as ModifyStep).rows ?? [];
 
@@ -28,6 +31,11 @@ const ModifyStepContent = memo(function ModifyStepContent({ step, datasource, ti
     stepId: step.id,
     onStepChange,
   });
+
+  const getQueryContext = useCallback(
+    (rowIndex: number) => serializePartialPipeline(steps, stepIndex, rowIndex),
+    [steps, stepIndex]
+  );
 
   const onAddModify = useCallback(
     (modifyType: ModifyType) => {
@@ -69,6 +77,7 @@ const ModifyStepContent = memo(function ModifyStepContent({ step, datasource, ti
             canDelete={rows.length > 1}
             onChange={handleRowChange}
             onDelete={() => handleRowDelete(row.id)}
+            queryContext={getQueryContext(index)}
           />
         </React.Fragment>
       ))}

@@ -13,8 +13,9 @@ const NumberWithFieldsEditor = memo(function NumberWithFieldsEditor({
   onChange,
   datasource,
   timeRange,
+  queryContext,
 }: LimitRowContentProps) {
-  const { loadFieldNames } = useFieldFetch({ datasource, timeRange });
+  const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
 
   const handleCountChange = useCallback(
     (e: React.FormEvent<HTMLInputElement>) => {

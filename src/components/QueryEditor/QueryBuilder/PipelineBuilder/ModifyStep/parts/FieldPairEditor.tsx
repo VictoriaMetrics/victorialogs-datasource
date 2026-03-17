@@ -8,7 +8,7 @@ import FieldNameSelect from '../../shared/FieldNameSelect';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
 import { FieldPair } from '../types';
 
-const FieldPairEditor = memo(function FieldPairEditor({ row, onChange, datasource, timeRange }: ModifyRowContentProps) {
+const FieldPairEditor = memo(function FieldPairEditor({ row, onChange, datasource, timeRange, queryContext }: ModifyRowContentProps) {
   const styles = useStyles2(getStyles);
   const pairs = row.fieldPairs ?? [{ src: '', dst: '' }];
 
@@ -44,6 +44,7 @@ const FieldPairEditor = memo(function FieldPairEditor({ row, onChange, datasourc
             onChange={(v) => handlePairChange(index, 'src', v)}
             datasource={datasource}
             timeRange={timeRange}
+            queryContext={queryContext}
           />
           <span className={styles.label}>as</span>
           <div className={pairs.length > 1 ? styles.inputNoRightRadius : undefined}>

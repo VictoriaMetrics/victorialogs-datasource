@@ -9,7 +9,7 @@ import IfFilterInput from '../../shared/IfFilterInput';
 import ResultFlagSelect from '../../shared/ResultFlagSelect';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
 
-const ExtractEditor = memo(function ExtractEditor({ row, onChange, datasource, timeRange }: ModifyRowContentProps) {
+const ExtractEditor = memo(function ExtractEditor({ row, onChange, datasource, timeRange, queryContext }: ModifyRowContentProps) {
   const styles = useStyles2(getStyles);
 
   const handlePatternChange = useCallback(
@@ -41,10 +41,11 @@ const ExtractEditor = memo(function ExtractEditor({ row, onChange, datasource, t
       />
       <span className={styles.label}>from</span>
       <FieldNameSelect
-        value={row.fromField ?? '_msg'}
+        value={row.fromField ?? ''}
         onChange={handleFromFieldChange}
         datasource={datasource}
         timeRange={timeRange}
+        queryContext={queryContext}
       />
       <ResultFlagSelect
         keepOriginalFields={row.keepOriginalFields}

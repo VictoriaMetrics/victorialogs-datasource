@@ -17,6 +17,7 @@ interface Props {
   canDelete: boolean;
   onChange: (updatedRow: AggregateModifyRow) => void;
   onDelete: () => void;
+  queryContext?: string;
 }
 
 const AggregateModifyRowContainer = memo(function AggregateModifyRowContainer({
@@ -26,6 +27,7 @@ const AggregateModifyRowContainer = memo(function AggregateModifyRowContainer({
   canDelete,
   onChange,
   onDelete,
+  queryContext,
 }: Props) {
   const styles = useStyles2(getStyles);
   const config = AGGREGATE_MODIFY_TYPE_CONFIG[row.aggregateModifyType];
@@ -38,7 +40,7 @@ const AggregateModifyRowContainer = memo(function AggregateModifyRowContainer({
       disabledDeleteTooltip='At least one row is required'
     >
       <span className={styles.typeLabel}>{config.label}</span>
-      <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} />
+      <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
     </StepRowLayout>
   );
 });

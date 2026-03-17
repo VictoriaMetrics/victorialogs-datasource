@@ -14,9 +14,10 @@ interface Props {
   datasource: VictoriaLogsDatasource;
   field?: string;
   timeRange?: TimeRange;
+  queryContext?: string;
 }
 
-export const useFieldFetch = ({ datasource, field, timeRange }: Props) => {
+export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Props) => {
   const fieldNamesCache = useRef<ComboboxOption[]>([]);
 
   const fetchFieldNames = useCallback(async (): Promise<ComboboxOption[]> => {
@@ -27,7 +28,7 @@ export const useFieldFetch = ({ datasource, field, timeRange }: Props) => {
     const limit = datasource.getQueryBuilderLimits(FilterFieldType.FieldName);
 
     const list = await datasource.languageProvider?.getFieldList(
-      { type: FilterFieldType.FieldName, timeRange, limit },
+      { type: FilterFieldType.FieldName, timeRange, limit, query: queryContext },
       datasource.customQueryParameters
     );
 
@@ -41,7 +42,7 @@ export const useFieldFetch = ({ datasource, field, timeRange }: Props) => {
 
     fieldNamesCache.current = result;
     return result;
-  }, [datasource, timeRange]);
+  }, [datasource, timeRange, queryContext]);
 
   const fetchFieldValues = useCallback(
     async (inputValue: string): Promise<ComboboxOption[]> => {
@@ -54,6 +55,7 @@ export const useFieldFetch = ({ datasource, field, timeRange }: Props) => {
           field,
           limit,
           fieldValueFilter: inputValue || undefined,
+          query: queryContext,
         },
         datasource.customQueryParameters
       );
@@ -83,8 +85,12 @@ export const useFieldFetch = ({ datasource, field, timeRange }: Props) => {
 
       return options;
     },
-    [datasource, field, timeRange]
+    [datasource, field, timeRange, queryContext]
   );
+
+  useEffect(() => {
+    fieldNamesCache.current = [];
+  }, [queryContext]);
 
   const filterOptions = useCallback((options: ComboboxOption[], inputValue: string): ComboboxOption[] => {
     if (!inputValue) {

@@ -17,6 +17,7 @@ interface Props {
   canDelete: boolean;
   onChange: (updatedRow: ModifyRow) => void;
   onDelete: () => void;
+  queryContext?: string;
 }
 
 const ModifyRowContainer = memo(function ModifyRowContainer({
@@ -26,6 +27,7 @@ const ModifyRowContainer = memo(function ModifyRowContainer({
   canDelete,
   onChange,
   onDelete,
+  queryContext,
 }: Props) {
   const styles = useStyles2(getStyles);
   const config = MODIFY_TYPE_CONFIG[row.modifyType];
@@ -38,7 +40,7 @@ const ModifyRowContainer = memo(function ModifyRowContainer({
       disabledDeleteTooltip='At least one modify row is required'
     >
       <span className={styles.typeLabel}>{config.label}</span>
-      <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} />
+      <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
     </StepRowLayout>
   );
 });

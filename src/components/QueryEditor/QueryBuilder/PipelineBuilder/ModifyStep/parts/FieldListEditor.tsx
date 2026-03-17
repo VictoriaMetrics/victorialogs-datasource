@@ -6,8 +6,8 @@ import { CompatibleMultiCombobox } from '../../../../../CompatibleMultiCombobox'
 import { useFieldFetch } from '../../shared/useFieldFetch';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
 
-const FieldListEditor = memo(function FieldListEditor({ row, onChange, datasource, timeRange }: ModifyRowContentProps) {
-  const { loadFieldNames } = useFieldFetch({ datasource, timeRange });
+const FieldListEditor = memo(function FieldListEditor({ row, onChange, datasource, timeRange, queryContext }: ModifyRowContentProps) {
+  const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
   const fields = row.fieldList ?? [];
 
   const selectedFields = useMemo(() => fields.map((f) => ({ label: f, value: f })), [fields]);

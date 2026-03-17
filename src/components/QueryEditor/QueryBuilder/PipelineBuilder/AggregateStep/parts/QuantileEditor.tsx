@@ -7,8 +7,8 @@ import IfFilterInput from '../../shared/IfFilterInput';
 import { useFieldFetch } from '../../shared/useFieldFetch';
 import { AggregateRowContentProps } from '../aggregateTypeConfig';
 
-const QuantileEditor = memo(function QuantileEditor({ row, onChange, datasource, timeRange }: AggregateRowContentProps) {
-  const { loadFieldNames } = useFieldFetch({ datasource, timeRange });
+const QuantileEditor = memo(function QuantileEditor({ row, onChange, datasource, timeRange, queryContext }: AggregateRowContentProps) {
+  const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
 
   const selectedFields = useMemo(() => (row.fieldList ?? []).map((f) => ({ label: f, value: f })), [row.fieldList]);
 

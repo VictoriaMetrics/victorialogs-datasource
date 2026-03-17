@@ -20,11 +20,12 @@ interface Props<TRow extends PackJsonEditorRow> {
   onChange: (updatedRow: TRow) => void;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
+  queryContext?: string;
 }
 
-function PackJsonEditorInner<TRow extends PackJsonEditorRow>({ row, onChange, datasource, timeRange }: Props<TRow>) {
+function PackJsonEditorInner<TRow extends PackJsonEditorRow>({ row, onChange, datasource, timeRange, queryContext }: Props<TRow>) {
   const styles = useStyles2(getStyles);
-  const { loadFieldNames } = useFieldFetch({ datasource, timeRange });
+  const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
 
   const selectedFields = useMemo(
     () => (row.fieldList ?? []).map((f) => ({ label: f, value: f })),

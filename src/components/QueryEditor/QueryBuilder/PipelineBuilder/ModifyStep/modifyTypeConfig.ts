@@ -21,6 +21,7 @@ export interface ModifyRowContentProps {
   onChange: (updatedRow: ModifyRow) => void;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
+  queryContext?: string;
 }
 
 export type ModifyGroup = 'Field Manipulation' | 'Text Processing' | 'Data Serialization' | 'Utility';

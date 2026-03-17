@@ -13,8 +13,9 @@ const FieldListWithLimitEditor = memo(function FieldListWithLimitEditor({
   onChange,
   datasource,
   timeRange,
+  queryContext,
 }: AggregateRowContentProps) {
-  const { loadFieldNames } = useFieldFetch({ datasource, timeRange });
+  const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
 
   const selectedFields = useMemo(() => (row.fieldList ?? []).map((f) => ({ label: f, value: f })), [row.fieldList]);
 

@@ -11,6 +11,7 @@ const SingleFieldEditor = memo(function SingleFieldEditor({
   onChange,
   datasource,
   timeRange,
+  queryContext,
 }: AggregateRowContentProps) {
   const handleFieldChange = useCallback(
     (value: string) => onChange({ ...row, fieldList: value ? [value] : [] }),
@@ -30,6 +31,7 @@ const SingleFieldEditor = memo(function SingleFieldEditor({
         onChange={handleFieldChange}
         datasource={datasource}
         timeRange={timeRange}
+        queryContext={queryContext}
       />
     </Stack>
   );

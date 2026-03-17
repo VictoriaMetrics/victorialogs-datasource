@@ -10,7 +10,7 @@ import OptionalField from '../../shared/OptionalField';
 import ResultFlagSelect from '../../shared/ResultFlagSelect';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
 
-const UnpackEditor = memo(function UnpackEditor({ row, onChange, datasource, timeRange }: ModifyRowContentProps) {
+const UnpackEditor = memo(function UnpackEditor({ row, onChange, datasource, timeRange, queryContext }: ModifyRowContentProps) {
   const styles = useStyles2(getStyles);
   const fields = row.fieldList ?? [];
 
@@ -83,6 +83,7 @@ const UnpackEditor = memo(function UnpackEditor({ row, onChange, datasource, tim
         onChange={handleFromFieldChange}
         datasource={datasource}
         timeRange={timeRange}
+        queryContext={queryContext}
       />
       <span className={styles.label}>fields (</span>
       <OptionalField label='fields' isActive={isFieldsActive} onAdd={handleAddFields} onRemove={handleRemoveFields}>

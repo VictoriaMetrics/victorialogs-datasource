@@ -15,6 +15,7 @@ export interface LimitRowContentProps {
   onChange: (updatedRow: LimitRow) => void;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
+  queryContext?: string;
 }
 
 export type LimitGroup = 'Basic' | 'Selection';

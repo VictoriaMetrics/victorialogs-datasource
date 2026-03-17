@@ -17,13 +17,15 @@ interface Props {
   canDelete: boolean;
   onChange: (updatedRow: FilterRow) => void;
   onDelete: () => void;
+  queryContext?: string;
 }
 
-const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete, onChange, onDelete }) => {
+const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete, onChange, onDelete, queryContext }) => {
   const styles = useStyles2(getStyles);
   const config = FILTER_TYPE_CONFIG[row.filterType];
   const { ContentComponent } = config;
 
+  console.log(queryContext);
   return (
     <StepRowLayout
       onDelete={onDelete}
@@ -31,7 +33,7 @@ const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete,
       disabledDeleteTooltip='At least one filter is required'
     >
       <span className={styles.typeLabel}>{config.label}</span>
-      <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} />
+      <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
     </StepRowLayout>
   );
 });

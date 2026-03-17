@@ -8,7 +8,7 @@ import FieldNameSelect from '../../shared/FieldNameSelect';
 import IfFilterInput from '../../shared/IfFilterInput';
 import { AggregateRowContentProps } from '../aggregateTypeConfig';
 
-const TwoFieldEditor = memo(function TwoFieldEditor({ row, onChange, datasource, timeRange }: AggregateRowContentProps) {
+const TwoFieldEditor = memo(function TwoFieldEditor({ row, onChange, datasource, timeRange, queryContext }: AggregateRowContentProps) {
   const styles = useStyles2(getStyles);
 
   const handleReferenceFieldChange = useCallback(
@@ -35,6 +35,7 @@ const TwoFieldEditor = memo(function TwoFieldEditor({ row, onChange, datasource,
         onChange={handleReferenceFieldChange}
         datasource={datasource}
         timeRange={timeRange}
+        queryContext={queryContext}
       />
       <span className={styles.label}>,</span>
       <FieldNameSelect
@@ -42,6 +43,7 @@ const TwoFieldEditor = memo(function TwoFieldEditor({ row, onChange, datasource,
         onChange={handleFieldListChange}
         datasource={datasource}
         timeRange={timeRange}
+        queryContext={queryContext}
       />
       <span className={styles.label}>)</span>
     </Stack>

@@ -9,7 +9,7 @@ import IfFilterInput from '../../shared/IfFilterInput';
 import OptionalField from '../../shared/OptionalField';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
 
-const ReplaceEditor = memo(function ReplaceEditor({ row, onChange, datasource, timeRange }: ModifyRowContentProps) {
+const ReplaceEditor = memo(function ReplaceEditor({ row, onChange, datasource, timeRange, queryContext }: ModifyRowContentProps) {
   const styles = useStyles2(getStyles);
 
   const handleOldChange = useCallback(
@@ -68,6 +68,7 @@ const ReplaceEditor = memo(function ReplaceEditor({ row, onChange, datasource, t
         onChange={handleAtFieldChange}
         datasource={datasource}
         timeRange={timeRange}
+        queryContext={queryContext}
       />
       <OptionalField label='limit' isActive={isLimitActive} onAdd={handleAddLimit} onRemove={handleRemoveLimit}>
         <Stack direction='row' gap={0.5} alignItems='center'>

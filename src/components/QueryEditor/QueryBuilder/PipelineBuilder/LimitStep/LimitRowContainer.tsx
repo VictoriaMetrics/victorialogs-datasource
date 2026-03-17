@@ -17,6 +17,7 @@ interface Props {
   canDelete: boolean;
   onChange: (updatedRow: LimitRow) => void;
   onDelete: () => void;
+  queryContext?: string;
 }
 
 const LimitRowContainer = memo(function LimitRowContainer({
@@ -26,6 +27,7 @@ const LimitRowContainer = memo(function LimitRowContainer({
   canDelete,
   onChange,
   onDelete,
+  queryContext,
 }: Props) {
   const styles = useStyles2(getStyles);
   const config = LIMIT_TYPE_CONFIG[row.limitType];
@@ -38,7 +40,7 @@ const LimitRowContainer = memo(function LimitRowContainer({
       disabledDeleteTooltip='At least one limit row is required'
     >
       <span className={styles.typeLabel}>{config.label}</span>
-      <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} />
+      <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
     </StepRowLayout>
   );
 });

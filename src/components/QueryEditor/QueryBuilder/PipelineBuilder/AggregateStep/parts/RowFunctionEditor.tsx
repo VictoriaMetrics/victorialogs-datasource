@@ -14,8 +14,9 @@ const RowFunctionEditor = memo(function RowFunctionEditor({
   onChange,
   datasource,
   timeRange,
+  queryContext,
 }: AggregateRowContentProps) {
-  const { loadFieldNames } = useFieldFetch({ datasource, timeRange });
+  const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
 
   const selectedFields = useMemo(() => (row.fieldList ?? []).map((f) => ({ label: f, value: f })), [row.fieldList]);
 
@@ -55,6 +56,7 @@ const RowFunctionEditor = memo(function RowFunctionEditor({
           onChange={handleReferenceFieldChange}
           datasource={datasource}
           timeRange={timeRange}
+          queryContext={queryContext}
         />
       </OptionalField>
       <OptionalField label='output fields' isActive={isFieldsActive} onAdd={handleAddFields} onRemove={handleRemoveFields}>

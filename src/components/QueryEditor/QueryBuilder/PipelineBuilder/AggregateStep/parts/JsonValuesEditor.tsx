@@ -21,9 +21,10 @@ const JsonValuesEditor = memo(function JsonValuesEditor({
   onChange,
   datasource,
   timeRange,
+  queryContext,
 }: AggregateRowContentProps) {
   const styles = useStyles2(getStyles);
-  const { loadFieldNames } = useFieldFetch({ datasource, timeRange });
+  const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
 
   const selectedFields = useMemo(() => (row.fieldList ?? []).map((f) => ({ label: f, value: f })), [row.fieldList]);
 

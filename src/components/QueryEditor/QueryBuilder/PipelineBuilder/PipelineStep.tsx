@@ -16,9 +16,10 @@ interface Props {
   timeRange?: TimeRange;
   onDelete: (id: string) => void;
   onStepChange: (id: string, patch: PipelineStepPatch) => void;
+  steps: PipelineStepItem[];
 }
 
-const PipelineStep = memo<Props>(({ step, index, datasource, timeRange, onDelete, onStepChange }) => {
+const PipelineStep = memo<Props>(({ step, index, datasource, timeRange, onDelete, onStepChange, steps }) => {
   const styles = useStyles2(getStyles);
   const isFirst = index === 0;
   const config = STEP_CONFIG[step.type];
@@ -45,7 +46,7 @@ const PipelineStep = memo<Props>(({ step, index, datasource, timeRange, onDelete
         </Stack>
         <div className={styles.content}>
           {ContentComponent ? (
-            <ContentComponent step={step} datasource={datasource} timeRange={timeRange} onStepChange={onStepChange} />
+            <ContentComponent step={step} datasource={datasource} timeRange={timeRange} onStepChange={onStepChange} steps={steps} stepIndex={index} />
           ) : (
             <span className={styles.placeholder}>{'Step content goes here'}</span>
           )}

@@ -19,6 +19,8 @@ export interface StepContentProps {
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
   onStepChange: (id: string, patch: PipelineStepPatch) => void;
+  steps: PipelineStepItem[];
+  stepIndex: number;
 }
 
 interface StepConfig {

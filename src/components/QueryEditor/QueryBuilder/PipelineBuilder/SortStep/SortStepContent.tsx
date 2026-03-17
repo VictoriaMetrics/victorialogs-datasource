@@ -7,6 +7,7 @@ import { AutoSizeInput, Button, IconButton, Stack, useStyles2 } from '@grafana/u
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { CompatibleCombobox } from '../../../../CompatibleCombobox';
 import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
+import { serializePartialPipeline } from '../serialization/serializePartialPipeline';
 import FieldNameSelect from '../shared/FieldNameSelect';
 import OptionalField from '../shared/OptionalField';
 import { useFieldFetch } from '../shared/useFieldFetch';
@@ -19,6 +20,8 @@ interface Props {
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
   onStepChange: (id: string, patch: PipelineStepPatch) => void;
+  steps: PipelineStepItem[];
+  stepIndex: number;
 }
 
 const DIRECTION_OPTIONS = [
@@ -26,11 +29,15 @@ const DIRECTION_OPTIONS = [
   { label: 'desc', value: SORT_DIRECTION.Desc },
 ];
 
-const SortStepContent = memo(function SortStepContent({ step, datasource, timeRange, onStepChange }: Props) {
+const SortStepContent = memo(function SortStepContent({ step, datasource, timeRange, onStepChange, steps, stepIndex }: Props) {
   const styles = useStyles2(getStyles);
   const sortStep = step as SortStep;
   const sortFields = useMemo(() => sortStep.rows ?? [], [sortStep.rows]);
-  const { loadFieldNames } = useFieldFetch({ datasource, timeRange });
+  const queryContext = useMemo(
+    () => serializePartialPipeline(steps, stepIndex),
+    [steps, stepIndex]
+  );
+  const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
 
   const updateStep = useCallback(
     (patch: PipelineStepPatch) => {
@@ -128,6 +135,7 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
             onChange={(value) => handleFieldChange(index, value)}
             datasource={datasource}
             timeRange={timeRange}
+            queryContext={queryContext}
           />
           <CompatibleCombobox
             value={{ label: sf.direction, value: sf.direction }}
