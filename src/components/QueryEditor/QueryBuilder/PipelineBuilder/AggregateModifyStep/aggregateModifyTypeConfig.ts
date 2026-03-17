@@ -23,6 +23,7 @@ export interface AggregateModifyTypeDefinition {
   description: string;
   ContentComponent: React.FC<AggregateModifyRowContentProps>;
   serialize: (row: AggregateModifyRow, stepId: string) => RowSerializeResult;
+  createInitialRow: () => Partial<AggregateModifyRow>;
 }
 
 const AGGREGATE_MODIFY_TYPE_CONFIG: Record<AggregateModifyType, AggregateModifyTypeDefinition> = {
@@ -36,6 +37,7 @@ const AGGREGATE_MODIFY_TYPE_CONFIG: Record<AggregateModifyType, AggregateModifyT
       }
       return { result: `math ${row.expression} as ${row.resultName}` };
     },
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_MODIFY_TYPE.Format]: {
     label: 'format',
@@ -47,6 +49,7 @@ const AGGREGATE_MODIFY_TYPE_CONFIG: Record<AggregateModifyType, AggregateModifyT
       }
       return { result: `format "${escapeQuotes(row.expression)}" as ${row.resultName}` };
     },
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_MODIFY_TYPE.PackJson]: {
     label: 'pack_json',
@@ -63,12 +66,14 @@ const AGGREGATE_MODIFY_TYPE_CONFIG: Record<AggregateModifyType, AggregateModifyT
       }
       return { result };
     },
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_MODIFY_TYPE.CustomPipe]: {
     label: 'Custom',
     description: 'Add a raw pipe expression',
     ContentComponent: CustomPipeEditor as React.FC<AggregateModifyRowContentProps>,
     serialize: (row) => ({ result: row.expression ?? '' }),
+    createInitialRow: () => ({}),
   },
 };
 

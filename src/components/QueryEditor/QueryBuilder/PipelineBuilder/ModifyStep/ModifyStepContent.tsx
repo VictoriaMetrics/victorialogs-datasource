@@ -10,7 +10,7 @@ import { useRowManagement } from '../shared/useRowManagement';
 import { ModifyStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import ModifyRowContainer from './ModifyRowContainer';
-import { MODIFY_TYPE_GROUPED_ENTRIES } from './modifyTypeConfig';
+import MODIFY_TYPE_CONFIG, { MODIFY_TYPE_GROUPED_ENTRIES } from './modifyTypeConfig';
 import { createModifyRow, MODIFY_TYPE, ModifyRow, ModifyType } from './types';
 
 interface Props {
@@ -39,7 +39,7 @@ const ModifyStepContent = memo(function ModifyStepContent({ step, datasource, ti
 
   const onAddModify = useCallback(
     (modifyType: ModifyType) => {
-      handleAddRow(createModifyRow(modifyType));
+      handleAddRow(createModifyRow(modifyType, MODIFY_TYPE_CONFIG[modifyType].createInitialRow()));
     },
     [handleAddRow]
   );
@@ -74,7 +74,7 @@ const ModifyStepContent = memo(function ModifyStepContent({ step, datasource, ti
             row={row}
             datasource={datasource}
             timeRange={timeRange}
-            canDelete={rows.length > 1}
+            canDelete={true}
             onChange={handleRowChange}
             onDelete={() => handleRowDelete(row.id)}
             queryContext={getQueryContext(index)}

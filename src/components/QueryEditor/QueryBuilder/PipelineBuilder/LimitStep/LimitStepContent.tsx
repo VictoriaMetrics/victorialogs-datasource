@@ -10,7 +10,7 @@ import { useRowManagement } from '../shared/useRowManagement';
 import { LimitStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import LimitRowContainer from './LimitRowContainer';
-import { LIMIT_TYPE_GROUPED_ENTRIES } from './limitTypeConfig';
+import LIMIT_TYPE_CONFIG, { LIMIT_TYPE_GROUPED_ENTRIES } from './limitTypeConfig';
 import { createLimitRow, LIMIT_TYPE, LimitRow, LimitType } from './types';
 
 interface Props {
@@ -39,7 +39,7 @@ const LimitStepContent = memo(function LimitStepContent({ step, datasource, time
 
   const onAddLimit = useCallback(
     (limitType: LimitType) => {
-      handleAddRow(createLimitRow(limitType));
+      handleAddRow(createLimitRow(limitType, LIMIT_TYPE_CONFIG[limitType].createInitialRow()));
     },
     [handleAddRow]
   );
@@ -74,7 +74,7 @@ const LimitStepContent = memo(function LimitStepContent({ step, datasource, time
             row={row}
             datasource={datasource}
             timeRange={timeRange}
-            canDelete={rows.length > 1}
+            canDelete={true}
             onChange={handleRowChange}
             onDelete={() => handleRowDelete(row.id)}
             queryContext={getQueryContext(index)}

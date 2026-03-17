@@ -18,7 +18,9 @@ const serializeAggregateRow = (
   if (row.ifFilter) {
     funcStr += ` if (${row.ifFilter})`;
   }
-  funcStr += ` as ${row.resultName}`;
+  if (row.resultName) {
+    funcStr += ` as ${row.resultName}`;
+  }
 
   return funcStr;
 };
@@ -52,12 +54,12 @@ export const serializeAggregateStep = (
   const pipes: string[] = [];
 
   if (funcParts.length) {
-    let pipe = `stats ${funcParts.join(', ')}`;
-
     const validByFields = (byFields ?? []).filter(Boolean);
+    let pipe = 'stats';
     if (validByFields.length) {
       pipe += ` by (${validByFields.join(', ')})`;
     }
+    pipe += ` ${funcParts.join(', ')}`;
 
     pipes.push(pipe);
   }

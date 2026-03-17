@@ -48,8 +48,9 @@ export const generateAggregateRowId = (): string => {
   return `aggregate-row-${Date.now()}-${aggregateRowIdCounter}`;
 };
 
-export const createAggregateRow = (aggregateType: AggregateType): AggregateRow => ({
+export const createAggregateRow = (aggregateType: AggregateType, initialData: Partial<AggregateRow> = {}): AggregateRow => ({
   id: generateAggregateRowId(),
   aggregateType,
   resultName: '',
+  ...initialData,
 });

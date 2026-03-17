@@ -79,7 +79,7 @@ const UnpackEditor = memo(function UnpackEditor({ row, onChange, datasource, tim
       <IfFilterInput value={row.ifFilter} onChange={handleIfFilterChange} />
       <span className={styles.label}>from</span>
       <FieldNameSelect
-        value={row.fromField ?? '_msg'}
+        value={row.fromField ?? ''}
         onChange={handleFromFieldChange}
         datasource={datasource}
         timeRange={timeRange}

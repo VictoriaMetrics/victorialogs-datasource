@@ -50,9 +50,8 @@ export const generateModifyRowId = (): string => {
   return `modify-row-${Date.now()}-${modifyRowIdCounter}`;
 };
 
-export const createModifyRow = (modifyType: ModifyType): ModifyRow => ({
+export const createModifyRow = (modifyType: ModifyType, initialData: Partial<ModifyRow> = {}): ModifyRow => ({
   id: generateModifyRowId(),
   modifyType,
-  fieldPairs: modifyType === MODIFY_TYPE.Rename || modifyType === MODIFY_TYPE.Copy ? [{ src: '', dst: '' }] : undefined,
-  fieldList: modifyType === MODIFY_TYPE.Delete || modifyType === MODIFY_TYPE.Keep ? [] : undefined,
+  ...initialData,
 });

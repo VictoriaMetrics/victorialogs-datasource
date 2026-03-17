@@ -10,7 +10,7 @@ import { useRowManagement } from '../shared/useRowManagement';
 import { AggregateModifyStep as AggregateModifyStepType, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import AggregateModifyRowContainer from './AggregateModifyRowContainer';
-import { AGGREGATE_MODIFY_TYPE_ENTRIES } from './aggregateModifyTypeConfig';
+import AGGREGATE_MODIFY_TYPE_CONFIG, { AGGREGATE_MODIFY_TYPE_ENTRIES } from './aggregateModifyTypeConfig';
 import { AggregateModifyRow, AggregateModifyType, createAggregateModifyRow } from './types';
 
 interface Props {
@@ -46,7 +46,7 @@ const AggregateModifyStepContent = memo(function AggregateModifyStepContent({
 
   const onAddRow = useCallback(
     (aggregateModifyType: AggregateModifyType) => {
-      handleAddRow(createAggregateModifyRow(aggregateModifyType));
+      handleAddRow(createAggregateModifyRow(aggregateModifyType, AGGREGATE_MODIFY_TYPE_CONFIG[aggregateModifyType].createInitialRow()));
     },
     [handleAddRow]
   );
@@ -73,7 +73,7 @@ const AggregateModifyStepContent = memo(function AggregateModifyStepContent({
             row={row}
             datasource={datasource}
             timeRange={timeRange}
-            canDelete={rows.length > 1}
+            canDelete={true}
             onChange={handleRowChange}
             onDelete={() => handleRowDelete(row.id)}
             queryContext={getQueryContext(index)}

@@ -32,6 +32,7 @@ export interface ModifyTypeDefinition {
   group: ModifyGroup;
   ContentComponent: React.FC<ModifyRowContentProps>;
   serialize: (row: ModifyRow, stepId: string) => RowSerializeResult;
+  createInitialRow: () => Partial<ModifyRow>;
 }
 
 const serializeFieldPairs = (row: ModifyRow): RowSerializeResult => {
@@ -103,6 +104,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Field Manipulation',
     ContentComponent: FieldPairEditor,
     serialize: serializeFieldPairs,
+    createInitialRow: () => ({ fieldPairs: [{ src: '', dst: '' }] }),
   },
   [MODIFY_TYPE.Delete]: {
     label: 'delete',
@@ -110,6 +112,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Field Manipulation',
     ContentComponent: FieldListEditor,
     serialize: serializeFieldList,
+    createInitialRow: () => ({ fieldList: [] }),
   },
   [MODIFY_TYPE.Copy]: {
     label: 'copy',
@@ -117,6 +120,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Field Manipulation',
     ContentComponent: FieldPairEditor,
     serialize: serializeFieldPairs,
+    createInitialRow: () => ({ fieldPairs: [{ src: '', dst: '' }] }),
   },
   [MODIFY_TYPE.Keep]: {
     label: 'keep',
@@ -124,6 +128,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Field Manipulation',
     ContentComponent: FieldListEditor,
     serialize: serializeFieldList,
+    createInitialRow: () => ({ fieldList: [] }),
   },
   [MODIFY_TYPE.Replace]: {
     label: 'replace',
@@ -131,6 +136,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Text Processing',
     ContentComponent: ReplaceEditor,
     serialize: serializeReplace,
+    createInitialRow: () => ({ atField: '_msg' }),
   },
   [MODIFY_TYPE.ReplaceRegexp]: {
     label: 'replace_regexp',
@@ -138,6 +144,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Text Processing',
     ContentComponent: ReplaceEditor,
     serialize: serializeReplace,
+    createInitialRow: () => ({ atField: '_msg' }),
   },
   [MODIFY_TYPE.Extract]: {
     label: 'extract',
@@ -145,6 +152,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Text Processing',
     ContentComponent: ExtractEditor,
     serialize: serializeExtract,
+    createInitialRow: () => ({ fromField: '_msg' }),
   },
   [MODIFY_TYPE.ExtractRegexp]: {
     label: 'extract_regexp',
@@ -152,6 +160,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Text Processing',
     ContentComponent: ExtractEditor,
     serialize: serializeExtract,
+    createInitialRow: () => ({ fromField: '_msg' }),
   },
   [MODIFY_TYPE.Format]: {
     label: 'format',
@@ -164,6 +173,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
       }
       return { result: `format "${escapeQuotes(row.formatString)}" as ${row.resultField}` };
     },
+    createInitialRow: () => ({}),
   },
   [MODIFY_TYPE.PackJson]: {
     label: 'pack_json',
@@ -171,6 +181,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Data Serialization',
     ContentComponent: PackEditor,
     serialize: serializePack,
+    createInitialRow: () => ({}),
   },
   [MODIFY_TYPE.PackLogfmt]: {
     label: 'pack_logfmt',
@@ -178,6 +189,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Data Serialization',
     ContentComponent: PackEditor,
     serialize: serializePack,
+    createInitialRow: () => ({}),
   },
   [MODIFY_TYPE.UnpackJson]: {
     label: 'unpack_json',
@@ -185,6 +197,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Data Serialization',
     ContentComponent: UnpackEditor,
     serialize: serializeUnpack,
+    createInitialRow: () => ({ fromField: '_msg' }),
   },
   [MODIFY_TYPE.UnpackLogfmt]: {
     label: 'unpack_logfmt',
@@ -192,6 +205,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Data Serialization',
     ContentComponent: UnpackEditor,
     serialize: serializeUnpack,
+    createInitialRow: () => ({ fromField: '_msg' }),
   },
   [MODIFY_TYPE.DropEmptyFields]: {
     label: 'drop_empty_fields',
@@ -199,6 +213,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Utility',
     ContentComponent: EmptyContent as React.FC<ModifyRowContentProps>,
     serialize: () => ({ result: 'drop_empty_fields' }),
+    createInitialRow: () => ({}),
   },
   [MODIFY_TYPE.CustomPipe]: {
     label: 'Custom',
@@ -206,6 +221,7 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     group: 'Utility',
     ContentComponent: CustomPipeEditor as React.FC<ModifyRowContentProps>,
     serialize: (row) => ({ result: row.expression ?? '' }),
+    createInitialRow: () => ({}),
   },
 };
 

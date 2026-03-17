@@ -23,9 +23,10 @@ export const generateAggregateModifyRowId = (): string => {
   return `aggregate-modify-row-${Date.now()}-${aggregateModifyRowIdCounter}`;
 };
 
-export const createAggregateModifyRow = (aggregateModifyType: AggregateModifyType): AggregateModifyRow => ({
+export const createAggregateModifyRow = (aggregateModifyType: AggregateModifyType, initialData: Partial<AggregateModifyRow> = {}): AggregateModifyRow => ({
   id: generateAggregateModifyRowId(),
   aggregateModifyType,
   expression: '',
   resultName: '',
+  ...initialData,
 });

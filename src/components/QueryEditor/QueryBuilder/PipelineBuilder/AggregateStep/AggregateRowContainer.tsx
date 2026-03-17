@@ -45,7 +45,6 @@ const AggregateRowContainer = memo(function AggregateRowContainer({
       <StepRowLayout
         onDelete={onDelete}
         canDelete={canDelete}
-        disabledDeleteTooltip='At least one aggregate row is required'
       >
         <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
       </StepRowLayout>

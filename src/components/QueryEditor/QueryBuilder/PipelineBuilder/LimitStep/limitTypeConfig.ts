@@ -26,6 +26,7 @@ export interface LimitTypeDefinition {
   group: LimitGroup;
   ContentComponent: React.FC<LimitRowContentProps>;
   serialize: (row: LimitRow, stepId: string) => RowSerializeResult;
+  createInitialRow: () => Partial<LimitRow>;
 }
 
 const serializeNumber = (row: LimitRow, _stepId: string): RowSerializeResult => {
@@ -55,6 +56,7 @@ const LIMIT_TYPE_CONFIG: Record<LimitType, LimitTypeDefinition> = {
     group: 'Basic',
     ContentComponent: NumberEditor,
     serialize: serializeNumber,
+    createInitialRow: () => ({ count: '10' }),
   },
   [LIMIT_TYPE.Offset]: {
     label: 'offset',
@@ -62,6 +64,7 @@ const LIMIT_TYPE_CONFIG: Record<LimitType, LimitTypeDefinition> = {
     group: 'Basic',
     ContentComponent: NumberEditor,
     serialize: serializeNumber,
+    createInitialRow: () => ({}),
   },
   [LIMIT_TYPE.First]: {
     label: 'first',
@@ -69,6 +72,7 @@ const LIMIT_TYPE_CONFIG: Record<LimitType, LimitTypeDefinition> = {
     group: 'Selection',
     ContentComponent: NumberWithFieldsEditor,
     serialize: serializeNumberWithFields,
+    createInitialRow: () => ({}),
   },
   [LIMIT_TYPE.Last]: {
     label: 'last',
@@ -76,6 +80,7 @@ const LIMIT_TYPE_CONFIG: Record<LimitType, LimitTypeDefinition> = {
     group: 'Selection',
     ContentComponent: NumberWithFieldsEditor,
     serialize: serializeNumberWithFields,
+    createInitialRow: () => ({}),
   },
   [LIMIT_TYPE.Top]: {
     label: 'top',
@@ -83,6 +88,7 @@ const LIMIT_TYPE_CONFIG: Record<LimitType, LimitTypeDefinition> = {
     group: 'Selection',
     ContentComponent: NumberWithFieldsEditor,
     serialize: serializeNumberWithFields,
+    createInitialRow: () => ({}),
   },
   [LIMIT_TYPE.CustomPipe]: {
     label: 'Custom',
@@ -90,6 +96,7 @@ const LIMIT_TYPE_CONFIG: Record<LimitType, LimitTypeDefinition> = {
     group: 'Basic',
     ContentComponent: CustomPipeEditor as React.FC<LimitRowContentProps>,
     serialize: (row) => ({ result: row.expression ?? '' }),
+    createInitialRow: () => ({}),
   },
 };
 

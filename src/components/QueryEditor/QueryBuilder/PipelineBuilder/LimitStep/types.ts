@@ -25,8 +25,8 @@ export const generateLimitRowId = (): string => {
   return `limit-row-${Date.now()}-${limitRowIdCounter}`;
 };
 
-export const createLimitRow = (limitType: LimitType): LimitRow => ({
+export const createLimitRow = (limitType: LimitType, initialData: Partial<LimitRow> = {}): LimitRow => ({
   id: generateLimitRowId(),
   limitType,
-  count: limitType === LIMIT_TYPE.Limit ? '10' : '',
+  ...initialData,
 });

@@ -39,18 +39,16 @@ export interface AggregateTypeDefinition {
   group: AggregateGroup;
   ContentComponent: React.FC<AggregateRowContentProps>;
   serialize: (row: AggregateRow, stepId: string) => RowSerializeResult;
+  createInitialRow: () => Partial<AggregateRow>;
 }
 
 const serializeNoArgs = (row: AggregateRow): RowSerializeResult => {
-  if (!row.resultName) {
-    return { result: '' };
-  }
   return { result: `${row.aggregateType}()` };
 };
 
 const serializeFieldList = (row: AggregateRow): RowSerializeResult => {
   const fields = (row.fieldList ?? []).filter(Boolean);
-  if (!row.resultName || !fields.length) {
+  if (!fields.length) {
     return { result: '' };
   }
   return { result: `${row.aggregateType}(${fields.join(', ')})` };
@@ -58,7 +56,7 @@ const serializeFieldList = (row: AggregateRow): RowSerializeResult => {
 
 const serializeFieldListWithLimit = (row: AggregateRow): RowSerializeResult => {
   const fields = (row.fieldList ?? []).filter(Boolean);
-  if (!row.resultName || !fields.length) {
+  if (!fields.length) {
     return { result: '' };
   }
   let funcStr = `${row.aggregateType}(${fields.join(', ')})`;
@@ -70,7 +68,7 @@ const serializeFieldListWithLimit = (row: AggregateRow): RowSerializeResult => {
 
 const serializeSingleField = (row: AggregateRow): RowSerializeResult => {
   const fields = (row.fieldList ?? []).filter(Boolean);
-  if (!row.resultName || !fields.length) {
+  if (!fields.length) {
     return { result: '' };
   }
   return { result: `${row.aggregateType}(${fields.join(', ')})` };
@@ -78,14 +76,14 @@ const serializeSingleField = (row: AggregateRow): RowSerializeResult => {
 
 const serializeTwoFields = (row: AggregateRow): RowSerializeResult => {
   const fields = (row.fieldList ?? []).filter(Boolean);
-  if (!row.resultName || !row.referenceField || !fields.length) {
+  if (!row.referenceField || !fields.length) {
     return { result: '' };
   }
   return { result: `${row.aggregateType}(${row.referenceField}, ${fields.join(', ')})` };
 };
 
 const serializeRowFunction = (row: AggregateRow): RowSerializeResult => {
-  if (!row.resultName || !row.referenceField) {
+  if (!row.referenceField) {
     return { result: '' };
   }
   return { result: `${row.aggregateType}(${row.referenceField})` };
@@ -98,6 +96,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Counting',
     ContentComponent: FieldListEditor,
     serialize: serializeNoArgs,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.CountEmpty]: {
     label: 'count_empty',
@@ -105,6 +104,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Counting',
     ContentComponent: FieldListEditor,
     serialize: serializeFieldList,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.Sum]: {
     label: 'sum',
@@ -112,6 +112,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Math & Statistics',
     ContentComponent: FieldListEditor,
     serialize: serializeFieldList,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.Avg]: {
     label: 'avg',
@@ -119,6 +120,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Math & Statistics',
     ContentComponent: FieldListEditor,
     serialize: serializeFieldList,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.Min]: {
     label: 'min',
@@ -126,6 +128,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Math & Statistics',
     ContentComponent: FieldListEditor,
     serialize: serializeFieldList,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.Max]: {
     label: 'max',
@@ -133,6 +136,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Math & Statistics',
     ContentComponent: FieldListEditor,
     serialize: serializeFieldList,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.Median]: {
     label: 'median',
@@ -140,6 +144,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Math & Statistics',
     ContentComponent: FieldListEditor,
     serialize: serializeFieldList,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.Quantile]: {
     label: 'quantile',
@@ -148,11 +153,12 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     ContentComponent: QuantileEditor,
     serialize: (row) => {
       const fields = (row.fieldList ?? []).filter(Boolean);
-      if (!row.resultName || !row.phi || !fields.length) {
+      if (!row.phi || !fields.length) {
         return { result: '' };
       }
       return { result: `quantile(${row.phi}, ${fields.join(', ')})` };
     },
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.SumLen]: {
     label: 'sum_len',
@@ -160,6 +166,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Math & Statistics',
     ContentComponent: FieldListEditor,
     serialize: serializeFieldList,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.CountUniq]: {
     label: 'count_uniq',
@@ -167,6 +174,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Unique Values',
     ContentComponent: FieldListWithLimitEditor,
     serialize: serializeFieldListWithLimit,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.CountUniqHash]: {
     label: 'count_uniq_hash',
@@ -174,6 +182,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Unique Values',
     ContentComponent: FieldListEditor,
     serialize: serializeFieldList,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.UniqValues]: {
     label: 'uniq_values',
@@ -181,6 +190,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Unique Values',
     ContentComponent: FieldListWithLimitEditor,
     serialize: serializeFieldListWithLimit,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.Values]: {
     label: 'values',
@@ -188,6 +198,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Unique Values',
     ContentComponent: FieldListWithLimitEditor,
     serialize: serializeFieldListWithLimit,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.Rate]: {
     label: 'rate',
@@ -195,6 +206,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Rate',
     ContentComponent: EmptyContent as React.FC<AggregateRowContentProps>,
     serialize: serializeNoArgs,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.RateSum]: {
     label: 'rate_sum',
@@ -202,6 +214,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Rate',
     ContentComponent: FieldListEditor,
     serialize: serializeFieldList,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.Any]: {
     label: 'any',
@@ -209,6 +222,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Value Selection',
     ContentComponent: SingleFieldEditor,
     serialize: serializeSingleField,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.FieldMax]: {
     label: 'field_max',
@@ -216,6 +230,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Value Selection',
     ContentComponent: TwoFieldEditor,
     serialize: serializeTwoFields,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.FieldMin]: {
     label: 'field_min',
@@ -223,6 +238,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Value Selection',
     ContentComponent: TwoFieldEditor,
     serialize: serializeTwoFields,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.Histogram]: {
     label: 'histogram',
@@ -230,6 +246,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Structured Data',
     ContentComponent: SingleFieldEditor,
     serialize: serializeSingleField,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.JsonValues]: {
     label: 'json_values',
@@ -238,15 +255,13 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     ContentComponent: JsonValuesEditor,
     serialize: (row) => {
       const fields = (row.fieldList ?? []).filter(Boolean);
-      if (!row.resultName || !fields.length) {
-        return { result: '' };
-      }
       let funcStr = `json_values(${fields.join(', ')})`;
       if (row.limit) {
         funcStr += ` limit ${row.limit}`;
       }
       return { result: funcStr };
     },
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.RowAny]: {
     label: 'row_any',
@@ -254,6 +269,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Row Functions',
     ContentComponent: RowFunctionEditor,
     serialize: serializeNoArgs,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.RowMax]: {
     label: 'row_max',
@@ -261,6 +277,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Row Functions',
     ContentComponent: RowFunctionEditor,
     serialize: serializeRowFunction,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.RowMin]: {
     label: 'row_min',
@@ -268,6 +285,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Row Functions',
     ContentComponent: RowFunctionEditor,
     serialize: serializeRowFunction,
+    createInitialRow: () => ({}),
   },
   [AGGREGATE_TYPE.CustomPipe]: {
     label: 'Custom',
@@ -275,6 +293,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     group: 'Row Functions',
     ContentComponent: CustomPipeEditor as React.FC<AggregateRowContentProps>,
     serialize: (row) => ({ result: row.expression ?? '' }),
+    createInitialRow: () => ({}),
   },
 };
 

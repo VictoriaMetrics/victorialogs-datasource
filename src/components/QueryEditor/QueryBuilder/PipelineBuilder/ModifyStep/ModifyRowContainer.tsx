@@ -37,7 +37,6 @@ const ModifyRowContainer = memo(function ModifyRowContainer({
     <StepRowLayout
       onDelete={onDelete}
       canDelete={canDelete}
-      disabledDeleteTooltip='At least one modify row is required'
     >
       <span className={styles.typeLabel}>{config.label}</span>
       <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />

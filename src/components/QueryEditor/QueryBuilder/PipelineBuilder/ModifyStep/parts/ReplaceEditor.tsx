@@ -64,7 +64,7 @@ const ReplaceEditor = memo(function ReplaceEditor({ row, onChange, datasource, t
       <span className={styles.label}>)</span>
       <span className={styles.label}>at</span>
       <FieldNameSelect
-        value={row.atField ?? '_msg'}
+        value={row.atField ?? ''}
         onChange={handleAtFieldChange}
         datasource={datasource}
         timeRange={timeRange}

@@ -73,9 +73,6 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
 
   const handleDeleteField = useCallback(
     (index: number) => {
-      if (sortFields.length <= 1) {
-        return;
-      }
       const newFields = sortFields.filter((_, i) => i !== index);
       updateStep({ rows: newFields } as PipelineStepPatch);
     },
@@ -144,11 +141,9 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
             width='auto'
             minWidth={7}
           />
-          {sortFields.length > 1 && (
-            <div className={styles.removeButtonContainer}>
-              <IconButton className={styles.removeButton} name='times' size='sm' tooltip='Remove sort field' onClick={() => handleDeleteField(index)} />
-            </div>
-          )}
+          <div className={styles.removeButtonContainer}>
+            <IconButton className={styles.removeButton} name='times' size='sm' tooltip='Remove sort field' onClick={() => handleDeleteField(index)} />
+          </div>
         </Stack>
       ))}
       <Button variant='secondary' icon='plus' size='sm' onClick={handleAddField}>
