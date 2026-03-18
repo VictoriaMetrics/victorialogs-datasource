@@ -13,7 +13,7 @@ import { useRowManagement } from '../shared/useRowManagement';
 import { AggregateStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import AggregateRowContainer from './AggregateRowContainer';
-import AGGREGATE_TYPE_CONFIG, { AGGREGATE_TYPE_GROUPED_ENTRIES } from './aggregateTypeConfig';
+import AGGREGATE_TYPE_CONFIG, { AGGREGATE_TYPE_FLAT_ENTRIES } from './aggregateTypeConfig';
 import { AGGREGATE_TYPE, AggregateRow, AggregateType, createAggregateRow } from './types';
 
 interface Props {
@@ -88,18 +88,12 @@ const AggregateStepContent = memo(function AggregateStepContent({
 
   const menu = (
     <Menu>
-      {AGGREGATE_TYPE_GROUPED_ENTRIES.map(({ group, entries }) => (
+      {AGGREGATE_TYPE_FLAT_ENTRIES.map(({ aggregateType, label, description }) => (
         <Menu.Item
-          key={group}
-          label={group}
-          childItems={entries.map(({ aggregateType, label, description }) => (
-            <Menu.Item
-              key={aggregateType}
-              label={label}
-              description={description}
-              onClick={() => onAddAggregate(aggregateType)}
-            />
-          ))}
+          key={aggregateType}
+          label={label}
+          description={description}
+          onClick={() => onAddAggregate(aggregateType)}
         />
       ))}
       <Menu.Divider />
