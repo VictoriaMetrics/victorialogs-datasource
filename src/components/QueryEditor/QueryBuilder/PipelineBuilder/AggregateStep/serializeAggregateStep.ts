@@ -1,7 +1,8 @@
-import AGGREGATE_TYPE_CONFIG, { AggregateTypeDefinition } from '../AggregateStep/aggregateTypeConfig';
-import { AGGREGATE_TYPE, AggregateRow } from '../AggregateStep/types';
+import { SerializeResult } from '../serialization/types';
+import { AggregateStep as AggregateStepType, PipelineStepItem } from '../types';
 
-import { SerializeResult } from './types';
+import AGGREGATE_TYPE_CONFIG, { AggregateTypeDefinition } from './aggregateTypeConfig';
+import { AGGREGATE_TYPE, AggregateRow } from './types';
 
 const serializeAggregateRow = (
   row: AggregateRow,
@@ -28,7 +29,7 @@ const serializeAggregateRow = (
   return funcStr;
 };
 
-export const serializeAggregateStep = (
+export const serializeAggregateRows = (
   rows: AggregateRow[] | undefined,
   byFields: string[] | undefined,
   stepId: string
@@ -70,4 +71,15 @@ export const serializeAggregateStep = (
   pipes.push(...customPipes);
 
   return { pipes };
+};
+
+export const serializeAggregateStep = (step: PipelineStepItem): SerializeResult => {
+  const aggStep = step as AggregateStepType;
+  return serializeAggregateRows(aggStep.rows, aggStep.byFields, step.id);
+};
+
+export const serializeAggregateStepPartial = (step: PipelineStepItem, rowIndex: number): SerializeResult => {
+  const aggStep = step as AggregateStepType;
+  const rows = aggStep.rows?.slice(0, rowIndex);
+  return serializeAggregateRows(rows, aggStep.byFields, step.id);
 };
