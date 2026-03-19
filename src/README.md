@@ -46,6 +46,8 @@ datasources:
     url: http://victorialogs:9428
     isDefault: true
     jsonData:
+      # Enable Grafana dataplane log format for correlations support
+      #useDataplaneFormat: true
       # Multitenancy settings, see https://docs.victoriametrics.com/victorialogs/#multitenancy
       # to use the multitenancy, uncomment lines below: AccountID and ProjectID
       multitenancyHeaders:
@@ -164,6 +166,19 @@ Where:
 * `level` is the log level to assign if the condition matches. Valid values: `critical`, `error`, `warning`, `info`, `debug`, `trace`, `unknown`.
 * `operator` is the comparison operator to use, such as `equals`, `notEquals`, `regex`, `lessThan`, `greaterThan`.
 * `enabled` is a boolean flag to enable or disable the rule. Defaults to `true` if omitted.
+
+### Dataplane format
+
+The **Use dataplane format** toggle in the datasource settings enables the [Grafana dataplane log format](https://grafana.com/developers/dataplane/). When enabled, log frames use standard field names (`timestamp`, `body` instead of `Time`, `Line`) and set `DataFrameType.LogLines` metadata. This makes all label keys automatically available as `${labelKey}` variables in [correlations](https://grafana.com/docs/grafana/latest/administration/correlations/), similar to how Loki works with its dataplane support.
+
+**Note:** Enabling this setting may break existing client-side transformations that reference the `Time` or `Line` field names.
+
+To enable via provisioning:
+
+```yaml
+jsonData:
+  useDataplaneFormat: true
+```
 
 ### Variables
 VictoriaLogs datasource supports [variables](https://grafana.com/docs/grafana/latest/variables/) in queries.
