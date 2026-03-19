@@ -221,7 +221,7 @@ feature for navigating from a span in a trace directly to logs relevant for that
 
 An example of the correlation query in traces datasource is the following:
 ```
-trace_id:="${__trace.traceId}" AND span_id:="${__trace.spanId}"
+trace_id:="${__trace.traceId}" AND span_id:="${__span.spanId}"
 ```
 
 ### Log to metrics
