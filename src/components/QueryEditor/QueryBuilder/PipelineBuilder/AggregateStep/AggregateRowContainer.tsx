@@ -7,7 +7,7 @@ import { AutoSizeInput, Stack, useStyles2 } from '@grafana/ui';
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import StepRowLayout from '../../components/StepRowLayout';
 
-import AGGREGATE_TYPE_CONFIG, { AggregateTypeDefinition } from './aggregateTypeConfig';
+import AGGREGATE_TYPE_CONFIG from './aggregateTypeConfig';
 import { AGGREGATE_TYPE, AggregateRow } from './types';
 
 interface Props {
@@ -30,7 +30,7 @@ const AggregateRowContainer = memo(function AggregateRowContainer({
   queryContext,
 }: Props) {
   const styles = useStyles2(getStyles);
-  const config = (AGGREGATE_TYPE_CONFIG as Record<string, AggregateTypeDefinition | undefined>)[row.aggregateType];
+  const config = AGGREGATE_TYPE_CONFIG[row.aggregateType];
 
   const handleResultNameChange = useCallback(
     (e: React.FormEvent<HTMLInputElement>) => {
@@ -38,10 +38,6 @@ const AggregateRowContainer = memo(function AggregateRowContainer({
     },
     [onChange, row]
   );
-
-  if (!config) {
-    return null;
-  }
 
   const { ContentComponent } = config;
 

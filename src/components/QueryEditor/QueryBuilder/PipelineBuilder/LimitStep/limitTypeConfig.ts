@@ -94,7 +94,7 @@ const LIMIT_TYPE_CONFIG: Record<LimitType, LimitTypeDefinition> = {
     label: 'Custom',
     description: 'Add a raw pipe expression',
     group: 'Basic',
-    ContentComponent: CustomPipeEditor as React.FC<LimitRowContentProps>,
+    ContentComponent: CustomPipeEditor,
     serialize: (row) => ({ result: row.expression ?? '' }),
     createInitialRow: () => ({}),
   },

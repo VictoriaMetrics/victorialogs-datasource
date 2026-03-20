@@ -4,7 +4,15 @@ import React, { memo } from 'react';
 import { GrafanaTheme2 } from '@grafana/data';
 import { useStyles2 } from '@grafana/ui';
 
-const EmptyContent = memo(function EmptyContent() {
+interface EmptyContentProps {
+  row?: unknown;
+  onChange?: unknown;
+  datasource?: unknown;
+  timeRange?: unknown;
+  queryContext?: unknown;
+}
+
+const EmptyContent = memo<EmptyContentProps>(function EmptyContent() {
   const styles = useStyles2(getStyles);
   return <span className={styles.text}>No parameters required</span>;
 });

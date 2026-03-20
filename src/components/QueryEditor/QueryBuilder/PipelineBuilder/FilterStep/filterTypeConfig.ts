@@ -125,7 +125,7 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
     description: 'Add a raw pipe expression',
     group: 'Utility',
     defaultOperator: '',
-    ContentComponent: CustomPipeEditor as React.FC<FilterRowContentProps>,
+    ContentComponent: CustomPipeEditor,
     serialize: (row) => {
       if (!row.expression) {
         return { result: '' };

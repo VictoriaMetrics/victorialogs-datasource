@@ -54,7 +54,7 @@ const AGGREGATE_MODIFY_TYPE_CONFIG: Record<AggregateModifyType, AggregateModifyT
   [AGGREGATE_MODIFY_TYPE.PackJson]: {
     label: 'pack_json',
     description: 'Packs specified fields into a JSON object',
-    ContentComponent: PackJsonEditor as React.FC<AggregateModifyRowContentProps>,
+    ContentComponent: PackJsonEditor,
     serialize: (row) => {
       let result = 'pack_json';
       const fields = (row.fieldList ?? []).filter(Boolean);
@@ -71,7 +71,7 @@ const AGGREGATE_MODIFY_TYPE_CONFIG: Record<AggregateModifyType, AggregateModifyT
   [AGGREGATE_MODIFY_TYPE.CustomPipe]: {
     label: 'Custom',
     description: 'Add a raw pipe expression',
-    ContentComponent: CustomPipeEditor as React.FC<AggregateModifyRowContentProps>,
+    ContentComponent: CustomPipeEditor,
     serialize: (row) => ({ result: row.expression ?? '' }),
     createInitialRow: () => ({}),
   },

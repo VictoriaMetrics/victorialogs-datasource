@@ -1,17 +1,14 @@
 import { SerializeResult } from '../serialization/types';
 import { AggregateStep as AggregateStepType, PipelineStepItem } from '../types';
 
-import AGGREGATE_TYPE_CONFIG, { AggregateTypeDefinition } from './aggregateTypeConfig';
+import AGGREGATE_TYPE_CONFIG from './aggregateTypeConfig';
 import { AGGREGATE_TYPE, AggregateRow } from './types';
 
 const serializeAggregateRow = (
   row: AggregateRow,
   stepId: string
 ): string => {
-  const config = (AGGREGATE_TYPE_CONFIG as Record<string, AggregateTypeDefinition | undefined>)[row.aggregateType];
-  if (!config) {
-    return '';
-  }
+  const config = AGGREGATE_TYPE_CONFIG[row.aggregateType];
   const { result } = config.serialize(row, stepId);
 
   if (!result) {

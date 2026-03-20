@@ -2,19 +2,15 @@ import React, { memo, useCallback } from 'react';
 
 import { AutoSizeInput } from '@grafana/ui';
 
-interface Row {
-  expression?: string;
+interface Props<TRow extends { expression?: string }> {
+  row: TRow;
+  onChange: (row: TRow) => void;
 }
 
-interface Props {
-  row: Row;
-  onChange: (row: never) => void;
-}
-
-const CustomPipeEditor = memo<Props>(({ row, onChange }) => {
+function CustomPipeEditorInner<TRow extends { expression?: string }>({ row, onChange }: Props<TRow>) {
   const handleCommit = useCallback(
     (e: React.FormEvent<HTMLInputElement>) => {
-      onChange({ ...row, expression: e.currentTarget.value } as never);
+      onChange({ ...row, expression: e.currentTarget.value });
     },
     [row, onChange]
   );
@@ -27,8 +23,8 @@ const CustomPipeEditor = memo<Props>(({ row, onChange }) => {
       onCommitChange={handleCommit}
     />
   );
-});
+}
 
-CustomPipeEditor.displayName = 'CustomPipeEditor';
+const CustomPipeEditor = memo(CustomPipeEditorInner) as typeof CustomPipeEditorInner;
 
 export default CustomPipeEditor;

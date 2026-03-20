@@ -100,7 +100,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
   [AGGREGATE_TYPE.Rate]: {
     label: 'rate',
     description: 'Calculates the per-second rate of matching log entries',
-    ContentComponent: EmptyContent as React.FC<AggregateRowContentProps>,
+    ContentComponent: EmptyContent,
     serialize: serializeNoArgs,
     createInitialRow: () => ({}),
   },
@@ -114,7 +114,7 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
   [AGGREGATE_TYPE.CustomPipe]: {
     label: 'Custom',
     description: 'Add a raw pipe expression',
-    ContentComponent: CustomPipeEditor as React.FC<AggregateRowContentProps>,
+    ContentComponent: CustomPipeEditor,
     serialize: (row) => ({ result: row.expression ?? '' }),
     createInitialRow: () => ({}),
   },
