@@ -53,10 +53,12 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       }
     }
 
+    // TODO: use filter query param instead of fieldFilter when it will be available in the VL API
     // Build query with optional field value filter (prefix match for server-side filtering)
     let finalQuery = options.query || '*';
     if (options.type === FilterFieldType.FieldValue && options.field && options.fieldValueFilter) {
-      const fieldFilter = `${options.field}:~"(?i)${escapeRegex(options.fieldValueFilter)}"`;
+      const escaped = escapeRegex(options.fieldValueFilter).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const fieldFilter = `${options.field}:~"(?i)${escaped}"`;
       finalQuery = finalQuery === '*' ? fieldFilter : `(${finalQuery}) AND ${fieldFilter}`;
     }
     urlParams.append('query', finalQuery);
