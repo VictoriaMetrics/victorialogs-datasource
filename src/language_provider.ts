@@ -2,6 +2,7 @@ import { escapeRegex, getDefaultTimeRange, LanguageProvider, TimeRange } from '@
 
 import { VictoriaLogsDatasource } from './datasource';
 import { FieldHits, FieldHitsResponse, FilterFieldType } from './types';
+import { LRUCache } from './utils/LRUCache';
 
 interface FetchFieldsOptions {
   type: FilterFieldType;
@@ -23,15 +24,13 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
   request!: (url: string, params?: any) => Promise<any>;
   declare startTask: Promise<any>;
   datasource: VictoriaLogsDatasource;
-  cacheSize: number;
-  cacheValues: Map<string, FieldHits[]>;
+  cacheValues: LRUCache<FieldHits[]>;
 
   constructor(datasource: VictoriaLogsDatasource, initialValues?: Partial<LogsQlLanguageProvider>) {
     super();
 
     this.datasource = datasource;
-    this.cacheSize = 100;
-    this.cacheValues = new Map<string, FieldHits[]>();
+    this.cacheValues = new LRUCache<FieldHits[]>(100);
 
     Object.assign(this, initialValues);
   }
@@ -80,15 +79,9 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     const url = options.type === FilterFieldType.FieldName ? 'select/logsql/field_names' : 'select/logsql/field_values';
     const key = `${url}?${urlParams.toString()}`;
 
-    if (this.cacheValues.has(key)) {
-      return this.cacheValues.get(key)!;
-    }
-
-    if (this.cacheValues.size >= this.cacheSize) {
-      const firstKey = this.cacheValues.keys().next().value;
-      if (firstKey) {
-        this.cacheValues.delete(firstKey);
-      }
+    const cached = this.cacheValues.get(key);
+    if (cached) {
+      return cached;
     }
 
     const res = (await this.datasource.postResource(url, params)) as FieldHitsResponse;
@@ -133,15 +126,9 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
         : 'select/logsql/stream_field_values';
     const key = `${url}?${urlParams.toString()}`;
 
-    if (this.cacheValues.has(key)) {
-      return this.cacheValues.get(key)!;
-    }
-
-    if (this.cacheValues.size >= this.cacheSize) {
-      const firstKey = this.cacheValues.keys().next().value;
-      if (firstKey) {
-        this.cacheValues.delete(firstKey);
-      }
+    const cached = this.cacheValues.get(key);
+    if (cached) {
+      return cached;
     }
 
     const res = (await this.datasource.postResource(url, params)) as FieldHitsResponse;

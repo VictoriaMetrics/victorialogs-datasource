@@ -1,16 +1,19 @@
 import { debounce } from 'lodash';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
 import { TimeRange } from '@grafana/data';
 import { ComboboxOption } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { FilterFieldType, VisualQuery } from '../../../../../types';
+import { LRUCache } from '../../../../../utils/LRUCache';
 import { deleteByIndexPath } from '../../utils/modifyFilterVisualQuery/deleteByIndexPath';
 import { filterVisualQueryToString } from '../../utils/parseToString';
 
 const DEBOUNCE_MS = 300;
 const MAX_VISIBLE_OPTIONS = 1000;
+
+const fieldNamesCache = new LRUCache<ComboboxOption[]>(50);
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -27,14 +30,18 @@ export const useFetchFilters = ({
   indexPath,
   timeRange,
 }: Props) => {
-  // Cache for all loaded field names to enable client-side filtering
-  const fieldNamesCache = useRef<ComboboxOption[]>([]);
+  const cacheKey = useMemo(() => {
+    const filtersWithoutCurrent = deleteByIndexPath(query.filters, indexPath);
+    const currentOperator = query.filters.operators[indexPath[0] - 1] || 'AND';
+    const filters = currentOperator === 'AND' ? filterVisualQueryToString(filtersWithoutCurrent, true) : '';
+    return `filters::${filters}`;
+  }, [query.filters, indexPath]);
 
   // Fetch and cache field names (client-side filtering)
   const fetchFieldNames = useCallback(async (): Promise<ComboboxOption[]> => {
-    // Return cached data if available
-    if (fieldNamesCache.current.length > 0) {
-      return fieldNamesCache.current;
+    const cached = fieldNamesCache.get(cacheKey);
+    if (cached) {
+      return cached;
     }
 
     const limit = datasource.getQueryBuilderLimits(FilterFieldType.FieldName);
@@ -53,9 +60,9 @@ export const useFetchFilters = ({
       description: `hits: ${hits}`,
     })) : [];
 
-    fieldNamesCache.current = result;
+    fieldNamesCache.set(cacheKey, result);
     return result;
-  }, [datasource, field, indexPath, query.filters, timeRange]);
+  }, [datasource, field, indexPath, query.filters, timeRange, cacheKey]);
 
   // Fetch field values with server-side filtering via fieldValueFilter parameter
   // Caching is handled by language_provider based on query+fieldValueFilter combination
@@ -176,11 +183,6 @@ export const useFetchFilters = ({
     },
     [fetchFieldValues, debouncedFilter]
   );
-
-  // Reset cache when query filters change
-  useEffect(() => {
-    fieldNamesCache.current = [];
-  }, [query.filters]);
 
   // Cleanup debounce on unmount
   useEffect(() => {

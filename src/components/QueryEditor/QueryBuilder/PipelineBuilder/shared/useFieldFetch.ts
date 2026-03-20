@@ -1,16 +1,19 @@
 import { debounce } from 'lodash';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
 import { formattedValueToString, getValueFormat, TimeRange } from '@grafana/data';
 import { ComboboxOption } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { FieldHits, FilterFieldType } from '../../../../../types';
+import { LRUCache } from '../../../../../utils/LRUCache';
 
 import { usePipelineContext } from './PipelineContext';
 
 const DEBOUNCE_MS = 300;
 const MAX_VISIBLE_OPTIONS = 1000;
+
+const fieldNamesCache = new LRUCache<ComboboxOption[]>(50);
 
 const shortFormat = getValueFormat('short');
 const formatHits = (hits: number): string => formattedValueToString(shortFormat(hits));
@@ -34,7 +37,7 @@ interface Props {
 
 export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Props) => {
   const { extraStreamFilters } = usePipelineContext();
-  const fieldNamesCache = useRef<ComboboxOption[]>([]);
+  const cacheKey = useMemo(() => `${queryContext ?? ''}::${extraStreamFilters ?? ''}`, [queryContext, extraStreamFilters]);
 
   const customParams = useMemo(() => {
     if (!extraStreamFilters) {
@@ -51,8 +54,9 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Pr
   }, [datasource.customQueryParameters, extraStreamFilters]);
 
   const fetchFieldNames = useCallback(async (): Promise<ComboboxOption[]> => {
-    if (fieldNamesCache.current.length > 0) {
-      return fieldNamesCache.current;
+    const cached = fieldNamesCache.get(cacheKey);
+    if (cached) {
+      return cached;
     }
 
     const limit = datasource.getQueryBuilderLimits(FilterFieldType.FieldName);
@@ -64,9 +68,9 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Pr
 
     const result: ComboboxOption[] = list ? toOptionsWithHits(list) : [];
 
-    fieldNamesCache.current = result;
+    fieldNamesCache.set(cacheKey, result);
     return result;
-  }, [datasource, timeRange, queryContext, customParams]);
+  }, [datasource, timeRange, queryContext, customParams, cacheKey]);
 
   const fetchFieldValues = useCallback(
     async (inputValue: string): Promise<ComboboxOption[]> => {
@@ -106,10 +110,6 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Pr
     },
     [datasource, field, timeRange, queryContext, customParams]
   );
-
-  useEffect(() => {
-    fieldNamesCache.current = [];
-  }, [queryContext, extraStreamFilters]);
 
   const filterOptions = useCallback((options: ComboboxOption[], inputValue: string): ComboboxOption[] => {
     if (!inputValue) {

@@ -7,9 +7,12 @@ import { ComboboxOption } from '@grafana/ui';
 import { splitByPipes } from '../../../../../LogsQL/splitByPipes';
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { FilterFieldType } from '../../../../../types';
+import { LRUCache } from '../../../../../utils/LRUCache';
 
 const DEBOUNCE_MS = 300;
 const MAX_VISIBLE_OPTIONS = 1000;
+
+const streamFieldNamesCache = new LRUCache<ComboboxOption[]>(50);
 
 const shortFormat = getValueFormat('short');
 const formatHits = (hits: number): string => formattedValueToString(shortFormat(hits));
@@ -35,12 +38,16 @@ export const useFetchStreamFilters = ({
   excludeLabels,
 }: Props) => {
   const queryBeforePipe = useMemo(() => splitByPipes(queryExpr || '')[0], [queryExpr]);
-  const fieldNamesCache = useRef<ComboboxOption[]>([]);
+  const cacheKey = useMemo(
+    () => `stream::${queryBeforePipe ?? ''}::${extraStreamFilters ?? ''}`,
+    [queryBeforePipe, extraStreamFilters]
+  );
 
   // Fetch and cache stream field names (client-side filtering)
   const fetchStreamFieldNames = useCallback(async (): Promise<ComboboxOption[]> => {
-    if (fieldNamesCache.current.length > 0) {
-      return fieldNamesCache.current;
+    const cached = streamFieldNamesCache.get(cacheKey);
+    if (cached) {
+      return cached;
     }
 
     const customParams = new URLSearchParams();
@@ -59,7 +66,7 @@ export const useFetchStreamFilters = ({
     );
 
     if (!list || list.length === 0) {
-      fieldNamesCache.current = [];
+      streamFieldNamesCache.set(cacheKey, []);
       return [];
     }
 
@@ -70,9 +77,9 @@ export const useFetchStreamFilters = ({
       description: `hits: ${formatHits(hits)}${totalHits > 0 ? ` (${((hits / totalHits) * 100).toFixed(1)}%)` : ''}`,
     }));
 
-    fieldNamesCache.current = result;
+    streamFieldNamesCache.set(cacheKey, result);
     return result;
-  }, [datasource.customQueryParameters, datasource.languageProvider, extraStreamFilters, timeRange, queryBeforePipe]);
+  }, [datasource.customQueryParameters, datasource.languageProvider, extraStreamFilters, timeRange, queryBeforePipe, cacheKey]);
 
   // Fetch stream field values with server-side filtering
   const fetchStreamFieldValues = useCallback(
@@ -222,11 +229,6 @@ export const useFetchStreamFilters = ({
     },
     [fetchStreamFieldValues, scheduleDebouncedFilter]
   );
-
-  // Reset field names cache when dependencies change
-  useEffect(() => {
-    fieldNamesCache.current = [];
-  }, [timeRange, extraStreamFilters, queryBeforePipe]);
 
   // Cleanup debounce on unmount
   useEffect(() => {
