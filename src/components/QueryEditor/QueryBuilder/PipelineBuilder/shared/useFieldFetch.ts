@@ -1,14 +1,27 @@
 import { debounce } from 'lodash';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
-import { TimeRange } from '@grafana/data';
+import { formattedValueToString, getValueFormat, TimeRange } from '@grafana/data';
 import { ComboboxOption } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
-import { FilterFieldType } from '../../../../../types';
+import { FieldHits, FilterFieldType } from '../../../../../types';
 
 const DEBOUNCE_MS = 300;
 const MAX_VISIBLE_OPTIONS = 1000;
+
+const shortFormat = getValueFormat('short');
+const formatHits = (hits: number): string => formattedValueToString(shortFormat(hits));
+
+const toOptionsWithHits = (list: FieldHits[]): ComboboxOption[] => {
+  const sorted = [...list].sort((a, b) => b.hits - a.hits);
+  const totalHits = sorted.reduce((sum, item) => sum + item.hits, 0);
+  return sorted.map(({ value, hits }) => ({
+    value: value || '',
+    label: value || ' ',
+    description: `hits: ${formatHits(hits)}${totalHits > 0 ? ` (${((hits / totalHits) * 100).toFixed(1)}%)` : ''}`,
+  }));
+};
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -32,13 +45,7 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Pr
       datasource.customQueryParameters
     );
 
-    const result: ComboboxOption[] = list
-      ? list.map(({ value, hits }) => ({
-        value: value || '',
-        label: value || ' ',
-        description: `hits: ${hits}`,
-      }))
-      : [];
+    const result: ComboboxOption[] = list ? toOptionsWithHits(list) : [];
 
     fieldNamesCache.current = result;
     return result;
@@ -76,12 +83,7 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Pr
         });
       }
 
-      const mappedOptions = list.map(({ value, hits }) => ({
-        value: value || '',
-        label: value || ' ',
-        description: `hits: ${hits}`,
-      }));
-      options.push(...mappedOptions);
+      options.push(...toOptionsWithHits(list));
 
       return options;
     },
