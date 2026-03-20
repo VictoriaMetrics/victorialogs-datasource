@@ -4,8 +4,8 @@ import { TimeRange } from '@grafana/data';
 import { Button, Dropdown, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
-import { serializePartialPipeline } from '../serialization/serializePartialPipeline';
 import { getSharedStyles } from '../shared/styles';
+import { useQueryContexts } from '../shared/useQueryContexts';
 import { useRowManagement } from '../shared/useRowManagement';
 import { LimitStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
@@ -32,10 +32,7 @@ const LimitStepContent = memo(function LimitStepContent({ step, datasource, time
     onStepChange,
   });
 
-  const getQueryContext = useCallback(
-    (rowIndex: number) => serializePartialPipeline(steps, stepIndex, rowIndex),
-    [steps, stepIndex]
-  );
+  const queryContexts = useQueryContexts(steps, stepIndex, rows.length);
 
   const onAddLimit = useCallback(
     (limitType: LimitType) => {
@@ -77,7 +74,7 @@ const LimitStepContent = memo(function LimitStepContent({ step, datasource, time
             canDelete={true}
             onChange={handleRowChange}
             onDelete={() => handleRowDelete(row.id)}
-            queryContext={getQueryContext(index)}
+            queryContext={queryContexts[index]}
           />
         </React.Fragment>
       ))}

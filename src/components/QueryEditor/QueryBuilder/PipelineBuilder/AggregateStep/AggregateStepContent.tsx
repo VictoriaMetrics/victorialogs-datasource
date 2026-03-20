@@ -5,10 +5,10 @@ import { Button, Dropdown, Label, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
-import { serializePartialPipeline } from '../serialization/serializePartialPipeline';
 import OptionalField from '../shared/OptionalField';
 import { getSharedStyles } from '../shared/styles';
 import { useFieldFetch } from '../shared/useFieldFetch';
+import { useQueryContexts } from '../shared/useQueryContexts';
 import { useRowManagement } from '../shared/useRowManagement';
 import { AggregateStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
@@ -36,16 +36,8 @@ const AggregateStepContent = memo(function AggregateStepContent({
   const styles = useStyles2(getSharedStyles);
   const aggregateStep = step as AggregateStep;
   const rows = aggregateStep.rows ?? [];
-  const stepQueryContext = useMemo(
-    () => serializePartialPipeline(steps, stepIndex),
-    [steps, stepIndex]
-  );
-  const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext: stepQueryContext });
-
-  const getQueryContext = useCallback(
-    (rowIndex: number) => serializePartialPipeline(steps, stepIndex, rowIndex),
-    [steps, stepIndex]
-  );
+  const queryContexts = useQueryContexts(steps, stepIndex, Math.max(rows.length, 1));
+  const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext: queryContexts[0] });
 
   const { handleRowChange, handleRowDelete, handleAddRow } = useRowManagement<AggregateRow>({
     rows,
@@ -128,7 +120,7 @@ const AggregateStepContent = memo(function AggregateStepContent({
               canDelete={true}
               onChange={handleRowChange}
               onDelete={() => handleRowDelete(row.id)}
-              queryContext={getQueryContext(index)}
+              queryContext={queryContexts[index]}
             />
           </React.Fragment>
         ))}

@@ -16,17 +16,22 @@ const serializeStepPartialRows = (step: PipelineStepItem, rowIndex: number): str
   return serializeStep(step).pipes;
 };
 
+const serializePreviousSteps = (steps: PipelineStepItem[], currentStepIndex: number): string[] => {
+  const pipes: string[] = [];
+  for (let i = 0; i < currentStepIndex && i < steps.length; i++) {
+    pipes.push(...serializeStep(steps[i]).pipes);
+  }
+  return pipes;
+};
+
+const pipesToString = (pipes: string[]): string => pipes.join(' | ') || '*';
+
 export const serializePartialPipeline = (
   steps: PipelineStepItem[],
   currentStepIndex: number,
   currentRowIndex?: number
 ): string => {
-  const allPipes: string[] = [];
-
-  for (let i = 0; i < currentStepIndex && i < steps.length; i++) {
-    const { pipes } = serializeStep(steps[i]);
-    allPipes.push(...pipes);
-  }
+  const prefixPipes = serializePreviousSteps(steps, currentStepIndex);
 
   if (
     currentRowIndex !== undefined &&
@@ -34,9 +39,32 @@ export const serializePartialPipeline = (
     currentStepIndex < steps.length
   ) {
     const partialPipes = serializeStepPartialRows(steps[currentStepIndex], currentRowIndex);
-    allPipes.push(...partialPipes);
+    return pipesToString([...prefixPipes, ...partialPipes]);
   }
 
-  const result = allPipes.join(' | ');
-  return result || '*';
+  return pipesToString(prefixPipes);
+};
+
+/**
+ * Pre-computes queryContext strings for every row in the current step.
+ * Serializes previous steps only once, then incrementally builds per-row contexts.
+ */
+export const buildQueryContexts = (
+  steps: PipelineStepItem[],
+  currentStepIndex: number,
+  rowCount: number
+): string[] => {
+  const prefixPipes = serializePreviousSteps(steps, currentStepIndex);
+  const prefix = pipesToString(prefixPipes);
+
+  const contexts: string[] = [];
+  for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+    if (rowIndex === 0 || currentStepIndex >= steps.length) {
+      contexts.push(prefix);
+    } else {
+      const partialPipes = serializeStepPartialRows(steps[currentStepIndex], rowIndex);
+      contexts.push(pipesToString([...prefixPipes, ...partialPipes]));
+    }
+  }
+  return contexts;
 };
