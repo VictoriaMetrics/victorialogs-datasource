@@ -103,6 +103,4 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
 });
 
-PipelineBuilder.displayName = 'PipelineBuilder';
-
 export default PipelineBuilder;

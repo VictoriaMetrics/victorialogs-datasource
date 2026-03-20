@@ -36,8 +36,6 @@ const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete,
   );
 });
 
-FilterRowContainer.displayName = 'FilterRowContainer';
-
 export default FilterRowContainer;
 
 const getStyles = (theme: GrafanaTheme2) => ({

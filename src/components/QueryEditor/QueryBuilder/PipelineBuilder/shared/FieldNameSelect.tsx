@@ -39,6 +39,4 @@ const FieldNameSelect = memo<FieldComponentProps>(({ value, onChange, datasource
   );
 });
 
-FieldNameSelect.displayName = 'FieldNameSelect';
-
 export default FieldNameSelect;

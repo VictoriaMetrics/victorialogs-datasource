@@ -100,6 +100,4 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
 });
 
-PipelineStep.displayName = 'PipelineStep';
-
 export default PipelineStep;

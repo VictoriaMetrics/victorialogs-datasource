@@ -54,6 +54,4 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
 });
 
-PipelineInsertControl.displayName = 'PipelineInsertControl';
-
 export default PipelineInsertControl;
