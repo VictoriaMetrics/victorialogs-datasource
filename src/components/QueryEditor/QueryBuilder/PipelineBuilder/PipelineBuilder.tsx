@@ -6,11 +6,13 @@ import { Button, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { Query } from '../../../../types';
+import { buildStreamExtraFilters } from '../components/StreamFilters/streamFilterUtils';
 
 import PipelineInsertControl from './PipelineInsertControl';
 import PipelineStep from './PipelineStep';
 import { getAllowedAppendTypes, getAllowedInsertTypes } from './pipelineRules';
 import { serializePipeline } from './serialization/serializePipeline';
+import { PipelineContext } from './shared/PipelineContext';
 import { STEP_CONFIG } from './stepConfig';
 import { PipelineStepItem, PipelineStepType } from './types';
 import { createInitialSteps, usePipelineActions } from './usePipelineActions';
@@ -26,6 +28,10 @@ interface Props {
 const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange }) => {
   const styles = useStyles2(getStyles);
   const steps = query.builder?.steps ?? createInitialSteps();
+  const pipelineContextValue = useMemo(
+    () => ({ extraStreamFilters: buildStreamExtraFilters(query.streamFilters ?? []) || undefined }),
+    [query.streamFilters]
+  );
 
   const handleStepsChange = useCallback((newSteps: PipelineStepItem[]) => {
     const serializedQuery = serializePipeline(newSteps);
@@ -45,41 +51,43 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
   const handleAppend = useCallback((type: PipelineStepType) => () => addStep(type), [addStep]);
 
   return (
-    <div className={styles.container}>
-      <Stack direction='column' gap={1}>
-        {steps.map((step, index) => (
-          <Fragment key={step.id}>
-            {/* Insert control above each step except the first */}
-            {index > 0 && (
-              <PipelineInsertControl
-                allowedTypes={getAllowedInsertTypes(steps, index)}
-                onInsert={(type) => insertStep(index, type)}
+    <PipelineContext.Provider value={pipelineContextValue}>
+      <div className={styles.container}>
+        <Stack direction='column' gap={1}>
+          {steps.map((step, index) => (
+            <Fragment key={step.id}>
+              {/* Insert control above each step except the first */}
+              {index > 0 && (
+                <PipelineInsertControl
+                  allowedTypes={getAllowedInsertTypes(steps, index)}
+                  onInsert={(type) => insertStep(index, type)}
+                />
+              )}
+              <PipelineStep
+                step={step}
+                index={index}
+                datasource={datasource}
+                timeRange={timeRange}
+                onDelete={deleteStep}
+                onStepChange={updateStep}
+                steps={steps}
               />
-            )}
-            <PipelineStep
-              step={step}
-              index={index}
-              datasource={datasource}
-              timeRange={timeRange}
-              onDelete={deleteStep}
-              onStepChange={updateStep}
-              steps={steps}
-            />
-          </Fragment>
-        ))}
-      </Stack>
-
-      {/* Append control at the end */}
-      {allowedAppendTypes.length > 0 && (
-        <div className={styles.addStepRow}>
-          {allowedAppendTypes.map((type) => (
-            <Button key={type} variant='secondary' icon='plus' onClick={handleAppend(type)}>
-              {STEP_CONFIG[type].label}
-            </Button>
+            </Fragment>
           ))}
-        </div>
-      )}
-    </div>
+        </Stack>
+
+        {/* Append control at the end */}
+        {allowedAppendTypes.length > 0 && (
+          <div className={styles.addStepRow}>
+            {allowedAppendTypes.map((type) => (
+              <Button key={type} variant='secondary' icon='plus' onClick={handleAppend(type)}>
+                {STEP_CONFIG[type].label}
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
+    </PipelineContext.Provider>
   );
 });
 

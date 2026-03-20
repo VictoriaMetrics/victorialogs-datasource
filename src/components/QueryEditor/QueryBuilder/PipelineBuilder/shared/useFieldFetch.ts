@@ -7,6 +7,8 @@ import { ComboboxOption } from '@grafana/ui';
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { FieldHits, FilterFieldType } from '../../../../../types';
 
+import { usePipelineContext } from './PipelineContext';
+
 const DEBOUNCE_MS = 300;
 const MAX_VISIBLE_OPTIONS = 1000;
 
@@ -31,7 +33,22 @@ interface Props {
 }
 
 export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Props) => {
+  const { extraStreamFilters } = usePipelineContext();
   const fieldNamesCache = useRef<ComboboxOption[]>([]);
+
+  const customParams = useMemo(() => {
+    if (!extraStreamFilters) {
+      return datasource.customQueryParameters;
+    }
+    const params = new URLSearchParams();
+    if (datasource.customQueryParameters) {
+      for (const [key, value] of datasource.customQueryParameters) {
+        params.append(key, value);
+      }
+    }
+    params.set('extra_stream_filters', extraStreamFilters);
+    return params;
+  }, [datasource.customQueryParameters, extraStreamFilters]);
 
   const fetchFieldNames = useCallback(async (): Promise<ComboboxOption[]> => {
     if (fieldNamesCache.current.length > 0) {
@@ -42,14 +59,14 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Pr
 
     const list = await datasource.languageProvider?.getFieldList(
       { type: FilterFieldType.FieldName, timeRange, limit, query: queryContext },
-      datasource.customQueryParameters
+      customParams
     );
 
     const result: ComboboxOption[] = list ? toOptionsWithHits(list) : [];
 
     fieldNamesCache.current = result;
     return result;
-  }, [datasource, timeRange, queryContext]);
+  }, [datasource, timeRange, queryContext, customParams]);
 
   const fetchFieldValues = useCallback(
     async (inputValue: string): Promise<ComboboxOption[]> => {
@@ -64,7 +81,7 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Pr
           fieldValueFilter: inputValue || undefined,
           query: queryContext,
         },
-        datasource.customQueryParameters
+        customParams
       );
 
       if (!list) {
@@ -87,12 +104,12 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Pr
 
       return options;
     },
-    [datasource, field, timeRange, queryContext]
+    [datasource, field, timeRange, queryContext, customParams]
   );
 
   useEffect(() => {
     fieldNamesCache.current = [];
-  }, [queryContext]);
+  }, [queryContext, extraStreamFilters]);
 
   const filterOptions = useCallback((options: ComboboxOption[], inputValue: string): ComboboxOption[] => {
     if (!inputValue) {
