@@ -9,6 +9,7 @@ import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
 
 import OptionalField from './OptionalField';
 import { useFieldFetch } from './useFieldFetch';
+import { useOptionalField } from './useOptionalField';
 
 export interface PackJsonEditorRow {
   fieldList?: string[];
@@ -39,11 +40,6 @@ function PackJsonEditorInner<TRow extends PackJsonEditorRow>({ row, onChange, da
     [onChange, row]
   );
 
-  const handleResultFieldChange = useCallback(
-    (e: React.FormEvent<HTMLInputElement>) => onChange({ ...row, resultField: e.currentTarget.value }),
-    [onChange, row]
-  );
-
   // Fields is optional - when undefined, all fields are packed
   const isFieldsActive = row.fieldList !== undefined;
 
@@ -55,16 +51,7 @@ function PackJsonEditorInner<TRow extends PackJsonEditorRow>({ row, onChange, da
     onChange({ ...row, fieldList: undefined });
   }, [onChange, row]);
 
-  // As is optional - when undefined, defaults to _msg
-  const isAsActive = row.resultField !== undefined;
-
-  const handleAddAs = useCallback(() => {
-    onChange({ ...row, resultField: '' });
-  }, [onChange, row]);
-
-  const handleRemoveAs = useCallback(() => {
-    onChange({ ...row, resultField: undefined });
-  }, [onChange, row]);
+  const resultField = useOptionalField(row.resultField, useCallback((v) => onChange({ ...row, resultField: v }), [onChange, row]));
 
   return (
     <Stack direction='row' gap={0.5} alignItems='center' wrap='wrap'>
@@ -83,14 +70,14 @@ function PackJsonEditorInner<TRow extends PackJsonEditorRow>({ row, onChange, da
         </Stack>
       </OptionalField>
       <span className={styles.label}>)</span>
-      <OptionalField label='as' isActive={isAsActive} onAdd={handleAddAs} onRemove={handleRemoveAs}>
+      <OptionalField label='as' isActive={resultField.isActive} onAdd={resultField.handleAdd} onRemove={resultField.handleRemove}>
         <Stack direction='row' gap={0.5} alignItems='center'>
           <span className={styles.label}>as</span>
           <AutoSizeInput
             placeholder='result field'
             defaultValue={row.resultField ?? ''}
             minWidth={10}
-            onCommitChange={handleResultFieldChange}
+            onCommitChange={resultField.handleChange}
           />
         </Stack>
       </OptionalField>

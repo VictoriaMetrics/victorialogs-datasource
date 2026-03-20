@@ -9,6 +9,7 @@ import IfFilterInput from '../../shared/IfFilterInput';
 import OptionalField from '../../shared/OptionalField';
 import ResultFlagSelect from '../../shared/ResultFlagSelect';
 import { getSharedStyles } from '../../shared/styles';
+import { useOptionalField } from '../../shared/useOptionalField';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
 
 const UnpackEditor = memo(function UnpackEditor({ row, onChange, datasource, timeRange, queryContext }: ModifyRowContentProps) {
@@ -23,10 +24,7 @@ const UnpackEditor = memo(function UnpackEditor({ row, onChange, datasource, tim
     [onChange, row]
   );
 
-  const handlePrefixChange = useCallback(
-    (e: React.FormEvent<HTMLInputElement>) => onChange({ ...row, resultPrefix: e.currentTarget.value }),
-    [onChange, row]
-  );
+  const prefixField = useOptionalField(row.resultPrefix, useCallback((v) => onChange({ ...row, resultPrefix: v }), [onChange, row]));
 
   const handleFlagChange = useCallback(
     (keepOriginalFields: boolean | undefined, skipEmptyResults: boolean | undefined) =>
@@ -65,17 +63,6 @@ const UnpackEditor = memo(function UnpackEditor({ row, onChange, datasource, tim
     [fields, onChange, row]
   );
 
-  // Result prefix is optional
-  const isPrefixActive = row.resultPrefix !== undefined;
-
-  const handleAddPrefix = useCallback(() => {
-    onChange({ ...row, resultPrefix: '' });
-  }, [onChange, row]);
-
-  const handleRemovePrefix = useCallback(() => {
-    onChange({ ...row, resultPrefix: undefined });
-  }, [onChange, row]);
-
   return (
     <Stack direction='row' gap={0.5} alignItems='center' wrap='wrap'>
       <IfFilterInput value={row.ifFilter} onChange={handleIfFilterChange} />
@@ -110,19 +97,14 @@ const UnpackEditor = memo(function UnpackEditor({ row, onChange, datasource, tim
         </Stack>
       </OptionalField>
       <span className={styles.label}>)</span>
-      <OptionalField
-        label='result_prefix'
-        isActive={isPrefixActive}
-        onAdd={handleAddPrefix}
-        onRemove={handleRemovePrefix}
-      >
+      <OptionalField label='result_prefix' isActive={prefixField.isActive} onAdd={prefixField.handleAdd} onRemove={prefixField.handleRemove}>
         <Stack direction='row' gap={0.5} alignItems='center'>
           <span className={styles.label}>result_prefix</span>
           <AutoSizeInput
             placeholder='prefix'
             defaultValue={row.resultPrefix ?? ''}
             minWidth={8}
-            onCommitChange={handlePrefixChange}
+            onCommitChange={prefixField.handleChange}
           />
         </Stack>
       </OptionalField>

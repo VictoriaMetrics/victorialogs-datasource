@@ -6,6 +6,7 @@ import { CompatibleMultiCombobox } from '../../../../../CompatibleMultiCombobox'
 import IfFilterInput from '../../shared/IfFilterInput';
 import OptionalField from '../../shared/OptionalField';
 import { useFieldFetch } from '../../shared/useFieldFetch';
+import { useOptionalField } from '../../shared/useOptionalField';
 import { AggregateRowContentProps } from '../aggregateTypeConfig';
 
 const FieldListWithLimitEditor = memo(function FieldListWithLimitEditor({
@@ -31,15 +32,7 @@ const FieldListWithLimitEditor = memo(function FieldListWithLimitEditor({
     [onChange, row]
   );
 
-  const isLimitActive = row.limit !== undefined;
-
-  const handleAddLimit = useCallback(() => onChange({ ...row, limit: '' }), [onChange, row]);
-  const handleRemoveLimit = useCallback(() => onChange({ ...row, limit: undefined }), [onChange, row]);
-
-  const handleLimitChange = useCallback(
-    (e: React.FormEvent<HTMLInputElement>) => onChange({ ...row, limit: e.currentTarget.value }),
-    [onChange, row]
-  );
+  const limitField = useOptionalField(row.limit, useCallback((v) => onChange({ ...row, limit: v }), [onChange, row]));
 
   return (
     <Stack direction='row' gap={0.5} alignItems='center' wrap='wrap'>
@@ -53,12 +46,12 @@ const FieldListWithLimitEditor = memo(function FieldListWithLimitEditor({
         minWidth={16}
         createCustomValue
       />
-      <OptionalField label='limit' isActive={isLimitActive} onAdd={handleAddLimit} onRemove={handleRemoveLimit}>
+      <OptionalField label='limit' isActive={limitField.isActive} onAdd={limitField.handleAdd} onRemove={limitField.handleRemove}>
         <AutoSizeInput
           placeholder='N'
           defaultValue={row.limit ?? ''}
           minWidth={4}
-          onCommitChange={handleLimitChange}
+          onCommitChange={limitField.handleChange}
         />
       </OptionalField>
     </Stack>

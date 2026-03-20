@@ -7,6 +7,7 @@ import { AutoSizeInput, Stack, useStyles2 } from '@grafana/ui';
 import FieldNameSelect from '../../shared/FieldNameSelect';
 import IfFilterInput from '../../shared/IfFilterInput';
 import OptionalField from '../../shared/OptionalField';
+import { useOptionalField } from '../../shared/useOptionalField';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
 
 const ReplaceEditor = memo(function ReplaceEditor({ row, onChange, datasource, timeRange, queryContext }: ModifyRowContentProps) {
@@ -24,25 +25,12 @@ const ReplaceEditor = memo(function ReplaceEditor({ row, onChange, datasource, t
 
   const handleAtFieldChange = useCallback((value: string) => onChange({ ...row, atField: value }), [onChange, row]);
 
-  const handleLimitChange = useCallback(
-    (e: React.FormEvent<HTMLInputElement>) => onChange({ ...row, limit: e.currentTarget.value }),
-    [onChange, row]
-  );
-
   const handleIfFilterChange = useCallback(
     (value: string | undefined) => onChange({ ...row, ifFilter: value }),
     [onChange, row]
   );
 
-  const isLimitActive = row.limit !== undefined;
-
-  const handleAddLimit = useCallback(() => {
-    onChange({ ...row, limit: '' });
-  }, [onChange, row]);
-
-  const handleRemoveLimit = useCallback(() => {
-    onChange({ ...row, limit: undefined });
-  }, [onChange, row]);
+  const limitField = useOptionalField(row.limit, useCallback((v) => onChange({ ...row, limit: v }), [onChange, row]));
 
   return (
     <Stack direction='row' gap={0.5} alignItems='center' wrap='wrap'>
@@ -70,14 +58,14 @@ const ReplaceEditor = memo(function ReplaceEditor({ row, onChange, datasource, t
         timeRange={timeRange}
         queryContext={queryContext}
       />
-      <OptionalField label='limit' isActive={isLimitActive} onAdd={handleAddLimit} onRemove={handleRemoveLimit}>
+      <OptionalField label='limit' isActive={limitField.isActive} onAdd={limitField.handleAdd} onRemove={limitField.handleRemove}>
         <Stack direction='row' gap={0.5} alignItems='center'>
           <span className={styles.label}>limit</span>
           <AutoSizeInput
             placeholder='N'
             defaultValue={row.limit ?? ''}
             minWidth={4}
-            onCommitChange={handleLimitChange}
+            onCommitChange={limitField.handleChange}
           />
         </Stack>
       </OptionalField>

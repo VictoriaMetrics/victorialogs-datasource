@@ -25,4 +25,6 @@ const TextValueInput = memo<ValueComponentProps>(({ values, onChange }) => {
   );
 });
 
+TextValueInput.displayName = 'TextValueInput';
+
 export default TextValueInput;

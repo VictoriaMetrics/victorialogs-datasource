@@ -12,6 +12,7 @@ import FieldNameSelect from '../shared/FieldNameSelect';
 import OptionalField from '../shared/OptionalField';
 import { getSharedStyles } from '../shared/styles';
 import { useFieldFetch } from '../shared/useFieldFetch';
+import { useOptionalField } from '../shared/useOptionalField';
 import { PipelineStepItem, PipelineStepPatch, SortStep } from '../types';
 
 import { createSortField, SORT_DIRECTION } from './types';
@@ -42,9 +43,7 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
   const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
 
   const updateStep = useCallback(
-    (patch: PipelineStepPatch) => {
-      onStepChange(step.id, patch);
-    },
+    (patch: PipelineStepPatch) => onStepChange(step.id, patch),
     [onStepChange, step.id]
   );
 
@@ -75,31 +74,16 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
 
   const handleDeleteField = useCallback(
     (index: number) => {
-      const newFields = sortFields.filter((_, i) => i !== index);
-      updateStep({ rows: newFields } as PipelineStepPatch);
+      updateStep({ rows: sortFields.filter((_, i) => i !== index) } as PipelineStepPatch);
     },
     [sortFields, updateStep]
   );
 
-  // Optional: offset
-  const isOffsetActive = sortStep.offset !== undefined;
-  const handleAddOffset = useCallback(() => updateStep({ offset: '' }), [updateStep]);
-  const handleRemoveOffset = useCallback(() => updateStep({ offset: undefined }), [updateStep]);
-  const handleOffsetChange = useCallback(
-    (e: React.FormEvent<HTMLInputElement>) => updateStep({ offset: e.currentTarget.value }),
-    [updateStep]
-  );
+  const offset = useOptionalField(sortStep.offset, useCallback((v) => updateStep({ offset: v }), [updateStep]));
+  const limit = useOptionalField(sortStep.limit, useCallback((v) => updateStep({ limit: v }), [updateStep]));
+  const rank = useOptionalField(sortStep.rankField, useCallback((v) => updateStep({ rankField: v }), [updateStep]));
 
-  // Optional: limit
-  const isLimitActive = sortStep.limit !== undefined;
-  const handleAddLimit = useCallback(() => updateStep({ limit: '' }), [updateStep]);
-  const handleRemoveLimit = useCallback(() => updateStep({ limit: undefined }), [updateStep]);
-  const handleLimitChange = useCallback(
-    (e: React.FormEvent<HTMLInputElement>) => updateStep({ limit: e.currentTarget.value }),
-    [updateStep]
-  );
-
-  // Optional: partition by
+  // Partition by is special — multi-select field list, not a simple string
   const isPartitionActive = sortStep.partitionByFields !== undefined;
   const selectedPartitionFields = useMemo(
     () => (sortStep.partitionByFields ?? []).map((f) => ({ label: f, value: f })),
@@ -111,15 +95,6 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
     (selected: Array<{ value?: string; label?: string }>) => {
       updateStep({ partitionByFields: selected.map((s) => s.value ?? '').filter(Boolean) });
     },
-    [updateStep]
-  );
-
-  // Optional: rank as
-  const isRankActive = sortStep.rankField !== undefined;
-  const handleAddRank = useCallback(() => updateStep({ rankField: '' }), [updateStep]);
-  const handleRemoveRank = useCallback(() => updateStep({ rankField: undefined }), [updateStep]);
-  const handleRankChange = useCallback(
-    (e: React.FormEvent<HTMLInputElement>) => updateStep({ rankField: e.currentTarget.value }),
     [updateStep]
   );
 
@@ -152,16 +127,16 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
         Add field
       </Button>
       <span className={styles.label}>)</span>
-      <OptionalField label='offset' isActive={isOffsetActive} onAdd={handleAddOffset} onRemove={handleRemoveOffset}>
+      <OptionalField label='offset' isActive={offset.isActive} onAdd={offset.handleAdd} onRemove={offset.handleRemove}>
         <Stack direction='row' gap={0.5} alignItems='center'>
           <span className={styles.label}>offset</span>
-          <AutoSizeInput placeholder='N' defaultValue={sortStep.offset ?? ''} minWidth={4} onCommitChange={handleOffsetChange} />
+          <AutoSizeInput placeholder='N' defaultValue={sortStep.offset ?? ''} minWidth={4} onCommitChange={offset.handleChange} />
         </Stack>
       </OptionalField>
-      <OptionalField label='limit' isActive={isLimitActive} onAdd={handleAddLimit} onRemove={handleRemoveLimit}>
+      <OptionalField label='limit' isActive={limit.isActive} onAdd={limit.handleAdd} onRemove={limit.handleRemove}>
         <Stack direction='row' gap={0.5} alignItems='center'>
           <span className={styles.label}>limit</span>
-          <AutoSizeInput placeholder='N' defaultValue={sortStep.limit ?? ''} minWidth={4} onCommitChange={handleLimitChange} />
+          <AutoSizeInput placeholder='N' defaultValue={sortStep.limit ?? ''} minWidth={4} onCommitChange={limit.handleChange} />
         </Stack>
       </OptionalField>
       {isPartitionActive && <span className={styles.label}>partition by (</span>}
@@ -177,10 +152,10 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
         />
       </OptionalField>
       {isPartitionActive && <span className={styles.label}>)</span>}
-      <OptionalField label='rank as' isActive={isRankActive} onAdd={handleAddRank} onRemove={handleRemoveRank}>
+      <OptionalField label='rank as' isActive={rank.isActive} onAdd={rank.handleAdd} onRemove={rank.handleRemove}>
         <Stack direction='row' gap={0.5} alignItems='center'>
           <span className={styles.label}>rank as</span>
-          <AutoSizeInput placeholder='field name' defaultValue={sortStep.rankField ?? ''} minWidth={10} onCommitChange={handleRankChange} />
+          <AutoSizeInput placeholder='field name' defaultValue={sortStep.rankField ?? ''} minWidth={10} onCommitChange={rank.handleChange} />
         </Stack>
       </OptionalField>
     </Stack>

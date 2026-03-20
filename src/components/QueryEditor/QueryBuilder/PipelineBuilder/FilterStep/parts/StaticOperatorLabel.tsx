@@ -26,4 +26,6 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
 });
 
+StaticOperatorLabel.displayName = 'StaticOperatorLabel';
+
 export default StaticOperatorLabel;

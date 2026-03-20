@@ -8,6 +8,7 @@ import { AutoSizeInput, Stack, useStyles2 } from '@grafana/ui';
 import IfFilterInput from '../../shared/IfFilterInput';
 import OptionalField from '../../shared/OptionalField';
 import ResultFlagSelect from '../../shared/ResultFlagSelect';
+import { useOptionalField } from '../../shared/useOptionalField';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
 
 const FormatEditor = memo(function FormatEditor({ row, onChange }: ModifyRowContentProps) {
@@ -15,11 +16,6 @@ const FormatEditor = memo(function FormatEditor({ row, onChange }: ModifyRowCont
 
   const handleFormatChange = useCallback(
     (e: React.FormEvent<HTMLInputElement>) => onChange({ ...row, formatString: e.currentTarget.value }),
-    [onChange, row]
-  );
-
-  const handleResultFieldChange = useCallback(
-    (e: React.FormEvent<HTMLInputElement>) => onChange({ ...row, resultField: e.currentTarget.value }),
     [onChange, row]
   );
 
@@ -34,15 +30,7 @@ const FormatEditor = memo(function FormatEditor({ row, onChange }: ModifyRowCont
     [onChange, row]
   );
 
-  const isAsActive = row.resultField !== undefined;
-
-  const handleAddAs = useCallback(() => {
-    onChange({ ...row, resultField: '' });
-  }, [onChange, row]);
-
-  const handleRemoveAs = useCallback(() => {
-    onChange({ ...row, resultField: undefined });
-  }, [onChange, row]);
+  const resultField = useOptionalField(row.resultField, useCallback((v) => onChange({ ...row, resultField: v }), [onChange, row]));
 
   return (
     <Stack direction='row' gap={0.5} alignItems='center' wrap='wrap'>
@@ -53,14 +41,14 @@ const FormatEditor = memo(function FormatEditor({ row, onChange }: ModifyRowCont
         minWidth={12}
         onCommitChange={handleFormatChange}
       />
-      <OptionalField label='as' isActive={isAsActive} onAdd={handleAddAs} onRemove={handleRemoveAs}>
+      <OptionalField label='as' isActive={resultField.isActive} onAdd={resultField.handleAdd} onRemove={resultField.handleRemove}>
         <Stack direction='row' gap={0.5} alignItems='center'>
           <span className={styles.label}>as</span>
           <AutoSizeInput
             placeholder='result field'
             defaultValue={row.resultField ?? ''}
             minWidth={10}
-            onCommitChange={handleResultFieldChange}
+            onCommitChange={resultField.handleChange}
           />
         </Stack>
       </OptionalField>
