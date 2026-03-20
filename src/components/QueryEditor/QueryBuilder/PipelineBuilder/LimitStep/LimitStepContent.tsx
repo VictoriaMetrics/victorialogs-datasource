@@ -81,7 +81,7 @@ const LimitStepContent = memo(function LimitStepContent({ step, datasource, time
           />
         </React.Fragment>
       ))}
-      <Dropdown overlay={menu}>
+      <Dropdown overlay={menu} placement='bottom-start'>
         <Button variant='secondary' icon='plus' size='sm'>
           Add limit
         </Button>

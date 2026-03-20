@@ -12,11 +12,16 @@ import { CASE_INSENSITIVE_OPERATORS, EXACT_OPERATORS, FILTER_TYPE, FilterRow, Fi
 
 export type { FilterRowContentProps } from './parts/StandardFilterContent';
 
+export type FilterGroup = 'Match' | 'Pattern' | 'Utility';
+
 export interface FilterTypeDefinition {
   label: string;
+  description: string;
+  group: FilterGroup;
   defaultOperator: string;
   ContentComponent: React.FC<FilterRowContentProps>;
   serialize: (row: FilterRow, stepId: string) => RowSerializeResult;
+  createInitialRow: () => Partial<FilterRow>;
 }
 
 const ExactOperatorSelect = createOperatorSelect([
@@ -46,6 +51,8 @@ const isFilterRowEmpty = (row: FilterRow): boolean => !row.fieldName || !row.val
 const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
   [FILTER_TYPE.Exact]: {
     label: 'Exact match',
+    description: 'Filters by exact field values using in/not in operators',
+    group: 'Match',
     defaultOperator: EXACT_OPERATORS.In,
     ContentComponent: createStandardFilterContent(ExactOperatorSelect, ExactValueSelect),
     serialize: (row) => {
@@ -55,9 +62,12 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
       const escaped = row.values.map((v) => `"${escapeQuotes(v)}"`).join(',');
       return { result: `${row.fieldName}:${row.operator}(${escaped})` };
     },
+    createInitialRow: () => ({ values: [] }),
   },
   [FILTER_TYPE.Phrase]: {
     label: 'Phrase',
+    description: 'Filters by substring match in a field value',
+    group: 'Match',
     defaultOperator: ':',
     ContentComponent: createStandardFilterContent(StaticOperatorLabel, TextValueInput),
     serialize: (row) => {
@@ -66,9 +76,12 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
       }
       return { result: `${row.fieldName}:${escapeQuotes(row.values[0])}` };
     },
+    createInitialRow: () => ({ values: [] }),
   },
   [FILTER_TYPE.Range]: {
     label: 'Range',
+    description: 'Filters by numeric range comparison',
+    group: 'Match',
     defaultOperator: RANGE_OPERATORS.Gt,
     ContentComponent: createStandardFilterContent(RangeOperatorSelect, TextValueInput),
     serialize: (row) => {
@@ -77,9 +90,12 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
       }
       return { result: `${row.fieldName}:${row.operator}${row.values[0]}` };
     },
+    createInitialRow: () => ({ values: [] }),
   },
   [FILTER_TYPE.Regexp]: {
     label: 'Regexp',
+    description: 'Filters using regular expression patterns',
+    group: 'Pattern',
     defaultOperator: REGEXP_OPERATORS.Match,
     ContentComponent: createStandardFilterContent(RegexpOperatorSelect, TextValueInput, { open: '"', close: '"' }),
     serialize: (row) => {
@@ -88,9 +104,12 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
       }
       return { result: `${row.fieldName}:${row.operator}"${escapeQuotes(row.values[0])}"` };
     },
+    createInitialRow: () => ({ values: [] }),
   },
   [FILTER_TYPE.CaseInsensitive]: {
     label: 'Case-insensitive',
+    description: 'Filters with case-insensitive matching',
+    group: 'Pattern',
     defaultOperator: CASE_INSENSITIVE_OPERATORS.Match,
     ContentComponent: createStandardFilterContent(CaseInsensitiveOperatorSelect, TextValueInput, { open: '(', close: ')' }),
     serialize: (row) => {
@@ -99,9 +118,12 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
       }
       return { result: `${row.fieldName}:${row.operator}(${escapeQuotes(row.values[0])})` };
     },
+    createInitialRow: () => ({ values: [] }),
   },
   [FILTER_TYPE.CustomPipe]: {
     label: 'Custom',
+    description: 'Add a raw pipe expression',
+    group: 'Utility',
     defaultOperator: '',
     ContentComponent: CustomPipeEditor as React.FC<FilterRowContentProps>,
     serialize: (row) => {
@@ -110,15 +132,16 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
       }
       return { result: row.expression };
     },
+    createInitialRow: () => ({}),
   },
 };
 
 export default FILTER_TYPE_CONFIG;
 
-export const FILTER_TYPE_ENTRIES = Object.entries(FILTER_TYPE_CONFIG)
+export const FILTER_TYPE_FLAT_ENTRIES = Object.entries(FILTER_TYPE_CONFIG)
   .filter(([key]) => key !== FILTER_TYPE.CustomPipe)
   .map(([filterType, config]) => ({
     filterType: filterType as FilterType,
     label: config.label,
-    defaultOperator: config.defaultOperator,
+    description: config.description,
   }));

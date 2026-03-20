@@ -10,7 +10,7 @@ import { useRowManagement } from '../shared/useRowManagement';
 import { FilterStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import FilterRowContainer from './FilterRowContainer';
-import { FILTER_TYPE_ENTRIES } from './filterTypeConfig';
+import FILTER_TYPE_CONFIG, { FILTER_TYPE_FLAT_ENTRIES } from './filterTypeConfig';
 import { createFilterRow, FILTER_TYPE, FilterRow, FilterType } from './types';
 
 interface Props {
@@ -39,18 +39,20 @@ const FilterStepContent = memo<Props>(({ step, datasource, timeRange, onStepChan
 
   const onAddFilter = useCallback(
     (filterType: FilterType) => {
-      handleAddRow(createFilterRow(filterType));
+      const config = FILTER_TYPE_CONFIG[filterType];
+      handleAddRow(createFilterRow(filterType, config.defaultOperator));
     },
     [handleAddRow]
   );
 
   const menu = (
     <Menu>
-      {FILTER_TYPE_ENTRIES.map((entry) => (
+      {FILTER_TYPE_FLAT_ENTRIES.map(({ filterType, label, description }) => (
         <Menu.Item
-          key={entry.filterType}
-          label={entry.label}
-          onClick={() => onAddFilter(entry.filterType)}
+          key={filterType}
+          label={label}
+          description={description}
+          onClick={() => onAddFilter(filterType)}
         />
       ))}
       <Menu.Divider />
@@ -74,7 +76,7 @@ const FilterStepContent = memo<Props>(({ step, datasource, timeRange, onStepChan
           />
         </React.Fragment>
       ))}
-      <Dropdown overlay={menu}>
+      <Dropdown overlay={menu} placement='bottom-start'>
         <Button variant='secondary' icon='plus' size='sm'>
           Add filter
         </Button>

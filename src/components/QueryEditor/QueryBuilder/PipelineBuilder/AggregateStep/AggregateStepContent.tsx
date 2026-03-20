@@ -132,7 +132,7 @@ const AggregateStepContent = memo(function AggregateStepContent({
             />
           </React.Fragment>
         ))}
-        <Dropdown overlay={menu}>
+        <Dropdown overlay={menu} placement='bottom-start'>
           <Button variant='secondary' icon='plus' size='sm'>
             Add aggregate
           </Button>
