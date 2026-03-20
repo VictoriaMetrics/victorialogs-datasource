@@ -25,7 +25,6 @@ const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete,
   const config = FILTER_TYPE_CONFIG[row.filterType];
   const { ContentComponent } = config;
 
-  console.log(queryContext);
   return (
     <StepRowLayout
       onDelete={onDelete}
