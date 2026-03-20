@@ -4,6 +4,8 @@ import React, { memo, ReactNode } from 'react';
 import { GrafanaTheme2 } from '@grafana/data';
 import { Button, IconButton, Stack, useStyles2 } from '@grafana/ui';
 
+import { getSharedStyles } from './styles';
+
 interface OptionalFieldProps {
   label: string;
   isActive: boolean;
@@ -13,6 +15,7 @@ interface OptionalFieldProps {
 }
 
 const OptionalField = memo(function OptionalField({ label, isActive, onAdd, onRemove, children }: OptionalFieldProps) {
+  const shared = useStyles2(getSharedStyles);
   const styles = useStyles2(getStyles);
 
   if (!isActive) {
@@ -28,8 +31,8 @@ const OptionalField = memo(function OptionalField({ label, isActive, onAdd, onRe
       <div className={styles.children}>
         {children}
       </div>
-      <div className={styles.removeButtonContainer}>
-        <IconButton className={styles.removeButton} name='times' size='sm' tooltip={`Remove ${label}`} onClick={onRemove} />
+      <div className={shared.removeButtonContainer}>
+        <IconButton className={shared.removeButton} name='times' size='sm' tooltip={`Remove ${label}`} onClick={onRemove} />
       </div>
     </Stack>
   );
@@ -49,24 +52,4 @@ const getStyles = (theme: GrafanaTheme2) => ({
      }
     }
   `,
-  removeButtonContainer: css`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 32px;
-    width: 23px;
-    border: 1px solid ${theme.colors.border.medium};
-    border-left: none;
-    border-radius: 0 ${theme.shape.radius.default} ${theme.shape.radius.default} 0;
-  `,
-  removeButton: css`
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    &::before {
-      width: 100%;
-      height: 100%;
-      border-radius: 0;
-    }
-  `
 });

@@ -5,10 +5,12 @@ import { GrafanaTheme2 } from '@grafana/data';
 import { AutoSizeInput, Button, IconButton, Stack, useStyles2 } from '@grafana/ui';
 
 import FieldNameSelect from '../../shared/FieldNameSelect';
+import { getSharedStyles } from '../../shared/styles';
 import { ModifyRowContentProps } from '../modifyTypeConfig';
 import { FieldPair } from '../types';
 
 const FieldPairEditor = memo(function FieldPairEditor({ row, onChange, datasource, timeRange, queryContext }: ModifyRowContentProps) {
+  const shared = useStyles2(getSharedStyles);
   const styles = useStyles2(getStyles);
   const pairs = row.fieldPairs ?? [{ src: '', dst: '' }];
 
@@ -38,7 +40,7 @@ const FieldPairEditor = memo(function FieldPairEditor({ row, onChange, datasourc
     <Stack direction='row' gap={0.5} alignItems='center' wrap='wrap'>
       {pairs.map((pair, index) => (
         <React.Fragment key={index}>
-          {index > 0 && <span className={styles.separator}>,</span>}
+          {index > 0 && <span className={styles.pairSeparator}>,</span>}
           <FieldNameSelect
             value={pair.src}
             onChange={(v) => handlePairChange(index, 'src', v)}
@@ -47,7 +49,7 @@ const FieldPairEditor = memo(function FieldPairEditor({ row, onChange, datasourc
             queryContext={queryContext}
           />
           <span className={styles.label}>as</span>
-          <div className={pairs.length > 1 ? styles.inputNoRightRadius : undefined}>
+          <div className={pairs.length > 1 ? shared.inputNoRightRadius : undefined}>
             <AutoSizeInput
               placeholder='new field name'
               defaultValue={pair.dst}
@@ -56,8 +58,8 @@ const FieldPairEditor = memo(function FieldPairEditor({ row, onChange, datasourc
             />
           </div>
           {pairs.length > 1 && (
-            <div className={styles.removeButtonContainer}>
-              <IconButton className={styles.removeButton} name='times' size='sm' tooltip='Remove pair' onClick={() => handleRemovePair(index)} />
+            <div className={shared.removeButtonContainer}>
+              <IconButton className={shared.removeButton} name='times' size='sm' tooltip='Remove pair' onClick={() => handleRemovePair(index)} />
             </div>
           )}
         </React.Fragment>
@@ -74,34 +76,8 @@ const getStyles = (theme: GrafanaTheme2) => ({
     color: ${theme.colors.text.secondary};
     font-size: ${theme.typography.bodySmall.fontSize};
   `,
-  separator: css`
+  pairSeparator: css`
     color: ${theme.colors.text.secondary};
     font-size: ${theme.typography.bodySmall.fontSize};
-  `,
-  inputNoRightRadius: css`
-    & * {
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    }
-  `,
-  removeButtonContainer: css`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 32px;
-    width: 23px;
-    border: 1px solid ${theme.colors.border.medium};
-    border-left: none;
-    border-radius: 0 ${theme.shape.radius.default} ${theme.shape.radius.default} 0;
-  `,
-  removeButton: css`
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    &::before {
-      width: 100%;
-      height: 100%;
-      border-radius: 0;
-    }
   `,
 });

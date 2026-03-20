@@ -1,13 +1,13 @@
-import { css } from '@emotion/css';
 import React, { memo, useCallback, useMemo } from 'react';
 
-import { GrafanaTheme2, TimeRange } from '@grafana/data';
+import { TimeRange } from '@grafana/data';
 import { Button, Dropdown, Label, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
 import { serializePartialPipeline } from '../serialization/serializePartialPipeline';
 import OptionalField from '../shared/OptionalField';
+import { getSharedStyles } from '../shared/styles';
 import { useFieldFetch } from '../shared/useFieldFetch';
 import { useRowManagement } from '../shared/useRowManagement';
 import { AggregateStep, PipelineStepItem, PipelineStepPatch } from '../types';
@@ -33,7 +33,7 @@ const AggregateStepContent = memo(function AggregateStepContent({
   steps,
   stepIndex,
 }: Props) {
-  const styles = useStyles2(getStyles);
+  const styles = useStyles2(getSharedStyles);
   const aggregateStep = step as AggregateStep;
   const rows = aggregateStep.rows ?? [];
   const stepQueryContext = useMemo(
@@ -143,14 +143,3 @@ const AggregateStepContent = memo(function AggregateStepContent({
 });
 
 export default AggregateStepContent;
-
-const getStyles = (theme: GrafanaTheme2) => ({
-  separator: css`
-    display: inline-block;
-    width: 2px;
-    height: ${theme.spacing(4)};
-    background-color: ${theme.colors.border.strong};
-    margin: 0 ${theme.spacing(0.5)};
-    flex-shrink: 0;
-  `,
-});

@@ -1,11 +1,11 @@
-import { css } from '@emotion/css';
 import React, { memo, useCallback } from 'react';
 
-import { GrafanaTheme2, TimeRange } from '@grafana/data';
+import { TimeRange } from '@grafana/data';
 import { Button, Dropdown, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { serializePartialPipeline } from '../serialization/serializePartialPipeline';
+import { getSharedStyles } from '../shared/styles';
 import { useRowManagement } from '../shared/useRowManagement';
 import { FilterStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
@@ -23,7 +23,7 @@ interface Props {
 }
 
 const FilterStepContent = memo<Props>(({ step, datasource, timeRange, onStepChange, steps, stepIndex }) => {
-  const styles = useStyles2(getStyles);
+  const styles = useStyles2(getSharedStyles);
   const rows = (step as FilterStep).rows ?? [];
 
   const { handleRowChange, handleRowDelete, handleAddRow } = useRowManagement<FilterRow>({
@@ -86,14 +86,3 @@ const FilterStepContent = memo<Props>(({ step, datasource, timeRange, onStepChan
 FilterStepContent.displayName = 'FilterStepContent';
 
 export default FilterStepContent;
-
-const getStyles = (theme: GrafanaTheme2) => ({
-  separator: css`
-    display: inline-block;
-    width: 2px;
-    height: ${theme.spacing(4)};
-    background-color: ${theme.colors.border.strong};
-    margin: 0 ${theme.spacing(0.5)};
-    flex-shrink: 0;
-  `,
-});
