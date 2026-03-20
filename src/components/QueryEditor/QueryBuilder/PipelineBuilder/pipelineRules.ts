@@ -1,19 +1,23 @@
+import { STEP_CONFIG } from './stepConfig';
 import { PIPELINE_STEP_TYPE, PipelineStepItem, PipelineStepType } from './types';
 
 /**
- * Transition rules define which step types are allowed after a given step type.
+ * Transition rules derived from STEP_CONFIG.allowedNext.
+ * Single source of truth — adding a new step type only requires updating stepConfig.ts.
  */
-const TRANSITIONS: Record<PipelineStepType, PipelineStepType[]> = {
-  [PIPELINE_STEP_TYPE.Filter]: [PIPELINE_STEP_TYPE.Modify, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
-  [PIPELINE_STEP_TYPE.Modify]: [PIPELINE_STEP_TYPE.ModifyFilter, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
-  [PIPELINE_STEP_TYPE.ModifyFilter]: [PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
-  [PIPELINE_STEP_TYPE.Aggregate]: [PIPELINE_STEP_TYPE.AggregateFilter, PIPELINE_STEP_TYPE.AggregateModify, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
-  [PIPELINE_STEP_TYPE.AggregateFilter]: [PIPELINE_STEP_TYPE.AggregateModify, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
-  [PIPELINE_STEP_TYPE.AggregateModify]: [PIPELINE_STEP_TYPE.AggregateModifyFilter, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
-  [PIPELINE_STEP_TYPE.AggregateModifyFilter]: [PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
-  [PIPELINE_STEP_TYPE.Sort]: [PIPELINE_STEP_TYPE.Limit],
-  [PIPELINE_STEP_TYPE.Limit]: [],
-};
+const TRANSITIONS: Record<PipelineStepType, PipelineStepType[]> = Object.fromEntries(
+  Object.entries(STEP_CONFIG).map(([type, config]) => [type, config.allowedNext])
+) as Record<PipelineStepType, PipelineStepType[]>;
+
+/**
+ * Precomputed reverse mapping: for each step type, which types can precede it.
+ */
+const REVERSE_TRANSITIONS: Partial<Record<PipelineStepType, PipelineStepType[]>> = {};
+for (const [sourceType, targets] of Object.entries(TRANSITIONS)) {
+  for (const target of targets) {
+    (REVERSE_TRANSITIONS[target] ??= []).push(sourceType as PipelineStepType);
+  }
+}
 
 /**
  * Removes steps that are invalid at their position after a deletion.
@@ -57,23 +61,14 @@ const getAllowedAfter = (steps: PipelineStepItem[], index: number): PipelineStep
 
 /**
  * Returns the set of step types that can precede the step at the given index.
- * This is the inverse lookup: which step types list steps[index].type in their transitions?
+ * Uses precomputed REVERSE_TRANSITIONS for O(1) lookup.
  */
 const getAllowedBefore = (steps: PipelineStepItem[], index: number): PipelineStepType[] => {
   const step = steps[index];
   if (!step) {
     return Object.values(PIPELINE_STEP_TYPE);
   }
-  const targetType = step.type;
-  const allowed: PipelineStepType[] = [];
-
-  for (const [sourceType, targets] of Object.entries(TRANSITIONS)) {
-    if (targets.includes(targetType)) {
-      allowed.push(sourceType as PipelineStepType);
-    }
-  }
-
-  return allowed;
+  return REVERSE_TRANSITIONS[step.type] ?? [];
 };
 
 /**
