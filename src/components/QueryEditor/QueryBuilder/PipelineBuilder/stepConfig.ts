@@ -25,6 +25,7 @@ export interface StepContentProps {
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
   onStepChange: (id: string, patch: PipelineStepPatch) => void;
+  onDeleteStep: (id: string) => void;
   steps: PipelineStepItem[];
   stepIndex: number;
 }
@@ -41,7 +42,7 @@ interface StepConfig {
 export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   [PIPELINE_STEP_TYPE.Filter]: {
     label: 'Filter',
-    allowedNext: [PIPELINE_STEP_TYPE.Modify, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
+    allowedNext: [PIPELINE_STEP_TYPE.Filter, PIPELINE_STEP_TYPE.Modify, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
     ContentComponent: FilterStepContent,
     createInitialData: () => undefined,
     serialize: serializeFilterStep,
@@ -49,7 +50,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.Modify]: {
     label: 'Modify',
-    allowedNext: [PIPELINE_STEP_TYPE.ModifyFilter, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
+    allowedNext: [PIPELINE_STEP_TYPE.Modify, PIPELINE_STEP_TYPE.ModifyFilter, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
     ContentComponent: ModifyStepContent,
     createInitialData: () => undefined,
     serialize: serializeModifyStep,
@@ -57,7 +58,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.ModifyFilter]: {
     label: 'Filter modified fields',
-    allowedNext: [PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
+    allowedNext: [PIPELINE_STEP_TYPE.ModifyFilter, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
     ContentComponent: FilterStepContent,
     createInitialData: () => undefined,
     serialize: serializeFilterStep,
@@ -65,7 +66,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.Aggregate]: {
     label: 'Aggregate',
-    allowedNext: [PIPELINE_STEP_TYPE.AggregateFilter, PIPELINE_STEP_TYPE.AggregateModify, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
+    allowedNext: [PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.AggregateFilter, PIPELINE_STEP_TYPE.AggregateModify, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
     ContentComponent: AggregateStepContent,
     createInitialData: () => undefined,
     serialize: serializeAggregateStep,
@@ -73,14 +74,14 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.AggregateFilter]: {
     label: 'Filter aggregated values',
-    allowedNext: [PIPELINE_STEP_TYPE.AggregateModify, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
+    allowedNext: [PIPELINE_STEP_TYPE.AggregateFilter, PIPELINE_STEP_TYPE.AggregateModify, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
     ContentComponent: FilterStepContent,
     createInitialData: () => undefined,
     serialize: serializeFilterStep,
   },
   [PIPELINE_STEP_TYPE.AggregateModify]: {
     label: 'Modify aggregated values',
-    allowedNext: [PIPELINE_STEP_TYPE.AggregateModifyFilter, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
+    allowedNext: [PIPELINE_STEP_TYPE.AggregateModify, PIPELINE_STEP_TYPE.AggregateModifyFilter, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
     ContentComponent: AggregateModifyStepContent,
     createInitialData: () => undefined,
     serialize: serializeAggregateModifyStep,
@@ -88,7 +89,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.AggregateModifyFilter]: {
     label: 'Filter modified aggregated values',
-    allowedNext: [PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
+    allowedNext: [PIPELINE_STEP_TYPE.AggregateModifyFilter, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit],
     ContentComponent: FilterStepContent,
     createInitialData: () => undefined,
     serialize: serializeFilterStep,
@@ -102,7 +103,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.Limit]: {
     label: 'Limit',
-    allowedNext: [],
+    allowedNext: [PIPELINE_STEP_TYPE.Limit],
     ContentComponent: LimitStepContent,
     createInitialData: () => undefined,
     serialize: serializeLimitStep,

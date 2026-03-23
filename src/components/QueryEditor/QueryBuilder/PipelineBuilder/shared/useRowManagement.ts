@@ -6,6 +6,7 @@ interface UseRowManagementOptions<TRow extends { id: string }> {
   rows: TRow[];
   stepId: string;
   onStepChange: (id: string, patch: PipelineStepPatch) => void;
+  onDeleteStep?: (id: string) => void;
 }
 
 interface UseRowManagementResult<TRow> {
@@ -18,6 +19,7 @@ export const useRowManagement = <TRow extends { id: string }>({
   rows,
   stepId,
   onStepChange,
+  onDeleteStep,
 }: UseRowManagementOptions<TRow>): UseRowManagementResult<TRow> => {
   const handleRowChange = useCallback(
     (updatedRow: TRow) => {
@@ -30,9 +32,13 @@ export const useRowManagement = <TRow extends { id: string }>({
   const handleRowDelete = useCallback(
     (rowId: string) => {
       const newRows = rows.filter((r) => r.id !== rowId);
-      onStepChange(stepId, { rows: newRows } as PipelineStepPatch);
+      if (newRows.length === 0 && onDeleteStep) {
+        onDeleteStep(stepId);
+      } else {
+        onStepChange(stepId, { rows: newRows } as PipelineStepPatch);
+      }
     },
-    [rows, onStepChange, stepId]
+    [rows, onStepChange, onDeleteStep, stepId]
   );
 
   const handleAddRow = useCallback(

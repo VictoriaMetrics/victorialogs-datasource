@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useMemo } from 'react';
 
 import { TimeRange } from '@grafana/data';
-import { Button, Dropdown, Label, Menu, Stack, useStyles2 } from '@grafana/ui';
+import { Label, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
@@ -13,14 +13,14 @@ import { useRowManagement } from '../shared/useRowManagement';
 import { AggregateStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import AggregateRowContainer from './AggregateRowContainer';
-import AGGREGATE_TYPE_CONFIG, { AGGREGATE_TYPE_FLAT_ENTRIES } from './aggregateTypeConfig';
-import { AGGREGATE_TYPE, AggregateRow, AggregateType, createAggregateRow } from './types';
+import { AggregateRow } from './types';
 
 interface Props {
   step: PipelineStepItem;
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
   onStepChange: (id: string, patch: PipelineStepPatch) => void;
+  onDeleteStep: (id: string) => void;
   steps: PipelineStepItem[];
   stepIndex: number;
 }
@@ -30,6 +30,7 @@ const AggregateStepContent = memo(function AggregateStepContent({
   datasource,
   timeRange,
   onStepChange,
+  onDeleteStep,
   steps,
   stepIndex,
 }: Props) {
@@ -39,18 +40,12 @@ const AggregateStepContent = memo(function AggregateStepContent({
   const queryContexts = useQueryContexts(steps, stepIndex, Math.max(rows.length, 1));
   const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext: queryContexts[0] });
 
-  const { handleRowChange, handleRowDelete, handleAddRow } = useRowManagement<AggregateRow>({
+  const { handleRowChange, handleRowDelete } = useRowManagement<AggregateRow>({
     rows,
     stepId: step.id,
     onStepChange,
+    onDeleteStep,
   });
-
-  const onAddAggregate = useCallback(
-    (aggregateType: AggregateType) => {
-      handleAddRow(createAggregateRow(aggregateType, AGGREGATE_TYPE_CONFIG[aggregateType].createInitialRow()));
-    },
-    [handleAddRow]
-  );
 
   const selectedByFields = useMemo(
     () => (aggregateStep.byFields ?? []).map((f) => ({ label: f, value: f })),
@@ -78,23 +73,22 @@ const AggregateStepContent = memo(function AggregateStepContent({
     [onStepChange, step.id]
   );
 
-  const menu = (
-    <Menu>
-      {AGGREGATE_TYPE_FLAT_ENTRIES.map(({ aggregateType, label, description }) => (
-        <Menu.Item
-          key={aggregateType}
-          label={label}
-          description={description}
-          onClick={() => onAddAggregate(aggregateType)}
-        />
-      ))}
-      <Menu.Divider />
-      <Menu.Item label='Custom' onClick={() => onAddAggregate(AGGREGATE_TYPE.CustomPipe)} />
-    </Menu>
-  );
-
   return (
-    <Stack direction='column' gap={1} alignItems='flex-start' wrap='wrap'>
+    <Stack direction='row' gap={1} alignItems='center' wrap='wrap'>
+      {rows.map((row, index) => (
+        <React.Fragment key={row.id}>
+          {index > 0 && <span className={styles.separator} />}
+          <AggregateRowContainer
+            row={row}
+            datasource={datasource}
+            timeRange={timeRange}
+            canDelete={true}
+            onChange={handleRowChange}
+            onDelete={() => handleRowDelete(row.id)}
+            queryContext={queryContexts[index]}
+          />
+        </React.Fragment>
+      ))}
       <OptionalField label='group by' isActive={isByFieldsActive} onAdd={handleAddByFields} onRemove={handleRemoveByFields}>
         <Stack alignItems='center'>
           <Label>group by</Label>
@@ -109,27 +103,6 @@ const AggregateStepContent = memo(function AggregateStepContent({
           />
         </Stack>
       </OptionalField>
-      <Stack direction='row' gap={1} alignItems='center' wrap='wrap'>
-        {rows.map((row, index) => (
-          <React.Fragment key={row.id}>
-            {index > 0 && <span className={styles.separator} />}
-            <AggregateRowContainer
-              row={row}
-              datasource={datasource}
-              timeRange={timeRange}
-              canDelete={true}
-              onChange={handleRowChange}
-              onDelete={() => handleRowDelete(row.id)}
-              queryContext={queryContexts[index]}
-            />
-          </React.Fragment>
-        ))}
-        <Dropdown overlay={menu} placement='bottom-start'>
-          <Button variant='secondary' icon='plus' size='sm'>
-            Add aggregate
-          </Button>
-        </Dropdown>
-      </Stack>
     </Stack>
   );
 });

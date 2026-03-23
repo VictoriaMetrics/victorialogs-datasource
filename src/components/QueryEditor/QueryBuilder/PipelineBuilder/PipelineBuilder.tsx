@@ -2,19 +2,18 @@ import { css } from '@emotion/css';
 import React, { Fragment, memo, useCallback, useMemo } from 'react';
 
 import { CoreApp, GrafanaTheme2, TimeRange } from '@grafana/data';
-import { Button, Stack, useStyles2 } from '@grafana/ui';
+import { useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { Query } from '../../../../types';
 import { buildStreamExtraFilters } from '../components/StreamFilters/streamFilterUtils';
 
-import PipelineInsertControl from './PipelineInsertControl';
-import PipelineStep from './PipelineStep';
+import PipelineAddMenu from './PipelineAddMenu';
 import { getAllowedAppendTypes, getAllowedInsertTypes } from './pipelineRules';
 import { serializePipeline } from './serialization/serializePipeline';
 import { PipelineContext } from './shared/PipelineContext';
 import { STEP_CONFIG } from './stepConfig';
-import { PipelineStepItem, PipelineStepType } from './types';
+import { PipelineStepItem, PipelineStepPatch, PipelineStepType } from './types';
 import { createInitialSteps, usePipelineActions } from './usePipelineActions';
 
 interface Props {
@@ -44,47 +43,59 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
     });
   }, [query, onChange]);
 
-  const { addStep, insertStep, deleteStep, updateStep } = usePipelineActions(steps, handleStepsChange);
+  const { addStep, deleteStep, updateStep, insertStep } = usePipelineActions(steps, handleStepsChange);
 
   const allowedAppendTypes = useMemo(() => getAllowedAppendTypes(steps), [steps]);
 
-  const handleAppend = useCallback((type: PipelineStepType) => () => addStep(type), [addStep]);
+  const handleAddStep = useCallback(
+    (type: PipelineStepType, initialPatch?: PipelineStepPatch) => addStep(type, initialPatch),
+    [addStep]
+  );
+
+  const handleInsertStep = useCallback(
+    (index: number) => (type: PipelineStepType, initialPatch?: PipelineStepPatch) => insertStep(index, type, initialPatch),
+    [insertStep]
+  );
 
   return (
     <PipelineContext.Provider value={pipelineContextValue}>
       <div className={styles.container}>
-        <Stack direction='column' gap={1}>
-          {steps.map((step, index) => (
+        {steps.map((step, index) => {
+          const config = STEP_CONFIG[step.type];
+          const ContentComponent = config.ContentComponent;
+
+          const insertAllowed = index > 0 ? getAllowedInsertTypes(steps, index) : [];
+
+          return (
             <Fragment key={step.id}>
-              {/* Insert control above each step except the first */}
               {index > 0 && (
-                <PipelineInsertControl
-                  allowedTypes={getAllowedInsertTypes(steps, index)}
-                  onInsert={(type) => insertStep(index, type)}
+                <>
+                  <span className={styles.pipeSeparator}>|</span>
+                  {insertAllowed.length > 0 && (
+                    <PipelineAddMenu
+                      allowedTypes={insertAllowed}
+                      onAddStep={handleInsertStep(index)}
+                      variant='insert'
+                    />
+                  )}
+                </>
+              )}
+              {ContentComponent && (
+                <ContentComponent
+                  step={step}
+                  datasource={datasource}
+                  timeRange={timeRange}
+                  onStepChange={updateStep}
+                  onDeleteStep={deleteStep}
+                  steps={steps}
+                  stepIndex={index}
                 />
               )}
-              <PipelineStep
-                step={step}
-                index={index}
-                datasource={datasource}
-                timeRange={timeRange}
-                onDelete={deleteStep}
-                onStepChange={updateStep}
-                steps={steps}
-              />
             </Fragment>
-          ))}
-        </Stack>
-
-        {/* Append control at the end */}
+          );
+        })}
         {allowedAppendTypes.length > 0 && (
-          <div className={styles.addStepRow}>
-            {allowedAppendTypes.map((type) => (
-              <Button key={type} variant='secondary' icon='plus' onClick={handleAppend(type)}>
-                {STEP_CONFIG[type].label}
-              </Button>
-            ))}
-          </div>
+          <PipelineAddMenu allowedTypes={allowedAppendTypes} onAddStep={handleAddStep} />
         )}
       </div>
     </PipelineContext.Provider>
@@ -94,20 +105,17 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
 const getStyles = (theme: GrafanaTheme2) => ({
   container: css`
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: center;
     gap: ${theme.spacing(1)};
     padding: ${theme.spacing(2)};
   `,
-  addStepRow: css`
-    display: flex;
-    align-items: center;
-    gap: ${theme.spacing(1)};
-    margin-top: ${theme.spacing(1)};
-  `,
-  endLabel: css`
+  pipeSeparator: css`
     color: ${theme.colors.text.secondary};
-    font-size: ${theme.typography.bodySmall.fontSize};
-    padding: ${theme.spacing(1)} 0;
+    font-size: ${theme.typography.h4.fontSize};
+    font-weight: ${theme.typography.fontWeightBold};
+    user-select: none;
+    padding: 0 ${theme.spacing(0.5)};
   `,
 });
 

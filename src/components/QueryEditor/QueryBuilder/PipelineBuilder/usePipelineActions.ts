@@ -24,32 +24,19 @@ export const usePipelineActions = (
   steps: PipelineStepItem[],
   onStepsChange: (newSteps: PipelineStepItem[]) => void
 ) => {
-  const addStep = useCallback((type: PipelineStepType): boolean => {
+  const addStep = useCallback((type: PipelineStepType, initialPatch?: PipelineStepPatch): boolean => {
     const allowed = getAllowedAppendTypes(steps);
     if (!allowed.includes(type)) {
       return false;
     }
-    onStepsChange([...steps, createStep(type)]);
-    return true;
-  }, [steps, onStepsChange]);
-
-  const insertStep = useCallback((index: number, type: PipelineStepType): boolean => {
-    if (index < 0 || index > steps.length) {
-      return false;
-    }
-    const allowed = getAllowedInsertTypes(steps, index);
-    if (!allowed.includes(type)) {
-      return false;
-    }
-    const next = [...steps];
-    next.splice(index, 0, createStep(type));
-    onStepsChange(next);
+    const step = createStep(type);
+    onStepsChange([...steps, initialPatch ? { ...step, ...initialPatch } as PipelineStepItem : step]);
     return true;
   }, [steps, onStepsChange]);
 
   const deleteStep = useCallback((id: string): void => {
     const index = steps.findIndex((s) => s.id === id);
-    if (index <= 0) {
+    if (index < 0) {
       return;
     }
     const next = [...steps];
@@ -67,5 +54,20 @@ export const usePipelineActions = (
     onStepsChange(next);
   }, [steps, onStepsChange]);
 
-  return { addStep, insertStep, deleteStep, updateStep };
+  const insertStep = useCallback((index: number, type: PipelineStepType, initialPatch?: PipelineStepPatch): boolean => {
+    if (index < 0 || index > steps.length) {
+      return false;
+    }
+    const allowed = getAllowedInsertTypes(steps, index);
+    if (!allowed.includes(type)) {
+      return false;
+    }
+    const step = createStep(type);
+    const next = [...steps];
+    next.splice(index, 0, initialPatch ? { ...step, ...initialPatch } as PipelineStepItem : step);
+    onStepsChange(next);
+    return true;
+  }, [steps, onStepsChange]);
+
+  return { addStep, deleteStep, updateStep, insertStep };
 };

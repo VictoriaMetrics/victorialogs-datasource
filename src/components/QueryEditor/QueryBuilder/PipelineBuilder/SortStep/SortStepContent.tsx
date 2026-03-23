@@ -7,6 +7,7 @@ import { AutoSizeInput, Button, IconButton, Stack, useStyles2 } from '@grafana/u
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { CompatibleCombobox } from '../../../../CompatibleCombobox';
 import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
+import StepRowLayout from '../../components/StepRowLayout';
 import { serializePartialPipeline } from '../serialization/serializePartialPipeline';
 import FieldNameSelect from '../shared/FieldNameSelect';
 import OptionalField from '../shared/OptionalField';
@@ -22,6 +23,7 @@ interface Props {
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
   onStepChange: (id: string, patch: PipelineStepPatch) => void;
+  onDeleteStep: (id: string) => void;
   steps: PipelineStepItem[];
   stepIndex: number;
 }
@@ -31,7 +33,7 @@ const DIRECTION_OPTIONS = [
   { label: 'desc', value: SORT_DIRECTION.Desc },
 ];
 
-const SortStepContent = memo(function SortStepContent({ step, datasource, timeRange, onStepChange, steps, stepIndex }: Props) {
+const SortStepContent = memo(function SortStepContent({ step, datasource, timeRange, onStepChange, onDeleteStep, steps, stepIndex }: Props) {
   const shared = useStyles2(getSharedStyles);
   const styles = useStyles2(getStyles);
   const sortStep = step as SortStep;
@@ -99,8 +101,8 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
   );
 
   return (
-    <Stack direction='row' gap={0.5} alignItems='center' wrap='wrap'>
-      <span className={styles.label}>by (</span>
+    <StepRowLayout onDelete={() => onDeleteStep(step.id)} canDelete={true}>
+      <span className={styles.label}>sort by (</span>
       {sortFields.map((sf, index) => (
         <Stack key={sf.id} direction='row' gap={0.5} alignItems='center'>
           {index > 0 && <span className={styles.label}>,</span>}
@@ -158,7 +160,7 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
           <AutoSizeInput placeholder='field name' defaultValue={sortStep.rankField ?? ''} minWidth={10} onCommitChange={rank.handleChange} />
         </Stack>
       </OptionalField>
-    </Stack>
+    </StepRowLayout>
   );
 });
 

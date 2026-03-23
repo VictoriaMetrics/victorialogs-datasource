@@ -12,6 +12,9 @@ interface Props {
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
   onStepChange: (id: string, patch: PipelineStepPatch) => void;
+  onDeleteStep: (id: string) => void;
+  steps: PipelineStepItem[];
+  stepIndex: number;
 }
 
 const AggregateFilterStepContent = memo(function AggregateFilterStepContent({
