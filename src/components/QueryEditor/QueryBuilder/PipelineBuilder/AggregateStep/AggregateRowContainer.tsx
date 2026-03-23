@@ -2,10 +2,10 @@ import { css } from '@emotion/css';
 import React, { memo, useCallback } from 'react';
 
 import { GrafanaTheme2, TimeRange } from '@grafana/data';
-import { AutoSizeInput, Stack, useStyles2 } from '@grafana/ui';
+import { AutoSizeInput, IconButton, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
-import StepRowLayout from '../../components/StepRowLayout';
+import { getSharedStyles } from '../shared/styles';
 
 import AGGREGATE_TYPE_CONFIG from './aggregateTypeConfig';
 import { AGGREGATE_TYPE, AggregateRow } from './types';
@@ -30,6 +30,7 @@ const AggregateRowContainer = memo(function AggregateRowContainer({
   queryContext,
 }: Props) {
   const styles = useStyles2(getStyles);
+  const shared = useStyles2(getSharedStyles);
   const config = AGGREGATE_TYPE_CONFIG[row.aggregateType];
 
   const handleResultNameChange = useCallback(
@@ -41,35 +42,47 @@ const AggregateRowContainer = memo(function AggregateRowContainer({
 
   const { ContentComponent } = config;
 
+  const removeButton = (
+    <div className={shared.removeButtonContainer}>
+      <IconButton
+        className={shared.removeButton}
+        name='times'
+        size='sm'
+        tooltip={canDelete ? 'Remove function' : 'Cannot remove the function'}
+        onClick={onDelete}
+        disabled={!canDelete}
+      />
+    </div>
+  );
+
   if (row.aggregateType === AGGREGATE_TYPE.CustomPipe) {
     return (
-      <StepRowLayout
-        onDelete={onDelete}
-        canDelete={canDelete}
-      >
-        <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
-      </StepRowLayout>
+      <Stack direction='row' gap={0} alignItems='center'>
+        <div className={styles.contentNoRightRadius}>
+          <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
+        </div>
+        {removeButton}
+      </Stack>
     );
   }
 
   return (
-    <StepRowLayout
-      onDelete={onDelete}
-      canDelete={canDelete}
-      disabledDeleteTooltip='At least one aggregate row is required'
-    >
-      <Stack direction='row' gap={0.5} alignItems='center' wrap='wrap'>
-        <span className={styles.typeLabel}>{config.label}</span>
-        <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
-        <span className={styles.asLabel}>as</span>
-        <AutoSizeInput
-          placeholder='result name'
-          defaultValue={row.resultName}
-          minWidth={10}
-          onCommitChange={handleResultNameChange}
-        />
-      </Stack>
-    </StepRowLayout>
+    <Stack direction='row' gap={0} alignItems='center'>
+      <div className={styles.rowBorder}>
+        <Stack direction='row' gap={0.5} alignItems='center'>
+          <span className={styles.typeLabel}>{config.label}</span>
+          <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
+          <span className={styles.asLabel}>as</span>
+          <AutoSizeInput
+            placeholder='result name'
+            defaultValue={row.resultName}
+            minWidth={10}
+            onCommitChange={handleResultNameChange}
+          />
+        </Stack>
+      </div>
+      {removeButton}
+    </Stack>
   );
 });
 
@@ -88,5 +101,22 @@ const getStyles = (theme: GrafanaTheme2) => ({
     font-size: ${theme.typography.bodySmall.fontSize};
     font-style: italic;
     padding: 0 ${theme.spacing(0.25)};
+  `,
+  rowBorder: css`
+    display: flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 ${theme.spacing(0.5)};
+    border: 1px solid ${theme.colors.border.medium};
+    border-right: none;
+    border-radius: ${theme.shape.radius.default} 0 0 ${theme.shape.radius.default};
+  `,
+  contentNoRightRadius: css`
+    & :last-child {
+      & * {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+    }
   `,
 });
