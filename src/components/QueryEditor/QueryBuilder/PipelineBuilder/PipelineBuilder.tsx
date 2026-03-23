@@ -2,13 +2,13 @@ import { css } from '@emotion/css';
 import React, { Fragment, memo, useCallback, useMemo } from 'react';
 
 import { CoreApp, GrafanaTheme2, TimeRange } from '@grafana/data';
-import { useStyles2 } from '@grafana/ui';
+import { Dropdown, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { Query } from '../../../../types';
 import { buildStreamExtraFilters } from '../components/StreamFilters/streamFilterUtils';
 
-import PipelineAddMenu from './PipelineAddMenu';
+import PipelineAddMenu, { buildPipelineMenu } from './PipelineAddMenu';
 import { getAllowedAppendTypes, getAllowedInsertTypes } from './pipelineRules';
 import { serializePipeline } from './serialization/serializePipeline';
 import { PipelineContext } from './shared/PipelineContext';
@@ -69,16 +69,13 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
           return (
             <Fragment key={step.id}>
               {index > 0 && (
-                <>
+                insertAllowed.length > 0 ? (
+                  <Dropdown overlay={buildPipelineMenu(insertAllowed, handleInsertStep(index))} placement='bottom-start'>
+                    <span className={styles.pipeSeparatorInteractive} title='Insert pipe'>|</span>
+                  </Dropdown>
+                ) : (
                   <span className={styles.pipeSeparator}>|</span>
-                  {insertAllowed.length > 0 && (
-                    <PipelineAddMenu
-                      allowedTypes={insertAllowed}
-                      onAddStep={handleInsertStep(index)}
-                      variant='insert'
-                    />
-                  )}
-                </>
+                )
               )}
               {ContentComponent && (
                 <ContentComponent
@@ -116,6 +113,33 @@ const getStyles = (theme: GrafanaTheme2) => ({
     font-weight: ${theme.typography.fontWeightBold};
     user-select: none;
     padding: 0 ${theme.spacing(0.5)};
+  `,
+  pipeSeparatorInteractive: css`
+    color: ${theme.colors.text.secondary};
+    font-size: ${theme.typography.h4.fontSize};
+    font-weight: ${theme.typography.fontWeightBold};
+    user-select: none;
+    padding: 0 ${theme.spacing(0.5)};
+    cursor: pointer;
+    border-radius: ${theme.shape.radius.default};
+    transition: color 0.15s ease, background-color 0.15s ease;
+
+    &:hover {
+      color: transparent;
+      background-color: ${theme.colors.action.hover};
+
+      &::after {
+        content: '+';
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: ${theme.colors.text.primary};
+      }
+    }
+
+    position: relative;
   `,
 });
 

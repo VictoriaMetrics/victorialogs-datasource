@@ -1,6 +1,6 @@
 import React, { memo, ReactElement, useCallback } from 'react';
 
-import { Button, Dropdown, IconButton, Menu } from '@grafana/ui';
+import { Button, Dropdown, Menu } from '@grafana/ui';
 
 import AGGREGATE_MODIFY_TYPE_CONFIG, { AGGREGATE_MODIFY_TYPE_ENTRIES } from './AggregateModifyStep/aggregateModifyTypeConfig';
 import { AggregateModifyType, createAggregateModifyRow } from './AggregateModifyStep/types';
@@ -18,7 +18,6 @@ import { PIPELINE_STEP_TYPE, PipelineStepPatch, PipelineStepType } from './types
 interface Props {
   allowedTypes: PipelineStepType[];
   onAddStep: (type: PipelineStepType, initialPatch?: PipelineStepPatch) => void;
-  variant?: 'append' | 'insert';
 }
 
 type OnAdd = (patch: PipelineStepPatch) => void;
@@ -149,7 +148,7 @@ const getChildItems = (type: PipelineStepType, onAdd: OnAdd): Array<React.ReactE
   }
 };
 
-const PipelineAddMenu = memo<Props>(({ allowedTypes, onAddStep, variant = 'append' }) => {
+const PipelineAddMenu = memo<Props>(({ allowedTypes, onAddStep }) => {
   const handleAdd = useCallback(
     (type: PipelineStepType, patch?: PipelineStepPatch) => onAddStep(type, patch),
     [onAddStep]
@@ -172,13 +171,9 @@ const PipelineAddMenu = memo<Props>(({ allowedTypes, onAddStep, variant = 'appen
 
   return (
     <Dropdown overlay={menu} placement='bottom-start'>
-      {variant === 'insert' ? (
-        <IconButton name='plus' size='sm' tooltip='Insert pipe' />
-      ) : (
-        <Button variant='secondary' icon='plus' size='sm'>
-          Add pipe
-        </Button>
-      )}
+      <Button variant='secondary' icon='plus' size='sm'>
+        Add pipe
+      </Button>
     </Dropdown>
   );
 });
@@ -186,3 +181,21 @@ const PipelineAddMenu = memo<Props>(({ allowedTypes, onAddStep, variant = 'appen
 PipelineAddMenu.displayName = 'PipelineAddMenu';
 
 export default PipelineAddMenu;
+
+export const buildPipelineMenu = (
+  allowedTypes: PipelineStepType[],
+  onAddStep: (type: PipelineStepType, initialPatch?: PipelineStepPatch) => void
+): ReactElement => (
+  <Menu>
+    {allowedTypes.map((type) => {
+      const config = STEP_CONFIG[type];
+      const childItems = getChildItems(type, (patch) => onAddStep(type, patch));
+
+      if (childItems) {
+        return <Menu.Item key={type} label={config.label} childItems={childItems} />;
+      }
+
+      return <Menu.Item key={type} label={config.label} onClick={() => onAddStep(type)} />;
+    })}
+  </Menu>
+);
