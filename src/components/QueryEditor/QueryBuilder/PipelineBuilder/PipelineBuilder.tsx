@@ -70,7 +70,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
             <Fragment key={step.id}>
               {index > 0 && (
                 insertAllowed.length > 0 ? (
-                  <Dropdown overlay={buildPipelineMenu(insertAllowed, handleInsertStep(index))} placement='bottom-start'>
+                  <Dropdown overlay={buildPipelineMenu(insertAllowed, handleInsertStep(index), steps[index - 1]?.type)} placement='bottom-start'>
                     <span className={styles.pipeSeparatorInteractive} title='Insert pipe'>|</span>
                   </Dropdown>
                 ) : (
@@ -92,7 +92,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
           );
         })}
         {allowedAppendTypes.length > 0 && (
-          <PipelineAddMenu allowedTypes={allowedAppendTypes} onAddStep={handleAddStep} />
+          <PipelineAddMenu allowedTypes={allowedAppendTypes} onAddStep={handleAddStep} prevStepType={steps[steps.length - 1]?.type} />
         )}
       </div>
     </PipelineContext.Provider>
