@@ -24,12 +24,9 @@ export interface AggregateRow {
   expression?: string;
 }
 
-let aggregateRowIdCounter = 0;
+import { createIdGenerator } from '../shared/generateId';
 
-export const generateAggregateRowId = (): string => {
-  aggregateRowIdCounter += 1;
-  return `aggregate-row-${Date.now()}-${aggregateRowIdCounter}`;
-};
+export const generateAggregateRowId = createIdGenerator('aggregate-row');
 
 export const createAggregateRow = (aggregateType: AggregateType, initialData: Partial<AggregateRow> = {}): AggregateRow => ({
   id: generateAggregateRowId(),

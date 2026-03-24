@@ -1,7 +1,6 @@
-import React from 'react';
-
-import { escapeQuotes, RowSerializeResult } from '../serialization/types';
+import { escapeQuotes } from '../serialization/types';
 import CustomPipeEditor from '../shared/CustomPipeEditor';
+import { BaseTypeDefinition } from '../shared/types';
 
 import ExactValueSelect from './parts/ExactValueSelect';
 import { createOperatorSelect } from './parts/OperatorSelect';
@@ -14,14 +13,9 @@ export type { FilterRowContentProps } from './parts/StandardFilterContent';
 
 export type FilterGroup = 'Match' | 'Pattern' | 'Utility';
 
-export interface FilterTypeDefinition {
-  label: string;
-  description: string;
+export interface FilterTypeDefinition extends BaseTypeDefinition<FilterRow, FilterRowContentProps> {
   group: FilterGroup;
   defaultOperator: string;
-  ContentComponent: React.FC<FilterRowContentProps>;
-  serialize: (row: FilterRow, stepId: string) => RowSerializeResult;
-  createInitialRow: () => Partial<FilterRow>;
 }
 
 const ExactOperatorSelect = createOperatorSelect([

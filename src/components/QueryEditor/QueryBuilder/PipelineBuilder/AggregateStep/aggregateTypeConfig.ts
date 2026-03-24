@@ -1,32 +1,16 @@
-import React from 'react';
-
-import { TimeRange } from '@grafana/data';
-
-import { VictoriaLogsDatasource } from '../../../../../datasource';
 import EmptyContent from '../ModifyStep/parts/EmptyContent';
 import { RowSerializeResult } from '../serialization/types';
 import CustomPipeEditor from '../shared/CustomPipeEditor';
+import { BaseTypeDefinition, RowContentProps } from '../shared/types';
 
 import FieldListEditor from './parts/FieldListEditor';
 import QuantileEditor from './parts/QuantileEditor';
 import SingleFieldEditor from './parts/SingleFieldEditor';
 import { AGGREGATE_TYPE, AggregateRow, AggregateType } from './types';
 
-export interface AggregateRowContentProps {
-  row: AggregateRow;
-  onChange: (updatedRow: AggregateRow) => void;
-  datasource: VictoriaLogsDatasource;
-  timeRange?: TimeRange;
-  queryContext?: string;
-}
+export type AggregateRowContentProps = RowContentProps<AggregateRow>;
 
-export interface AggregateTypeDefinition {
-  label: string;
-  description: string;
-  ContentComponent: React.FC<AggregateRowContentProps>;
-  serialize: (row: AggregateRow, stepId: string) => RowSerializeResult;
-  createInitialRow: () => Partial<AggregateRow>;
-}
+export type AggregateTypeDefinition = BaseTypeDefinition<AggregateRow, AggregateRowContentProps>;
 
 const serializeNoArgs = (row: AggregateRow): RowSerializeResult => {
   return { result: `${row.aggregateType}()` };

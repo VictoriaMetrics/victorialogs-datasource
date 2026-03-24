@@ -1,23 +1,17 @@
 import { css } from '@emotion/css';
 import React, { memo, useCallback } from 'react';
 
-import { GrafanaTheme2, TimeRange } from '@grafana/data';
+import { GrafanaTheme2 } from '@grafana/data';
 import { useStyles2 } from '@grafana/ui';
 
-import { VictoriaLogsDatasource } from '../../../../../../datasource';
 import FieldNameSelect from '../../shared/FieldNameSelect';
+import { RowContentProps } from '../../shared/types';
 import { FilterRow } from '../types';
 
 import { OperatorComponentProps } from './StaticOperatorLabel';
 import { ValueComponentProps } from './TextValueInput';
 
-export interface FilterRowContentProps {
-  row: FilterRow;
-  onChange: (updatedRow: FilterRow) => void;
-  datasource: VictoriaLogsDatasource;
-  timeRange?: TimeRange;
-  queryContext?: string;
-}
+export type FilterRowContentProps = RowContentProps<FilterRow>;
 
 interface ValueWrapper {
   open: string;

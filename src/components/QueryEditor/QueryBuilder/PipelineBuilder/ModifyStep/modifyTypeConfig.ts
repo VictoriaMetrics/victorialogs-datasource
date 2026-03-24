@@ -1,10 +1,6 @@
-import React from 'react';
-
-import { TimeRange } from '@grafana/data';
-
-import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { escapeQuotes, RowSerializeResult } from '../serialization/types';
 import CustomPipeEditor from '../shared/CustomPipeEditor';
+import { BaseTypeDefinition, RowContentProps } from '../shared/types';
 
 import EmptyContent from './parts/EmptyContent';
 import ExtractEditor from './parts/ExtractEditor';
@@ -16,23 +12,12 @@ import ReplaceEditor from './parts/ReplaceEditor';
 import UnpackEditor from './parts/UnpackEditor';
 import { MODIFY_TYPE, ModifyRow, ModifyType } from './types';
 
-export interface ModifyRowContentProps {
-  row: ModifyRow;
-  onChange: (updatedRow: ModifyRow) => void;
-  datasource: VictoriaLogsDatasource;
-  timeRange?: TimeRange;
-  queryContext?: string;
-}
+export type ModifyRowContentProps = RowContentProps<ModifyRow>;
 
 export type ModifyGroup = 'Field Manipulation' | 'Text Processing' | 'Data Serialization' | 'Utility';
 
-export interface ModifyTypeDefinition {
-  label: string;
-  description: string;
+export interface ModifyTypeDefinition extends BaseTypeDefinition<ModifyRow, ModifyRowContentProps> {
   group: ModifyGroup;
-  ContentComponent: React.FC<ModifyRowContentProps>;
-  serialize: (row: ModifyRow, stepId: string) => RowSerializeResult;
-  createInitialRow: () => Partial<ModifyRow>;
 }
 
 const serializeFieldPairs = (row: ModifyRow): RowSerializeResult => {

@@ -43,12 +43,9 @@ export interface ModifyRow {
   expression?: string;
 }
 
-let modifyRowIdCounter = 0;
+import { createIdGenerator } from '../shared/generateId';
 
-export const generateModifyRowId = (): string => {
-  modifyRowIdCounter += 1;
-  return `modify-row-${Date.now()}-${modifyRowIdCounter}`;
-};
+export const generateModifyRowId = createIdGenerator('modify-row');
 
 export const createModifyRow = (modifyType: ModifyType, initialData: Partial<ModifyRow> = {}): ModifyRow => ({
   id: generateModifyRowId(),

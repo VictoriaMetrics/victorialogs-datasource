@@ -1,9 +1,5 @@
 import { ComponentType } from 'react';
 
-import { TimeRange } from '@grafana/data';
-
-import { VictoriaLogsDatasource } from '../../../../datasource';
-
 import AggregateModifyStepContent from './AggregateModifyStep/AggregateModifyStepContent';
 import { serializeAggregateModifyStep, serializeAggregateModifyStepPartial } from './AggregateModifyStep/serializeAggregateModifyStep';
 import AggregateStepContent from './AggregateStep/AggregateStepContent';
@@ -18,17 +14,10 @@ import SortStepContent from './SortStep/SortStepContent';
 import { serializeSortStep } from './SortStep/serializeSortStep';
 import { createSortField } from './SortStep/types';
 import { SerializeResult } from './serialization/types';
+import { StepContentProps } from './shared/types';
 import { PIPELINE_STEP_TYPE, PipelineStepItem, PipelineStepPatch, PipelineStepType } from './types';
 
-export interface StepContentProps {
-  step: PipelineStepItem;
-  datasource: VictoriaLogsDatasource;
-  timeRange?: TimeRange;
-  onStepChange: (id: string, patch: PipelineStepPatch) => void;
-  onDeleteStep: (id: string) => void;
-  steps: PipelineStepItem[];
-  stepIndex: number;
-}
+export type { StepContentProps };
 
 interface StepConfig {
   label: string;

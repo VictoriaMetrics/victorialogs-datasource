@@ -1,32 +1,17 @@
-import React from 'react';
-
-import { TimeRange } from '@grafana/data';
-
-import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { RowSerializeResult } from '../serialization/types';
 import CustomPipeEditor from '../shared/CustomPipeEditor';
+import { BaseTypeDefinition, RowContentProps } from '../shared/types';
 
 import NumberEditor from './parts/NumberEditor';
 import NumberWithFieldsEditor from './parts/NumberWithFieldsEditor';
 import { LIMIT_TYPE, LimitRow, LimitType } from './types';
 
-export interface LimitRowContentProps {
-  row: LimitRow;
-  onChange: (updatedRow: LimitRow) => void;
-  datasource: VictoriaLogsDatasource;
-  timeRange?: TimeRange;
-  queryContext?: string;
-}
+export type LimitRowContentProps = RowContentProps<LimitRow>;
 
 export type LimitGroup = 'Basic' | 'Selection';
 
-export interface LimitTypeDefinition {
-  label: string;
-  description: string;
+export interface LimitTypeDefinition extends BaseTypeDefinition<LimitRow, LimitRowContentProps> {
   group: LimitGroup;
-  ContentComponent: React.FC<LimitRowContentProps>;
-  serialize: (row: LimitRow, stepId: string) => RowSerializeResult;
-  createInitialRow: () => Partial<LimitRow>;
 }
 
 const serializeNumber = (row: LimitRow, _stepId: string): RowSerializeResult => {

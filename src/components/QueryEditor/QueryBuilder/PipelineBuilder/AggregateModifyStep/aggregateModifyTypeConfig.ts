@@ -1,30 +1,14 @@
-import React from 'react';
-
-import { TimeRange } from '@grafana/data';
-
-import { VictoriaLogsDatasource } from '../../../../../datasource';
-import { escapeQuotes, RowSerializeResult } from '../serialization/types';
+import { escapeQuotes } from '../serialization/types';
 import CustomPipeEditor from '../shared/CustomPipeEditor';
 import PackJsonEditor from '../shared/PackJsonEditor';
+import { BaseTypeDefinition, RowContentProps } from '../shared/types';
 
 import ExpressionEditor from './parts/ExpressionEditor';
 import { AGGREGATE_MODIFY_TYPE, AggregateModifyRow, AggregateModifyType } from './types';
 
-export interface AggregateModifyRowContentProps {
-  row: AggregateModifyRow;
-  onChange: (updatedRow: AggregateModifyRow) => void;
-  datasource: VictoriaLogsDatasource;
-  timeRange?: TimeRange;
-  queryContext?: string;
-}
+export type AggregateModifyRowContentProps = RowContentProps<AggregateModifyRow>;
 
-export interface AggregateModifyTypeDefinition {
-  label: string;
-  description: string;
-  ContentComponent: React.FC<AggregateModifyRowContentProps>;
-  serialize: (row: AggregateModifyRow, stepId: string) => RowSerializeResult;
-  createInitialRow: () => Partial<AggregateModifyRow>;
-}
+export type AggregateModifyTypeDefinition = BaseTypeDefinition<AggregateModifyRow, AggregateModifyRowContentProps>;
 
 const AGGREGATE_MODIFY_TYPE_CONFIG: Record<AggregateModifyType, AggregateModifyTypeDefinition> = {
   [AGGREGATE_MODIFY_TYPE.Math]: {

@@ -48,12 +48,9 @@ export interface FilterRow {
   expression?: string;
 }
 
-let filterRowIdCounter = 0;
+import { createIdGenerator } from '../shared/generateId';
 
-export const generateFilterRowId = (): string => {
-  filterRowIdCounter += 1;
-  return `filter-row-${Date.now()}-${filterRowIdCounter}`;
-};
+export const generateFilterRowId = createIdGenerator('filter-row');
 
 const DEFAULT_OPERATORS: Record<FilterType, string> = {
   [FILTER_TYPE.Exact]: EXACT_OPERATORS.In,

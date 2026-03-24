@@ -18,12 +18,9 @@ export interface LimitRow {
   expression?: string;
 }
 
-let limitRowIdCounter = 0;
+import { createIdGenerator } from '../shared/generateId';
 
-export const generateLimitRowId = (): string => {
-  limitRowIdCounter += 1;
-  return `limit-row-${Date.now()}-${limitRowIdCounter}`;
-};
+export const generateLimitRowId = createIdGenerator('limit-row');
 
 export const createLimitRow = (limitType: LimitType, initialData: Partial<LimitRow> = {}): LimitRow => ({
   id: generateLimitRowId(),

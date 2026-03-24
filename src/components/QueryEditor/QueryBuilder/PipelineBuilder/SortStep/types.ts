@@ -11,12 +11,9 @@ export interface SortField {
   direction: SortDirection;
 }
 
-let sortFieldIdCounter = 0;
+import { createIdGenerator } from '../shared/generateId';
 
-export const generateSortFieldId = (): string => {
-  sortFieldIdCounter += 1;
-  return `sort-field-${Date.now()}-${sortFieldIdCounter}`;
-};
+export const generateSortFieldId = createIdGenerator('sort-field');
 
 export const createSortField = (): SortField => ({
   id: generateSortFieldId(),

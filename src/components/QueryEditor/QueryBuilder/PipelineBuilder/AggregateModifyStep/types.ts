@@ -16,12 +16,9 @@ export interface AggregateModifyRow {
   resultField?: string;
 }
 
-let aggregateModifyRowIdCounter = 0;
+import { createIdGenerator } from '../shared/generateId';
 
-export const generateAggregateModifyRowId = (): string => {
-  aggregateModifyRowIdCounter += 1;
-  return `aggregate-modify-row-${Date.now()}-${aggregateModifyRowIdCounter}`;
-};
+export const generateAggregateModifyRowId = createIdGenerator('aggregate-modify-row');
 
 export const createAggregateModifyRow = (aggregateModifyType: AggregateModifyType, initialData: Partial<AggregateModifyRow> = {}): AggregateModifyRow => ({
   id: generateAggregateModifyRowId(),
