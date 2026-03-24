@@ -46,7 +46,7 @@ export interface AggregateStep extends BaseStep {
 
 export interface AggregateFilterStep extends BaseStep {
   type: typeof PIPELINE_STEP_TYPE.AggregateFilter;
-  condition?: string;
+  rows: FilterRow[];
 }
 
 export interface AggregateModifyStep extends BaseStep {
@@ -56,7 +56,7 @@ export interface AggregateModifyStep extends BaseStep {
 
 export interface AggregateModifyFilterStep extends BaseStep {
   type: typeof PIPELINE_STEP_TYPE.AggregateModifyFilter;
-  condition?: string;
+  rows: FilterRow[];
 }
 
 export interface SortStep extends BaseStep {

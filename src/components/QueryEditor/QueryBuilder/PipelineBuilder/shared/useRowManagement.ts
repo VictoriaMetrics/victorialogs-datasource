@@ -24,7 +24,7 @@ export const useRowManagement = <TRow extends { id: string }>({
   const handleRowChange = useCallback(
     (updatedRow: TRow) => {
       const newRows = rows.map((r) => (r.id === updatedRow.id ? updatedRow : r));
-      onStepChange(stepId, { rows: newRows } as PipelineStepPatch);
+      onStepChange(stepId, { rows: newRows } as unknown as PipelineStepPatch);
     },
     [rows, onStepChange, stepId]
   );
@@ -35,7 +35,7 @@ export const useRowManagement = <TRow extends { id: string }>({
       if (newRows.length === 0 && onDeleteStep) {
         onDeleteStep(stepId);
       } else {
-        onStepChange(stepId, { rows: newRows } as PipelineStepPatch);
+        onStepChange(stepId, { rows: newRows } as unknown as PipelineStepPatch);
       }
     },
     [rows, onStepChange, onDeleteStep, stepId]
@@ -43,7 +43,7 @@ export const useRowManagement = <TRow extends { id: string }>({
 
   const handleAddRow = useCallback(
     (newRow: TRow) => {
-      onStepChange(stepId, { rows: [...rows, newRow] } as PipelineStepPatch);
+      onStepChange(stepId, { rows: [...rows, newRow] } as unknown as PipelineStepPatch);
     },
     [rows, onStepChange, stepId]
   );
