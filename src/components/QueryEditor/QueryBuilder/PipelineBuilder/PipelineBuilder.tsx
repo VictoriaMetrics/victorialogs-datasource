@@ -9,6 +9,7 @@ import { Query } from '../../../../types';
 import { buildStreamExtraFilters } from '../components/StreamFilters/streamFilterUtils';
 
 import PipelineAddMenu, { buildPipelineMenu } from './PipelineAddMenu';
+import PipelineExpressionPreview from './PipelineExpressionPreview';
 import { getAllowedAppendTypes, getAllowedInsertTypes } from './pipelineRules';
 import { serializePipeline } from './serialization/serializePipeline';
 import { PipelineContext } from './shared/PipelineContext';
@@ -95,6 +96,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
           <PipelineAddMenu allowedTypes={allowedAppendTypes} onAddStep={handleAddStep} />
         )}
       </div>
+      <PipelineExpressionPreview expr={query.expr} streamFilters={query.streamFilters} />
     </PipelineContext.Provider>
   );
 });
