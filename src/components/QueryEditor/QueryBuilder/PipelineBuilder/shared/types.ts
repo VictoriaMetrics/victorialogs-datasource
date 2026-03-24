@@ -2,7 +2,7 @@ import React from 'react';
 
 import { TimeRange } from '@grafana/data';
 
-import { VictoriaLogsDatasource } from '../../../../datasource';
+import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { RowSerializeResult } from '../serialization/types';
 import { PipelineStepItem, PipelineStepPatch } from '../types';
 

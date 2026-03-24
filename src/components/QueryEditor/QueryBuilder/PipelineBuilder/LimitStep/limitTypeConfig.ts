@@ -1,10 +1,11 @@
 import { RowSerializeResult } from '../serialization/types';
 import CustomPipeEditor from '../shared/CustomPipeEditor';
 import { BaseTypeDefinition, RowContentProps } from '../shared/types';
+import { PipelineStepPatch } from '../types';
 
 import NumberEditor from './parts/NumberEditor';
 import NumberWithFieldsEditor from './parts/NumberWithFieldsEditor';
-import { LIMIT_TYPE, LimitRow, LimitType } from './types';
+import { LIMIT_TYPE, LimitRow, LimitType, createLimitRow } from './types';
 
 export type LimitRowContentProps = RowContentProps<LimitRow>;
 
@@ -97,5 +98,8 @@ export const LIMIT_TYPE_GROUPED_ENTRIES = LIMIT_GROUPS.map((group) => ({
       limitType: limitType as LimitType,
       label: config.label,
       description: config.description,
+      createPatch: (): PipelineStepPatch => ({
+        rows: [createLimitRow(limitType as LimitType, config.createInitialRow())],
+      }),
     })),
 }));

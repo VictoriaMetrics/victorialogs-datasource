@@ -1,13 +1,14 @@
 import { escapeQuotes } from '../serialization/types';
 import CustomPipeEditor from '../shared/CustomPipeEditor';
 import { BaseTypeDefinition } from '../shared/types';
+import { PipelineStepPatch } from '../types';
 
 import ExactValueSelect from './parts/ExactValueSelect';
 import { createOperatorSelect } from './parts/OperatorSelect';
 import { FilterRowContentProps, createStandardFilterContent } from './parts/StandardFilterContent';
 import StaticOperatorLabel from './parts/StaticOperatorLabel';
 import TextValueInput from './parts/TextValueInput';
-import { CASE_INSENSITIVE_OPERATORS, EXACT_OPERATORS, FILTER_TYPE, FilterRow, FilterType, RANGE_OPERATORS, REGEXP_OPERATORS } from './types';
+import { CASE_INSENSITIVE_OPERATORS, EXACT_OPERATORS, FILTER_TYPE, FilterRow, FilterType, RANGE_OPERATORS, REGEXP_OPERATORS, createFilterRow } from './types';
 
 export type { FilterRowContentProps } from './parts/StandardFilterContent';
 
@@ -138,4 +139,7 @@ export const FILTER_TYPE_FLAT_ENTRIES = Object.entries(FILTER_TYPE_CONFIG)
     filterType: filterType as FilterType,
     label: config.label,
     description: config.description,
+    createPatch: (): PipelineStepPatch => ({
+      rows: [createFilterRow(filterType as FilterType, (config as FilterTypeDefinition).defaultOperator)],
+    }),
   }));

@@ -2,16 +2,15 @@ import React, { memo, ReactElement, useCallback } from 'react';
 
 import { Button, Dropdown, Menu } from '@grafana/ui';
 
-import AGGREGATE_MODIFY_TYPE_CONFIG, { AGGREGATE_MODIFY_TYPE_ENTRIES } from './AggregateModifyStep/aggregateModifyTypeConfig';
-import { AggregateModifyType, createAggregateModifyRow } from './AggregateModifyStep/types';
-import AGGREGATE_TYPE_CONFIG, { AGGREGATE_TYPE_FLAT_ENTRIES } from './AggregateStep/aggregateTypeConfig';
-import { AGGREGATE_TYPE, AggregateType, createAggregateRow } from './AggregateStep/types';
-import FILTER_TYPE_CONFIG, { FILTER_TYPE_FLAT_ENTRIES } from './FilterStep/filterTypeConfig';
-import { createFilterRow, FILTER_TYPE, FilterType } from './FilterStep/types';
-import LIMIT_TYPE_CONFIG, { LIMIT_TYPE_GROUPED_ENTRIES } from './LimitStep/limitTypeConfig';
-import { createLimitRow, LIMIT_TYPE, LimitType } from './LimitStep/types';
-import MODIFY_TYPE_CONFIG, { MODIFY_TYPE_GROUPED_ENTRIES } from './ModifyStep/modifyTypeConfig';
-import { createModifyRow, MODIFY_TYPE, ModifyType } from './ModifyStep/types';
+import { AGGREGATE_MODIFY_TYPE_ENTRIES } from './AggregateModifyStep/aggregateModifyTypeConfig';
+import { AGGREGATE_TYPE_FLAT_ENTRIES } from './AggregateStep/aggregateTypeConfig';
+import { AGGREGATE_TYPE, createAggregateRow } from './AggregateStep/types';
+import { FILTER_TYPE_FLAT_ENTRIES } from './FilterStep/filterTypeConfig';
+import { FILTER_TYPE, createFilterRow } from './FilterStep/types';
+import { LIMIT_TYPE_GROUPED_ENTRIES } from './LimitStep/limitTypeConfig';
+import { LIMIT_TYPE, createLimitRow } from './LimitStep/types';
+import { MODIFY_TYPE_GROUPED_ENTRIES } from './ModifyStep/modifyTypeConfig';
+import { MODIFY_TYPE, createModifyRow } from './ModifyStep/types';
 import { STEP_CONFIG } from './stepConfig';
 import { PIPELINE_STEP_TYPE, PipelineStepPatch, PipelineStepType } from './types';
 
@@ -23,14 +22,18 @@ interface Props {
 
 type OnAdd = (patch: PipelineStepPatch) => void;
 
+const createFilterCustomPatch = (): PipelineStepPatch => ({
+  rows: [createFilterRow(FILTER_TYPE.CustomPipe)],
+});
+
 const CUSTOM_PATCH_CREATORS: Partial<Record<PipelineStepType, () => PipelineStepPatch>> = {
-  [PIPELINE_STEP_TYPE.Filter]: () => ({ rows: [createFilterRow(FILTER_TYPE.CustomPipe, FILTER_TYPE_CONFIG[FILTER_TYPE.CustomPipe].defaultOperator)] }),
-  [PIPELINE_STEP_TYPE.ModifyFilter]: () => ({ rows: [createFilterRow(FILTER_TYPE.CustomPipe, FILTER_TYPE_CONFIG[FILTER_TYPE.CustomPipe].defaultOperator)] }),
-  [PIPELINE_STEP_TYPE.AggregateFilter]: () => ({ rows: [createFilterRow(FILTER_TYPE.CustomPipe, FILTER_TYPE_CONFIG[FILTER_TYPE.CustomPipe].defaultOperator)] }),
-  [PIPELINE_STEP_TYPE.AggregateModifyFilter]: () => ({ rows: [createFilterRow(FILTER_TYPE.CustomPipe, FILTER_TYPE_CONFIG[FILTER_TYPE.CustomPipe].defaultOperator)] }),
-  [PIPELINE_STEP_TYPE.Modify]: () => ({ rows: [createModifyRow(MODIFY_TYPE.CustomPipe, MODIFY_TYPE_CONFIG[MODIFY_TYPE.CustomPipe].createInitialRow())] }),
-  [PIPELINE_STEP_TYPE.Aggregate]: () => ({ rows: [createAggregateRow(AGGREGATE_TYPE.CustomPipe, AGGREGATE_TYPE_CONFIG[AGGREGATE_TYPE.CustomPipe].createInitialRow())] }),
-  [PIPELINE_STEP_TYPE.Limit]: () => ({ rows: [createLimitRow(LIMIT_TYPE.CustomPipe, LIMIT_TYPE_CONFIG[LIMIT_TYPE.CustomPipe].createInitialRow())] }),
+  [PIPELINE_STEP_TYPE.Filter]:                createFilterCustomPatch,
+  [PIPELINE_STEP_TYPE.ModifyFilter]:          createFilterCustomPatch,
+  [PIPELINE_STEP_TYPE.AggregateFilter]:       createFilterCustomPatch,
+  [PIPELINE_STEP_TYPE.AggregateModifyFilter]: createFilterCustomPatch,
+  [PIPELINE_STEP_TYPE.Modify]:        () => ({ rows: [createModifyRow(MODIFY_TYPE.CustomPipe)] }),
+  [PIPELINE_STEP_TYPE.Aggregate]:     () => ({ rows: [createAggregateRow(AGGREGATE_TYPE.CustomPipe)] }),
+  [PIPELINE_STEP_TYPE.Limit]:         () => ({ rows: [createLimitRow(LIMIT_TYPE.CustomPipe)] }),
 };
 
 const resolveCustom = (
@@ -49,13 +52,8 @@ const resolveCustom = (
 };
 
 const buildFilterItems = (onAdd: OnAdd): ReactElement[] =>
-  FILTER_TYPE_FLAT_ENTRIES.map(({ filterType, label, description }) => (
-    <Menu.Item
-      key={filterType}
-      label={label}
-      description={description}
-      onClick={() => onAdd({ rows: [createFilterRow(filterType as FilterType, FILTER_TYPE_CONFIG[filterType as FilterType].defaultOperator)] })}
-    />
+  FILTER_TYPE_FLAT_ENTRIES.map(({ filterType, label, description, createPatch }) => (
+    <Menu.Item key={filterType} label={label} description={description} onClick={() => onAdd(createPatch())} />
   ));
 
 const buildModifyItems = (onAdd: OnAdd): ReactElement[] =>
@@ -65,35 +63,20 @@ const buildModifyItems = (onAdd: OnAdd): ReactElement[] =>
       <Menu.Item
         key={group}
         label={group}
-        childItems={entries.map(({ modifyType, label, description }) => (
-          <Menu.Item
-            key={modifyType}
-            label={label}
-            description={description}
-            onClick={() => onAdd({ rows: [createModifyRow(modifyType as ModifyType, MODIFY_TYPE_CONFIG[modifyType as ModifyType].createInitialRow())] })}
-          />
+        childItems={entries.map(({ modifyType, label, description, createPatch }) => (
+          <Menu.Item key={modifyType} label={label} description={description} onClick={() => onAdd(createPatch())} />
         ))}
       />
     ));
 
 const buildAggregateItems = (onAdd: OnAdd): ReactElement[] =>
-  AGGREGATE_TYPE_FLAT_ENTRIES.map(({ aggregateType, label, description }) => (
-    <Menu.Item
-      key={aggregateType}
-      label={label}
-      description={description}
-      onClick={() => onAdd({ rows: [createAggregateRow(aggregateType as AggregateType, AGGREGATE_TYPE_CONFIG[aggregateType as AggregateType].createInitialRow())] })}
-    />
+  AGGREGATE_TYPE_FLAT_ENTRIES.map(({ aggregateType, label, description, createPatch }) => (
+    <Menu.Item key={aggregateType} label={label} description={description} onClick={() => onAdd(createPatch())} />
   ));
 
 const buildAggregateModifyItems = (onAdd: OnAdd): ReactElement[] =>
-  AGGREGATE_MODIFY_TYPE_ENTRIES.map(({ aggregateModifyType, label, description }) => (
-    <Menu.Item
-      key={aggregateModifyType}
-      label={label}
-      description={description}
-      onClick={() => onAdd({ rows: [createAggregateModifyRow(aggregateModifyType as AggregateModifyType, AGGREGATE_MODIFY_TYPE_CONFIG[aggregateModifyType as AggregateModifyType].createInitialRow())] })}
-    />
+  AGGREGATE_MODIFY_TYPE_ENTRIES.map(({ aggregateModifyType, label, description, createPatch }) => (
+    <Menu.Item key={aggregateModifyType} label={label} description={description} onClick={() => onAdd(createPatch())} />
   ));
 
 const buildLimitItems = (onAdd: OnAdd): ReactElement[] => {
@@ -102,14 +85,9 @@ const buildLimitItems = (onAdd: OnAdd): ReactElement[] => {
     if (groupIndex > 0) {
       items.push(<Menu.Divider key={`divider-${group}`} />);
     }
-    entries.forEach(({ limitType, label, description }) => {
+    entries.forEach(({ limitType, label, description, createPatch }) => {
       items.push(
-        <Menu.Item
-          key={limitType}
-          label={label}
-          description={description}
-          onClick={() => onAdd({ rows: [createLimitRow(limitType as LimitType, LIMIT_TYPE_CONFIG[limitType as LimitType].createInitialRow())] })}
-        />
+        <Menu.Item key={limitType} label={label} description={description} onClick={() => onAdd(createPatch())} />
       );
     });
   });

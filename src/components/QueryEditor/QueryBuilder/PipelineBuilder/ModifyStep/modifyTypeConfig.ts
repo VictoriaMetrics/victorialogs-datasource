@@ -1,6 +1,7 @@
 import { escapeQuotes, RowSerializeResult } from '../serialization/types';
 import CustomPipeEditor from '../shared/CustomPipeEditor';
 import { BaseTypeDefinition, RowContentProps } from '../shared/types';
+import { PipelineStepPatch } from '../types';
 
 import EmptyContent from './parts/EmptyContent';
 import ExtractEditor from './parts/ExtractEditor';
@@ -10,7 +11,7 @@ import FormatEditor from './parts/FormatEditor';
 import PackEditor from './parts/PackEditor';
 import ReplaceEditor from './parts/ReplaceEditor';
 import UnpackEditor from './parts/UnpackEditor';
-import { MODIFY_TYPE, ModifyRow, ModifyType } from './types';
+import { MODIFY_TYPE, ModifyRow, ModifyType, createModifyRow } from './types';
 
 export type ModifyRowContentProps = RowContentProps<ModifyRow>;
 
@@ -222,5 +223,8 @@ export const MODIFY_TYPE_GROUPED_ENTRIES = MODIFY_GROUPS.map((group) => ({
       modifyType: modifyType as ModifyType,
       label: config.label,
       description: config.description,
+      createPatch: (): PipelineStepPatch => ({
+        rows: [createModifyRow(modifyType as ModifyType, config.createInitialRow())],
+      }),
     })),
 }));

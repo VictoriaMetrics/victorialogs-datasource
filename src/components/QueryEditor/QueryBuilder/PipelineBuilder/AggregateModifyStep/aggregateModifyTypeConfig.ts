@@ -2,9 +2,10 @@ import { escapeQuotes } from '../serialization/types';
 import CustomPipeEditor from '../shared/CustomPipeEditor';
 import PackJsonEditor from '../shared/PackJsonEditor';
 import { BaseTypeDefinition, RowContentProps } from '../shared/types';
+import { PipelineStepPatch } from '../types';
 
 import ExpressionEditor from './parts/ExpressionEditor';
-import { AGGREGATE_MODIFY_TYPE, AggregateModifyRow, AggregateModifyType } from './types';
+import { AGGREGATE_MODIFY_TYPE, AggregateModifyRow, AggregateModifyType, createAggregateModifyRow } from './types';
 
 export type AggregateModifyRowContentProps = RowContentProps<AggregateModifyRow>;
 
@@ -68,5 +69,8 @@ export const AGGREGATE_MODIFY_TYPE_ENTRIES = Object.entries(AGGREGATE_MODIFY_TYP
     aggregateModifyType: aggregateModifyType as AggregateModifyType,
     label: config.label,
     description: config.description,
+    createPatch: (): PipelineStepPatch => ({
+      rows: [createAggregateModifyRow(aggregateModifyType as AggregateModifyType, config.createInitialRow())],
+    }),
   })
 );

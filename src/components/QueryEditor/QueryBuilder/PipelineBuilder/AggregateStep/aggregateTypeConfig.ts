@@ -2,11 +2,12 @@ import EmptyContent from '../ModifyStep/parts/EmptyContent';
 import { RowSerializeResult } from '../serialization/types';
 import CustomPipeEditor from '../shared/CustomPipeEditor';
 import { BaseTypeDefinition, RowContentProps } from '../shared/types';
+import { PipelineStepPatch } from '../types';
 
 import FieldListEditor from './parts/FieldListEditor';
 import QuantileEditor from './parts/QuantileEditor';
 import SingleFieldEditor from './parts/SingleFieldEditor';
-import { AGGREGATE_TYPE, AggregateRow, AggregateType } from './types';
+import { AGGREGATE_TYPE, AggregateRow, AggregateType, createAggregateRow } from './types';
 
 export type AggregateRowContentProps = RowContentProps<AggregateRow>;
 
@@ -112,5 +113,8 @@ export const AGGREGATE_TYPE_FLAT_ENTRIES = Object.entries(AGGREGATE_TYPE_CONFIG)
     aggregateType: aggregateType as AggregateType,
     label: config.label,
     description: config.description,
+    createPatch: (): PipelineStepPatch => ({
+      rows: [createAggregateRow(aggregateType as AggregateType, config.createInitialRow())],
+    }),
   }))
   .sort((a, b) => a.label.localeCompare(b.label));
