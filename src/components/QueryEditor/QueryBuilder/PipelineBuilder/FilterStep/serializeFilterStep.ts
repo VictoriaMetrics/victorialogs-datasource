@@ -2,7 +2,7 @@ import { SerializeResult } from '../serialization/types';
 import { FilterStep, ModifyFilterStep, PipelineStepItem } from '../types';
 
 import FILTER_TYPE_CONFIG from './filterTypeConfig';
-import { FILTER_TYPE, FilterRow } from './types';
+import { FilterRow } from './types';
 
 export const serializeFilterRows = (rows: FilterRow[] | undefined, stepId: string): SerializeResult => {
   if (!rows?.length) {
@@ -10,17 +10,8 @@ export const serializeFilterRows = (rows: FilterRow[] | undefined, stepId: strin
   }
 
   const filterParts: string[] = [];
-  const customPipes: string[] = [];
 
   for (const row of rows) {
-    if (row.filterType === FILTER_TYPE.CustomPipe) {
-      const value = row.expression;
-      if (value) {
-        customPipes.push(value);
-      }
-      continue;
-    }
-
     const config = FILTER_TYPE_CONFIG[row.filterType];
     const { result } = config.serialize(row, stepId);
     if (result) {
@@ -29,8 +20,7 @@ export const serializeFilterRows = (rows: FilterRow[] | undefined, stepId: strin
   }
 
   const joined = filterParts.join(' ');
-  const pipes = joined ? [joined, ...customPipes] : customPipes;
-  return { pipes };
+  return { pipes: joined ? [joined] : [] };
 };
 
 export const serializeFilterStep = (step: PipelineStepItem): SerializeResult => {

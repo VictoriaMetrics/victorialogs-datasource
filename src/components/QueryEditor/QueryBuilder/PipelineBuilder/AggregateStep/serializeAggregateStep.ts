@@ -2,7 +2,7 @@ import { SerializeResult } from '../serialization/types';
 import { AggregateStep as AggregateStepType, PipelineStepItem } from '../types';
 
 import AGGREGATE_TYPE_CONFIG from './aggregateTypeConfig';
-import { AGGREGATE_TYPE, AggregateRow } from './types';
+import { AggregateRow } from './types';
 
 const serializeAggregateRow = (
   row: AggregateRow,
@@ -36,38 +36,26 @@ export const serializeAggregateRows = (
   }
 
   const funcParts: string[] = [];
-  const customPipes: string[] = [];
 
   for (const row of rows) {
-    if (row.aggregateType === AGGREGATE_TYPE.CustomPipe) {
-      if (row.expression) {
-        customPipes.push(row.expression);
-      }
-      continue;
-    }
-
     const result = serializeAggregateRow(row, stepId);
     if (result) {
       funcParts.push(result);
     }
   }
 
-  const pipes: string[] = [];
-
-  if (funcParts.length) {
-    const validByFields = (byFields ?? []).filter(Boolean);
-    let pipe = 'stats';
-    if (validByFields.length) {
-      pipe += ` by (${validByFields.join(', ')})`;
-    }
-    pipe += ` ${funcParts.join(', ')}`;
-
-    pipes.push(pipe);
+  if (!funcParts.length) {
+    return { pipes: [] };
   }
 
-  pipes.push(...customPipes);
+  const validByFields = (byFields ?? []).filter(Boolean);
+  let pipe = 'stats';
+  if (validByFields.length) {
+    pipe += ` by (${validByFields.join(', ')})`;
+  }
+  pipe += ` ${funcParts.join(', ')}`;
 
-  return { pipes };
+  return { pipes: [pipe] };
 };
 
 export const serializeAggregateStep = (step: PipelineStepItem): SerializeResult => {

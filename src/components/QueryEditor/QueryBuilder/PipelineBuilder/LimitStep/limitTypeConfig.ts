@@ -1,5 +1,4 @@
 import { RowSerializeResult } from '../serialization/types';
-import CustomPipeEditor from '../shared/CustomPipeEditor';
 import { BaseTypeDefinition, RowContentProps } from '../shared/types';
 import { PipelineStepPatch } from '../types';
 
@@ -76,14 +75,6 @@ const LIMIT_TYPE_CONFIG: Record<LimitType, LimitTypeDefinition> = {
     serialize: serializeNumberWithFields,
     createInitialRow: () => ({}),
   },
-  [LIMIT_TYPE.CustomPipe]: {
-    label: 'Custom',
-    description: 'Add a raw pipe expression',
-    group: 'Basic',
-    ContentComponent: CustomPipeEditor,
-    serialize: (row) => ({ result: row.expression ?? '' }),
-    createInitialRow: () => ({}),
-  },
 };
 
 export default LIMIT_TYPE_CONFIG;
@@ -93,7 +84,7 @@ const LIMIT_GROUPS: LimitGroup[] = ['Basic', 'Selection'];
 export const LIMIT_TYPE_GROUPED_ENTRIES = LIMIT_GROUPS.map((group) => ({
   group,
   entries: Object.entries(LIMIT_TYPE_CONFIG)
-    .filter(([key, config]) => config.group === group && key !== LIMIT_TYPE.CustomPipe)
+    .filter(([, config]) => config.group === group)
     .map(([limitType, config]) => ({
       limitType: limitType as LimitType,
       label: config.label,

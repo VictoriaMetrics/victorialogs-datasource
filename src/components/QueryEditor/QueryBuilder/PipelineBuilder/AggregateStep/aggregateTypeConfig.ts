@@ -1,6 +1,5 @@
 import EmptyContent from '../ModifyStep/parts/EmptyContent';
 import { RowSerializeResult } from '../serialization/types';
-import CustomPipeEditor from '../shared/CustomPipeEditor';
 import { BaseTypeDefinition, RowContentProps } from '../shared/types';
 import { PipelineStepPatch } from '../types';
 
@@ -96,19 +95,11 @@ const AGGREGATE_TYPE_CONFIG: Record<AggregateType, AggregateTypeDefinition> = {
     serialize: serializeFieldList,
     createInitialRow: () => ({}),
   },
-  [AGGREGATE_TYPE.CustomPipe]: {
-    label: 'Custom',
-    description: 'Add a raw pipe expression',
-    ContentComponent: CustomPipeEditor,
-    serialize: (row) => ({ result: row.expression ?? '' }),
-    createInitialRow: () => ({}),
-  },
 };
 
 export default AGGREGATE_TYPE_CONFIG;
 
 export const AGGREGATE_TYPE_FLAT_ENTRIES = Object.entries(AGGREGATE_TYPE_CONFIG)
-  .filter(([key]) => key !== AGGREGATE_TYPE.CustomPipe)
   .map(([aggregateType, config]) => ({
     aggregateType: aggregateType as AggregateType,
     label: config.label,

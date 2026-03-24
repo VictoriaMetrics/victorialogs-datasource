@@ -2,7 +2,6 @@ export const AGGREGATE_MODIFY_TYPE = {
   Math: 'math',
   Format: 'format',
   PackJson: 'pack_json',
-  CustomPipe: 'customPipe',
 } as const;
 
 export type AggregateModifyType = (typeof AGGREGATE_MODIFY_TYPE)[keyof typeof AGGREGATE_MODIFY_TYPE];

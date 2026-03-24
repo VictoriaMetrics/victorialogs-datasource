@@ -4,7 +4,6 @@ export const FILTER_TYPE = {
   Range: 'range',
   Regexp: 'regexp',
   CaseInsensitive: 'caseInsensitive',
-  CustomPipe: 'customPipe',
 } as const;
 
 export type FilterType = (typeof FILTER_TYPE)[keyof typeof FILTER_TYPE];
@@ -45,7 +44,6 @@ export interface FilterRow {
   fieldName: string;
   operator: string;
   values: string[];
-  expression?: string;
 }
 
 import { createIdGenerator } from '../shared/generateId';
@@ -58,7 +56,6 @@ const DEFAULT_OPERATORS: Record<FilterType, string> = {
   [FILTER_TYPE.Range]: RANGE_OPERATORS.Gt,
   [FILTER_TYPE.Regexp]: REGEXP_OPERATORS.Match,
   [FILTER_TYPE.CaseInsensitive]: CASE_INSENSITIVE_OPERATORS.Match,
-  [FILTER_TYPE.CustomPipe]: '',
 };
 
 export const createFilterRow = (filterType: FilterType, operatorOverride?: string, fieldName = '', values: string[] = []): FilterRow => ({

@@ -15,6 +15,7 @@ export const PIPELINE_STEP_TYPE = {
   AggregateModifyFilter: 'aggregateModifyFilter',
   Sort: 'sort',
   Limit: 'limit',
+  Custom: 'custom',
 } as const;
 
 export type PipelineStepType = (typeof PIPELINE_STEP_TYPE)[keyof typeof PIPELINE_STEP_TYPE];
@@ -73,6 +74,11 @@ export interface LimitStep extends BaseStep {
   rows: LimitRow[];
 }
 
+export interface CustomStep extends BaseStep {
+  type: typeof PIPELINE_STEP_TYPE.Custom;
+  expression: string;
+}
+
 export type PipelineStepItem =
   | FilterStep
   | ModifyStep
@@ -82,7 +88,8 @@ export type PipelineStepItem =
   | AggregateModifyStep
   | AggregateModifyFilterStep
   | SortStep
-  | LimitStep;
+  | LimitStep
+  | CustomStep;
 
 type DistributiveOmit<T, K extends keyof never> = T extends unknown ? Omit<T, K> : never;
 export type PipelineStepPatch = Partial<DistributiveOmit<PipelineStepItem, 'id' | 'type'>>;

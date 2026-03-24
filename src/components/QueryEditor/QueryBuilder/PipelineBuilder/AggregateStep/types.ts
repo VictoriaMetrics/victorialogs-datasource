@@ -8,7 +8,6 @@ export const AGGREGATE_TYPE = {
   Quantile: 'quantile',
   Rate: 'rate',
   Histogram: 'histogram',
-  CustomPipe: 'customPipe',
 } as const;
 
 export type AggregateType = (typeof AGGREGATE_TYPE)[keyof typeof AGGREGATE_TYPE];
@@ -21,7 +20,6 @@ export interface AggregateRow {
   ifFilter?: string;
   phi?: string;
   limit?: string;
-  expression?: string;
 }
 
 import { createIdGenerator } from '../shared/generateId';

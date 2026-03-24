@@ -82,7 +82,7 @@ const AggregateStepContent = memo(function AggregateStepContent({
           key={aggregateType}
           label={label}
           description={description}
-          onClick={() => handleAddRow((createPatch().rows as AggregateRow[])[0])}
+          onClick={() => handleAddRow(((createPatch() as unknown) as { rows: AggregateRow[] }).rows[0])}
         />
       ))}
     </Menu>

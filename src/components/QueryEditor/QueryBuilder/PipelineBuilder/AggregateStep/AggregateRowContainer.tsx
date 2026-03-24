@@ -8,7 +8,7 @@ import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { getSharedStyles } from '../shared/styles';
 
 import AGGREGATE_TYPE_CONFIG from './aggregateTypeConfig';
-import { AGGREGATE_TYPE, AggregateRow } from './types';
+import { AggregateRow } from './types';
 
 interface Props {
   row: AggregateRow;
@@ -54,17 +54,6 @@ const AggregateRowContainer = memo(function AggregateRowContainer({
       />
     </div>
   );
-
-  if (row.aggregateType === AGGREGATE_TYPE.CustomPipe) {
-    return (
-      <Stack direction='row' gap={0} alignItems='center'>
-        <div className={styles.contentNoRightRadius}>
-          <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
-        </div>
-        {removeButton}
-      </Stack>
-    );
-  }
 
   return (
     <Stack direction='row' gap={0} alignItems='center'>

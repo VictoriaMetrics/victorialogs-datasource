@@ -1,5 +1,4 @@
 import { escapeQuotes, RowSerializeResult } from '../serialization/types';
-import CustomPipeEditor from '../shared/CustomPipeEditor';
 import { BaseTypeDefinition, RowContentProps } from '../shared/types';
 import { PipelineStepPatch } from '../types';
 
@@ -201,14 +200,6 @@ const MODIFY_TYPE_CONFIG: Record<ModifyType, ModifyTypeDefinition> = {
     serialize: () => ({ result: 'drop_empty_fields' }),
     createInitialRow: () => ({}),
   },
-  [MODIFY_TYPE.CustomPipe]: {
-    label: 'Custom',
-    description: 'Add a raw pipe expression',
-    group: 'Utility',
-    ContentComponent: CustomPipeEditor,
-    serialize: (row) => ({ result: row.expression ?? '' }),
-    createInitialRow: () => ({}),
-  },
 };
 
 export default MODIFY_TYPE_CONFIG;
@@ -218,7 +209,7 @@ const MODIFY_GROUPS: ModifyGroup[] = ['Field Manipulation', 'Text Processing', '
 export const MODIFY_TYPE_GROUPED_ENTRIES = MODIFY_GROUPS.map((group) => ({
   group,
   entries: Object.entries(MODIFY_TYPE_CONFIG)
-    .filter(([key, config]) => config.group === group && key !== MODIFY_TYPE.CustomPipe)
+    .filter(([, config]) => config.group === group)
     .map(([modifyType, config]) => ({
       modifyType: modifyType as ModifyType,
       label: config.label,

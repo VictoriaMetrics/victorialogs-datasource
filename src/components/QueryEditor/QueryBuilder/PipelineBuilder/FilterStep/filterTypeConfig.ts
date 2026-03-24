@@ -1,5 +1,4 @@
 import { escapeQuotes } from '../serialization/types';
-import CustomPipeEditor from '../shared/CustomPipeEditor';
 import { BaseTypeDefinition } from '../shared/types';
 import { PipelineStepPatch } from '../types';
 
@@ -115,26 +114,11 @@ const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
     },
     createInitialRow: () => ({ values: [] }),
   },
-  [FILTER_TYPE.CustomPipe]: {
-    label: 'Custom',
-    description: 'Add a raw pipe expression',
-    group: 'Utility',
-    defaultOperator: '',
-    ContentComponent: CustomPipeEditor,
-    serialize: (row) => {
-      if (!row.expression) {
-        return { result: '' };
-      }
-      return { result: row.expression };
-    },
-    createInitialRow: () => ({}),
-  },
 };
 
 export default FILTER_TYPE_CONFIG;
 
 export const FILTER_TYPE_FLAT_ENTRIES = Object.entries(FILTER_TYPE_CONFIG)
-  .filter(([key]) => key !== FILTER_TYPE.CustomPipe)
   .map(([filterType, config]) => ({
     filterType: filterType as FilterType,
     label: config.label,

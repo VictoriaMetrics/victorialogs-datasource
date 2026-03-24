@@ -40,7 +40,7 @@ export const removeInvalidSteps = (steps: PipelineStepItem[]): PipelineStepItem[
 
 const getAllowedAfter = (steps: PipelineStepItem[], index: number): PipelineStepType[] => {
   if (index < 0) {
-    return [PIPELINE_STEP_TYPE.Filter];
+    return [PIPELINE_STEP_TYPE.Filter, PIPELINE_STEP_TYPE.Custom];
   }
   const step = steps[index];
   if (!step) {

@@ -1,5 +1,4 @@
 import { escapeQuotes } from '../serialization/types';
-import CustomPipeEditor from '../shared/CustomPipeEditor';
 import PackJsonEditor from '../shared/PackJsonEditor';
 import { BaseTypeDefinition, RowContentProps } from '../shared/types';
 import { PipelineStepPatch } from '../types';
@@ -51,13 +50,6 @@ const AGGREGATE_MODIFY_TYPE_CONFIG: Record<AggregateModifyType, AggregateModifyT
       }
       return { result };
     },
-    createInitialRow: () => ({}),
-  },
-  [AGGREGATE_MODIFY_TYPE.CustomPipe]: {
-    label: 'Custom',
-    description: 'Add a raw pipe expression',
-    ContentComponent: CustomPipeEditor,
-    serialize: (row) => ({ result: row.expression ?? '' }),
     createInitialRow: () => ({}),
   },
 };
