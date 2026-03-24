@@ -14,8 +14,8 @@ import { useRowManagement } from '../shared/useRowManagement';
 import { AggregateStep, PipelineStepItem, PipelineStepPatch } from '../types';
 
 import AggregateRowContainer from './AggregateRowContainer';
-import AGGREGATE_TYPE_CONFIG, { AGGREGATE_TYPE_FLAT_ENTRIES } from './aggregateTypeConfig';
-import { AggregateRow, AggregateType, createAggregateRow } from './types';
+import { AGGREGATE_TYPE_FLAT_ENTRIES } from './aggregateTypeConfig';
+import { AggregateRow } from './types';
 
 interface Props {
   step: PipelineStepItem;
@@ -77,19 +77,12 @@ const AggregateStepContent = memo(function AggregateStepContent({
 
   const addFunctionMenu = (
     <Menu>
-      {AGGREGATE_TYPE_FLAT_ENTRIES.map(({ aggregateType, label, description }) => (
+      {AGGREGATE_TYPE_FLAT_ENTRIES.map(({ aggregateType, label, description, createPatch }) => (
         <Menu.Item
           key={aggregateType}
           label={label}
           description={description}
-          onClick={() =>
-            handleAddRow(
-              createAggregateRow(
-                aggregateType as AggregateType,
-                AGGREGATE_TYPE_CONFIG[aggregateType as AggregateType].createInitialRow()
-              )
-            )
-          }
+          onClick={() => handleAddRow((createPatch().rows as AggregateRow[])[0])}
         />
       ))}
     </Menu>
