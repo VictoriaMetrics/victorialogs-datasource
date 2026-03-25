@@ -2,7 +2,7 @@ import { css } from '@emotion/css';
 import React, { Fragment, memo, useCallback, useMemo } from 'react';
 
 import { CoreApp, GrafanaTheme2, TimeRange } from '@grafana/data';
-import { Divider, Dropdown, useStyles2 } from '@grafana/ui';
+import { Divider, Dropdown, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { Query } from '../../../../types';
@@ -58,11 +58,12 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
     [insertStep]
   );
 
+  console.log(steps);
   return (
     <>
       <Divider />
       <PipelineContext.Provider value={pipelineContextValue}>
-        <div className={styles.container}>
+        <Stack direction='row' alignItems={'center'} wrap={'wrap'}>
           {steps.map((step, index) => {
             const config = STEP_CONFIG[step.type];
             const ContentComponent = config.ContentComponent;
@@ -71,7 +72,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
 
             return (
               <Fragment key={step.id}>
-                {index > 0 && (
+                {index > 1 && (
                   insertAllowed.length > 0 ? (
                     <Dropdown overlay={buildPipelineMenu(insertAllowed, handleInsertStep(index))} placement='bottom-start'>
                       <span className={styles.pipeSeparatorInteractive} title='Insert pipe'>|</span>
@@ -97,7 +98,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
           {allowedAppendTypes.length > 0 && (
             <PipelineAddMenu allowedTypes={allowedAppendTypes} onAddStep={handleAddStep} />
           )}
-        </div>
+        </Stack>
         <PipelineExpressionPreview expr={query.expr} streamFilters={query.streamFilters} />
       </PipelineContext.Provider>
     </>
@@ -105,13 +106,6 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
 });
 
 const getStyles = (theme: GrafanaTheme2) => ({
-  container: css`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: ${theme.spacing(1)};
-    padding: ${theme.spacing(2)};
-  `,
   pipeSeparator: css`
     color: ${theme.colors.text.secondary};
     font-size: ${theme.typography.h4.fontSize};

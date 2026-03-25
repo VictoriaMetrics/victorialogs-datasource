@@ -4,7 +4,6 @@ import { getAllowedAppendTypes, getAllowedInsertTypes, removeInvalidSteps } from
 import { STEP_CONFIG } from './stepConfig';
 import {
   generateStepId,
-  PIPELINE_STEP_TYPE,
   PipelineStepItem,
   PipelineStepPatch,
   PipelineStepType,
@@ -16,9 +15,7 @@ export const createStep = (type: PipelineStepType): PipelineStepItem => ({
   ...STEP_CONFIG[type].createInitialData(),
 } as PipelineStepItem);
 
-export const createInitialSteps = (): PipelineStepItem[] => [
-  createStep(PIPELINE_STEP_TYPE.Filter),
-];
+export const createInitialSteps = (): PipelineStepItem[] => [];
 
 export const usePipelineActions = (
   steps: PipelineStepItem[],
