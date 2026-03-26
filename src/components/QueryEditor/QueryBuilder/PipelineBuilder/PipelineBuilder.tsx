@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import React, { Fragment, memo, useCallback, useMemo } from 'react';
+import React, { Fragment, memo, useCallback, useEffect, useMemo } from 'react';
 
 import { CoreApp, GrafanaTheme2, TimeRange } from '@grafana/data';
 import { Divider, Dropdown, Stack, useStyles2 } from '@grafana/ui';
@@ -27,7 +27,7 @@ interface Props {
 
 const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange }) => {
   const styles = useStyles2(getStyles);
-  const steps = query.builder?.steps ?? createInitialSteps();
+  const steps = query.builder?.steps;
   const pipelineContextValue = useMemo(
     () => ({ extraStreamFilters: buildStreamExtraFilters(query.streamFilters ?? []) || undefined }),
     [query.streamFilters]
@@ -37,7 +37,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
     const serializedQuery = serializePipeline(newSteps);
     onChange({
       ...query,
-      expr: serializedQuery,
+      expr: serializedQuery || '*',
       builder: {
         steps: newSteps,
       },
@@ -58,7 +58,12 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
     [insertStep]
   );
 
-  console.log(steps);
+  useEffect(() => {
+    if (!query.builder?.steps?.length) {
+      handleStepsChange(createInitialSteps());
+    }
+  }, []);
+
   return (
     <>
       <Divider />
@@ -72,7 +77,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
 
             return (
               <Fragment key={step.id}>
-                {index > 1 && (
+                {index > 0 && (
                   insertAllowed.length > 0 ? (
                     <Dropdown overlay={buildPipelineMenu(insertAllowed, handleInsertStep(index))} placement='bottom-start'>
                       <span className={styles.pipeSeparatorInteractive} title='Insert pipe'>|</span>
