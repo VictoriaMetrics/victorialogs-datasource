@@ -27,7 +27,7 @@ interface Props {
 
 const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange }) => {
   const styles = useStyles2(getStyles);
-  const steps = query.builder?.steps;
+  const steps = query.builder?.steps || createInitialSteps();
   const pipelineContextValue = useMemo(
     () => ({ extraStreamFilters: buildStreamExtraFilters(query.streamFilters ?? []) || undefined }),
     [query.streamFilters]
@@ -37,7 +37,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
     const serializedQuery = serializePipeline(newSteps);
     onChange({
       ...query,
-      expr: serializedQuery || '*',
+      expr: serializedQuery,
       builder: {
         steps: newSteps,
       },
@@ -59,9 +59,7 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange })
   );
 
   useEffect(() => {
-    if (!query.builder?.steps?.length) {
-      handleStepsChange(createInitialSteps());
-    }
+    handleStepsChange(steps);
   }, []);
 
   return (

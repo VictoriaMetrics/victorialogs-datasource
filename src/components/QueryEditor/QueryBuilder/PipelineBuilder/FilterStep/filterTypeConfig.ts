@@ -2,6 +2,7 @@ import { escapeQuotes } from '../serialization/types';
 import { BaseTypeDefinition } from '../shared/types';
 import { PipelineStepPatch } from '../types';
 
+import AllValueInput from './parts/AllValueInput';
 import ExactValueSelect from './parts/ExactValueSelect';
 import { createOperatorSelect } from './parts/OperatorSelect';
 import { FilterRowContentProps, createStandardFilterContent } from './parts/StandardFilterContent';
@@ -43,6 +44,15 @@ const CaseInsensitiveOperatorSelect = createOperatorSelect([
 const isFilterRowEmpty = (row: FilterRow): boolean => !row.fieldName || !row.values.length;
 
 const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
+  [FILTER_TYPE.All]: {
+    label: 'All logs',
+    description: 'Matches all log messages',
+    group: 'Utility',
+    defaultOperator: '',
+    ContentComponent: AllValueInput,
+    serialize: (_row, _stepId) => ({ result: '*' }),
+    createInitialRow: () => ({ values: [] }),
+  },
   [FILTER_TYPE.Exact]: {
     label: 'Exact match',
     description: 'Filters by exact field values using in/not in operators',

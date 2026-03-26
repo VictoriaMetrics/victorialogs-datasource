@@ -1,4 +1,5 @@
 export const FILTER_TYPE = {
+  All: 'all',
   Exact: 'exact',
   Phrase: 'phrase',
   Range: 'range',
@@ -51,6 +52,7 @@ import { createIdGenerator } from '../shared/generateId';
 export const generateFilterRowId = createIdGenerator('filter-row');
 
 const DEFAULT_OPERATORS: Record<FilterType, string> = {
+  [FILTER_TYPE.All]: '',
   [FILTER_TYPE.Exact]: EXACT_OPERATORS.In,
   [FILTER_TYPE.Phrase]: ':',
   [FILTER_TYPE.Range]: RANGE_OPERATORS.Gt,

@@ -1,8 +1,10 @@
 import { useCallback } from 'react';
 
+import { FILTER_TYPE, createFilterRow } from './FilterStep/types';
 import { getAllowedAppendTypes, getAllowedInsertTypes, removeInvalidSteps } from './pipelineRules';
 import { STEP_CONFIG } from './stepConfig';
 import {
+  PIPELINE_STEP_TYPE,
   generateStepId,
   PipelineStepItem,
   PipelineStepPatch,
@@ -15,7 +17,13 @@ export const createStep = (type: PipelineStepType): PipelineStepItem => ({
   ...STEP_CONFIG[type].createInitialData(),
 } as PipelineStepItem);
 
-export const createInitialSteps = (): PipelineStepItem[] => [];
+export const createInitialSteps = (): PipelineStepItem[] => [
+  {
+    id: generateStepId(),
+    type: PIPELINE_STEP_TYPE.Filter,
+    rows: [createFilterRow(FILTER_TYPE.All)],
+  } as PipelineStepItem,
+];
 
 export const usePipelineActions = (
   steps: PipelineStepItem[],
