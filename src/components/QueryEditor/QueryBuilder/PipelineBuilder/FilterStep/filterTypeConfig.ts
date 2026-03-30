@@ -45,7 +45,7 @@ const isFilterRowEmpty = (row: FilterRow): boolean => !row.fieldName || !row.val
 
 const FILTER_TYPE_CONFIG: Record<FilterType, FilterTypeDefinition> = {
   [FILTER_TYPE.All]: {
-    label: 'All logs',
+    label: 'Show all logs',
     description: 'Matches all log messages',
     group: 'Utility',
     defaultOperator: '',
