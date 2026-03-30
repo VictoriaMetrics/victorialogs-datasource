@@ -10,6 +10,8 @@ import {
   PipelineStepPatch,
   PipelineStepType,
 } from './types';
+import { isFirstFilterAllStep } from './utils/isFirstFilterAllStep';
+import { isLastFilterAllStep } from './utils/isLastFilterAllStep';
 
 export const createStep = (type: PipelineStepType): PipelineStepItem => ({
   id: generateStepId(),
@@ -34,14 +36,25 @@ export const usePipelineActions = (
     if (!allowed.includes(type)) {
       return false;
     }
+
+    let newSteps = [...steps];
+    // remove the last filter step if it's an ALL filter, and we're adding another filter step
+    if (type === PIPELINE_STEP_TYPE.Filter && isLastFilterAllStep(steps)) {
+      newSteps = newSteps.slice(0, -1);
+    }
+
     const step = createStep(type);
-    onStepsChange([...steps, initialPatch ? { ...step, ...initialPatch } as PipelineStepItem : step]);
+    newSteps.push(initialPatch ? { ...step, ...initialPatch } as PipelineStepItem : step);
+    onStepsChange(newSteps);
     return true;
   }, [steps, onStepsChange]);
 
   const deleteStep = useCallback((id: string): void => {
     const index = steps.findIndex((s) => s.id === id);
     if (index < 0) {
+      return;
+    }
+    if (isFirstFilterAllStep(steps, index)) {
       return;
     }
     const next = [...steps];

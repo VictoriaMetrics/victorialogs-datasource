@@ -29,6 +29,7 @@ const FilterRowContainer = memo<Props>(({ row, datasource, timeRange, canDelete,
     <StepRowLayout
       onDelete={onDelete}
       canDelete={canDelete}
+      disabledDeleteTooltip='Default filter step cannot be removed'
     >
       <span className={styles.typeLabel}>{config.label}</span>
       <ContentComponent row={row} onChange={onChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />

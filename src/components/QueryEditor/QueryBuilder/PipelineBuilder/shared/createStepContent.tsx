@@ -3,6 +3,7 @@ import React, { memo } from 'react';
 import { Stack, useStyles2 } from '@grafana/ui';
 
 import { PipelineStepItem } from '../types';
+import { isFirstFilterAllStep } from '../utils/isFirstFilterAllStep';
 
 import { getSharedStyles } from './styles';
 import { RowContainerProps, StepContentProps } from './types';
@@ -42,6 +43,7 @@ export function createStepContent<TRow extends { id: string }>(
     });
 
     const queryContexts = useQueryContexts(steps, stepIndex, rows.length);
+    const isProtected = isFirstFilterAllStep(steps, stepIndex);
 
     return (
       <Stack direction='row' gap={1} alignItems='center' wrap='wrap'>
@@ -52,7 +54,7 @@ export function createStepContent<TRow extends { id: string }>(
               row={row}
               datasource={datasource}
               timeRange={timeRange}
-              canDelete={true}
+              canDelete={!isProtected}
               onChange={handleRowChange}
               onDelete={() => handleRowDelete(row.id)}
               queryContext={queryContexts[index]}
