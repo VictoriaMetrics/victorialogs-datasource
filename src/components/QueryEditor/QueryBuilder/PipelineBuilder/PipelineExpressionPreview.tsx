@@ -26,23 +26,25 @@ const PipelineExpressionPreview = ({ expr, streamFilters }: Props) => {
     return expr;
   }, [streamFilters, expr]);
 
-  if (!fullExpr) {
-    return null;
-  }
-
   return (
     <>
       <Divider />
       <Stack direction='row' gap={1} alignItems='center' >
-        <pre className={styles.expression}>{fullExpr}</pre>
-        <ClipboardButton
-          variant='secondary'
-          fill='text'
-          icon='copy'
-          size='md'
-          tooltip='Copy expression'
-          getText={() => fullExpr}
-        >Copy</ClipboardButton>
+        {expr ? (
+          <>
+            <pre className={styles.expression}>{fullExpr}</pre>
+            <ClipboardButton
+              variant='secondary'
+              fill='text'
+              icon='copy'
+              size='md'
+              tooltip='Copy expression'
+              getText={() => fullExpr}
+            >Copy</ClipboardButton>
+          </>
+        ) : (
+          <pre className={styles.placeholder}>Add at least one filter pipe to build a query expression</pre>
+        )}
       </Stack>
     </>
   );
@@ -58,6 +60,13 @@ const getStyles = (theme: GrafanaTheme2) => ({
     overflow-x: auto;
     white-space: pre-wrap;
     word-break: break-all;
+  `,
+  placeholder: css`
+    flex: 1;
+    margin: 0;
+    font-size: ${theme.typography.bodySmall.fontSize};
+    color: ${theme.colors.warning.text};
+    font-style: italic;
   `,
 });
 
