@@ -2,27 +2,22 @@ import { css } from '@emotion/css';
 import { isEqual } from 'lodash';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { CoreApp, GrafanaTheme2, LoadingState } from '@grafana/data';
-import { Button, ConfirmModal, Stack, useStyles2 } from '@grafana/ui';
+import { CoreApp, GrafanaTheme2 } from '@grafana/data';
+import { ConfirmModal, useStyles2 } from '@grafana/ui';
 
 import { getQueryExprVariableRegExp } from '../../LogsQL/regExpOperator';
 import { isExprHasStatsPipeFunctions } from '../../LogsQL/statsPipeFunctions';
-import { LevelQueryFilter } from '../../configuration/LogLevelRules/LevelQueryFilter/LeveQueryFilter';
 import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from '../../types';
 import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 
 import { EditorHeader } from './EditorHeader';
-import { LogsQLSyntaxHelp } from './LogsQLSyntaxHelp';
 import PipelineBuilder from './QueryBuilder/PipelineBuilder/PipelineBuilder';
 import { createInitialSteps } from './QueryBuilder/PipelineBuilder/usePipelineActions';
-import { QueryEditorModeToggle } from './QueryBuilder/QueryEditorModeToggle';
+import { QueryBuilderContainer } from './QueryBuilder/QueryBuilderContainer';
 import { StreamFilters } from './QueryBuilder/components/StreamFilters/StreamFilters';
 import QueryCodeEditor from './QueryCodeEditor';
-import { QueryEditorHelp } from './QueryEditorHelp';
 import { QueryEditorOptions } from './QueryEditorOptions';
 import QueryEditorVariableRegexpError from './QueryEditorVariableRegexpError';
-import { QueryHintsExample } from './QueryHints';
-import VmuiLink from './VmuiLink';
 import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from './constants';
 import { useDefaultExploreGraph } from './hooks/useDefaultExploreGraph';
 import { useLogsSort } from './hooks/usePanelSort';
@@ -104,31 +99,19 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
         onDismiss={() => setParseModalOpen(false)}
       />
       <div className={styles.wrapper}>
-        <EditorHeader>
-          <Stack direction={'row'} alignItems={'center'}>
-            <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr} />
-            {app === CoreApp.Explore && (
-              <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />
-            )}
-          </Stack>
-          <Stack direction={'row'} justifyContent={'flex-end'} alignItems={'center'}>
-            <LogsQLSyntaxHelp />
-            <QueryEditorHelp />
-            <VmuiLink query={query} panelData={data} datasource={datasource} />
-            <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange} />
-            {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
-              <Button
-                variant={dataIsStale ? 'primary' : 'secondary'}
-                size='sm'
-                onClick={onRunQuery}
-                icon={data?.state === LoadingState.Loading ? 'fa fa-spinner' : undefined}
-                disabled={data?.state === LoadingState.Loading}
-              >
-                {queries && queries.length > 1 ? 'Run queries' : 'Run query'}
-              </Button>
-            )}
-          </Stack>
-        </EditorHeader>
+        <EditorHeader
+          editorMode={editorMode}
+          onEditorModeChange={onEditorModeChange}
+          query={query}
+          datasource={datasource}
+          data={data}
+          app={app}
+          queries={queries}
+          dataIsStale={dataIsStale}
+          onRunQuery={onRunQuery}
+          onQueryExprChange={onQueryExprChange}
+          onChange={onChange}
+        />
         <div className='flex-grow-1'>
           {app === CoreApp.Explore && (
             <StreamFilters
@@ -140,14 +123,24 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
             />
           )}
           {editorMode === QueryEditorMode.Builder ? (
-            <PipelineBuilder
-              datasource={props.datasource}
-              query={query}
-              app={app}
-              onChange={onChangeInternal}
-              timeRange={timeRange}
-            />
-          ) : (
+            app === CoreApp.Explore ? (
+              <PipelineBuilder
+                datasource={props.datasource}
+                query={query}
+                app={app}
+                onChange={onChangeInternal}
+                timeRange={timeRange}
+              />
+            ) : (
+              <QueryBuilderContainer
+                datasource={props.datasource}
+                query={query}
+                app={app}
+                onChange={onChangeInternal}
+                onRunQuery={props.onRunQuery}
+                timeRange={timeRange}
+              />
+            )) : (
             <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
           )}
           {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange} />)}

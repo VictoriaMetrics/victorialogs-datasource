@@ -93,7 +93,7 @@ export const StreamFilters = ({ datasource, query, timeRange, onChange, onRunQue
           />
         ))}
         <div className={styles.controls}>
-          <Button variant='secondary' onClick={handleAddFilter} icon='plus' size={'xs'}>
+          <Button variant='secondary' onClick={handleAddFilter} icon='plus' size={'sm'}>
             Stream filter
           </Button>
           {streamFilters.length > 0 && (
@@ -101,7 +101,7 @@ export const StreamFilters = ({ datasource, query, timeRange, onChange, onRunQue
               variant='secondary'
               fill='solid'
               icon='copy'
-              size='xs'
+              size='sm'
               tooltip='Copy stream filters as LogsQL expression'
               getText={() => buildStreamExtraFilters(streamFilters)}
             >
@@ -132,7 +132,6 @@ const getStyles = (theme: GrafanaTheme2) => {
       gap: ${theme.spacing(1)};
     `,
     controls: css`
-      align-self: flex-end;
       display: flex;
       align-items: center;
       gap: ${theme.spacing(1)};
