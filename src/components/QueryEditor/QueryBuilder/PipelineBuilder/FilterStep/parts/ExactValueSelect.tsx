@@ -28,7 +28,7 @@ const ExactValueSelect = ({ values, onChange, fieldName, datasource, timeRange, 
       options={fieldName ? loadFieldValues : []}
       onChange={handleChange}
       width='auto'
-      minWidth={16}
+      minWidth={20}
       maxWidth={70}
       createCustomValue
     />
