@@ -102,6 +102,15 @@ const getStyles = () => ({
   multiComboboxWrapper: css(`
     & > div > div {
       height: 32px;
+      max-width: 90%;
+      overflow: hidden;
+    }
+    &:focus-within > div > div {
+      height: auto;
+    }
+    & > div > div > span > span:has(> span + span) {
+      max-width: 100%;
+      flex-shrink: 1;
     }
   `),
 });

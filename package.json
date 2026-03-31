@@ -85,7 +85,7 @@
     "@grafana/plugin-ui": "^0.13.1",
     "@grafana/runtime": "^12.4.1",
     "@grafana/schema": "^12.4.1",
-    "@grafana/ui": "^12.4.1",
+    "@grafana/ui": "^12.4.2",
     "@lezer/common": "^1.5.1",
     "@lezer/lr": "^1.4.8",
     "lodash": "^4.17.23",
