@@ -51,7 +51,7 @@ export const createStandardFilterContent = (
 
     return (
       <>
-        <FieldNameSelect value={row.fieldName} onChange={handleFieldChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} />
+        <FieldNameSelect value={row.fieldName} onChange={handleFieldChange} datasource={datasource} timeRange={timeRange} queryContext={queryContext} excludeFields={['_stream']} />
         <OperatorComponent value={row.operator} onChange={handleOperatorChange} />
         {valueWrapper && <span className={styles.wrapper}>{valueWrapper.open}</span>}
         <ValueComponent

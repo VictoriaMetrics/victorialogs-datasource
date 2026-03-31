@@ -13,10 +13,11 @@ export interface FieldComponentProps {
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
   queryContext?: string;
+  excludeFields?: string[];
 }
 
-const FieldNameSelect = memo<FieldComponentProps>(({ value, onChange, datasource, timeRange, queryContext }) => {
-  const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
+const FieldNameSelect = memo<FieldComponentProps>(({ value, onChange, datasource, timeRange, queryContext, excludeFields }) => {
+  const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext, excludeFields });
 
   const handleChange = (option: { value?: string; label?: string } | null) => {
     if (option?.value) {

@@ -1,5 +1,5 @@
 import { STEP_CONFIG } from './stepConfig';
-import { PIPELINE_STEP_TYPE, PipelineStepItem, PipelineStepType } from './types';
+import { PipelineStepItem, PipelineStepType } from './types';
 
 /**
  * Transition rules derived from STEP_CONFIG.allowedNext.
@@ -8,6 +8,13 @@ import { PIPELINE_STEP_TYPE, PipelineStepItem, PipelineStepType } from './types'
 const TRANSITIONS: Record<PipelineStepType, PipelineStepType[]> = Object.fromEntries(
   Object.entries(STEP_CONFIG).map(([type, config]) => [type, config.allowedNext])
 ) as Record<PipelineStepType, PipelineStepType[]>;
+
+/**
+ * Step types allowed as the first step, derived from STEP_CONFIG.allowedAsFirst.
+ */
+const ALLOWED_FIRST_TYPES: PipelineStepType[] = (Object.entries(STEP_CONFIG) as Array<[PipelineStepType, typeof STEP_CONFIG[PipelineStepType]]>)
+  .filter(([, config]) => config.allowedAsFirst)
+  .map(([type]) => type);
 
 /**
  * Removes steps that are invalid at their position after a deletion.
@@ -40,7 +47,7 @@ export const removeInvalidSteps = (steps: PipelineStepItem[]): PipelineStepItem[
 
 const getAllowedAfter = (steps: PipelineStepItem[], index: number): PipelineStepType[] => {
   if (index < 0) {
-    return [PIPELINE_STEP_TYPE.Filter, PIPELINE_STEP_TYPE.Custom];
+    return ALLOWED_FIRST_TYPES;
   }
   const step = steps[index];
   if (!step) {
@@ -53,9 +60,6 @@ const getAllowedAfter = (steps: PipelineStepItem[], index: number): PipelineStep
  * Returns the step types that can be appended at the end of the pipeline.
  */
 export const getAllowedAppendTypes = (steps: PipelineStepItem[]): PipelineStepType[] => {
-  if (steps.length === 0) {
-    return [PIPELINE_STEP_TYPE.Filter];
-  }
   return getAllowedAfter(steps, steps.length - 1);
 };
 

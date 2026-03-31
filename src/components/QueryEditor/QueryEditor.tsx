@@ -12,9 +12,8 @@ import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 
 import { EditorHeader } from './EditorHeader';
 import PipelineBuilder from './QueryBuilder/PipelineBuilder/PipelineBuilder';
-import { createInitialSteps } from './QueryBuilder/PipelineBuilder/usePipelineActions';
+import { getBuilderGeneratedExpr } from './QueryBuilder/PipelineBuilder/serialization/getBuilderGeneratedExpr';
 import { QueryBuilderContainer } from './QueryBuilder/QueryBuilderContainer';
-import { StreamFilters } from './QueryBuilder/components/StreamFilters/StreamFilters';
 import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorOptions } from './QueryEditorOptions';
 import QueryEditorVariableRegexpError from './QueryEditorVariableRegexpError';
@@ -42,6 +41,11 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
     if (newEditorMode === QueryEditorMode.Builder && query.expr) {
+      const builderExpr = getBuilderGeneratedExpr(query.builder?.steps || [], query.streamFilters ?? []);
+      if (query.expr === builderExpr) {
+        changeEditorMode(query, newEditorMode, onChange);
+        return;
+      }
       setParseModalOpen(true);
       return;
     }
@@ -92,7 +96,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
             ...query,
             expr: '',
             editorMode: QueryEditorMode.Builder,
-            builder: { steps: createInitialSteps() },
+            builder: { steps: [] },
           });
           setParseModalOpen(false);
         }}
@@ -113,15 +117,6 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
           onChange={onChange}
         />
         <div className='flex-grow-1'>
-          {app === CoreApp.Explore && (
-            <StreamFilters
-              datasource={datasource}
-              query={query}
-              timeRange={timeRange}
-              onChange={onChange}
-              onRunQuery={onRunQuery}
-            />
-          )}
           {editorMode === QueryEditorMode.Builder ? (
             app === CoreApp.Explore ? (
               <PipelineBuilder
@@ -130,6 +125,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
                 app={app}
                 onChange={onChangeInternal}
                 timeRange={timeRange}
+                onRunQuery={onRunQuery}
               />
             ) : (
               <QueryBuilderContainer

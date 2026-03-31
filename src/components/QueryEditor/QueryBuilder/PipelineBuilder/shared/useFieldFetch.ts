@@ -33,9 +33,10 @@ interface Props {
   field?: string;
   timeRange?: TimeRange;
   queryContext?: string;
+  excludeFields?: string[];
 }
 
-export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Props) => {
+export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excludeFields }: Props) => {
   const { extraStreamFilters } = usePipelineContext();
   const cacheKey = useMemo(() => `${queryContext ?? ''}::${extraStreamFilters ?? ''}`, [queryContext, extraStreamFilters]);
 
@@ -71,6 +72,13 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Pr
     fieldNamesCache.set(cacheKey, result);
     return result;
   }, [datasource, timeRange, queryContext, customParams, cacheKey]);
+
+  const filterExcludedFields = useCallback((options: ComboboxOption[]): ComboboxOption[] => {
+    if (!excludeFields?.length) {
+      return options;
+    }
+    return options.filter((opt) => !excludeFields.includes(opt.value as string));
+  }, [excludeFields]);
 
   const fetchFieldValues = useCallback(
     async (inputValue: string): Promise<ComboboxOption[]> => {
@@ -147,14 +155,16 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext }: Pr
       return new Promise((resolve) => {
         if (!inputValue) {
           fetchFieldNames().then((allOptions) => {
-            resolve(filterOptions(allOptions, inputValue));
+            resolve(filterExcludedFields(filterOptions(allOptions, inputValue)));
           });
         } else {
-          debouncedFilter(inputValue, resolve, fetchFieldNames, filterOptions);
+          debouncedFilter(inputValue, resolve, fetchFieldNames, (opts, input) =>
+            filterExcludedFields(filterOptions(opts, input))
+          );
         }
       });
     },
-    [fetchFieldNames, filterOptions, debouncedFilter]
+    [fetchFieldNames, filterOptions, filterExcludedFields, debouncedFilter]
   );
 
   const loadFieldValues = useCallback(

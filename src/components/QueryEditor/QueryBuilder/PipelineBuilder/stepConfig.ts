@@ -45,6 +45,8 @@ export type StepMenuConfig =
 
 interface StepConfig {
   label: string;
+  /** Whether this step type can be the first step in an empty pipeline. */
+  allowedAsFirst: boolean;
   allowedNext: PipelineStepType[];
   ContentComponent: ComponentType<StepContentProps> | null;
   createInitialData: () => PipelineStepPatch | undefined;
@@ -63,6 +65,7 @@ const FILTER_FLAT_MENU_CONFIG: StepMenuConfig = {
 export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   [PIPELINE_STEP_TYPE.Filter]: {
     label: 'Filter',
+    allowedAsFirst: true,
     allowedNext: [PIPELINE_STEP_TYPE.Filter, PIPELINE_STEP_TYPE.Modify, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit, PIPELINE_STEP_TYPE.Custom],
     ContentComponent: FilterStepContent,
     createInitialData: () => undefined,
@@ -72,6 +75,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.Modify]: {
     label: 'Modify',
+    allowedAsFirst: true,
     allowedNext: [PIPELINE_STEP_TYPE.Modify, PIPELINE_STEP_TYPE.ModifyFilter, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit, PIPELINE_STEP_TYPE.Custom],
     ContentComponent: ModifyStepContent,
     createInitialData: () => undefined,
@@ -89,6 +93,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.ModifyFilter]: {
     label: 'Filter modified fields',
+    allowedAsFirst: false,
     allowedNext: [PIPELINE_STEP_TYPE.ModifyFilter, PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit, PIPELINE_STEP_TYPE.Custom],
     ContentComponent: FilterStepContent,
     createInitialData: () => undefined,
@@ -98,6 +103,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.Aggregate]: {
     label: 'Aggregate',
+    allowedAsFirst: true,
     allowedNext: [PIPELINE_STEP_TYPE.Aggregate, PIPELINE_STEP_TYPE.AggregateFilter, PIPELINE_STEP_TYPE.AggregateModify, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit, PIPELINE_STEP_TYPE.Custom],
     ContentComponent: AggregateStepContent,
     createInitialData: () => undefined,
@@ -112,6 +118,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.AggregateFilter]: {
     label: 'Filter aggregated values',
+    allowedAsFirst: false,
     allowedNext: [PIPELINE_STEP_TYPE.AggregateFilter, PIPELINE_STEP_TYPE.AggregateModify, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit, PIPELINE_STEP_TYPE.Custom],
     ContentComponent: FilterStepContent,
     createInitialData: () => undefined,
@@ -120,6 +127,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.AggregateModify]: {
     label: 'Modify aggregated values',
+    allowedAsFirst: false,
     allowedNext: [PIPELINE_STEP_TYPE.AggregateModify, PIPELINE_STEP_TYPE.AggregateModifyFilter, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit, PIPELINE_STEP_TYPE.Custom],
     ContentComponent: AggregateModifyStepContent,
     createInitialData: () => undefined,
@@ -134,6 +142,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.AggregateModifyFilter]: {
     label: 'Filter modified aggregated values',
+    allowedAsFirst: false,
     allowedNext: [PIPELINE_STEP_TYPE.AggregateModifyFilter, PIPELINE_STEP_TYPE.Sort, PIPELINE_STEP_TYPE.Limit, PIPELINE_STEP_TYPE.Custom],
     ContentComponent: FilterStepContent,
     createInitialData: () => undefined,
@@ -142,6 +151,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.Sort]: {
     label: 'Sort',
+    allowedAsFirst: true,
     allowedNext: [PIPELINE_STEP_TYPE.Limit, PIPELINE_STEP_TYPE.Custom],
     ContentComponent: SortStepContent,
     createInitialData: () => ({ rows: [createSortField()] }),
@@ -149,6 +159,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.Limit]: {
     label: 'Limit',
+    allowedAsFirst: true,
     allowedNext: [PIPELINE_STEP_TYPE.Limit, PIPELINE_STEP_TYPE.Custom],
     ContentComponent: LimitStepContent,
     createInitialData: () => undefined,
@@ -166,6 +177,7 @@ export const STEP_CONFIG: Record<PipelineStepType, StepConfig> = {
   },
   [PIPELINE_STEP_TYPE.Custom]: {
     label: 'Custom',
+    allowedAsFirst: true,
     allowedNext: [
       PIPELINE_STEP_TYPE.Filter,
       PIPELINE_STEP_TYPE.Modify,

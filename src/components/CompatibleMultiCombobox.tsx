@@ -23,7 +23,7 @@ const isComboboxSelectedValue = (option: unknown): option is ComboboxOption[] =>
  * and Select in older versions.
  */
 export const CompatibleMultiCombobox: typeof MultiCombobox = (props) => {
-  const styles= useStyles2(getStyles);
+  const styles = useStyles2(getStyles);
   // Normalize value to Select format
   const normalizedValue = useMemo<SelectValue<any>[] | undefined>(() => {
     const selectedValue = props.value;

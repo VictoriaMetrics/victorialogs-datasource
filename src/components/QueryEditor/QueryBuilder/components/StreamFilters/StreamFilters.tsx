@@ -2,13 +2,13 @@ import { css } from '@emotion/css';
 import React, { useCallback, useMemo } from 'react';
 
 import { GrafanaTheme2, TimeRange } from '@grafana/data';
-import { Button, ClipboardButton, IconButton, Label, Text, useStyles2 } from '@grafana/ui';
+import { Button, IconButton, Label, Text, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
 import { Query, StreamFilterState } from '../../../../../types';
 
 import StreamFilterRow from './StreamFilterRow';
-import { buildPrecedingStreamFilters, buildStreamExtraFilters, getUsedLabelNames } from './streamFilterUtils';
+import { buildPrecedingStreamFilters, getUsedLabelNames } from './streamFilterUtils';
 
 const TooltipText = () => (
   <Text>
@@ -96,18 +96,6 @@ export const StreamFilters = ({ datasource, query, timeRange, onChange, onRunQue
           <Button variant='secondary' onClick={handleAddFilter} icon='plus' size={'sm'}>
             Stream filter
           </Button>
-          {streamFilters.length > 0 && (
-            <ClipboardButton
-              variant='secondary'
-              fill='solid'
-              icon='copy'
-              size='sm'
-              tooltip='Copy stream filters as LogsQL expression'
-              getText={() => buildStreamExtraFilters(streamFilters)}
-            >
-              Copy filters
-            </ClipboardButton>
-          )}
         </div>
       </div>
     </div>
