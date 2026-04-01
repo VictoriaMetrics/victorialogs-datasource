@@ -34,42 +34,58 @@ interface Props {
 
 export const StreamFilters = ({ datasource, query, timeRange, onChange, onRunQuery }: Props) => {
   const styles = useStyles2(getStyles);
-  const streamFilters = useMemo(() => query.streamFilters || [], [query]);
+  const EMPTY_FILTER: StreamFilterState = useMemo(() => ({ label: '', operator: 'in', values: [] }), []);
+  const savedFilters = useMemo(() => query.streamFilters || [], [query]);
+  const displayFilters = useMemo(
+    () => (savedFilters.length === 0 ? [EMPTY_FILTER] : savedFilters),
+    [savedFilters, EMPTY_FILTER]
+  );
 
   const handleAddFilter = useCallback(() => {
-    const newFilters: StreamFilterState[] = [...streamFilters, { label: '', operator: 'in', values: [] }];
+    const newFilters: StreamFilterState[] = [...savedFilters, { label: '', operator: 'in', values: [] }];
     onChange({ ...query, streamFilters: newFilters });
-  }, [onChange, query, streamFilters]);
+  }, [onChange, query, savedFilters]);
 
   const handleFilterChange = useCallback(
     (index: number, filter: StreamFilterState) => {
-      const newFilters = [...streamFilters];
+      const isPlaceholder = index >= savedFilters.length;
+      if (isPlaceholder) {
+        if (filter.label) {
+          onChange({ ...query, streamFilters: [...savedFilters, filter] });
+        }
+        return;
+      }
+      const newFilters = [...savedFilters];
       newFilters[index] = filter;
       onChange({ ...query, streamFilters: newFilters });
     },
-    [onChange, query, streamFilters]
+    [onChange, query, savedFilters]
   );
 
   const handleRemoveFilter = useCallback(
     (index: number) => {
-      const newFilters = streamFilters.filter((_, i) => i !== index);
+      const isPlaceholder = index >= savedFilters.length;
+      if (isPlaceholder) {
+        return;
+      }
+      const newFilters = savedFilters.filter((_, i) => i !== index);
       onChange({
         ...query,
         streamFilters: newFilters.length > 0 ? newFilters : undefined,
       });
     },
-    [onChange, query, streamFilters]
+    [onChange, query, savedFilters]
   );
 
   // Precompute extra_stream_filters for each filter row (from preceding enabled filters)
   const precedingFiltersMap = useMemo(() => {
-    return streamFilters.map((_, index) => buildPrecedingStreamFilters(streamFilters, index));
-  }, [streamFilters]);
+    return displayFilters.map((_, index) => buildPrecedingStreamFilters(displayFilters, index));
+  }, [displayFilters]);
 
   // Precompute excluded label names for each filter row
   const excludeLabelsMap = useMemo(() => {
-    return streamFilters.map((_, index) => getUsedLabelNames(streamFilters, index));
-  }, [streamFilters]);
+    return displayFilters.map((_, index) => getUsedLabelNames(displayFilters, index));
+  }, [displayFilters]);
 
   return (
     <div className={styles.wrapper}>
@@ -78,7 +94,7 @@ export const StreamFilters = ({ datasource, query, timeRange, onChange, onRunQue
         <IconButton style={{ marginLeft: '5px' }} name='info-circle' tooltip={TooltipText} />
       </Label>
       <div className={styles.filtersRow}>
-        {streamFilters.map((filter, index) => (
+        {displayFilters.map((filter, index) => (
           <StreamFilterRow
             key={filter.label + filter.operator}
             datasource={datasource}
@@ -93,9 +109,7 @@ export const StreamFilters = ({ datasource, query, timeRange, onChange, onRunQue
           />
         ))}
         <div className={styles.controls}>
-          <Button variant='secondary' onClick={handleAddFilter} icon='plus' size={'sm'}>
-            Stream filter
-          </Button>
+          <Button variant='secondary' onClick={handleAddFilter} icon='plus' size='md' aria-label='Add stream filter' />
         </div>
       </div>
     </div>
