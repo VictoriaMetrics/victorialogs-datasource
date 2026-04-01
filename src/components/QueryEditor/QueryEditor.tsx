@@ -13,7 +13,6 @@ import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 import { EditorHeader } from './EditorHeader';
 import PipelineBuilder from './QueryBuilder/PipelineBuilder/PipelineBuilder';
 import { getCodeModeExpr } from './QueryBuilder/PipelineBuilder/serialization/getBuilderGeneratedExpr';
-import { QueryBuilderContainer } from './QueryBuilder/QueryBuilderContainer';
 import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorOptions } from './QueryEditorOptions';
 import QueryEditorVariableRegexpError from './QueryEditorVariableRegexpError';
@@ -122,25 +121,15 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
         />
         <div className='flex-grow-1'>
           {editorMode === QueryEditorMode.Builder ? (
-            app === CoreApp.Explore ? (
-              <PipelineBuilder
-                datasource={props.datasource}
-                query={query}
-                app={app}
-                onChange={onChangeInternal}
-                timeRange={timeRange}
-                onRunQuery={onRunQuery}
-              />
-            ) : (
-              <QueryBuilderContainer
-                datasource={props.datasource}
-                query={query}
-                app={app}
-                onChange={onChangeInternal}
-                onRunQuery={props.onRunQuery}
-                timeRange={timeRange}
-              />
-            )) : (
+            <PipelineBuilder
+              datasource={props.datasource}
+              query={query}
+              app={app}
+              onChange={onChangeInternal}
+              timeRange={timeRange}
+              onRunQuery={onRunQuery}
+            />
+          ) : (
             <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
           )}
           {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange} />)}

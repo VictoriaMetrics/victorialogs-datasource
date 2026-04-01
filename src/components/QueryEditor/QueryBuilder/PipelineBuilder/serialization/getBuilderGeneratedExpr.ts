@@ -13,7 +13,7 @@ export const getBuilderGeneratedExpr = (
   steps: PipelineStepItem[],
   _streamFilters: StreamFilterState[]
 ): string => {
-  return serializePipeline(steps) || '*';
+  return serializePipeline(steps, { prependStar: true }) || '*';
 };
 
 /**
@@ -27,8 +27,8 @@ export const getCodeModeExpr = (
   steps: PipelineStepItem[],
   streamFilters: StreamFilterState[]
 ): string => {
-  const pipelineExpr = serializePipeline(steps);
   const streamExpr = buildStreamExtraFilters(streamFilters);
+  const pipelineExpr = serializePipeline(steps, { prependStar: !streamExpr });
 
   if (streamExpr && pipelineExpr) {
     return `${streamExpr} | ${pipelineExpr}`;
