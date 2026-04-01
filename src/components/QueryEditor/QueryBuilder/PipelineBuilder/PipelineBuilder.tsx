@@ -88,48 +88,50 @@ const PipelineBuilder = memo<Props>(({ datasource, timeRange, query, onChange, o
         onRunQuery={onRunQuery}
       />
       <Divider />
-      <Label className={styles.queryLabel}>
-        Query
-        <IconButton style={{ marginLeft: '5px' }} name='info-circle' tooltip={QueryTooltipText} />
-      </Label>
-      <PipelineContext.Provider value={pipelineContextValue}>
-        <Stack direction='row' alignItems={'center'} wrap={'wrap'}>
-          {steps.map((step, index) => {
-            const config = STEP_CONFIG[step.type];
-            const ContentComponent = config.ContentComponent;
+      <Stack direction='column' gap={0.5}>
+        <Label className={styles.queryLabel}>
+          Query
+          <IconButton style={{ marginLeft: '5px' }} name='info-circle' tooltip={QueryTooltipText} />
+        </Label>
+        <PipelineContext.Provider value={pipelineContextValue}>
+          <Stack direction='row' alignItems={'center'} wrap={'wrap'}>
+            {steps.map((step, index) => {
+              const config = STEP_CONFIG[step.type];
+              const ContentComponent = config.ContentComponent;
 
-            const insertAllowed = index > 0 ? getAllowedInsertTypes(steps, index) : [];
+              const insertAllowed = index > 0 ? getAllowedInsertTypes(steps, index) : [];
 
-            return (
-              <Fragment key={step.id}>
-                {index > 0 && (
-                  insertAllowed.length > 0 ? (
-                    <Dropdown overlay={buildPipelineMenu(insertAllowed, handleInsertStep(index))} placement='bottom-start'>
-                      <span className={styles.pipeSeparatorInteractive} title='Insert pipe'>|</span>
-                    </Dropdown>
-                  ) : (
-                    <span className={styles.pipeSeparator}>|</span>
-                  )
-                )}
-                {ContentComponent && (
-                  <ContentComponent
-                    step={step}
-                    datasource={datasource}
-                    timeRange={timeRange}
-                    onStepChange={updateStep}
-                    onDeleteStep={deleteStep}
-                    steps={steps}
-                    stepIndex={index}
-                  />
-                )}
-              </Fragment>
-            );
-          })}
-          {allowedAppendTypes.length > 0 && (
-            <PipelineAddMenu allowedTypes={allowedAppendTypes} onAddStep={handleAddStep} />
-          )}
-        </Stack>
-      </PipelineContext.Provider>
+              return (
+                <Fragment key={step.id}>
+                  {index > 0 && (
+                    insertAllowed.length > 0 ? (
+                      <Dropdown overlay={buildPipelineMenu(insertAllowed, handleInsertStep(index))} placement='bottom-start'>
+                        <span className={styles.pipeSeparatorInteractive} title='Insert pipe'>|</span>
+                      </Dropdown>
+                    ) : (
+                      <span className={styles.pipeSeparator}>|</span>
+                    )
+                  )}
+                  {ContentComponent && (
+                    <ContentComponent
+                      step={step}
+                      datasource={datasource}
+                      timeRange={timeRange}
+                      onStepChange={updateStep}
+                      onDeleteStep={deleteStep}
+                      steps={steps}
+                      stepIndex={index}
+                    />
+                  )}
+                </Fragment>
+              );
+            })}
+            {allowedAppendTypes.length > 0 && (
+              <PipelineAddMenu allowedTypes={allowedAppendTypes} onAddStep={handleAddStep} />
+            )}
+          </Stack>
+        </PipelineContext.Provider>
+      </Stack>
     </>
   );
 });
