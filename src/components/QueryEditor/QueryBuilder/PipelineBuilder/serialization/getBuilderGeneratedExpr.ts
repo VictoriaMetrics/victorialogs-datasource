@@ -5,23 +5,36 @@ import { PipelineStepItem } from '../types';
 import { serializePipeline } from './serializePipeline';
 
 /**
- * Returns the LogsQL expression that the Builder would generate for the given steps and stream filters.
- *
- * Rules:
- * - If the pipeline has steps, serialize them normally.
- * - If the pipeline is empty and there are active stream filters, return '' —
- *   the stream filters alone form the full query on the backend side.
- * - If the pipeline is empty and there are no active stream filters, return '*' —
- *   an explicit "match all" is required.
+ * Returns the LogsQL expression for Builder mode.
+ * Stream filters are sent separately via extra_stream_filters, so they are not included here.
+ * If the pipeline is empty, returns '*'.
  */
 export const getBuilderGeneratedExpr = (
   steps: PipelineStepItem[],
+  _streamFilters: StreamFilterState[]
+): string => {
+  return serializePipeline(steps) || '*';
+};
+
+/**
+ * Returns the full LogsQL expression for Code mode, including stream filters.
+ * - stream filters + pipeline → "stream_filters | pipeline_expr"
+ * - stream filters only      → "stream_filters"
+ * - pipeline only            → "pipeline_expr"
+ * - nothing                  → "*"
+ */
+export const getCodeModeExpr = (
+  steps: PipelineStepItem[],
   streamFilters: StreamFilterState[]
 ): string => {
-  const serialized = serializePipeline(steps);
-  if (serialized) {
-    return serialized;
+  const pipelineExpr = serializePipeline(steps);
+  const streamExpr = buildStreamExtraFilters(streamFilters);
+
+  if (streamExpr && pipelineExpr) {
+    return `${streamExpr} | ${pipelineExpr}`;
   }
-  const hasActiveStreamFilters = !!buildStreamExtraFilters(streamFilters);
-  return hasActiveStreamFilters ? '' : '*';
+  if (streamExpr) {
+    return streamExpr;
+  }
+  return pipelineExpr || '*';
 };

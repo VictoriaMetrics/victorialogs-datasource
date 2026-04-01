@@ -12,7 +12,7 @@ import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 
 import { EditorHeader } from './EditorHeader';
 import PipelineBuilder from './QueryBuilder/PipelineBuilder/PipelineBuilder';
-import { getBuilderGeneratedExpr } from './QueryBuilder/PipelineBuilder/serialization/getBuilderGeneratedExpr';
+import { getCodeModeExpr } from './QueryBuilder/PipelineBuilder/serialization/getBuilderGeneratedExpr';
 import { QueryBuilderContainer } from './QueryBuilder/QueryBuilderContainer';
 import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorOptions } from './QueryEditorOptions';
@@ -40,13 +40,17 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   useLogsSort(app, query, onChange, onRunQuery);
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
+    const builderExpr = getCodeModeExpr(query.builder?.steps || [], query.streamFilters ?? []);
     if (newEditorMode === QueryEditorMode.Builder && query.expr) {
-      const builderExpr = getBuilderGeneratedExpr(query.builder?.steps || [], query.streamFilters ?? []);
       if (query.expr === builderExpr) {
         changeEditorMode(query, newEditorMode, onChange);
         return;
       }
       setParseModalOpen(true);
+      return;
+    }
+    if (newEditorMode === QueryEditorMode.Code) {
+      onChange({ ...query, expr: builderExpr, editorMode: newEditorMode });
       return;
     }
     changeEditorMode(query, newEditorMode, onChange);

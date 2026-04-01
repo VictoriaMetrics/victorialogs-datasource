@@ -110,7 +110,6 @@ const getStyles = () => ({
     }
     & > div > div > span > span:has(> span + span) {
       max-width: 100%;
-      flex-shrink: 1;
     }
   `),
 });

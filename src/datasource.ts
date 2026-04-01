@@ -60,6 +60,7 @@ import {
   Options,
   Query,
   QueryBuilderLimits,
+  QueryEditorMode,
   QueryFilterOptions,
   QueryType,
   StreamFilterState,
@@ -221,7 +222,8 @@ export class VictoriaLogsDatasource
       extraFilters = undefined;
     }
 
-    const extraStreamFilters = this.getExtraStreamFilters(target.streamFilters, scopedVars);
+    const isCodeMode = target.editorMode === QueryEditorMode.Code;
+    const extraStreamFilters = isCodeMode ? undefined : this.getExtraStreamFilters(target.streamFilters, scopedVars);
     return {
       ...target,
       legendFormat: this.templateSrv.replace(target.legendFormat, rest),
