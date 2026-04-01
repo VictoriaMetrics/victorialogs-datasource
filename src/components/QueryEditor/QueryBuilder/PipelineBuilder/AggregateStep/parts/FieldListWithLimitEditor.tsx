@@ -2,6 +2,7 @@ import React, { memo, useCallback, useMemo } from 'react';
 
 import { AutoSizeInput, Stack } from '@grafana/ui';
 
+import { useTemplateVariables } from '../../../../../../hooks/useTemplateVariables';
 import { CompatibleMultiCombobox } from '../../../../../CompatibleMultiCombobox';
 import IfFilterInput from '../../shared/IfFilterInput';
 import OptionalField from '../../shared/OptionalField';
@@ -17,14 +18,15 @@ const FieldListWithLimitEditor = memo(function FieldListWithLimitEditor({
   queryContext,
 }: AggregateRowContentProps) {
   const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
+  const { filterSelection } = useTemplateVariables();
 
   const selectedFields = useMemo(() => (row.fieldList ?? []).map((f) => ({ label: f, value: f })), [row.fieldList]);
 
   const handleFieldsChange = useCallback(
     (selected: Array<{ value?: string; label?: string }>) => {
-      onChange({ ...row, fieldList: selected.map((s) => s.value ?? '').filter(Boolean) });
+      onChange({ ...row, fieldList: filterSelection(selected.map((s) => s.value ?? '').filter(Boolean)) });
     },
-    [onChange, row]
+    [onChange, row, filterSelection]
   );
 
   const handleIfFilterChange = useCallback(

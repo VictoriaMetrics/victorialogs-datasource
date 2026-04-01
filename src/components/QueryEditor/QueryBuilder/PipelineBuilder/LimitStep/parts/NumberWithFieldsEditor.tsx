@@ -2,6 +2,7 @@ import React, { memo, useCallback, useMemo } from 'react';
 
 import { AutoSizeInput, Stack } from '@grafana/ui';
 
+import { useTemplateVariables } from '../../../../../../hooks/useTemplateVariables';
 import { CompatibleMultiCombobox } from '../../../../../CompatibleMultiCombobox';
 import OptionalField from '../../shared/OptionalField';
 import { useFieldFetch } from '../../shared/useFieldFetch';
@@ -16,6 +17,7 @@ const NumberWithFieldsEditor = memo(function NumberWithFieldsEditor({
   queryContext,
 }: LimitRowContentProps) {
   const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
+  const { filterSelection } = useTemplateVariables();
 
   const handleCountChange = useCallback(
     (e: React.FormEvent<HTMLInputElement>) => {
@@ -31,9 +33,9 @@ const NumberWithFieldsEditor = memo(function NumberWithFieldsEditor({
 
   const handleFieldsChange = useCallback(
     (selected: Array<{ value?: string; label?: string }>) => {
-      onChange({ ...row, fieldList: selected.map((s) => s.value ?? '').filter(Boolean) });
+      onChange({ ...row, fieldList: filterSelection(selected.map((s) => s.value ?? '').filter(Boolean)) });
     },
-    [onChange, row]
+    [onChange, row, filterSelection]
   );
 
   // partition by is only for first/last
@@ -57,9 +59,9 @@ const NumberWithFieldsEditor = memo(function NumberWithFieldsEditor({
 
   const handlePartitionFieldsChange = useCallback(
     (selected: Array<{ value?: string; label?: string }>) => {
-      onChange({ ...row, partitionByFields: selected.map((s) => s.value ?? '').filter(Boolean) });
+      onChange({ ...row, partitionByFields: filterSelection(selected.map((s) => s.value ?? '').filter(Boolean)) });
     },
-    [onChange, row]
+    [onChange, row, filterSelection]
   );
 
   return (

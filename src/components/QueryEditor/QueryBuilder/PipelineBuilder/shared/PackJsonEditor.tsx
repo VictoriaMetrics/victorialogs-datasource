@@ -5,6 +5,7 @@ import { GrafanaTheme2, TimeRange } from '@grafana/data';
 import { AutoSizeInput, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
+import { useTemplateVariables } from '../../../../../hooks/useTemplateVariables';
 import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
 
 import OptionalField from './OptionalField';
@@ -27,6 +28,7 @@ interface Props<TRow extends PackJsonEditorRow> {
 function PackJsonEditorInner<TRow extends PackJsonEditorRow>({ row, onChange, datasource, timeRange, queryContext }: Props<TRow>) {
   const styles = useStyles2(getStyles);
   const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
+  const { filterSelection } = useTemplateVariables();
 
   const selectedFields = useMemo(
     () => (row.fieldList ?? []).map((f) => ({ label: f, value: f })),
@@ -35,9 +37,9 @@ function PackJsonEditorInner<TRow extends PackJsonEditorRow>({ row, onChange, da
 
   const handleFieldsChange = useCallback(
     (selected: Array<{ value?: string; label?: string }>) => {
-      onChange({ ...row, fieldList: selected.map((s) => s.value ?? '').filter(Boolean) });
+      onChange({ ...row, fieldList: filterSelection(selected.map((s) => s.value ?? '').filter(Boolean)) });
     },
-    [onChange, row]
+    [onChange, row, filterSelection]
   );
 
   // Fields is optional - when undefined, all fields are packed

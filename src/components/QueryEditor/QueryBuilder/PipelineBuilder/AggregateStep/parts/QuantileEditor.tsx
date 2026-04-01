@@ -2,6 +2,7 @@ import React, { memo, useCallback, useMemo } from 'react';
 
 import { AutoSizeInput, Stack } from '@grafana/ui';
 
+import { useTemplateVariables } from '../../../../../../hooks/useTemplateVariables';
 import { CompatibleMultiCombobox } from '../../../../../CompatibleMultiCombobox';
 import IfFilterInput from '../../shared/IfFilterInput';
 import { useFieldFetch } from '../../shared/useFieldFetch';
@@ -9,6 +10,7 @@ import { AggregateRowContentProps } from '../aggregateTypeConfig';
 
 const QuantileEditor = memo(function QuantileEditor({ row, onChange, datasource, timeRange, queryContext }: AggregateRowContentProps) {
   const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
+  const { filterSelection } = useTemplateVariables();
 
   const selectedFields = useMemo(() => (row.fieldList ?? []).map((f) => ({ label: f, value: f })), [row.fieldList]);
 
@@ -19,9 +21,9 @@ const QuantileEditor = memo(function QuantileEditor({ row, onChange, datasource,
 
   const handleFieldsChange = useCallback(
     (selected: Array<{ value?: string; label?: string }>) => {
-      onChange({ ...row, fieldList: selected.map((s) => s.value ?? '').filter(Boolean) });
+      onChange({ ...row, fieldList: filterSelection(selected.map((s) => s.value ?? '').filter(Boolean)) });
     },
-    [onChange, row]
+    [onChange, row, filterSelection]
   );
 
   const handleIfFilterChange = useCallback(

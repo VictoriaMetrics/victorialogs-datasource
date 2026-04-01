@@ -5,6 +5,7 @@ import { formattedValueToString, getValueFormat, TimeRange } from '@grafana/data
 import { ComboboxOption } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
+import { useTemplateVariables } from '../../../../../hooks/useTemplateVariables';
 import { FieldHits, FilterFieldType } from '../../../../../types';
 import { LRUCache } from '../../../../../utils/LRUCache';
 
@@ -38,10 +39,24 @@ interface Props {
 
 export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excludeFields }: Props) => {
   const { extraStreamFilters } = usePipelineContext();
-  const cacheKey = useMemo(() => `${queryContext ?? ''}::${extraStreamFilters ?? ''}`, [queryContext, extraStreamFilters]);
+  const { withVariables } = useTemplateVariables();
+
+  const interpolatedQueryContext = useMemo(
+    () => queryContext ? datasource.interpolateString(queryContext) : undefined,
+    [datasource, queryContext]
+  );
+  const interpolatedStreamFilters = useMemo(
+    () => extraStreamFilters ? datasource.interpolateString(extraStreamFilters) : undefined,
+    [datasource, extraStreamFilters]
+  );
+
+  const cacheKey = useMemo(
+    () => `${interpolatedQueryContext ?? ''}::${interpolatedStreamFilters ?? ''}`,
+    [interpolatedQueryContext, interpolatedStreamFilters]
+  );
 
   const customParams = useMemo(() => {
-    if (!extraStreamFilters) {
+    if (!interpolatedStreamFilters) {
       return datasource.customQueryParameters;
     }
     const params = new URLSearchParams();
@@ -50,9 +65,9 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
         params.append(key, value);
       }
     }
-    params.set('extra_stream_filters', extraStreamFilters);
+    params.set('extra_stream_filters', interpolatedStreamFilters);
     return params;
-  }, [datasource.customQueryParameters, extraStreamFilters]);
+  }, [datasource.customQueryParameters, interpolatedStreamFilters]);
 
   const fetchFieldNames = useCallback(async (): Promise<ComboboxOption[]> => {
     const cached = fieldNamesCache.get(cacheKey);
@@ -63,7 +78,7 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
     const limit = datasource.getQueryBuilderLimits(FilterFieldType.FieldName);
 
     const list = await datasource.languageProvider?.getFieldList(
-      { type: FilterFieldType.FieldName, timeRange, limit, query: queryContext },
+      { type: FilterFieldType.FieldName, timeRange, limit, query: interpolatedQueryContext },
       customParams
     );
 
@@ -71,7 +86,7 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
 
     fieldNamesCache.set(cacheKey, result);
     return result;
-  }, [datasource, timeRange, queryContext, customParams, cacheKey]);
+  }, [datasource, timeRange, interpolatedQueryContext, customParams, cacheKey]);
 
   const filterExcludedFields = useCallback((options: ComboboxOption[]): ComboboxOption[] => {
     if (!excludeFields?.length) {
@@ -91,7 +106,7 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
           field,
           limit,
           fieldValueFilter: inputValue || undefined,
-          query: queryContext,
+          query: interpolatedQueryContext,
         },
         customParams
       );
@@ -116,7 +131,7 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
 
       return options;
     },
-    [datasource, field, timeRange, queryContext, customParams]
+    [datasource, field, timeRange, interpolatedQueryContext, customParams]
   );
 
   const filterOptions = useCallback((options: ComboboxOption[], inputValue: string): ComboboxOption[] => {
@@ -155,16 +170,16 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
       return new Promise((resolve) => {
         if (!inputValue) {
           fetchFieldNames().then((allOptions) => {
-            resolve(filterExcludedFields(filterOptions(allOptions, inputValue)));
+            resolve(withVariables(filterExcludedFields(filterOptions(allOptions, inputValue)), inputValue));
           });
         } else {
           debouncedFilter(inputValue, resolve, fetchFieldNames, (opts, input) =>
-            filterExcludedFields(filterOptions(opts, input))
+            withVariables(filterExcludedFields(filterOptions(opts, input)), input)
           );
         }
       });
     },
-    [fetchFieldNames, filterOptions, filterExcludedFields, debouncedFilter]
+    [fetchFieldNames, filterOptions, filterExcludedFields, debouncedFilter, withVariables]
   );
 
   const loadFieldValues = useCallback(
@@ -172,14 +187,16 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
       return new Promise((resolve) => {
         if (!inputValue) {
           fetchFieldValues(inputValue).then((allOptions) => {
-            resolve(allOptions);
+            resolve(withVariables(allOptions, inputValue));
           });
         } else {
-          debouncedFilter(inputValue, resolve, fetchFieldValues);
+          debouncedFilter(inputValue, resolve, fetchFieldValues, (opts, input) =>
+            withVariables(opts, input)
+          );
         }
       });
     },
-    [fetchFieldValues, debouncedFilter]
+    [fetchFieldValues, debouncedFilter, withVariables]
   );
 
   useEffect(() => {

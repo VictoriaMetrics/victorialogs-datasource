@@ -1,12 +1,14 @@
 import React, { memo, useMemo } from 'react';
 
 
+import { useTemplateVariables } from '../../../../../../hooks/useTemplateVariables';
 import { CompatibleMultiCombobox } from '../../../../../CompatibleMultiCombobox';
 import { useFieldFetch } from '../../shared/useFieldFetch';
 
 import { ValueComponentProps } from './TextValueInput';
 
 const ExactValueSelect = ({ values, onChange, fieldName, datasource, timeRange, queryContext }: ValueComponentProps) => {
+  const { filterSelection } = useTemplateVariables();
   const { loadFieldValues } = useFieldFetch({
     datasource,
     field: fieldName || undefined,
@@ -17,7 +19,7 @@ const ExactValueSelect = ({ values, onChange, fieldName, datasource, timeRange, 
   const selectedValues = useMemo(() => values.map((v) => ({ label: v, value: v })), [values]);
 
   const handleChange = (selected: Array<{ value?: string; label?: string }>) => {
-    onChange(selected.map((s) => s.value ?? '').filter(Boolean));
+    onChange(filterSelection(selected.map((s) => s.value ?? '').filter(Boolean)));
   };
 
   return (

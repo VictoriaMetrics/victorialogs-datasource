@@ -5,6 +5,7 @@ import { GrafanaTheme2, TimeRange } from '@grafana/data';
 import { Button, Dropdown, Label, Menu, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
+import { useTemplateVariables } from '../../../../../hooks/useTemplateVariables';
 import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
 import StepRowLayout from '../../components/StepRowLayout';
 import OptionalField from '../shared/OptionalField';
@@ -41,6 +42,7 @@ const AggregateStepContent = memo(function AggregateStepContent({
   const rows = aggregateStep.rows ?? [];
   const queryContexts = useQueryContexts(steps, stepIndex, Math.max(rows.length, 1));
   const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext: queryContexts[0] });
+  const { filterSelection } = useTemplateVariables();
 
   const { handleRowChange, handleRowDelete, handleAddRow } = useRowManagement<AggregateRow>({
     rows,
@@ -57,10 +59,10 @@ const AggregateStepContent = memo(function AggregateStepContent({
   const handleByFieldsChange = useCallback(
     (selected: Array<{ value?: string; label?: string }>) => {
       onStepChange(step.id, {
-        byFields: selected.map((s) => s.value ?? '').filter(Boolean),
+        byFields: filterSelection(selected.map((s) => s.value ?? '').filter(Boolean)),
       });
     },
-    [onStepChange, step.id]
+    [onStepChange, step.id, filterSelection]
   );
 
   const isByFieldsActive = aggregateStep.byFields !== undefined;

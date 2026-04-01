@@ -38,9 +38,17 @@ export const useFetchStreamFilters = ({
   excludeLabels,
 }: Props) => {
   const queryBeforePipe = useMemo(() => splitByPipes(queryExpr || '')[0], [queryExpr]);
+  const interpolatedQuery = useMemo(
+    () => queryBeforePipe ? datasource.interpolateString(queryBeforePipe) : undefined,
+    [datasource, queryBeforePipe]
+  );
+  const interpolatedStreamFilters = useMemo(
+    () => extraStreamFilters ? datasource.interpolateString(extraStreamFilters) : undefined,
+    [datasource, extraStreamFilters]
+  );
   const cacheKey = useMemo(
-    () => `stream::${queryBeforePipe ?? ''}::${extraStreamFilters ?? ''}`,
-    [queryBeforePipe, extraStreamFilters]
+    () => `stream::${interpolatedQuery ?? ''}::${interpolatedStreamFilters ?? ''}`,
+    [interpolatedQuery, interpolatedStreamFilters]
   );
 
   // Fetch and cache stream field names (client-side filtering)
@@ -56,12 +64,12 @@ export const useFetchStreamFilters = ({
         customParams.append(key, value);
       }
     }
-    if (extraStreamFilters) {
-      customParams.set('extra_stream_filters', extraStreamFilters);
+    if (interpolatedStreamFilters) {
+      customParams.set('extra_stream_filters', interpolatedStreamFilters);
     }
 
     const list = await datasource.languageProvider?.getStreamFieldList(
-      { type: FilterFieldType.FieldName, timeRange, query: queryBeforePipe || undefined },
+      { type: FilterFieldType.FieldName, timeRange, query: interpolatedQuery || undefined },
       customParams
     );
 
@@ -79,7 +87,7 @@ export const useFetchStreamFilters = ({
 
     streamFieldNamesCache.set(cacheKey, result);
     return result;
-  }, [datasource.customQueryParameters, datasource.languageProvider, extraStreamFilters, timeRange, queryBeforePipe, cacheKey]);
+  }, [datasource.customQueryParameters, datasource.languageProvider, interpolatedStreamFilters, timeRange, interpolatedQuery, cacheKey]);
 
   // Fetch stream field values with server-side filtering
   const fetchStreamFieldValues = useCallback(
@@ -96,8 +104,8 @@ export const useFetchStreamFilters = ({
           customParams.append(key, value);
         }
       }
-      if (extraStreamFilters) {
-        customParams.set('extra_stream_filters', extraStreamFilters);
+      if (interpolatedStreamFilters) {
+        customParams.set('extra_stream_filters', interpolatedStreamFilters);
       }
 
       const list = await datasource.languageProvider?.getStreamFieldList(
@@ -107,7 +115,7 @@ export const useFetchStreamFilters = ({
           field: fieldName,
           limit,
           fieldValueFilter: inputValue || undefined,
-          query: queryBeforePipe || undefined,
+          query: interpolatedQuery || undefined,
         },
         customParams
       );
@@ -138,7 +146,7 @@ export const useFetchStreamFilters = ({
 
       return options;
     },
-    [fieldName, datasource, extraStreamFilters, timeRange, queryBeforePipe]
+    [fieldName, datasource, interpolatedStreamFilters, timeRange, interpolatedQuery]
   );
 
   // Client-side filter for field names — also excludes already-used labels

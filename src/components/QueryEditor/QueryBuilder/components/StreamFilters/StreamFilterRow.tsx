@@ -1,12 +1,11 @@
 import React, { useCallback, useMemo } from 'react';
 
 import { SelectableValue, TimeRange } from '@grafana/data';
-import { getTemplateSrv } from '@grafana/runtime';
 import { ComboboxOption } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
-import { FilterFieldType, StreamFilterOperator, StreamFilterState } from '../../../../../types';
-import { isVariable } from '../../../../../utils/isVariable';
+import { useTemplateVariables } from '../../../../../hooks/useTemplateVariables';
+import { StreamFilterOperator, StreamFilterState } from '../../../../../types';
 import { CompatibleCombobox } from '../../../../CompatibleCombobox';
 import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
 import StepRowLayout from '../StepRowLayout';
@@ -53,17 +52,7 @@ const StreamFilterRow = ({
     excludeLabels,
   });
 
-  /** Dashboard variables of type fieldValue — shown at the top of the values dropdown */
-  const templateVariables = useMemo<ComboboxOption[]>(() => {
-    return getTemplateSrv()
-      .getVariables()
-      .filter((v) => v.type === 'query' && (v as any).query?.type === FilterFieldType.FieldValue)
-      .map((v) => ({
-        label: `$${v.name}`,
-        value: `$${v.name}`,
-        description: v.label || v.name,
-      }));
-  }, []);
+  const { withVariables, filterSelection } = useTemplateVariables();
 
   const handleSelectLabel = useCallback(
     (option: { value?: string; label?: string } | null) => {
@@ -95,25 +84,13 @@ const StreamFilterRow = ({
   const handleSelectValues = useCallback(
     (selected: ComboboxOption[]) => {
       const values = selected.map((s) => s.value).filter((v): v is string => v !== undefined && v !== '');
-
-      // If the last added value is a variable — keep only that variable (single variable mode)
-      const lastSelected = values[values.length - 1];
-      if (lastSelected && isVariable(lastSelected)) {
-        onChange({ ...filter, values: [lastSelected] });
-        if (filter.label) {
-          onRunQuery();
-        }
-        return;
-      }
-
-      // Otherwise strip any variables from the selection (regular multi-value mode)
-      const newValues = values.filter((v) => !isVariable(v));
+      const newValues = filterSelection(values);
       onChange({ ...filter, values: newValues });
       if (filter.label && newValues.length > 0) {
         onRunQuery();
       }
     },
-    [onChange, filter, onRunQuery]
+    [onChange, filter, onRunQuery, filterSelection]
   );
 
   const loadValuesOptions = useCallback(
@@ -126,11 +103,10 @@ const StreamFilterRow = ({
             value: opt.value,
             description: opt.description,
           }));
-        // Prepend template variables at the top of the list
-        return [...templateVariables, ...filtered];
+        return withVariables(filtered, inputValue);
       });
     },
-    [loadStreamFieldValues, templateVariables]
+    [loadStreamFieldValues, withVariables]
   );
 
   const labelValue = useMemo(() => {

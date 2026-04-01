@@ -4,6 +4,7 @@ import { TimeRange } from '@grafana/data';
 import { Stack } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
+import { useTemplateVariables } from '../../../../../hooks/useTemplateVariables';
 import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
 
 import IfFilterInput from './IfFilterInput';
@@ -32,6 +33,7 @@ function FieldListEditorInner<TRow extends FieldListRow>({
   showIfFilter = false,
 }: Props<TRow>) {
   const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
+  const { filterSelection } = useTemplateVariables();
 
   const selectedFields = useMemo(
     () => (row.fieldList ?? []).map((f) => ({ label: f, value: f })),
@@ -40,9 +42,9 @@ function FieldListEditorInner<TRow extends FieldListRow>({
 
   const handleChange = useCallback(
     (selected: Array<{ value?: string; label?: string }>) => {
-      onChange({ ...row, fieldList: selected.map((s) => s.value ?? '').filter(Boolean) });
+      onChange({ ...row, fieldList: filterSelection(selected.map((s) => s.value ?? '').filter(Boolean)) });
     },
-    [onChange, row]
+    [onChange, row, filterSelection]
   );
 
   const handleIfFilterChange = useCallback(

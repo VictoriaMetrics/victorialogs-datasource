@@ -5,6 +5,7 @@ import { GrafanaTheme2, TimeRange } from '@grafana/data';
 import { AutoSizeInput, Button, IconButton, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../../datasource';
+import { useTemplateVariables } from '../../../../../hooks/useTemplateVariables';
 import { CompatibleCombobox } from '../../../../CompatibleCombobox';
 import { CompatibleMultiCombobox } from '../../../../CompatibleMultiCombobox';
 import StepRowLayout from '../../components/StepRowLayout';
@@ -43,6 +44,7 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
     [steps, stepIndex]
   );
   const { loadFieldNames } = useFieldFetch({ datasource, timeRange, queryContext });
+  const { filterSelection } = useTemplateVariables();
 
   const updateStep = useCallback(
     (patch: PipelineStepPatch) => onStepChange(step.id, patch),
@@ -95,9 +97,9 @@ const SortStepContent = memo(function SortStepContent({ step, datasource, timeRa
   const handleRemovePartition = useCallback(() => updateStep({ partitionByFields: undefined }), [updateStep]);
   const handlePartitionChange = useCallback(
     (selected: Array<{ value?: string; label?: string }>) => {
-      updateStep({ partitionByFields: selected.map((s) => s.value ?? '').filter(Boolean) });
+      updateStep({ partitionByFields: filterSelection(selected.map((s) => s.value ?? '').filter(Boolean)) });
     },
-    [updateStep]
+    [updateStep, filterSelection]
   );
 
   return (
