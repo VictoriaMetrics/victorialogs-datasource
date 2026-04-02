@@ -4,10 +4,9 @@ import React, { FormEvent, useEffect, useState } from 'react';
 import { DEFAULT_FIELD_DISPLAY_VALUES_LIMIT, QueryEditorProps, SelectableValue } from '@grafana/data';
 import { InlineField, InlineFieldRow, Input, Select } from '@grafana/ui';
 
-import { CompatibleCombobox } from '../CompatibleCombobox';
-
 import { VictoriaLogsDatasource } from '../../datasource';
 import { FilterFieldType, Options, Query, VariableQuery } from '../../types';
+import { CompatibleCombobox } from '../CompatibleCombobox';
 
 const variableOptions = [
   { label: 'Field names', value: FilterFieldType.FieldName },
@@ -36,7 +35,11 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
   };
 
   const handleFieldChange = (option: { value: string }) => {
-    setField(String(option.value));
+    setField(option.value);
+    if (!type) {
+      return;
+    }
+    onChange({ refId, type, field: option.value, query: queryFilter, limit });
   };
 
   const handleBlur = () => {
@@ -136,7 +139,6 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
             <CompatibleCombobox
               placeholder='Select field'
               onChange={handleFieldChange}
-              onBlur={handleBlur}
               value={field || null}
               options={fieldNames}
               width={20}
