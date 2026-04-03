@@ -29,6 +29,26 @@ describe('replaceOperatorWithIn', () => {
           const output = replaceOperatorWithIn(input, 'variableName');
           expect(output).toBe('field1:in($variableName)');
         });
+
+        it(`should replace ${operator} operator with field name which contains /`, () => {
+          const input = `kubernetes.pod_labels.app.kubernetes.io/name${operator}$variableName`;
+          const output = replaceOperatorWithIn(input, 'variableName');
+          expect(output).toBe('kubernetes.pod_labels.app.kubernetes.io/name:in($variableName)');
+        });
+
+        ['\r', '\n', '\t'].forEach((separator) => {
+          it(`should replace ${operator} operator with the separator ${JSON.stringify(separator)}`, () => {
+            const input = `_stream:{kubernetes.pod_namespace="$namespace"} kubernetes.pod_labels.app.kubernetes.io/name${operator}$variableName${separator}
+| format if (kubernetes.pod_labels.app.kubernetes.io/name:"") "unknown" as kubernetes.pod_labels.app.kubernetes.io/name
+| stats by (kubernetes.pod_labels.app.kubernetes.io/name) count()
+| count()`;
+            const output = replaceOperatorWithIn(input, 'variableName');
+            expect(output).toBe(`_stream:{kubernetes.pod_namespace="$namespace"} kubernetes.pod_labels.app.kubernetes.io/name:in($variableName)${separator}
+| format if (kubernetes.pod_labels.app.kubernetes.io/name:"") "unknown" as kubernetes.pod_labels.app.kubernetes.io/name
+| stats by (kubernetes.pod_labels.app.kubernetes.io/name) count()
+| count()`);
+          });
+        });
       });
     });
 

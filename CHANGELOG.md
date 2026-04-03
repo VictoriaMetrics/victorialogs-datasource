@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix interpolation of a query with the variable at the end of the line. See [#614](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/614);
+
 ## v0.26.3
 
 * BUGFIX: fix time range provided in `field_names` and `field_values` requests. Instead of being rounded to a 24-hour time range, the selected time range is now provided. See [pr #581](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/581).
