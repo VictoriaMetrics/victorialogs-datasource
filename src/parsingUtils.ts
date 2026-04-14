@@ -38,7 +38,7 @@ export function replaceVariables(expr: string) {
 *  '}' - for end of a stream
 *  ',' - for stream filter separator
 * */
-const validAfterVariableChars = [' ', '|', '}', ','];
+const validAfterVariableChars = [' ', '|', '}', ',', '\r', '\n', '\t'];
 function findIndexEndOfFilter(expr: string, startIndex = 0): number {
   for (let i = startIndex; i < expr.length; i++) {
     if (validAfterVariableChars.includes(expr[i])) {
