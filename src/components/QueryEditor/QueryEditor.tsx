@@ -32,7 +32,16 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const query = getQueryWithDefaults(props.query, app, data?.request?.panelPluginId);
   const editorMode = query.editorMode!;
   const isStatsQuery = query.queryType === QueryType.Stats || query.queryType === QueryType.StatsRange;
-  const showStatsWarn = isStatsQuery && !isExprHasStatsPipeFunctions(query.expr || '');
+  const showStatsWarn = useMemo(() => {
+    if (!isStatsQuery) {
+      return false;
+    }
+    // In builder mode, derive the expression from the model to avoid stale/empty expr edge cases.
+    if (editorMode === QueryEditorMode.Builder && query.templateBuilder) {
+      return !isExprHasStatsPipeFunctions(serializeQuery(query.templateBuilder));
+    }
+    return !isExprHasStatsPipeFunctions(query.expr || '');
+  }, [isStatsQuery, editorMode, query.templateBuilder, query.expr]);
   const varRegExp = useMemo(() => {
     return getQueryExprVariableRegExp(query.expr)?.[0] || null;
   }, [query.expr]);
