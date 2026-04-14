@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: add ability to set custom field names in dashboard variables, since fields do not necessarily exist at the time of creation or manipulation (e.g. when importing a dashboard from JSON, then editing a variable). See [pr #606](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/606). Thanks to @github-vincent-miszczak for contributing.
+
 ## v0.26.3
 
 * BUGFIX: fix time range provided in `field_names` and `field_values` requests. Instead of being rounded to a 24-hour time range, the selected time range is now provided. See [pr #581](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/581).
