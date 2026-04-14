@@ -15,6 +15,7 @@ import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorOptions } from './QueryEditorOptions';
 import QueryEditorVariableRegexpError from './QueryEditorVariableRegexpError';
 import TemplateQueryEditor from './TemplateBuilder/TemplateQueryEditor';
+import { serializeQuery } from './TemplateBuilder/serialization';
 import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from './constants';
 import { useDefaultExploreGraph } from './hooks/useDefaultExploreGraph';
 import { useLogsSort } from './hooks/usePanelSort';
@@ -39,12 +40,19 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
     if (newEditorMode === QueryEditorMode.Builder && query.expr) {
-      setParseModalOpen(true);
-      return;
+      // If expr matches the serialized builder state, the user hasn't modified the code manually —
+      // switch to builder directly without showing the confirmation modal.
+      const builderExpr = query.templateBuilder ? serializeQuery(query.templateBuilder) : '';
+      if (query.expr !== builderExpr) {
+        setParseModalOpen(true);
+        return;
+      }
     }
     if (newEditorMode === QueryEditorMode.Code) {
-      // expr is already kept in sync by TemplateQueryEditor
-      onChange({ ...query, editorMode: newEditorMode });
+      // Re-sync expr from templateBuilder in case it was cleared by the "switch to builder"
+      // confirmation modal while templateBuilder still has pipes.
+      const expr = query.templateBuilder ? serializeQuery(query.templateBuilder) : query.expr;
+      onChange({ ...query, expr, editorMode: newEditorMode });
       return;
     }
     changeEditorMode(query, newEditorMode, onChange);
@@ -75,6 +83,16 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     onChange(query);
   };
 
+  const onConfirmModal = () => {
+    onChange({
+      ...query,
+      expr: '',
+      editorMode: QueryEditorMode.Builder,
+      templateBuilder: { pipes: [] },
+    });
+    setParseModalOpen(false);
+  };
+
   useEffect(() => {
     if (!query.expr && app === CoreApp.Explore) {
       onChange({ ...query, expr: DEFAULT_QUERY_EXPR });
@@ -89,15 +107,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
         title='Switch to visual builder'
         body='Switching to visual builder will clear the current query. The query cannot be automatically converted to visual steps.'
         confirmText='Continue'
-        onConfirm={() => {
-          onChange({
-            ...query,
-            expr: '',
-            editorMode: QueryEditorMode.Builder,
-            builder: { steps: [] },
-          });
-          setParseModalOpen(false);
-        }}
+        onConfirm={onConfirmModal}
         onDismiss={() => setParseModalOpen(false)}
       />
       <div className={styles.wrapper}>

@@ -141,7 +141,7 @@ export class VictoriaLogsDatasource
     const timezoneOffset = formatOffsetDuration(request.timezone, request.range.from.utcOffset());
     const queries: Query[] = request.targets
       .filter((q) => q.expr || config.publicDashboardAccessToken !== '')
-      .map(({ builder, ...q }) => {
+      .map(({ templateBuilder, ...q }) => {
         return {
           ...q,
           // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button

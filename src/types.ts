@@ -85,8 +85,7 @@ export interface Query extends DataQuery {
   isApplyExtraFiltersToRootQuery?: boolean;
   /** shows which format of data is used */
   format?: Format;
-  builder?: BuilderState;
-  /** Template builder state (new visual builder) */
+  /** Template builder state */
   templateBuilder?: TemplateQueryModel;
 }
 
