@@ -1,14 +1,15 @@
 import React, { ReactNode } from 'react';
 
+import { useStyles2 } from '@grafana/ui';
+
 import { InsertableSeparator } from './InsertableSeparator';
 import { STREAM_TEMPLATE_TYPE } from './segmentHelpers';
 import { getStyles } from './styles';
 import { Pipe } from './types';
 
-interface BuildPipeElementsOptions {
+interface Props {
   pipes: Pipe[];
   renderPipe: (pipe: Pipe, index: number) => ReactNode;
-  styles: ReturnType<typeof getStyles>;
   onInsertAt: (index: number, buttonEl: HTMLButtonElement) => void;
 }
 
@@ -16,7 +17,9 @@ interface BuildPipeElementsOptions {
  * Renders each pipe individually, wrapping stream pipes in `{...}` braces.
  * The `|` separators are interactive — hovering reveals a `+` button to insert a pipe.
  */
-export function buildPipeElements({ pipes, renderPipe, styles, onInsertAt }: BuildPipeElementsOptions): ReactNode[] {
+export const PipeList: React.FC<Props> = ({ pipes, renderPipe, onInsertAt }) => {
+  const styles = useStyles2(getStyles);
+
   const elements: ReactNode[] = [];
 
   for (let i = 0; i < pipes.length; i++) {
@@ -33,5 +36,5 @@ export function buildPipeElements({ pipes, renderPipe, styles, onInsertAt }: Bui
     }
   }
 
-  return elements;
-}
+  return <>{elements}</>;
+};

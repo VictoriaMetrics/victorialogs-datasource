@@ -9,9 +9,9 @@ import { PipelineContext } from '../shared/PipelineContext';
 import { buildStreamExtraFilters } from '../shared/streamFilterUtils';
 
 import { PipeFieldLoadersProvider } from './PipeFieldLoadersProvider';
+import { PipeList } from './PipeList';
 import { PipeRenderer } from './PipeRenderer';
 import { PipeTypeSearchMenu } from './PipeTypeSearchMenu';
-import { buildPipeElements } from './buildPipeElements';
 import { usePopupManager } from './hooks/usePopupManager';
 import { useTabNavigation } from './hooks/useTabNavigation';
 import { useTemplateActions } from './hooks/useTemplateActions';
@@ -198,16 +198,10 @@ const TemplateQueryEditor: React.FC<Props> = ({
     [popup, updateSegment, updateMultiValues, handleConfirm, handleDeactivate, deletePipe, addExtension, convertPipeToStream, datasource, timeRange, model, extraStreamFilters]
   );
 
-  const pipeElements = useMemo(
-    () => buildPipeElements({ pipes: model.pipes, renderPipe, styles, onInsertAt: handleInsertAt }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [model.pipes, renderPipe, handleInsertAt]
-  );
-
   return (
     <PipelineContext.Provider value={pipelineContextValue}>
       <div ref={editorRef} className={styles.editor} onKeyDown={handleKeyDown}>
-        {pipeElements}
+        <PipeList pipes={model.pipes} renderPipe={renderPipe} onInsertAt={handleInsertAt} />
         <PipeTypeSearchMenu
           isOpen={popup.addMenuOpen}
           onAdd={handleAddPipe}

@@ -6,6 +6,7 @@ import { useStyles2 } from '@grafana/ui';
 import { FloatingDropdown } from './FloatingDropdown';
 import { useDropdownNavigation } from './hooks/useDropdownNavigation';
 import { useFloatingDropdown } from './hooks/useFloatingDropdown';
+import { usePipeTypeSearch } from './hooks/usePipeTypeSearch';
 import { getStyles } from './styles';
 import { getMenuGroups } from './templates/registry';
 
@@ -38,38 +39,8 @@ export const PipeTypeSearchMenu: React.FC<Props> = ({ isOpen, onAdd, onOpenMenu,
     }
   }, [anchorEl, setReference]);
 
-  const allGroups = getMenuGroups();
-
-  const displayGroups = (() => {
-    const q = search.trim().toLowerCase();
-    if (!q) {
-      return allGroups;
-    }
-
-    // Check if query matches a category keyword — if so, show that group only
-    const keywordGroup = allGroups.find((g) =>
-      g.keywords.some((kw) => kw.startsWith(q))
-    );
-    if (keywordGroup) {
-      return [keywordGroup];
-    }
-
-    // Otherwise search by label and description across all items
-    const matched = allGroups.flatMap((g) => g.items).filter((item) =>
-      item.label.toLowerCase().includes(q) ||
-      (item.description ?? '').toLowerCase().includes(q)
-    );
-    return [{ label: 'Results', keywords: [], items: matched }];
-  })();
-
-  // Flat list with pre-computed flat indices for keyboard navigation
-  const navItems = useMemo(() => displayGroups.flatMap((g) => g.items), [displayGroups]);
-
-  // Map type → flat index for O(1) lookup during render
-  const flatIndexMap = useMemo(
-    () => new Map(navItems.map((item, i) => [item.type, i])),
-    [navItems]
-  );
+  const allGroups = useMemo(() => getMenuGroups(), []);
+  const { displayGroups, navItems, flatIndexMap } = usePipeTypeSearch(search, allGroups);
 
   const { highlightedIndex, setHighlightedIndex, handleNavigationKeyDown, listRef } = useDropdownNavigation({
     itemCount: navItems.length,
