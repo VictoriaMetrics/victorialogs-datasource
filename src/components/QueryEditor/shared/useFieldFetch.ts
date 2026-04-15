@@ -69,8 +69,9 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
     return params;
   }, [datasource.customQueryParameters, interpolatedStreamFilters]);
 
-  const fetchFieldNames = useCallback(async (): Promise<ComboboxOption[]> => {
-    const cached = fieldNamesCache.get(cacheKey);
+  const fetchFieldNames = useCallback(async (inputValue: string): Promise<ComboboxOption[]> => {
+    const filterCacheKey = `${cacheKey}::${inputValue}`;
+    const cached = fieldNamesCache.get(filterCacheKey);
     if (cached) {
       return cached;
     }
@@ -78,13 +79,13 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
     const limit = datasource.getQueryBuilderLimits(FilterFieldType.FieldName);
 
     const list = await datasource.languageProvider?.getFieldList(
-      { type: FilterFieldType.FieldName, timeRange, limit, query: interpolatedQueryContext },
+      { type: FilterFieldType.FieldName, timeRange, limit, query: interpolatedQueryContext, filter: inputValue || undefined },
       customParams
     );
 
     const result: ComboboxOption[] = list ? toOptionsWithHits(list) : [];
 
-    fieldNamesCache.set(cacheKey, result);
+    fieldNamesCache.set(filterCacheKey, result);
     return result;
   }, [datasource, timeRange, interpolatedQueryContext, customParams, cacheKey]);
 
@@ -105,7 +106,7 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
           timeRange,
           field,
           limit,
-          fieldValueFilter: inputValue || undefined,
+          filter: inputValue || undefined,
           query: interpolatedQueryContext,
         },
         customParams
@@ -134,19 +135,6 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
     [datasource, field, timeRange, interpolatedQueryContext, customParams]
   );
 
-  const filterOptions = useCallback((options: ComboboxOption[], inputValue: string): ComboboxOption[] => {
-    if (!inputValue) {
-      return options.slice(0, MAX_VISIBLE_OPTIONS);
-    }
-
-    const lowerInput = inputValue.toLowerCase();
-    const filtered = options.filter(
-      (opt) => opt.label?.toLowerCase().includes(lowerInput) || opt.value?.toLowerCase().includes(lowerInput)
-    );
-
-    return filtered.slice(0, MAX_VISIBLE_OPTIONS);
-  }, []);
-
   const debouncedFilter = useMemo(
     () =>
       debounce(
@@ -169,17 +157,17 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
     (inputValue: string): Promise<ComboboxOption[]> => {
       return new Promise((resolve) => {
         if (!inputValue) {
-          fetchFieldNames().then((allOptions) => {
-            resolve(withVariables(filterExcludedFields(filterOptions(allOptions, inputValue)), inputValue));
+          fetchFieldNames('').then((allOptions) => {
+            resolve(withVariables(filterExcludedFields(allOptions), inputValue));
           });
         } else {
           debouncedFilter(inputValue, resolve, fetchFieldNames, (opts, input) =>
-            withVariables(filterExcludedFields(filterOptions(opts, input)), input)
+            withVariables(filterExcludedFields(opts), input)
           );
         }
       });
     },
-    [fetchFieldNames, filterOptions, filterExcludedFields, debouncedFilter, withVariables]
+    [fetchFieldNames, filterExcludedFields, debouncedFilter, withVariables]
   );
 
   const loadFieldValues = useCallback(
@@ -211,7 +199,7 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
             timeRange,
             field: fieldName,
             limit,
-            fieldValueFilter: iv || undefined,
+            filter: iv || undefined,
             query: interpolatedQueryContext,
           },
           customParams
