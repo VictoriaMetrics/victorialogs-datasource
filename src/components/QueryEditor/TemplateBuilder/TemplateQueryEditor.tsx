@@ -11,12 +11,12 @@ import { buildStreamExtraFilters } from '../shared/streamFilterUtils';
 import { PipeRenderer } from './PipeRenderer';
 import { PipeTypeSearchMenu } from './PipeTypeSearchMenu';
 import { buildPipeElements } from './buildPipeElements';
+import { usePopupManager } from './hooks/usePopupManager';
+import { useTabNavigation } from './hooks/useTabNavigation';
+import { useTemplateActions } from './hooks/useTemplateActions';
 import { buildPipeQueryContext, serializeQuery } from './serialization';
 import { getStyles } from './styles';
 import { Pipe, TemplateQueryModel } from './types';
-import { usePopupManager } from './usePopupManager';
-import { useTabNavigation } from './useTabNavigation';
-import { useTemplateActions } from './useTemplateActions';
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -122,7 +122,12 @@ const TemplateQueryEditor: React.FC<Props> = ({
   // Close dropdowns on click outside
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
-      if (editorRef.current && !editorRef.current.contains(e.target as Node)) {
+      const target = e.target as Element;
+      if (editorRef.current && !editorRef.current.contains(target)) {
+        // Ignore clicks inside portal-rendered floating elements (dropdowns, menus)
+        if (target.closest?.('[data-floating-portal]')) {
+          return;
+        }
         popup.closeAll();
       }
     };

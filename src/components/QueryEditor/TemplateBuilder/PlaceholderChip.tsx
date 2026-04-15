@@ -1,13 +1,14 @@
 import { cx } from '@emotion/css';
-import { autoUpdate, flip, shift, useFloating } from '@floating-ui/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ComboboxOption, useStyles2 } from '@grafana/ui';
 
+import { FloatingDropdown } from './FloatingDropdown';
+import { useDropdownNavigation } from './hooks/useDropdownNavigation';
+import { useFloatingDropdown } from './hooks/useFloatingDropdown';
+import { OptionGroup, useOptionLoading } from './hooks/useOptionLoading';
 import { getStyles } from './styles';
 import { PlaceholderSegment } from './types';
-import { useDropdownNavigation } from './useDropdownNavigation';
-import { OptionGroup, useOptionLoading } from './useOptionLoading';
 
 interface Props {
   segment: PlaceholderSegment;
@@ -55,12 +56,7 @@ export const PlaceholderChip: React.FC<Props> = ({
     initialIndex: -1,
   });
 
-  const { refs: floatingRefs, floatingStyles } = useFloating({
-    open: isActive,
-    placement: 'bottom-start',
-    middleware: [flip(), shift()],
-    whileElementsMounted: autoUpdate,
-  });
+  const { refs: floatingRefs, floatingStyles } = useFloatingDropdown({ open: isActive, minHeight: 60, maxHeight: 320 });
   const setReference = floatingRefs.setReference;
   const setFloating = floatingRefs.setFloating;
 
@@ -278,11 +274,7 @@ export const PlaceholderChip: React.FC<Props> = ({
       </span>
 
       {showDropdown && (
-        <div
-          ref={setFloating}
-          style={{ ...floatingStyles, zIndex: 1000 }}
-          className={styles.optionsList}
-        >
+        <FloatingDropdown floatingRef={setFloating} floatingStyles={floatingStyles} className={styles.optionsList}>
           <div ref={listRef} onMouseDown={(e) => e.preventDefault()}>
             {filteredGroups ? (
               // Grouped rendering
@@ -303,7 +295,7 @@ export const PlaceholderChip: React.FC<Props> = ({
               filteredOptions.map((opt, index) => renderOption(opt, index))
             )}
           </div>
-        </div>
+        </FloatingDropdown>
       )}
     </>
   );

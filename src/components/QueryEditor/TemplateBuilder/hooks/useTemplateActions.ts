@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 
-import { getTabOrder, uniqueId } from './segmentHelpers';
-import { getTemplate } from './templates/registry';
-import { Pipe, PlaceholderSegment, TemplateQueryModel } from './types';
+import { getTabOrder, uniqueId } from '../segmentHelpers';
+import { getTemplate } from '../templates/registry';
+import { Pipe, PlaceholderSegment, TemplateQueryModel } from '../types';
 
 function createPipeFromTemplate(templateType: string): Pipe | null {
   const config = getTemplate(templateType);

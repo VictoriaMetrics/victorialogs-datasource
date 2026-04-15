@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 
-import { Pipe } from './types';
+import { Pipe } from '../types';
 
 export function useTabNavigation(
   pipes: Pipe[],

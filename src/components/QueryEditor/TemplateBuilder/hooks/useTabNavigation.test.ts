@@ -1,8 +1,9 @@
 import { renderHook, act } from '@testing-library/react';
 import { useState } from 'react';
 
-import { placeholder, text } from './segmentHelpers';
-import { Pipe } from './types';
+import { placeholder, text } from '../segmentHelpers';
+import { Pipe } from '../types';
+
 import { useTabNavigation } from './useTabNavigation';
 
 const makePipes = (): Pipe[] => [

@@ -3425,6 +3425,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/react-dom@npm:^19.2.3":
+  version: 19.2.3
+  resolution: "@types/react-dom@npm:19.2.3"
+  peerDependencies:
+    "@types/react": ^19.2.0
+  checksum: 10c0/b486ebe0f4e2fb35e2e108df1d8fc0927ca5d6002d5771e8a739de11239fe62d0e207c50886185253c99eb9dedfeeb956ea7429e5ba17f6693c7acb4c02f8cd1
+  languageName: node
+  linkType: hard
+
 "@types/react-table@npm:7.7.20":
   version: 7.7.20
   resolution: "@types/react-table@npm:7.7.20"
@@ -12165,6 +12174,7 @@ __metadata:
     "@types/lodash": "npm:^4.17.24"
     "@types/node": "npm:^25.4.0"
     "@types/react": "npm:^19.2.14"
+    "@types/react-dom": "npm:^19.2.3"
     "@types/semver": "npm:^7.7.1"
     "@typescript-eslint/eslint-plugin": "npm:^8.57.0"
     "@typescript-eslint/parser": "npm:^8.57.0"

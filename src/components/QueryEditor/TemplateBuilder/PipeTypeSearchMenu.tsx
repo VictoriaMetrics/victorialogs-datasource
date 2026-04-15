@@ -1,12 +1,13 @@
 import { cx } from '@emotion/css';
-import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/react';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { useStyles2 } from '@grafana/ui';
 
+import { FloatingDropdown } from './FloatingDropdown';
+import { useDropdownNavigation } from './hooks/useDropdownNavigation';
+import { useFloatingDropdown } from './hooks/useFloatingDropdown';
 import { getStyles } from './styles';
 import { getMenuGroups } from './templates/registry';
-import { useDropdownNavigation } from './useDropdownNavigation';
 
 interface Props {
   isOpen: boolean;
@@ -21,12 +22,7 @@ export const PipeTypeSearchMenu: React.FC<Props> = ({ isOpen, onAdd, onClose, an
   const inputRef = useRef<HTMLInputElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const { refs: floatingRefs, floatingStyles } = useFloating({
-    open: isOpen,
-    placement: 'bottom-start',
-    middleware: [offset(4), flip(), shift()],
-    whileElementsMounted: autoUpdate,
-  });
+  const { refs: floatingRefs, floatingStyles } = useFloatingDropdown({ open: isOpen, offsetPx: 4, maxHeight: 320, minHeight: 100 });
   const setReference = floatingRefs.setReference;
   const setFloating = floatingRefs.setFloating;
 
@@ -148,11 +144,7 @@ export const PipeTypeSearchMenu: React.FC<Props> = ({ isOpen, onAdd, onClose, an
       </button>
 
       {isOpen && (
-        <div
-          ref={setFloating}
-          style={{ ...floatingStyles, zIndex: 1000 }}
-          className={styles.pipeSearchPanel}
-        >
+        <FloatingDropdown floatingRef={setFloating} floatingStyles={floatingStyles} className={styles.pipeSearchPanel}>
           <div className={styles.pipeSearchInputRow}>
             <input
               ref={inputRef}
@@ -198,7 +190,7 @@ export const PipeTypeSearchMenu: React.FC<Props> = ({ isOpen, onAdd, onClose, an
               <div className={styles.pipeSearchEmpty}>No matches</div>
             )}
           </div>
-        </div>
+        </FloatingDropdown>
       )}
     </>
   );
