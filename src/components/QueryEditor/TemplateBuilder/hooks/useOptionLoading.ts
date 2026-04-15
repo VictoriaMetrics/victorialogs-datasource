@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ComboboxOption } from '@grafana/ui';
 
-import { useFieldLoaders } from './FieldLoadersContext';
-import { SegmentOptionSource } from './types';
+import { useFieldLoaders } from '../FieldLoadersContext';
+import { SegmentOptionSource } from '../types';
 
 interface UseOptionLoadingOptions {
   optionSource: SegmentOptionSource;

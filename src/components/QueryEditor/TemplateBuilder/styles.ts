@@ -206,7 +206,8 @@ export const getStyles = (theme: GrafanaTheme2) => ({
     },
   }),
   pipeSearchList: css({
-    maxHeight: 280,
+    flex: 1,
+    minHeight: 0,
     overflowY: 'auto',
     padding: theme.spacing(0.5, 0),
   }),
