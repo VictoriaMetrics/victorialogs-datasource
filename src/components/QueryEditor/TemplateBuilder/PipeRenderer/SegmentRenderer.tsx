@@ -2,9 +2,9 @@ import React from 'react';
 
 import { useStyles2 } from '@grafana/ui';
 
-import { PlaceholderChip } from './PlaceholderChip';
-import { getStyles } from './styles';
-import { PlaceholderSegment, Segment } from './types';
+import { PlaceholderChip } from '../PlaceholderChip';
+import { getStyles } from '../styles';
+import { PlaceholderSegment, Segment } from '../types';
 
 interface Props {
   segments: Segment[];

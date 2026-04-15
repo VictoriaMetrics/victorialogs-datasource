@@ -2,11 +2,11 @@ import React, { useMemo } from 'react';
 
 import { TimeRange } from '@grafana/data';
 
-import { VictoriaLogsDatasource } from '../../../datasource';
-import { useFetchStreamFilters } from '../shared/useFetchStreamFilters';
-import { useFieldFetch } from '../shared/useFieldFetch';
+import { VictoriaLogsDatasource } from '../../../../datasource';
+import { useFetchStreamFilters } from '../../shared/useFetchStreamFilters';
+import { useFieldFetch } from '../../shared/useFieldFetch';
 
-import { FieldLoadersProvider } from './FieldLoadersContext';
+import { FieldLoadersProvider } from '../FieldLoadersContext';
 
 interface Props {
   datasource: VictoriaLogsDatasource;
