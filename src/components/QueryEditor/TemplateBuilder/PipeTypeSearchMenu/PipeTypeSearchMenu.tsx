@@ -1,14 +1,15 @@
 import { cx } from '@emotion/css';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { useStyles2 } from '@grafana/ui';
+import { Button, useStyles2 } from '@grafana/ui';
 
 import { FloatingDropdown } from '../FloatingDropdown';
 import { useDropdownNavigation } from '../hooks/useDropdownNavigation';
 import { useFloatingDropdown } from '../hooks/useFloatingDropdown';
-import { usePipeTypeSearch } from './usePipeTypeSearch';
 import { getStyles } from '../styles';
 import { getMenuGroups } from '../templates/registry';
+
+import { usePipeTypeSearch } from './usePipeTypeSearch';
 
 interface Props {
   isOpen: boolean;
@@ -101,22 +102,21 @@ export const PipeTypeSearchMenu: React.FC<Props> = ({ isOpen, onAdd, onOpenMenu,
 
   return (
     <>
-      <button
+      <Button
         ref={(el) => {
           buttonRef.current = el;
           if (!anchorEl) {
             (setReference as (el: HTMLButtonElement | null) => void)(el);
           }
         }}
-        className={styles.addPipeButton}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={handleButtonClick}
+        size={'sm'}
+        variant='secondary'
+        icon='plus'
         aria-label='Add pipe'
         aria-expanded={isOpen}
-        type='button'
-      >
-        +
-      </button>
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={handleButtonClick}
+      />
 
       {isOpen && (
         <FloatingDropdown floatingRef={setFloating} floatingStyles={floatingStyles} className={styles.pipeSearchPanel}>
