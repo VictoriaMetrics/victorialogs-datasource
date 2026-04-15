@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useStyles2 } from '@grafana/ui';
 
-import { getStyles } from './styles';
+import { getStyles } from '../styles';
 
 interface Props {
   index: number;

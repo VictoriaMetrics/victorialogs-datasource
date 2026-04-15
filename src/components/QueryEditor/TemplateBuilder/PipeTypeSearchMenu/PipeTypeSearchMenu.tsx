@@ -3,12 +3,12 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 
 import { useStyles2 } from '@grafana/ui';
 
-import { FloatingDropdown } from './FloatingDropdown';
-import { useDropdownNavigation } from './hooks/useDropdownNavigation';
-import { useFloatingDropdown } from './hooks/useFloatingDropdown';
-import { usePipeTypeSearch } from './hooks/usePipeTypeSearch';
-import { getStyles } from './styles';
-import { getMenuGroups } from './templates/registry';
+import { FloatingDropdown } from '../FloatingDropdown';
+import { useDropdownNavigation } from '../hooks/useDropdownNavigation';
+import { useFloatingDropdown } from '../hooks/useFloatingDropdown';
+import { usePipeTypeSearch } from './usePipeTypeSearch';
+import { getStyles } from '../styles';
+import { getMenuGroups } from '../templates/registry';
 
 interface Props {
   isOpen: boolean;

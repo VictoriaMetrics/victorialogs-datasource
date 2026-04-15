@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 
 import { Dropdown, IconButton, Menu } from '@grafana/ui';
 
-import { OptionalExtension } from './templates/types';
+import { OptionalExtension } from '../templates/types';
 
 interface Props {
   extensions: OptionalExtension[];
