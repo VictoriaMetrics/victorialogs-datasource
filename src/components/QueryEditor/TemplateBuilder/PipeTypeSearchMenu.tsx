@@ -1,5 +1,5 @@
 import { cx } from '@emotion/css';
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { useStyles2 } from '@grafana/ui';
 
@@ -12,11 +12,12 @@ import { getMenuGroups } from './templates/registry';
 interface Props {
   isOpen: boolean;
   onAdd: (templateType: string) => void;
+  onOpenMenu: () => void;
   onClose: () => void;
   anchorEl?: HTMLElement | null;
 }
 
-export const PipeTypeSearchMenu: React.FC<Props> = ({ isOpen, onAdd, onClose, anchorEl }) => {
+export const PipeTypeSearchMenu: React.FC<Props> = ({ isOpen, onAdd, onOpenMenu, onClose, anchorEl }) => {
   const styles = useStyles2(getStyles);
   const [search, setSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,8 +62,14 @@ export const PipeTypeSearchMenu: React.FC<Props> = ({ isOpen, onAdd, onClose, an
     return [{ label: 'Results', keywords: [], items: matched }];
   })();
 
-  // Flat index for keyboard navigation
-  const navItems = displayGroups.flatMap((g) => g.items);
+  // Flat list with pre-computed flat indices for keyboard navigation
+  const navItems = useMemo(() => displayGroups.flatMap((g) => g.items), [displayGroups]);
+
+  // Map type → flat index for O(1) lookup during render
+  const flatIndexMap = useMemo(
+    () => new Map(navItems.map((item, i) => [item.type, i])),
+    [navItems]
+  );
 
   const { highlightedIndex, setHighlightedIndex, handleNavigationKeyDown, listRef } = useDropdownNavigation({
     itemCount: navItems.length,
@@ -71,12 +78,12 @@ export const PipeTypeSearchMenu: React.FC<Props> = ({ isOpen, onAdd, onClose, an
   });
 
   useEffect(() => {
-    if (!isOpen) {
-      setSearch('');
-      return;
-    }
+    // Reset search on every open/close; focus input when opening
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearch('');
-    requestAnimationFrame(() => requestAnimationFrame(() => inputRef.current?.focus()));
+    if (isOpen) {
+      requestAnimationFrame(() => requestAnimationFrame(() => inputRef.current?.focus()));
+    }
   }, [isOpen]);
 
   // Reset highlighted index when search filter changes
@@ -117,12 +124,9 @@ export const PipeTypeSearchMenu: React.FC<Props> = ({ isOpen, onAdd, onClose, an
     if (isOpen && !anchorEl) {
       onClose();
     } else {
-      onAdd('__open__');
+      onOpenMenu();
     }
-  }, [isOpen, anchorEl, onClose, onAdd]);
-
-  // Flat item index mapping through groups
-  let flatCounter = -1;
+  }, [isOpen, anchorEl, onClose, onOpenMenu]);
 
   return (
     <>
@@ -163,8 +167,7 @@ export const PipeTypeSearchMenu: React.FC<Props> = ({ isOpen, onAdd, onClose, an
                   <div className={styles.pipeSearchGroupLabel}>{group.label}</div>
                 )}
                 {group.items.map((item) => {
-                  flatCounter++;
-                  const idx = flatCounter;
+                  const idx = flatIndexMap.get(item.type) ?? -1;
                   return (
                     <div
                       key={item.type}

@@ -36,7 +36,7 @@ const TemplateQueryEditor: React.FC<Props> = ({
 }) => {
   const styles = useStyles2(getStyles);
   const popup = usePopupManager();
-  const { setActiveId } = popup;
+  const { setActiveId, openAddMenu } = popup;
   const editorRef = useRef<HTMLDivElement>(null);
 
   // Holds pipeId waiting to be activated once model.pipes updates with the new pipe
@@ -68,12 +68,15 @@ const TemplateQueryEditor: React.FC<Props> = ({
       pendingActivatePipeId.current = null;
       const pipe = model.pipes.find((p) => p.id === pipeId);
       if (pipe && pipe.tabOrder.length === 0) {
-        popup.openAddMenu();
+        openAddMenu();
       } else {
         activateFirst(pipeId);
       }
     }
+  }, [model.pipes, activateFirst, openAddMenu]);
 
+  // After stream conversion the field is pre-filled — activate the second placeholder (values).
+  useEffect(() => {
     const secondPipeId = pendingActivateSecondPipeId.current;
     if (secondPipeId) {
       const pipe = model.pipes.find((p) => p.id === secondPipeId);
@@ -84,7 +87,7 @@ const TemplateQueryEditor: React.FC<Props> = ({
         }
       }
     }
-  }, [model.pipes, activateFirst, setActiveId]);
+  }, [model.pipes, setActiveId]);
 
   const extraStreamFilters = useMemo(
     () => buildStreamExtraFilters(query.streamFilters ?? []) || undefined,
@@ -97,10 +100,6 @@ const TemplateQueryEditor: React.FC<Props> = ({
 
   const handleAddPipe = useCallback(
     (templateType: string) => {
-      if (templateType === '__open__') {
-        popup.openAddMenu();
-        return;
-      }
       const pipeId = popup.insertAtIndex !== null
         ? insertPipe(templateType, popup.insertAtIndex)
         : addPipe(templateType);
@@ -208,6 +207,7 @@ const TemplateQueryEditor: React.FC<Props> = ({
         <PipeTypeSearchMenu
           isOpen={popup.addMenuOpen}
           onAdd={handleAddPipe}
+          onOpenMenu={popup.openAddMenu}
           onClose={popup.closeAddMenu}
           anchorEl={popup.insertAnchorEl}
         />

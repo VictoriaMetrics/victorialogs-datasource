@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { getTabOrder, uniqueId } from '../segmentHelpers';
+import { STREAM_TEMPLATE_TYPE, getTabOrder, uniqueId } from '../segmentHelpers';
 import { getTemplate } from '../templates/registry';
 import { Pipe, PlaceholderSegment, TemplateQueryModel } from '../types';
 
@@ -133,7 +133,7 @@ export function useTemplateActions(
 
   const convertPipeToStream = useCallback(
     (pipeId: string, fieldName: string) => {
-      const config = getTemplate('stream');
+      const config = getTemplate(STREAM_TEMPLATE_TYPE);
       if (!config) {
         return;
       }
@@ -147,7 +147,7 @@ export function useTemplateActions(
         if (p.id !== pipeId) {
           return p;
         }
-        return { ...p, templateType: 'stream', segments, tabOrder: config.tabOrder(segments) };
+        return { ...p, templateType: STREAM_TEMPLATE_TYPE, segments, tabOrder: config.tabOrder(segments) };
       });
       onChange({ pipes });
     },

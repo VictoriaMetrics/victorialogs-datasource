@@ -1,5 +1,7 @@
 import { ComboboxOption } from '@grafana/ui';
 
+export const STREAM_TEMPLATE_TYPE = 'stream';
+
 import {
   PlaceholderSegment,
   SegmentOptionSource,

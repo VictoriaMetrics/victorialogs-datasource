@@ -277,19 +277,16 @@ export const PlaceholderChip: React.FC<Props> = ({
         <FloatingDropdown floatingRef={setFloating} floatingStyles={floatingStyles} className={styles.optionsList}>
           <div ref={listRef} onMouseDown={(e) => e.preventDefault()}>
             {filteredGroups ? (
-              // Grouped rendering
-              (() => {
-                let flatIndex = -1;
-                return filteredGroups.map((group) => (
-                  <div key={group.groupId}>
-                    <div className={styles.optionGroupLabel}>{group.groupLabel}</div>
-                    {group.options.map((opt) => {
-                      flatIndex++;
-                      return renderOption(opt, flatIndex);
-                    })}
-                  </div>
-                ));
-              })()
+              // Grouped rendering — flat index is pre-computed via filteredOptions order
+              filteredGroups.map((group) => (
+                <div key={group.groupId}>
+                  <div className={styles.optionGroupLabel}>{group.groupLabel}</div>
+                  {group.options.map((opt) => {
+                    const flatIndex = filteredOptions.indexOf(opt);
+                    return renderOption(opt, flatIndex);
+                  })}
+                </div>
+              ))
             ) : (
               // Flat rendering
               filteredOptions.map((opt, index) => renderOption(opt, index))
