@@ -8,6 +8,7 @@ import { Query } from '../../../types';
 import { PipelineContext } from '../shared/PipelineContext';
 import { buildStreamExtraFilters } from '../shared/streamFilterUtils';
 
+import { PipeFieldLoadersProvider } from './PipeFieldLoadersProvider';
 import { PipeRenderer } from './PipeRenderer';
 import { PipeTypeSearchMenu } from './PipeTypeSearchMenu';
 import { buildPipeElements } from './buildPipeElements';
@@ -169,27 +170,30 @@ const TemplateQueryEditor: React.FC<Props> = ({
 
   const renderPipe = useCallback(
     (pipe: Pipe, index: number) => (
-      <PipeRenderer
+      <PipeFieldLoadersProvider
         key={pipe.id}
-        pipe={pipe}
-        activeId={popup.activeId}
-        onActivate={popup.setActiveId}
-        onValueChange={(segId, val) => updateSegment(pipe.id, segId, val)}
-        onMultiValuesChange={(segId, vals) => updateMultiValues(pipe.id, segId, vals)}
-        onConfirm={handleConfirm}
-        onDeactivate={handleDeactivate}
-        onDelete={() => deletePipe(pipe.id)}
-        onAddExtension={(key) => addExtension(pipe.id, key)}
-        onExtensionVisibleChange={(visible) => popup.handleExtensionVisibleChange(pipe.id, visible)}
-        onStreamFieldSelected={(fieldName) => {
-          convertPipeToStream(pipe.id, fieldName);
-          pendingActivateSecondPipeId.current = pipe.id;
-        }}
         datasource={datasource}
         timeRange={timeRange}
         queryContext={buildPipeQueryContext(model, index)}
         extraStreamFilters={extraStreamFilters}
-      />
+      >
+        <PipeRenderer
+          pipe={pipe}
+          activeId={popup.activeId}
+          onActivate={popup.setActiveId}
+          onValueChange={(segId, val) => updateSegment(pipe.id, segId, val)}
+          onMultiValuesChange={(segId, vals) => updateMultiValues(pipe.id, segId, vals)}
+          onConfirm={handleConfirm}
+          onDeactivate={handleDeactivate}
+          onDelete={() => deletePipe(pipe.id)}
+          onAddExtension={(key) => addExtension(pipe.id, key)}
+          onExtensionVisibleChange={(visible) => popup.handleExtensionVisibleChange(pipe.id, visible)}
+          onStreamFieldSelected={(fieldName) => {
+            convertPipeToStream(pipe.id, fieldName);
+            pendingActivateSecondPipeId.current = pipe.id;
+          }}
+        />
+      </PipeFieldLoadersProvider>
     ),
     [popup, updateSegment, updateMultiValues, handleConfirm, handleDeactivate, deletePipe, addExtension, convertPipeToStream, datasource, timeRange, model, extraStreamFilters]
   );

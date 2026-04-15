@@ -3,10 +3,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { ComboboxOption, useStyles2 } from '@grafana/ui';
 
+import { TEXT_FILTER_ALL_VALUE } from '../../../constants';
+
 import { FloatingDropdown } from './FloatingDropdown';
 import { useDropdownNavigation } from './hooks/useDropdownNavigation';
 import { useFloatingDropdown } from './hooks/useFloatingDropdown';
-import { OptionGroup, useOptionLoading } from './hooks/useOptionLoading';
+import { useOptionLoading } from './hooks/useOptionLoading';
 import { getStyles } from './styles';
 import { PlaceholderSegment } from './types';
 
@@ -39,17 +41,18 @@ export const PlaceholderChip: React.FC<Props> = ({
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const isMulti = Boolean(segment.multi);
+  const currentMultiValues = useMemo(() => segment.multiValues ?? [], [segment.multiValues]);
+
   const { options, optionGroups, loadOptions } = useOptionLoading({
     optionSource: segment.optionSource,
     staticOptions: segment.staticOptions,
     isActive,
     dependencyValue,
     excludeOptions: segment.excludeOptions,
+    multiValues: isMulti ? currentMultiValues : undefined,
   });
 
-  // Navigation hook is placed before other callbacks so setHighlightedIndex
-  // is available in their dependency arrays. options.length is used here;
-  // filteredOptions is a subset, so over-clamping is acceptable.
   const { highlightedIndex, setHighlightedIndex, handleNavigationKeyDown, listRef } = useDropdownNavigation({
     itemCount: options.length,
     isOpen: isActive,
@@ -60,8 +63,6 @@ export const PlaceholderChip: React.FC<Props> = ({
   const setReference = floatingRefs.setReference;
   const setFloating = floatingRefs.setFloating;
 
-  const isMulti = Boolean(segment.multi);
-  const currentMultiValues = useMemo(() => segment.multiValues ?? [], [segment.multiValues]);
   const isFilled = segment.value !== null || (isMulti && currentMultiValues.length > 0);
   const hasOptions = segment.optionSource !== 'freeText';
 
@@ -96,10 +97,10 @@ export const PlaceholderChip: React.FC<Props> = ({
       return;
     }
     let newValues: string[];
-    if (val === '*') {
-      newValues = ['*'];
+    if (val === TEXT_FILTER_ALL_VALUE) {
+      newValues = [TEXT_FILTER_ALL_VALUE];
     } else {
-      newValues = [...currentMultiValues.filter((v) => v !== '*'), val];
+      newValues = [...currentMultiValues.filter((v) => v !== TEXT_FILTER_ALL_VALUE), val];
     }
     onMultiValuesChange?.(newValues);
     setInputValue('');
@@ -134,31 +135,6 @@ export const PlaceholderChip: React.FC<Props> = ({
     return null;
   }, [optionGroups]);
 
-  // For grouped sources, apply multi-value filtering per-group; for flat, filter as before
-  const filteredGroups: OptionGroup[] | null = useMemo(() => {
-    if (!optionGroups) {
-      return null;
-    }
-    if (!isMulti || currentMultiValues.length === 0) {
-      return optionGroups;
-    }
-    const selected = new Set(currentMultiValues);
-    return optionGroups
-      .map((g) => ({ ...g, options: g.options.filter((o) => !selected.has(String(o.value))) }))
-      .filter((g) => g.options.length > 0);
-  }, [optionGroups, isMulti, currentMultiValues]);
-
-  const filteredOptions = useMemo(() => {
-    if (filteredGroups) {
-      return filteredGroups.flatMap((g) => g.options);
-    }
-    if (!isMulti || currentMultiValues.length === 0) {
-      return options;
-    }
-    const selected = new Set(currentMultiValues);
-    return options.filter((o) => !selected.has(String(o.value)));
-  }, [filteredGroups, options, isMulti, currentMultiValues]);
-
   const handleSelect = useCallback((val: string) => {
     const groupId = getOptionGroupId(val);
     if (groupId === 'stream' && onStreamFieldSelected) {
@@ -174,7 +150,7 @@ export const PlaceholderChip: React.FC<Props> = ({
   }, [getOptionGroupId, onStreamFieldSelected, onConfirm, isMulti, addMultiValue, confirmSingle]);
 
   const handleInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    const picked = highlightedIndex >= 0 ? filteredOptions[highlightedIndex] : null;
+    const picked = highlightedIndex >= 0 ? options[highlightedIndex] : null;
     const pickedVal = picked ? String(picked.value) : inputValue;
 
     if (e.key === 'Backspace' && isMulti && inputValue === '' && currentMultiValues.length > 0) {
@@ -211,7 +187,7 @@ export const PlaceholderChip: React.FC<Props> = ({
       }
     }
   }, [
-    filteredOptions, highlightedIndex, inputValue, isMulti,
+    options, highlightedIndex, inputValue, isMulti,
     currentMultiValues, handleSelect, onMultiValuesChange, onConfirm, onDeactivate, loadOptions,
     handleNavigationKeyDown,
   ]);
@@ -222,7 +198,7 @@ export const PlaceholderChip: React.FC<Props> = ({
       : (segment.value ?? '')
     : segment.displayHint;
 
-  const showDropdown = isActive && hasOptions && filteredOptions.length > 0;
+  const showDropdown = isActive && hasOptions && options.length > 0;
 
   const renderOption = (opt: ComboboxOption, index: number) => (
     <div
@@ -276,20 +252,20 @@ export const PlaceholderChip: React.FC<Props> = ({
       {showDropdown && (
         <FloatingDropdown floatingRef={setFloating} floatingStyles={floatingStyles} className={styles.optionsList}>
           <div ref={listRef} onMouseDown={(e) => e.preventDefault()}>
-            {filteredGroups ? (
-              // Grouped rendering — flat index is pre-computed via filteredOptions order
-              filteredGroups.map((group) => (
+            {optionGroups ? (
+              // Grouped rendering — flat index is pre-computed via options order
+              optionGroups.map((group) => (
                 <div key={group.groupId}>
                   <div className={styles.optionGroupLabel}>{group.groupLabel}</div>
                   {group.options.map((opt) => {
-                    const flatIndex = filteredOptions.indexOf(opt);
+                    const flatIndex = options.indexOf(opt);
                     return renderOption(opt, flatIndex);
                   })}
                 </div>
               ))
             ) : (
               // Flat rendering
-              filteredOptions.map((opt, index) => renderOption(opt, index))
+              options.map((opt, index) => renderOption(opt, index))
             )}
           </div>
         </FloatingDropdown>

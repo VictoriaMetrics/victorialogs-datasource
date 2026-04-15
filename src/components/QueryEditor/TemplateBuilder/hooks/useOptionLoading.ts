@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ComboboxOption } from '@grafana/ui';
 
@@ -11,6 +11,8 @@ interface UseOptionLoadingOptions {
   isActive: boolean;
   dependencyValue?: string | null;
   excludeOptions?: string[];
+  /** Values already selected in multi-mode — will be filtered out of returned options/optionGroups */
+  multiValues?: string[];
 }
 
 export interface OptionGroup {
@@ -48,9 +50,10 @@ export function useOptionLoading({
   isActive,
   dependencyValue,
   excludeOptions,
+  multiValues,
 }: UseOptionLoadingOptions): UseOptionLoadingResult {
-  const [options, setOptions] = useState<ComboboxOption[]>([]);
-  const [optionGroups, setOptionGroups] = useState<OptionGroup[] | null>(null);
+  const [rawOptions, setOptions] = useState<ComboboxOption[]>([]);
+  const [rawOptionGroups, setOptionGroups] = useState<OptionGroup[] | null>(null);
   const { loadFieldNames, loadFieldValuesForField, loadStreamFieldNames, loadStreamFieldValuesForField } = useFieldLoaders();
 
   // Cache stream field names for fieldNamesWithStream — loaded once per activation with query='*'
@@ -139,6 +142,31 @@ export function useOptionLoading({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dependencyValue]);
+
+  // Filter out already-selected multi-values from options and groups
+  const optionGroups = useMemo<OptionGroup[] | null>(() => {
+    if (!rawOptionGroups) {
+      return null;
+    }
+    if (!multiValues || multiValues.length === 0) {
+      return rawOptionGroups;
+    }
+    const selected = new Set(multiValues);
+    return rawOptionGroups
+      .map((g) => ({ ...g, options: g.options.filter((o) => !selected.has(String(o.value))) }))
+      .filter((g) => g.options.length > 0);
+  }, [rawOptionGroups, multiValues]);
+
+  const options = useMemo<ComboboxOption[]>(() => {
+    if (optionGroups) {
+      return optionGroups.flatMap((g) => g.options);
+    }
+    if (!multiValues || multiValues.length === 0) {
+      return rawOptions;
+    }
+    const selected = new Set(multiValues);
+    return rawOptions.filter((o) => !selected.has(String(o.value)));
+  }, [optionGroups, rawOptions, multiValues]);
 
   return { options, optionGroups, loadOptions };
 }
