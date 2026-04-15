@@ -1,4 +1,4 @@
-import { escapeRegex, getDefaultTimeRange, LanguageProvider, TimeRange } from '@grafana/data';
+import { getDefaultTimeRange, LanguageProvider, TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from './datasource';
 import { FieldHits, FieldHitsResponse, FilterFieldType } from './types';
@@ -10,8 +10,8 @@ interface FetchFieldsOptions {
   field?: string;
   timeRange?: TimeRange;
   limit?: number;
-  /** Filter for field values using containing match (server-side filtering) */
-  fieldValueFilter?: string;
+  /** Substring filter applied server-side (supported by all field_names/field_values endpoints) */
+  filter?: string;
 }
 
 enum HitsValueType {
@@ -52,15 +52,11 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       }
     }
 
-    // TODO: use filter query param instead of fieldFilter when it will be available in the VL API
-    // Build query with optional field value filter (prefix match for server-side filtering)
-    let finalQuery = options.query || '*';
-    if (options.type === FilterFieldType.FieldValue && options.field && options.fieldValueFilter) {
-      const escaped = escapeRegex(options.fieldValueFilter).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-      const fieldFilter = `${options.field}:~"(?i)${escaped}"`;
-      finalQuery = finalQuery === '*' ? fieldFilter : `(${finalQuery}) AND ${fieldFilter}`;
+    urlParams.append('query', options.query || '*');
+
+    if (options.filter) {
+      urlParams.append('filter', options.filter);
     }
-    urlParams.append('query', finalQuery);
 
     const timeRange = this.getTimeRangeParams(options.timeRange);
     urlParams.append('start', timeRange.start.toString());
@@ -105,6 +101,10 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     }
 
     urlParams.append('query', options.query || '*');
+
+    if (options.filter) {
+      urlParams.append('filter', options.filter);
+    }
 
     const timeRange = this.getTimeRangeParams(options.timeRange);
     urlParams.append('start', timeRange.start.toString());
