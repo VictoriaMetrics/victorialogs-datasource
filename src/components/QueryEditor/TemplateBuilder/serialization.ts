@@ -1,3 +1,4 @@
+import { STREAM_TEMPLATE_TYPE } from './segmentHelpers';
 import { getTemplate } from './templates/registry';
 import { Pipe, PlaceholderSegment, Segment, TemplateQueryModel } from './types';
 
@@ -46,7 +47,7 @@ export const serializePipe = (pipe: Pipe): string => {
   return pipe.segments.map(serializeSegment).join('');
 };
 
-const isStreamPipe = (pipe: Pipe): boolean => pipe.templateType === 'stream';
+const isStreamPipe = (pipe: Pipe): boolean => pipe.templateType === STREAM_TEMPLATE_TYPE;
 
 const FILTER_CATEGORIES = new Set(['stream', 'filter']);
 

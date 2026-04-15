@@ -1,9 +1,9 @@
-import { getTabOrder, placeholder, text, uniqueId } from '../segmentHelpers';
+import { STREAM_TEMPLATE_TYPE, getTabOrder, placeholder, text, uniqueId } from '../segmentHelpers';
 
 import { TemplateConfig } from './types';
 
 export const STREAM_TEMPLATE: TemplateConfig = {
-  type: 'stream',
+  type: STREAM_TEMPLATE_TYPE,
   label: 'Stream',
   description: 'Exact match on stream label values',
   stepCategory: 'stream',

@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 
 import { InsertableSeparator } from './InsertableSeparator';
+import { STREAM_TEMPLATE_TYPE } from './segmentHelpers';
 import { getStyles } from './styles';
 import { Pipe } from './types';
 
@@ -23,7 +24,7 @@ export function buildPipeElements({ pipes, renderPipe, styles, onInsertAt }: Bui
       elements.push(<InsertableSeparator key={`sep-${i}`} index={i} onInsertAt={onInsertAt} />);
     }
 
-    if (pipes[i].templateType === 'stream') {
+    if (pipes[i].templateType === STREAM_TEMPLATE_TYPE) {
       elements.push(<span key={`brace-open-${i}`} className={styles.staticText}>{'{'}</span>);
       elements.push(renderPipe(pipes[i], i));
       elements.push(<span key={`brace-close-${i}`} className={styles.staticText}>{'}'}</span>);
