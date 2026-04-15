@@ -7,6 +7,7 @@ import { ConfirmModal, useStyles2 } from '@grafana/ui';
 
 import { getQueryExprVariableRegExp } from '../../LogsQL/regExpOperator';
 import { isExprHasStatsPipeFunctions } from '../../LogsQL/statsPipeFunctions';
+import { TEXT_FILTER_ALL_VALUE } from '../../constants';
 import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from '../../types';
 import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 
@@ -52,7 +53,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       // If expr matches the serialized builder state, the user hasn't modified the code manually —
       // switch to builder directly without showing the confirmation modal.
       const builderExpr = query.templateBuilder ? serializeQuery(query.templateBuilder) : '';
-      if (query.expr !== builderExpr) {
+      if (query.expr !== TEXT_FILTER_ALL_VALUE && query.expr !== builderExpr) {
         setParseModalOpen(true);
         return;
       }
