@@ -6,6 +6,7 @@ import { ComboboxOption } from '@grafana/ui';
 
 import { splitByPipes } from '../../../LogsQL/splitByPipes';
 import { VictoriaLogsDatasource } from '../../../datasource';
+import { useTemplateVariables } from '../../../hooks/useTemplateVariables';
 import { FilterFieldType } from '../../../types';
 import { LRUCache } from '../../../utils/LRUCache';
 
@@ -37,6 +38,7 @@ export const useFetchStreamFilters = ({
   extraStreamFilters,
   excludeLabels,
 }: Props) => {
+  const { withVariables } = useTemplateVariables();
   const queryBeforePipe = useMemo(() => splitByPipes(queryExpr || '')[0], [queryExpr]);
   const interpolatedQuery = useMemo(
     () => queryBeforePipe ? datasource.interpolateString(queryBeforePipe) : undefined,
@@ -228,14 +230,16 @@ export const useFetchStreamFilters = ({
       return new Promise((resolve) => {
         if (!inputValue) {
           fetchStreamFieldValues(inputValue).then((allOptions) => {
-            resolve(allOptions);
+            resolve(withVariables(allOptions, inputValue));
           });
         } else {
-          scheduleDebouncedFilter(inputValue, resolve, fetchStreamFieldValues, filterOptions);
+          scheduleDebouncedFilter(inputValue, resolve, fetchStreamFieldValues, (opts, input) =>
+            withVariables(filterOptions(opts, input), input)
+          );
         }
       });
     },
-    [fetchStreamFieldValues, scheduleDebouncedFilter]
+    [fetchStreamFieldValues, scheduleDebouncedFilter, withVariables]
   );
 
   /** Returns a loader function bound to a specific stream field name. Used by TemplateBuilder
@@ -293,13 +297,15 @@ export const useFetchStreamFilters = ({
 
       return new Promise((resolve) => {
         if (!inputValue) {
-          fetchFn(inputValue).then((allOptions) => resolve(allOptions));
+          fetchFn(inputValue).then((allOptions) => resolve(withVariables(allOptions, inputValue)));
         } else {
-          scheduleDebouncedFilter(inputValue, resolve, fetchFn, filterOptions);
+          scheduleDebouncedFilter(inputValue, resolve, fetchFn, (opts, input) =>
+            withVariables(filterOptions(opts, input), input)
+          );
         }
       });
     },
-    [datasource, interpolatedStreamFilters, timeRange, interpolatedQuery, scheduleDebouncedFilter]
+    [datasource, interpolatedStreamFilters, timeRange, interpolatedQuery, scheduleDebouncedFilter, withVariables]
   );
 
   // Cleanup debounce on unmount
