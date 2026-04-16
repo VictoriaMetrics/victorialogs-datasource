@@ -2,11 +2,12 @@ import React, { useMemo } from 'react';
 
 import { IconButton, useStyles2 } from '@grafana/ui';
 
-import { OptionalExtensionMenu } from './OptionalExtensionMenu';
-import { SegmentRenderer } from './SegmentRenderer';
-import { getStyles } from '../styles';
 import { getTemplate } from '../templates/registry';
 import { Pipe } from '../types';
+
+import { OptionalExtensionMenu } from './OptionalExtensionMenu';
+import { SegmentRenderer } from './SegmentRenderer';
+import { getStyles } from './styles';
 
 interface Props {
   pipe: Pipe;
