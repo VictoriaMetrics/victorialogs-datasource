@@ -109,6 +109,9 @@ export function useOptionLoading({
         if (loadFieldValuesForField && dependencyValue) {
           setOptions(withAllOption(query, await loadFieldValuesForField(dependencyValue)(query)));
           setOptionGroups(null);
+        } else {
+          setOptions([]);
+          setOptionGroups(null);
         }
         break;
       case 'streamFieldNames':
@@ -120,6 +123,9 @@ export function useOptionLoading({
       case 'streamFieldValues':
         if (loadStreamFieldValuesForField && dependencyValue) {
           setOptions(withAllOption(query, await loadStreamFieldValuesForField(dependencyValue)(query)));
+          setOptionGroups(null);
+        } else {
+          setOptions([]);
           setOptionGroups(null);
         }
         break;
