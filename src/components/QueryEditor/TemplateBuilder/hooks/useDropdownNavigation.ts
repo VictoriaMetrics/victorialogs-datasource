@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Dispatch, RefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseDropdownNavigationOptions {
   itemCount: number;
@@ -9,9 +9,9 @@ interface UseDropdownNavigationOptions {
 
 interface UseDropdownNavigationResult {
   highlightedIndex: number;
-  setHighlightedIndex: React.Dispatch<React.SetStateAction<number>>;
-  handleNavigationKeyDown: (e: React.KeyboardEvent) => boolean;
-  listRef: React.RefObject<HTMLDivElement | null>;
+  setHighlightedIndex: Dispatch<SetStateAction<number>>;
+  handleNavigationKeyDown: (e: KeyboardEvent) => boolean;
+  listRef: RefObject<HTMLDivElement | null>;
 }
 
 export function useDropdownNavigation({
@@ -40,7 +40,7 @@ export function useDropdownNavigation({
   /**
    * Handles ArrowUp/ArrowDown keys. Returns true if the key was handled.
    */
-  const handleNavigationKeyDown = useCallback((e: React.KeyboardEvent): boolean => {
+  const handleNavigationKeyDown = useCallback((e: KeyboardEvent): boolean => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       e.stopPropagation();

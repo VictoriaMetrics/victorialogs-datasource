@@ -20,7 +20,7 @@ export interface DispatchKeyEventArgs {
   };
   handlers: ChipKeyboardHandlers;
   /** Arrow navigation delegator. Returns true when it consumed the event. */
-  onNavigate: (event: React.KeyboardEvent) => boolean;
+  onNavigate: (event: KeyboardEvent) => boolean;
 }
 
 /**
@@ -42,8 +42,8 @@ export function dispatchKeyEvent(args: DispatchKeyEventArgs, event: React.Keyboa
     return;
   }
 
-  // Arrow navigation is owned by useDropdownNavigation — delegate.
-  if (onNavigate(event)) {
+  // Arrow navigation is owned by useDropdownNavigation — delegate via nativeEvent.
+  if (onNavigate(event.nativeEvent)) {
     return;
   }
 

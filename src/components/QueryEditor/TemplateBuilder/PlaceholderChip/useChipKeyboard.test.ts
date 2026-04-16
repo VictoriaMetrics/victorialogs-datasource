@@ -21,11 +21,16 @@ const makeHandlers = (): MockHandlers => ({
   handleCancel: jest.fn(),
 });
 
-const makeEvent = (key: string): EventRecorder & { key: string } => ({
-  key,
-  preventDefault: jest.fn(),
-  stopPropagation: jest.fn(),
-});
+const makeEvent = (key: string): EventRecorder & { key: string; nativeEvent: EventRecorder & { key: string } } => {
+  const event: any = {
+    key,
+    preventDefault: jest.fn(),
+    stopPropagation: jest.fn(),
+  };
+  // In tests, nativeEvent points to itself (same mock shape as a native KeyboardEvent)
+  event.nativeEvent = event;
+  return event;
+};
 
 const makeArgs = (overrides: {
   inputValue?: string;
