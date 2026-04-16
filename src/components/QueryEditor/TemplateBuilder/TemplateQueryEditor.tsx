@@ -8,8 +8,8 @@ import { Query } from '../../../types';
 import { PipelineContext } from '../shared/PipelineContext';
 import { buildStreamExtraFilters } from '../shared/streamFilterUtils';
 
-import { PipeFieldLoadersProvider, PipeRenderer } from './PipeRenderer';
 import { PipeList } from './PipeList';
+import { PipeFieldLoadersProvider, PipeRenderer } from './PipeRenderer';
 import { PipeTypeSearchMenu } from './PipeTypeSearchMenu';
 import { usePopupManager } from './hooks/usePopupManager';
 import { useTabNavigation } from './hooks/useTabNavigation';

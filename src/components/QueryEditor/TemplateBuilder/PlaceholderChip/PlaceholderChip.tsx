@@ -5,10 +5,10 @@ import { useStyles2 } from '@grafana/ui';
 
 import { useDropdownNavigation } from '../hooks/useDropdownNavigation';
 import { useFloatingDropdown } from '../hooks/useFloatingDropdown';
-import { getStyles } from '../styles';
 import { PlaceholderSegment } from '../types';
 
 import { ChipDropdown } from './ChipDropdown';
+import { getStyles } from './styles';
 import { useChipIntents } from './useChipIntents';
 import { useChipKeyboard } from './useChipKeyboard';
 import { useOptionLoading } from './useOptionLoading';

@@ -2,10 +2,12 @@ import React, { ReactNode } from 'react';
 
 import { useStyles2 } from '@grafana/ui';
 
-import { InsertableSeparator } from './InsertableSeparator';
 import { STREAM_TEMPLATE_TYPE } from '../segmentHelpers';
-import { getStyles } from '../styles';
 import { Pipe } from '../types';
+
+import { InsertableSeparator } from './InsertableSeparator';
+import { getStyles } from './styles';
+
 
 interface Props {
   pipes: Pipe[];

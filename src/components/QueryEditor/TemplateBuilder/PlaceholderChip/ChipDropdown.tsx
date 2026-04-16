@@ -4,8 +4,8 @@ import React from 'react';
 import { ComboboxOption, useStyles2 } from '@grafana/ui';
 
 import { FloatingDropdown } from '../FloatingDropdown';
-import { getStyles } from '../styles';
 
+import { getStyles } from './styles';
 import { OptionGroup } from './useOptionLoading';
 
 interface Props {
