@@ -18,6 +18,11 @@ export function useTabNavigation(
       return false;
     }
     const idx = allIds.indexOf(activeId);
+    if (idx === -1) {
+      // activeId is no longer present — deactivate instead of jumping to first
+      setActiveId(null);
+      return false;
+    }
     if (idx < allIds.length - 1) {
       setActiveId(allIds[idx + 1]);
       return true;

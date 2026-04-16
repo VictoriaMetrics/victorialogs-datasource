@@ -12,12 +12,13 @@ export class LRUCache<V> {
   }
 
   get(key: string): V | undefined {
-    const value = this.cache.get(key);
-    if (value !== undefined) {
-      // Promote to most-recently-used by re-inserting
-      this.cache.delete(key);
-      this.cache.set(key, value);
+    if (!this.cache.has(key)) {
+      return undefined;
     }
+    const value = this.cache.get(key) as V;
+    // Promote to most-recently-used by re-inserting
+    this.cache.delete(key);
+    this.cache.set(key, value);
     return value;
   }
 

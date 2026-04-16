@@ -40,17 +40,13 @@ export const useFetchStreamFilters = ({
 }: Props) => {
   const { withVariables } = useTemplateVariables();
   const queryBeforePipe = useMemo(() => splitByPipes(queryExpr || '')[0], [queryExpr]);
-  const interpolatedQuery = useMemo(
-    () => queryBeforePipe ? datasource.interpolateString(queryBeforePipe) : undefined,
-    [datasource, queryBeforePipe]
-  );
-  const interpolatedStreamFilters = useMemo(
-    () => extraStreamFilters ? datasource.interpolateString(extraStreamFilters) : undefined,
-    [datasource, extraStreamFilters]
-  );
+  // Not memoized — must recompute on every render so that template variable value changes
+  // (which don't change the raw string) are picked up immediately.
+  const interpolatedQuery = queryBeforePipe ? datasource.interpolateString(queryBeforePipe) : undefined;
+  const interpolatedStreamFilters = extraStreamFilters ? datasource.interpolateString(extraStreamFilters) : undefined;
   const cacheKey = useMemo(
-    () => `stream::${interpolatedQuery ?? ''}::${interpolatedStreamFilters ?? ''}`,
-    [interpolatedQuery, interpolatedStreamFilters]
+    () => `stream::${interpolatedQuery ?? ''}::${interpolatedStreamFilters ?? ''}::${timeRange?.from.valueOf() ?? ''}::${timeRange?.to.valueOf() ?? ''}`,
+    [interpolatedQuery, interpolatedStreamFilters, timeRange]
   );
 
   // Fetch stream field names with server-side filtering

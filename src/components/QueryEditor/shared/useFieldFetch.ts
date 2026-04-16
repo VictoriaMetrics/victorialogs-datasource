@@ -1,5 +1,5 @@
 import { debounce } from 'lodash';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { formattedValueToString, getValueFormat, TimeRange } from '@grafana/data';
 import { ComboboxOption } from '@grafana/ui';
@@ -51,8 +51,8 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
   );
 
   const cacheKey = useMemo(
-    () => `${interpolatedQueryContext ?? ''}::${interpolatedStreamFilters ?? ''}`,
-    [interpolatedQueryContext, interpolatedStreamFilters]
+    () => `${interpolatedQueryContext ?? ''}::${interpolatedStreamFilters ?? ''}::${timeRange?.from.valueOf() ?? ''}::${timeRange?.to.valueOf() ?? ''}`,
+    [interpolatedQueryContext, interpolatedStreamFilters, timeRange]
   );
 
   const customParams = useMemo(() => {
@@ -135,7 +135,9 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
     [datasource, field, timeRange, interpolatedQueryContext, customParams]
   );
 
-  const debouncedFilter = useMemo(
+  // Separate debounced functions per loader type — prevents cross-cancellation between
+  // concurrent field-names and field-values inputs.
+  const debouncedFilterNames = useMemo(
     () =>
       debounce(
         async (
@@ -153,6 +155,70 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
     []
   );
 
+  const debouncedFilterValues = useMemo(
+    () =>
+      debounce(
+        async (
+          inputValue: string,
+          resolve: (options: ComboboxOption[]) => void,
+          fetchFn: (inputValue: string) => Promise<ComboboxOption[]>,
+          filterFn?: (options: ComboboxOption[], input: string) => ComboboxOption[]
+        ) => {
+          const allOptions = await fetchFn(inputValue);
+          const filteredOptions = filterFn ? filterFn(allOptions, inputValue) : allOptions;
+          resolve(filteredOptions);
+        },
+        DEBOUNCE_MS
+      ),
+    []
+  );
+
+  // Track pending resolves so that superseded Promises are resolved with [] rather than left dangling.
+  const pendingResolveNames = useRef<((options: ComboboxOption[]) => void) | null>(null);
+  const pendingResolveValues = useRef<((options: ComboboxOption[]) => void) | null>(null);
+
+  const scheduleNames = useCallback(
+    (
+      inputValue: string,
+      resolve: (options: ComboboxOption[]) => void,
+      fetchFn: (inputValue: string) => Promise<ComboboxOption[]>,
+      filterFn?: (options: ComboboxOption[], input: string) => ComboboxOption[]
+    ) => {
+      if (pendingResolveNames.current) {
+        pendingResolveNames.current([]);
+      }
+      pendingResolveNames.current = resolve;
+      debouncedFilterNames(inputValue, (...args) => {
+        if (pendingResolveNames.current === resolve) {
+          pendingResolveNames.current = null;
+        }
+        resolve(...args);
+      }, fetchFn, filterFn);
+    },
+    [debouncedFilterNames]
+  );
+
+  const scheduleValues = useCallback(
+    (
+      inputValue: string,
+      resolve: (options: ComboboxOption[]) => void,
+      fetchFn: (inputValue: string) => Promise<ComboboxOption[]>,
+      filterFn?: (options: ComboboxOption[], input: string) => ComboboxOption[]
+    ) => {
+      if (pendingResolveValues.current) {
+        pendingResolveValues.current([]);
+      }
+      pendingResolveValues.current = resolve;
+      debouncedFilterValues(inputValue, (...args) => {
+        if (pendingResolveValues.current === resolve) {
+          pendingResolveValues.current = null;
+        }
+        resolve(...args);
+      }, fetchFn, filterFn);
+    },
+    [debouncedFilterValues]
+  );
+
   const loadFieldNames = useCallback(
     (inputValue: string): Promise<ComboboxOption[]> => {
       return new Promise((resolve) => {
@@ -161,13 +227,13 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
             resolve(withVariables(filterExcludedFields(allOptions), inputValue));
           });
         } else {
-          debouncedFilter(inputValue, resolve, fetchFieldNames, (opts, input) =>
+          scheduleNames(inputValue, resolve, fetchFieldNames, (opts, input) =>
             withVariables(filterExcludedFields(opts), input)
           );
         }
       });
     },
-    [fetchFieldNames, filterExcludedFields, debouncedFilter, withVariables]
+    [fetchFieldNames, filterExcludedFields, scheduleNames, withVariables]
   );
 
   const loadFieldValues = useCallback(
@@ -178,13 +244,13 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
             resolve(withVariables(allOptions, inputValue));
           });
         } else {
-          debouncedFilter(inputValue, resolve, fetchFieldValues, (opts, input) =>
+          scheduleValues(inputValue, resolve, fetchFieldValues, (opts, input) =>
             withVariables(opts, input)
           );
         }
       });
     },
-    [fetchFieldValues, debouncedFilter, withVariables]
+    [fetchFieldValues, scheduleValues, withVariables]
   );
 
   /** Returns a loader function bound to a specific field name. Used by TemplateBuilder
@@ -227,18 +293,19 @@ export const useFieldFetch = ({ datasource, field, timeRange, queryContext, excl
             resolve(withVariables(allOptions, inputValue));
           });
         } else {
-          debouncedFilter(inputValue, resolve, fetchFn, (opts, input) => withVariables(opts, input));
+          scheduleValues(inputValue, resolve, fetchFn, (opts, input) => withVariables(opts, input));
         }
       });
     },
-    [datasource, timeRange, interpolatedQueryContext, customParams, debouncedFilter, withVariables]
+    [datasource, timeRange, interpolatedQueryContext, customParams, scheduleValues, withVariables]
   );
 
   useEffect(() => {
     return () => {
-      debouncedFilter.cancel();
+      debouncedFilterNames.cancel();
+      debouncedFilterValues.cancel();
     };
-  }, [debouncedFilter]);
+  }, [debouncedFilterNames, debouncedFilterValues]);
 
   return { loadFieldNames, loadFieldValues, loadFieldValuesForField };
 };
