@@ -57,10 +57,6 @@ export interface StreamFilterState {
   values: string[];
 }
 
-export interface BuilderState {
-  steps: unknown[];
-}
-
 export interface Query extends DataQuery {
   editorMode?: QueryEditorMode;
   expr: string;
