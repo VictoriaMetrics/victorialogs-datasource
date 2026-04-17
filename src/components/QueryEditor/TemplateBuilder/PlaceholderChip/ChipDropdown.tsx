@@ -57,7 +57,7 @@ export const ChipDropdown: React.FC<Props> = ({
         {optionGroups ? (
           // Grouped rendering — flat index is pre-computed via options order
           optionGroups.map((group) => (
-            <div key={group.groupId}>
+            <div key={group.groupId} className={styles.optionGroup}>
               <div className={styles.optionGroupLabel}>{group.groupLabel}</div>
               {group.options.map((opt) => {
                 const flatIndex = options.indexOf(opt);

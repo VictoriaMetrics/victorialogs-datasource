@@ -78,6 +78,12 @@ export const getStyles = (theme: GrafanaTheme2) => ({
     color: theme.colors.text.secondary,
     marginTop: 1,
   }),
+  optionGroup: css({
+    '& + &': {
+      borderTop: `1px solid ${theme.colors.border.strong}`,
+      marginTop: theme.spacing(1),
+    },
+  }),
   optionGroupLabel: css({
     padding: theme.spacing(0.5, 1),
     fontSize: theme.typography.bodySmall.fontSize,
@@ -86,10 +92,5 @@ export const getStyles = (theme: GrafanaTheme2) => ({
     textTransform: 'uppercase',
     letterSpacing: '0.04em',
     backgroundColor: theme.colors.background.secondary,
-    borderTop: `1px solid ${theme.colors.border.weak}`,
-    borderBottom: `1px solid ${theme.colors.border.weak}`,
-    '&:first-child': {
-      borderTop: 'none',
-    },
   }),
 });
