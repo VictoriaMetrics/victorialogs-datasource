@@ -8,6 +8,7 @@ import { Button, ConfirmModal, Stack, useStyles2 } from '@grafana/ui';
 import { getQueryExprVariableRegExp } from '../../LogsQL/regExpOperator';
 import { isExprHasStatsPipeFunctions } from '../../LogsQL/statsPipeFunctions';
 import { LevelQueryFilter } from '../../configuration/LogLevelRules/LevelQueryFilter/LeveQueryFilter';
+import { LOGS_LIMIT_HARD_CAP } from '../../constants';
 import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from '../../types';
 import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 
@@ -43,6 +44,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const varRegExp = useMemo(() => {
     return getQueryExprVariableRegExp(query.expr)?.[0] || null;
   }, [query.expr]);
+  const isMaxLinesOverCap = query.maxLines !== undefined && query.maxLines > LOGS_LIMIT_HARD_CAP;
   useLogsSort(app, query, onChange, onRunQuery);
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
@@ -120,7 +122,8 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
                 size='sm'
                 onClick={onRunQuery}
                 icon={data?.state === LoadingState.Loading ? 'fa fa-spinner' : undefined}
-                disabled={data?.state === LoadingState.Loading}
+                disabled={data?.state === LoadingState.Loading || isMaxLinesOverCap}
+                tooltip={isMaxLinesOverCap ? `Line limit must be ≤ ${LOGS_LIMIT_HARD_CAP}` : undefined}
               >
                 {queries && queries.length > 1 ? 'Run queries' : 'Run query'}
               </Button>
