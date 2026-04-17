@@ -316,14 +316,14 @@ describe('modifyQuery', () => {
         expect(result).toBe('foo: bar | stats count() | sort by (_stream, _time) desc');
       });
 
-      it('should add sort even if query has sort by other field', () => {
+      it('should NOT add sort if query already has sort by other field', () => {
         const query = {
           expr: 'foo: bar | sort by (level) asc',
           queryType: QueryType.Instant,
           direction: 'desc'
         } as Query;
         const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar | sort by (level) asc | sort by (_time) desc');
+        expect(result).toBe('foo: bar | sort by (level) asc');
       });
     });
   });

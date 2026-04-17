@@ -1,7 +1,8 @@
-import { escapeRegex, getDefaultTimeRange, LanguageProvider, TimeRange } from '@grafana/data';
+import { getDefaultTimeRange, LanguageProvider, TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from './datasource';
 import { FieldHits, FieldHitsResponse, FilterFieldType } from './types';
+import { LRUCache } from './utils/LRUCache';
 
 interface FetchFieldsOptions {
   type: FilterFieldType;
@@ -9,8 +10,8 @@ interface FetchFieldsOptions {
   field?: string;
   timeRange?: TimeRange;
   limit?: number;
-  /** Filter for field values using containing match (server-side filtering) */
-  fieldValueFilter?: string;
+  /** Substring filter applied server-side (supported by all field_names/field_values endpoints) */
+  filter?: string;
 }
 
 enum HitsValueType {
@@ -23,15 +24,13 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
   request!: (url: string, params?: any) => Promise<any>;
   declare startTask: Promise<any>;
   datasource: VictoriaLogsDatasource;
-  cacheSize: number;
-  cacheValues: Map<string, FieldHits[]>;
+  cacheValues: LRUCache<FieldHits[]>;
 
   constructor(datasource: VictoriaLogsDatasource, initialValues?: Partial<LogsQlLanguageProvider>) {
     super();
 
     this.datasource = datasource;
-    this.cacheSize = 100;
-    this.cacheValues = new Map<string, FieldHits[]>();
+    this.cacheValues = new LRUCache<FieldHits[]>(100);
 
     Object.assign(this, initialValues);
   }
@@ -53,13 +52,11 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       }
     }
 
-    // Build query with optional field value filter (prefix match for server-side filtering)
-    let finalQuery = options.query || '*';
-    if (options.type === FilterFieldType.FieldValue && options.field && options.fieldValueFilter) {
-      const fieldFilter = `${options.field}:~"(?i)${escapeRegex(options.fieldValueFilter)}"`;
-      finalQuery = finalQuery === '*' ? fieldFilter : `(${finalQuery}) AND ${fieldFilter}`;
+    urlParams.append('query', options.query || '*');
+
+    if (options.filter) {
+      urlParams.append('filter', options.filter);
     }
-    urlParams.append('query', finalQuery);
 
     const timeRange = this.getTimeRangeParams(options.timeRange);
     urlParams.append('start', timeRange.start.toString());
@@ -78,15 +75,9 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
     const url = options.type === FilterFieldType.FieldName ? 'select/logsql/field_names' : 'select/logsql/field_values';
     const key = `${url}?${urlParams.toString()}`;
 
-    if (this.cacheValues.has(key)) {
-      return this.cacheValues.get(key)!;
-    }
-
-    if (this.cacheValues.size >= this.cacheSize) {
-      const firstKey = this.cacheValues.keys().next().value;
-      if (firstKey) {
-        this.cacheValues.delete(firstKey);
-      }
+    const cached = this.cacheValues.get(key);
+    if (cached) {
+      return cached;
     }
 
     const res = (await this.datasource.postResource(url, params)) as FieldHitsResponse;
@@ -111,6 +102,10 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
 
     urlParams.append('query', options.query || '*');
 
+    if (options.filter) {
+      urlParams.append('filter', options.filter);
+    }
+
     const timeRange = this.getTimeRangeParams(options.timeRange);
     urlParams.append('start', timeRange.start.toString());
     urlParams.append('end', timeRange.end.toString());
@@ -131,15 +126,9 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
         : 'select/logsql/stream_field_values';
     const key = `${url}?${urlParams.toString()}`;
 
-    if (this.cacheValues.has(key)) {
-      return this.cacheValues.get(key)!;
-    }
-
-    if (this.cacheValues.size >= this.cacheSize) {
-      const firstKey = this.cacheValues.keys().next().value;
-      if (firstKey) {
-        this.cacheValues.delete(firstKey);
-      }
+    const cached = this.cacheValues.get(key);
+    if (cached) {
+      return cached;
     }
 
     const res = (await this.datasource.postResource(url, params)) as FieldHitsResponse;
