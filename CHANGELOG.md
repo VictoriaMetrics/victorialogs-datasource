@@ -2,7 +2,9 @@
 
 ## tip
 
-* BUGFIX: fix interpolation of a query with the variable at the end of the line. See [#614](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/614);
+* FEATURE: add ability to set custom field names in dashboard variables, since fields do not necessarily exist at the time of creation or manipulation (e.g. when importing a dashboard from JSON, then editing a variable). See [pr #606](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/606). Thanks to @github-vincent-miszczak for contributing.
+
+* BUGFIX: fix interpolation of a query with the variable at the end of the line. See [#614](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/614).
 
 ## v0.26.3
 
