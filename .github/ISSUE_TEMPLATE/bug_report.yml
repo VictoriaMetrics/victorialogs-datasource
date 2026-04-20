@@ -29,6 +29,7 @@ body:
       description: |
         Please provide the version of VictoriaLogs datasource plugin and VictoriaLogs backend you are using.
         Also provide the version of Grafana you are using and version of the vmauth if it is used.
+      value: "Plugin version: v0.x.x\nVictoriaLogs version: v1.x.x\nGrafana version: vx.x.x\nVmauth(if used) version: v1.x.x"
     validations:
       required: true
   - type: textarea

@@ -1,0 +1,39 @@
+name: Suggest enhancement
+description: Suggest an improvement or new feature for the plugin
+labels: [enhancement, vl-datasource]
+body:
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: |
+        What problem does this enhancement solve? Describe the scenario where
+        the current behavior is insufficient or inconvenient.
+      placeholder: |
+        When I do `A`, the plugin does `B`. I'd like it to do `C` because ...
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: |
+        A clear and concise description of what you'd like to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: |
+        Any alternative solutions or workarounds you've considered.
+    validations:
+      required: false
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: |
+        Any other context, links, screenshots, or references related to the enhancement.
+    validations:
+      required: false
