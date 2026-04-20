@@ -1,10 +1,11 @@
-import { AdHocVariableFilter } from '@grafana/data';
+import { AdHocVariableFilter, DataQueryRequest } from '@grafana/data';
 import { TemplateSrv } from '@grafana/runtime';
 
 // eslint-disable-next-line jest/no-mocks-import
 import { createDatasource } from './__mocks__/datasource';
-import { VARIABLE_ALL_VALUE } from './constants';
+import { LOGS_LIMIT_HARD_CAP, VARIABLE_ALL_VALUE } from './constants';
 import { VictoriaLogsDatasource } from './datasource';
+import { Query } from './types';
 
 const replaceMock = jest.fn().mockImplementation((a: string) => a);
 
@@ -332,6 +333,87 @@ describe('VictoriaLogsDatasource', () => {
       const ds = createDatasource(templateSrvMock);
       const result = ds.interpolateString('foo: $var1 bar: $var2', scopedVars);
       expect(result).toStrictEqual('foo: in(\"foo\",\"bar\") bar:in(*)');
+    });
+  });
+
+  describe('max lines clamp', () => {
+    describe('constructor', () => {
+      it('clamps datasource maxLines to HARD_CAP when config value exceeds it', () => {
+        const clamped = createDatasource(templateSrvStub, {
+          jsonData: { maxLines: '50000' },
+        });
+        expect(clamped.maxLines).toBe(LOGS_LIMIT_HARD_CAP);
+      });
+
+      it('keeps datasource maxLines as configured when below HARD_CAP', () => {
+        const ok = createDatasource(templateSrvStub, {
+          jsonData: { maxLines: '500' },
+        });
+        expect(ok.maxLines).toBe(500);
+      });
+
+      it('falls back to default 1000 when maxLines is missing', () => {
+        const def = createDatasource(templateSrvStub, { jsonData: {} });
+        expect(def.maxLines).toBe(1000);
+      });
+    });
+
+    describe('query builder', () => {
+      const buildRequest = (maxLines: number | undefined): DataQueryRequest<Query> => ({
+        app: 'dashboard',
+        requestId: 'r1',
+        interval: '1s',
+        intervalMs: 1000,
+        range: {
+          from: { utcOffset: () => 0 } as any,
+          to: { utcOffset: () => 0 } as any,
+          raw: { from: 'now-1h', to: 'now' },
+        } as any,
+        scopedVars: {},
+        targets: [{ refId: 'A', expr: 'error', maxLines }],
+        timezone: 'UTC',
+        startTime: 0,
+      }) as DataQueryRequest<Query>;
+
+      it('clamps query.maxLines to HARD_CAP when it exceeds the cap', () => {
+        const localDs = createDatasource(templateSrvStub, { jsonData: { maxLines: '500' } });
+        const runQuerySpy = jest
+          .spyOn(localDs, 'runQuery')
+          .mockReturnValue({ subscribe: jest.fn() } as any);
+
+        const req = buildRequest(50000);
+        localDs.query(req);
+
+        expect(runQuerySpy).toHaveBeenCalled();
+        expect(req.targets[0].maxLines).toBe(LOGS_LIMIT_HARD_CAP);
+        runQuerySpy.mockRestore();
+      });
+
+      it('keeps query.maxLines as-is when below HARD_CAP', () => {
+        const localDs = createDatasource(templateSrvStub, { jsonData: { maxLines: '500' } });
+        const runQuerySpy = jest
+          .spyOn(localDs, 'runQuery')
+          .mockReturnValue({ subscribe: jest.fn() } as any);
+
+        const req = buildRequest(800);
+        localDs.query(req);
+
+        expect(req.targets[0].maxLines).toBe(800);
+        runQuerySpy.mockRestore();
+      });
+
+      it('uses datasource.maxLines when query.maxLines is undefined', () => {
+        const localDs = createDatasource(templateSrvStub, { jsonData: { maxLines: '2000' } });
+        const runQuerySpy = jest
+          .spyOn(localDs, 'runQuery')
+          .mockReturnValue({ subscribe: jest.fn() } as any);
+
+        const req = buildRequest(undefined);
+        localDs.query(req);
+
+        expect(req.targets[0].maxLines).toBe(2000);
+        runQuerySpy.mockRestore();
+      });
     });
   });
 });

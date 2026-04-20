@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
 
 import { CoreApp, isValidGrafanaDuration, SelectableValue } from '@grafana/data';
-import { AutoSizeInput, InlineSwitch, RadioButtonGroup, TextLink } from '@grafana/ui';
+import { AutoSizeInput, InlineSwitch, Input, RadioButtonGroup, TextLink } from '@grafana/ui';
 
 import { VICTORIA_LOGS_DOCS_HOST } from '../../conf';
+import { LOGS_LIMIT_HARD_CAP, LOGS_LIMIT_WARNING_THRESHOLD } from '../../constants';
 import { Query, QueryType } from '../../types';
 import { isVariable } from '../../utils/isVariable';
+import { useMaxLinesWarning } from '../shared/shared/useMaxLinesWarning';
 
 import EditorField from './EditorField';
 import { EditorRow } from './EditorRow';
@@ -54,6 +56,29 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
     isValidStep,
   });
 
+  const isOverCap = query.maxLines !== undefined && query.maxLines > LOGS_LIMIT_HARD_CAP;
+  const { modal: maxLinesWarningModal, requestConfirmation } = useMaxLinesWarning(onRunQuery);
+
+  const onMaxLinesChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
+    const parsed = parseInt(e.currentTarget.value, 10);
+    let newMaxLines = isNaN(parsed) || parsed < 0 ? undefined : parsed;
+    if (newMaxLines !== undefined && newMaxLines > LOGS_LIMIT_HARD_CAP){
+      newMaxLines = LOGS_LIMIT_HARD_CAP;
+    }
+    onChange({ ...query, maxLines: newMaxLines });
+  };
+
+  const onMaxLinesBlur = () => {
+    if (query.maxLines !== undefined && query.maxLines > LOGS_LIMIT_WARNING_THRESHOLD) {
+      requestConfirmation(query.maxLines);
+    }
+
+    if (query.maxLines === undefined) {
+      onRunQuery();
+      return;
+    }
+  };
+
   const onQueryTypeChange = (value: QueryType) => {
     onChange({ ...query, queryType: value });
     onRunQuery();
@@ -62,16 +87,6 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
   const onLegendFormatChanged = (e: React.FormEvent<HTMLInputElement>) => {
     onChange({ ...query, legendFormat: e.currentTarget.value });
     onRunQuery();
-  };
-
-  const onMaxLinesChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
-    const maxLines = parseInt(e.currentTarget.value, 10);
-    const newMaxLines = isNaN(maxLines) || maxLines < 0 ? undefined : maxLines;
-
-    if (query.maxLines !== newMaxLines) {
-      onChange({ ...query, maxLines: newMaxLines });
-      onRunQuery();
-    }
   };
 
   const onStepChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
@@ -86,6 +101,7 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
 
   return (
     <EditorRow>
+      {maxLinesWarningModal}
       <QueryEditorOptionsGroup
         title='Options'
         collapsedInfo={collapsedInfo}
@@ -116,14 +132,22 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
           </TextLink>
         </div>
         {queryType === QueryType.Instant && (
-          <EditorField label='Line limit' tooltip='Upper limit for number of log lines returned by query.'>
-            <AutoSizeInput
+          <EditorField
+            label='Line limit'
+            tooltip={`Upper limit for number of log lines returned by query. Maximum: ${LOGS_LIMIT_HARD_CAP}.`}
+            invalid={isOverCap}
+            error={`Maximum value is ${LOGS_LIMIT_HARD_CAP}.`}
+          >
+            <Input
+              id='line-limit-input'
               className='width-4'
               placeholder={maxLines.toString()}
               type='number'
               min={0}
-              defaultValue={query.maxLines?.toString() ?? ''}
-              onCommitChange={onMaxLinesChange}
+              max={LOGS_LIMIT_HARD_CAP}
+              value={query.maxLines?.toString() ?? ''}
+              onChange={onMaxLinesChange}
+              onBlur={onMaxLinesBlur}
             />
           </EditorField>
         )}

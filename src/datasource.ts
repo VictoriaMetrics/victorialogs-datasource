@@ -38,7 +38,7 @@ import {
 } from './components/QueryEditor/QueryBuilder/components/StreamFilters/streamFilterUtils';
 import QueryEditor from './components/QueryEditor/QueryEditor';
 import { LogLevelRule } from './configuration/LogLevelRules/types';
-import { TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
+import { LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { escapeLabelValueInSelector } from './languageUtils';
 import LogsQlLanguageProvider from './language_provider';
 import { LOGS_VOLUME_BARS, queryLogsVolume } from './logsVolumeLegacy';
@@ -109,7 +109,7 @@ export class VictoriaLogsDatasource
     this.basicAuth = instanceSettings.basicAuth;
     this.withCredentials = instanceSettings.withCredentials;
     this.httpMethod = settingsData.httpMethod || 'POST';
-    this.maxLines = parseInt(settingsData.maxLines ?? '0', 10) || 1000;
+    this.maxLines = Math.min(parseInt(settingsData.maxLines ?? '0', 10) || 1000, LOGS_LIMIT_HARD_CAP);
     this.derivedFields = settingsData.derivedFields || [];
     this.customQueryParameters = new URLSearchParams(settingsData.customQueryParameters);
     this.languageProvider = languageProvider ?? new LogsQlLanguageProvider(this);
@@ -131,7 +131,7 @@ export class VictoriaLogsDatasource
           ...q,
           // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
           expr: addSortPipeToQuery(q, request.app, request.liveStreaming),
-          maxLines: q.maxLines ?? this.maxLines,
+          maxLines: Math.min(q.maxLines ?? this.maxLines, LOGS_LIMIT_HARD_CAP),
           timezoneOffset,
           format: getQueryFormat(q.expr),
           step: this.templateSrv.replace(q.step, request.scopedVars),
