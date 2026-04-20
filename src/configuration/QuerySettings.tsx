@@ -23,10 +23,19 @@ export const QuerySettings = (props: Props) => {
 
   const onChange = (event: React.FormEvent<HTMLInputElement>) => {
     const raw = event.currentTarget.value;
+    if (raw === '') {
+      onMaxLinedChange(raw);
+      return;
+    }
+
     const parsed = parseInt(raw, 10);
 
-    if (raw === '' || isNaN(parsed)) {
-      onMaxLinedChange(raw);
+    if (isNaN(parsed)) {
+      return;
+    }
+
+    if (parsed < 0) {
+      onMaxLinedChange('');
       return;
     }
 
@@ -35,7 +44,7 @@ export const QuerySettings = (props: Props) => {
       return;
     }
 
-    onMaxLinedChange(raw);
+    onMaxLinedChange(String(parsed));
   };
 
   const onBlur = () => {

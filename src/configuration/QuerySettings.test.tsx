@@ -68,6 +68,16 @@ describe('QuerySettings — Maximum lines protection', () => {
     expect(onMaxLinedChange).toHaveBeenCalledWith('10000');
   });
 
+  it('clears the stored value when the typed value is negative', () => {
+    const onMaxLinedChange = jest.fn();
+
+    render(<QuerySettings maxLines='500' onMaxLinedChange={onMaxLinedChange} />);
+
+    fireEvent.change(screen.getByPlaceholderText('1000'), { target: { value: '-5' } });
+
+    expect(onMaxLinedChange).toHaveBeenCalledWith('');
+  });
+
   it('renders invalid state when the stored value still exceeds the hard cap', () => {
     render(<QuerySettings maxLines='50000' onMaxLinedChange={jest.fn()} />);
 
