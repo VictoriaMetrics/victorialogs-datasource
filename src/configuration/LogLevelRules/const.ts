@@ -1,7 +1,7 @@
 import { LogLevel } from '@grafana/data';
 import { colors, ComboboxOption } from '@grafana/ui';
 
-import { LogLevelRuleType } from './types';
+import { LogLevelRule, LogLevelRuleType } from './types';
 
 export interface LogOperatorOption {
   value: LogLevelRuleType;
@@ -19,10 +19,20 @@ export const LOG_OPERATOR_OPTIONS: LogOperatorOption[] = [
 
 export const OperatorLabels: Record<LogLevelRuleType, string> = {
   [LogLevelRuleType.Equals]: '=',
+  [LogLevelRuleType.CaseInsensitiveEquals]: '~',
   [LogLevelRuleType.NotEquals]: '!=',
   [LogLevelRuleType.Regex]: '~',
   [LogLevelRuleType.LessThan]: '<',
   [LogLevelRuleType.GreaterThan]: '>',
+};
+
+export const OperatorLabelsQueryBuilder: Record<LogLevelRuleType, (rule: LogLevelRule) => string> = {
+  [LogLevelRuleType.Equals]: (rule) => `${rule.field}:"${rule.value}"`,
+  [LogLevelRuleType.CaseInsensitiveEquals]: (rule) => `${rule.field}:contains_common_case("${rule.value}")`,
+  [LogLevelRuleType.NotEquals]: (rule) => `${rule.field}:!"${rule.value}"`,
+  [LogLevelRuleType.Regex]: (rule) => `${rule.field}:~"${rule.value}"`,
+  [LogLevelRuleType.LessThan]: (rule) => `${rule.field}:<"${rule.value}"`,
+  [LogLevelRuleType.GreaterThan]: (rule) => `${rule.field}:>"${rule.value}"`,
 };
 
 export const LOG_LEVEL_OPTIONS: Array<ComboboxOption<LogLevel>> = Array.from(

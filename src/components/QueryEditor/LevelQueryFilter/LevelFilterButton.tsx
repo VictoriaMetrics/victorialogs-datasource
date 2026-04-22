@@ -4,7 +4,7 @@ import React, { MouseEvent } from 'react';
 import { GrafanaTheme2, LogLevel } from '@grafana/data';
 import { Button, Stack, useStyles2 } from '@grafana/ui';
 
-import { LOG_LEVEL_COLOR } from '../const';
+import { LOG_LEVEL_COLOR } from '../../../configuration/LogLevelRules/const';
 
 export interface LevelFilterButtonProps {
   onClick: (e: MouseEvent<HTMLButtonElement>) => void;

@@ -62,6 +62,12 @@ const resolveLogLevel = (log: Record<string, any>, rules: LogLevelRule[]) => {
           }
         }
         break;
+
+      case LogLevelRuleType.CaseInsensitiveEquals:
+        if (fieldValue?.toLowerCase() === rule.value) {
+          return rule.level;
+        }
+        break;
     }
   }
 

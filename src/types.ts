@@ -3,6 +3,7 @@ import { BackendSrvRequest } from '@grafana/runtime';
 import { DataQuery } from '@grafana/schema';
 
 import { LogLevelRule } from './configuration/LogLevelRules/types';
+import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
 import { VictoriaLogsDatasource } from './datasource';
 
 export interface Options extends DataSourceJsonData {
@@ -18,6 +19,7 @@ export interface Options extends DataSourceJsonData {
   logLevelRules?: LogLevelRule[];
   multitenancyHeaders?: Partial<Record<TenantHeaderNames, string>>;
   vmuiUrl?: string;
+  otelPreset?: OpenTelemetryPreset;
 }
 
 export const QUERY_DIRECTION = {

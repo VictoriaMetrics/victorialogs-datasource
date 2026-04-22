@@ -234,6 +234,35 @@ correlation in [this issue](https://github.com/VictoriaMetrics/VictoriaMetrics/i
 
 Log to traces correlation is possible via Derived Fields functionality. See its description in the sections below.
 
+## OpenTelemetry preset
+
+The **OpenTelemetry preset** in the datasource configuration automatically sets up [Derived Fields](#derived-fields) for trace IDs and [Log level rules](#log-level-rules) for OTel severity — without manual configuration.
+
+### How to enable
+
+1. Open the datasource settings.
+2. Scroll to the **OpenTelemetry preset** section.
+3. Toggle **Enable OpenTelemetry preset**.
+4. Click **Save & test** to save your datasource URL first if you have not done so — the preset needs a reachable VictoriaLogs backend to detect the field format.
+
+### What gets auto-detected
+
+After enabling the preset, the datasource queries recent logs to detect:
+
+* **Field format** — `snake_case` (`trace_id`) or `camelCase` (`traceId`).
+* **Severity field** — the first matching candidate among `severity_text`, `SeverityText`, `severity`, `Severity`.
+* **Severity value case** — whether the severity field contains `UPPERCASE`, `lowercase`, or mixed values, to generate the correct number of log level rules.
+
+The detected configuration is shown in the UI. Your manually created derived fields and log level rules are preserved.
+
+### Traces datasource
+
+Select an optional **Traces datasource** (Tempo, Jaeger, Zipkin) to make the generated `trace_id` derived field link directly to the matching trace.
+
+### Changing the severity field
+
+If the auto-detected severity field is wrong, click **Change** next to the severity row to pick a different field from the dropdown. The preset will re-run detection using the selected field.
+
 ## Derived Fields
 
 In VictoriaLogs datasource settings, you can configure rules of extracting values from a log message to create a link with that value.
