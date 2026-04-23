@@ -15,6 +15,7 @@ import { EditorHeader } from './EditorHeader';
 import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorOptions } from './QueryEditorOptions';
 import QueryEditorVariableRegexpError from './QueryEditorVariableRegexpError';
+import { StreamFilters } from './StreamFilters/StreamFilters';
 import TemplateQueryEditor from './TemplateBuilder/TemplateQueryEditor';
 import { serializeQuery } from './TemplateBuilder/serialization';
 import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from './constants';
@@ -49,11 +50,14 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   useLogsSort(app, query, onChange, onRunQuery);
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
-    if (newEditorMode === QueryEditorMode.Builder && query.expr) {
+    if (newEditorMode === QueryEditorMode.Builder) {
       // If expr matches the serialized builder state, the user hasn't modified the code manually —
       // switch to builder directly without showing the confirmation modal.
       const builderExpr = query.templateBuilder ? serializeQuery(query.templateBuilder) : '';
-      if (query.expr !== TEXT_FILTER_ALL_VALUE && query.expr !== builderExpr) {
+      const exprWillBeLost = !!query.expr && query.expr !== TEXT_FILTER_ALL_VALUE && query.expr !== builderExpr;
+      // Stream filters are only editable in code mode — switching to builder discards them.
+      const streamFiltersWillBeLost = (query.streamFilters || []).some((f) => !!f.label || f.values.length > 0);
+      if (exprWillBeLost || streamFiltersWillBeLost) {
         setParseModalOpen(true);
         return;
       }
@@ -99,6 +103,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       expr: '',
       editorMode: QueryEditorMode.Builder,
       templateBuilder: { pipes: [] },
+      streamFilters: undefined,
     });
     setParseModalOpen(false);
   };
@@ -115,7 +120,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       <ConfirmModal
         isOpen={parseModalOpen}
         title='Switch to visual builder'
-        body='Switching to visual builder will clear the current query. The query cannot be automatically converted to visual steps.'
+        body='Switching to visual builder will clear the current query and stream filters. The query cannot be automatically converted to visual steps.'
         confirmText='Continue'
         onConfirm={onConfirmModal}
         onDismiss={() => setParseModalOpen(false)}
@@ -145,7 +150,18 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
               app={app}
             />
           ) : (
-            <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
+            <>
+              {app === CoreApp.Explore && (
+                <StreamFilters
+                  datasource={datasource}
+                  query={query}
+                  timeRange={timeRange}
+                  onChange={onChangeInternal}
+                  onRunQuery={onRunQuery}
+                />
+              )}
+              <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
+            </>
           )}
           {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange} />)}
           {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType} />)}

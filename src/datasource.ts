@@ -237,7 +237,7 @@ export class VictoriaLogsDatasource
     }
 
     const isCodeMode = target.editorMode === QueryEditorMode.Code;
-    const extraStreamFilters = isCodeMode ? undefined : this.getExtraStreamFilters(target.streamFilters, scopedVars);
+    const extraStreamFilters = isCodeMode ? this.getExtraStreamFilters(target.streamFilters, scopedVars) : undefined;
     return {
       ...target,
       legendFormat: this.templateSrv.replace(target.legendFormat, rest),
