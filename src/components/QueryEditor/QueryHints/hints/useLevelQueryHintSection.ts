@@ -3,8 +3,7 @@ import { useMemo } from 'react';
 
 import { LogLevel } from '@grafana/data';
 
-import {
-  OperatorLabels,
+import { OperatorLabelsQueryBuilder,
   possibleLogValueByLevelType,
   UNIQ_LOG_LEVEL,
   UniqLogLevelKeys
@@ -27,11 +26,16 @@ export const useLevelQueryHintSection = (levelRules: LogLevelRule[]): QueryHintS
         return acc;
       }, {} as Record<UniqLogLevelKeys, LogLevelRule[]>);
 
+    const buildQueryExpr = (rule: LogLevelRule) => {
+      const builder = OperatorLabelsQueryBuilder[rule.operator];
+      return builder(rule);
+    };
+
     const hints = Object
       .entries(levelFilters)
-      .map(([ruleLevel, rule]): LevelHint => {
+      .map(([ruleLevel, rules]): LevelHint => {
         const levelKey = ruleLevel as UniqLogLevelKeys;
-        const queryExprByRules = rule.map(r => `${r.field}:${OperatorLabels[r.operator]}"${r.value}"`);
+        const queryExprByRules = rules.map(buildQueryExpr);
         const possibleLevelValues = possibleLogValueByLevelType[levelKey].map(value => `"${value}"`).join(',');
         const queryExprByLevel = `level:contains_common_case(${possibleLevelValues})`;
         const queryParts = [queryExprByLevel];

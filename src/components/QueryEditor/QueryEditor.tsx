@@ -7,12 +7,12 @@ import { Button, ConfirmModal, Stack, useStyles2 } from '@grafana/ui';
 
 import { getQueryExprVariableRegExp } from '../../LogsQL/regExpOperator';
 import { isExprHasStatsPipeFunctions } from '../../LogsQL/statsPipeFunctions';
-import { LevelQueryFilter } from '../../configuration/LogLevelRules/LevelQueryFilter/LeveQueryFilter';
 import { LOGS_LIMIT_HARD_CAP } from '../../constants';
 import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from '../../types';
 import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 
 import { EditorHeader } from './EditorHeader';
+import { LevelQueryFilter } from './LevelQueryFilter/LeveQueryFilter';
 import { LogsQLSyntaxHelp } from './LogsQLSyntaxHelp';
 import { QueryBuilderContainer } from './QueryBuilder/QueryBuilderContainer';
 import { QueryEditorModeToggle } from './QueryBuilder/QueryEditorModeToggle';

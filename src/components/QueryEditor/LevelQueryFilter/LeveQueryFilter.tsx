@@ -1,12 +1,11 @@
 import React, { MouseEvent, useCallback, useMemo } from 'react';
 
-
 import { LogLevel } from '@grafana/data';
 import { Stack } from '@grafana/ui';
 
-import { useLevelQueryHintSection } from '../../../components/QueryEditor/QueryHints/hints/useLevelQueryHintSection';
+import { LogLevelRule } from '../../../configuration/LogLevelRules/types';
 import { Query } from '../../../types';
-import { LogLevelRule } from '../types';
+import { useLevelQueryHintSection } from '../QueryHints';
 
 import { LevelFilterButton } from './LevelFilterButton';
 import { buildQueryExprWithLevelFilters } from './utils';

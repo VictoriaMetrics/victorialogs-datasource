@@ -13,6 +13,7 @@ import { HelpfulLinks } from './HelpfulLinks';
 import { LimitsSettings } from './LimitSettings';
 import { LogLevelRulesEditor } from './LogLevelRules/LogLevelRulesEditor';
 import { LogsSettings } from './LogsSettings';
+import { OpenTelemetryPresetSection } from './OpenTelemetryPreset';
 import { QuerySettings } from './QuerySettings';
 import { TenantSettings } from './TenantSettings';
 
@@ -58,6 +59,8 @@ const ConfigEditor = (props: PropsConfigEditor) => {
       </LimitsSettings>
 
       <LogsSettings {...props} />
+
+      <OpenTelemetryPresetSection {...props} />
 
       <DerivedFields
         fields={options.jsonData.derivedFields}
