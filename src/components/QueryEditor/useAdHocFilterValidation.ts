@@ -7,7 +7,7 @@ import { FilterFieldType, Query } from '../../types';
 import { LRUCache } from '../../utils/LRUCache';
 import { bucketTimeRange } from '../../utils/timeUtils';
 
-import { buildStreamExtraFilters } from './shared/streamFilterUtils';
+import { buildStreamExtraFilters } from './StreamFilters/streamFilterUtils';
 
 const FIELD_NAMES_BATCH_LIMIT = 10_000;
 const BUCKET_CACHE_SIZE = 16;

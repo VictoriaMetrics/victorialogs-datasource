@@ -17,6 +17,13 @@ const streamFieldNamesCache = new LRUCache<ComboboxOption[]>(50);
 
 const shortFormat = getValueFormat('short');
 const formatHits = (hits: number): string => formattedValueToString(shortFormat(hits));
+const formatHitPercentage = (hits: number, totalHits: number): string => {
+  if (totalHits <= 0) {
+    return '';
+  }
+
+  return ` (${((hits / totalHits) * 100).toFixed(1)}%)`;
+};
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -77,11 +84,10 @@ export const useFetchStreamFilters = ({
       return [];
     }
 
-    const totalHits = list.reduce((sum, item) => sum + item.hits, 0);
     const result: ComboboxOption[] = list.map(({ value, hits }) => ({
       value: value || '',
       label: value || ' ',
-      description: `hits: ${formatHits(hits)}${totalHits > 0 ? ` (${((hits / totalHits) * 100).toFixed(1)}%)` : ''}`,
+      description: `${formatHits(hits)}`,
     }));
 
     streamFieldNamesCache.set(filterCacheKey, result);
@@ -139,7 +145,7 @@ export const useFetchStreamFilters = ({
       const mappedOptions = list.map(({ value, hits }) => ({
         value: value || '',
         label: value || ' ',
-        description: `hits: ${formatHits(hits)}${totalHits > 0 ? ` (${((hits / totalHits) * 100).toFixed(1)}%)` : ''}`,
+        description: `${formatHits(hits)}${formatHitPercentage(hits, totalHits)}`,
       }));
       options.push(...mappedOptions);
 
@@ -171,12 +177,17 @@ export const useFetchStreamFilters = ({
         async (
           inputValue: string,
           resolve: (options: ComboboxOption[]) => void,
+          reject: (err: unknown) => void,
           fetchFn: (inputValue: string) => Promise<ComboboxOption[]>,
           filterFn?: (options: ComboboxOption[], input: string) => ComboboxOption[]
         ) => {
-          const allOptions = await fetchFn(inputValue);
-          const filteredOptions = filterFn ? filterFn(allOptions, inputValue) : allOptions;
-          resolve(filteredOptions);
+          try {
+            const allOptions = await fetchFn(inputValue);
+            const filteredOptions = filterFn ? filterFn(allOptions, inputValue) : allOptions;
+            resolve(filteredOptions);
+          } catch (err) {
+            reject(err);
+          }
         },
         DEBOUNCE_MS
       ),
@@ -188,6 +199,7 @@ export const useFetchStreamFilters = ({
     (
       inputValue: string,
       resolve: (options: ComboboxOption[]) => void,
+      reject: (err: unknown) => void,
       fetchFn: (inputValue: string) => Promise<ComboboxOption[]>,
       filterFn?: (options: ComboboxOption[], input: string) => ComboboxOption[]
     ) => {
@@ -200,7 +212,7 @@ export const useFetchStreamFilters = ({
           pendingResolve.current = null;
         }
         resolve(...args);
-      }, fetchFn, filterFn);
+      }, reject, fetchFn, filterFn);
     },
     [debouncedFilter]
   );
@@ -208,15 +220,13 @@ export const useFetchStreamFilters = ({
   // Async options loader for stream field names with server-side filtering
   const loadStreamFieldNames = useCallback(
     (inputValue: string): Promise<ComboboxOption[]> => {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         if (!inputValue) {
-          fetchStreamFieldNames('').then((allOptions) => {
-            resolve(filterFieldNamesOptions(allOptions, inputValue));
-          });
+          fetchStreamFieldNames('')
+            .then((allOptions) => resolve(filterFieldNamesOptions(allOptions, inputValue)))
+            .catch(reject);
         } else {
-          scheduleDebouncedFilter(inputValue, resolve, fetchStreamFieldNames, (opts, input) =>
-            filterFieldNamesOptions(opts, input)
-          );
+          scheduleDebouncedFilter(inputValue, resolve, reject, fetchStreamFieldNames, filterFieldNamesOptions);
         }
       });
     },
@@ -226,13 +236,13 @@ export const useFetchStreamFilters = ({
   // Async options loader for stream field values with debounce (server-side filtering)
   const loadStreamFieldValues = useCallback(
     (inputValue: string): Promise<ComboboxOption[]> => {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         if (!inputValue) {
-          fetchStreamFieldValues(inputValue).then((allOptions) => {
-            resolve(withVariables(allOptions, inputValue));
-          });
+          fetchStreamFieldValues(inputValue)
+            .then((allOptions) => resolve(withVariables(allOptions, inputValue)))
+            .catch(reject);
         } else {
-          scheduleDebouncedFilter(inputValue, resolve, fetchStreamFieldValues, (opts, input) =>
+          scheduleDebouncedFilter(inputValue, resolve, reject, fetchStreamFieldValues, (opts, input) =>
             withVariables(filterOptions(opts, input), input)
           );
         }
@@ -289,16 +299,18 @@ export const useFetchStreamFilters = ({
         opts.push(...list.map(({ value, hits }) => ({
           value: value || '',
           label: value || ' ',
-          description: `hits: ${formatHits(hits)}${totalHits > 0 ? ` (${((hits / totalHits) * 100).toFixed(1)}%)` : ''}`,
+          description: `${formatHits(hits)}${formatHitPercentage(hits, totalHits)}`,
         })));
         return opts;
       };
 
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         if (!inputValue) {
-          fetchFn(inputValue).then((allOptions) => resolve(withVariables(allOptions, inputValue)));
+          fetchFn(inputValue)
+            .then((allOptions) => resolve(withVariables(allOptions, inputValue)))
+            .catch(reject);
         } else {
-          scheduleDebouncedFilter(inputValue, resolve, fetchFn, (opts, input) =>
+          scheduleDebouncedFilter(inputValue, resolve, reject, fetchFn, (opts, input) =>
             withVariables(filterOptions(opts, input), input)
           );
         }

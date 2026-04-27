@@ -16,7 +16,8 @@ import { EditorHeader } from './EditorHeader';
 import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorOptions } from './QueryEditorOptions';
 import QueryEditorVariableRegexpError from './QueryEditorVariableRegexpError';
-import { StreamFilters } from './StreamFilters/StreamFilters';
+import { StreamFiltersBar } from './StreamFilters/StreamFiltersBar';
+import { StreamFiltersProvider } from './StreamFilters/StreamFiltersContext';
 import TemplateQueryEditor from './TemplateBuilder/TemplateQueryEditor';
 import { serializeQuery } from './TemplateBuilder/serialization';
 import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from './constants';
@@ -45,6 +46,9 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     }
     return !isExprHasStatsPipeFunctions(query.expr || '');
   }, [isStatsQuery, editorMode, query.templateBuilder, query.expr]);
+  const showStreamFilters = app === CoreApp.Explore;
+  useLogsSort(app, query, onChange, onRunQuery);
+
   const varRegExp = useMemo(() => {
     return getQueryExprVariableRegExp(query.expr)?.[0] || null;
   }, [query.expr]);
@@ -56,9 +60,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       // switch to builder directly without showing the confirmation modal.
       const builderExpr = query.templateBuilder ? serializeQuery(query.templateBuilder) : '';
       const exprWillBeLost = !!query.expr && query.expr !== TEXT_FILTER_ALL_VALUE && query.expr !== builderExpr;
-      // Stream filters are only editable in code mode — switching to builder discards them.
-      const streamFiltersWillBeLost = (query.streamFilters || []).some((f) => !!f.label || f.values.length > 0);
-      if (exprWillBeLost || streamFiltersWillBeLost) {
+      if (exprWillBeLost) {
         setParseModalOpen(true);
         return;
       }
@@ -104,7 +106,6 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       expr: '',
       editorMode: QueryEditorMode.Builder,
       templateBuilder: { pipes: [] },
-      streamFilters: undefined,
     });
     setParseModalOpen(false);
   };
@@ -121,70 +122,68 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       <ConfirmModal
         isOpen={parseModalOpen}
         title='Switch to visual builder'
-        body='Switching to visual builder will clear the current query and stream filters. The query cannot be automatically converted to visual steps.'
+        body='Switching to visual builder will clear the current query. The query cannot be automatically converted to visual steps.'
         confirmText='Continue'
         onConfirm={onConfirmModal}
         onDismiss={() => setParseModalOpen(false)}
       />
-      <div className={styles.wrapper}>
-        <EditorHeader
-          editorMode={editorMode}
-          onEditorModeChange={onEditorModeChange}
-          query={query}
-          datasource={datasource}
-          data={data}
-          app={app}
-          queries={queries}
-          dataIsStale={dataIsStale}
-          onRunQuery={onRunQuery}
-          onQueryExprChange={onQueryExprChange}
-          onChange={onChange}
-        />
-        <div className='flex-grow-1'>
-          {editorMode === QueryEditorMode.Builder ? (
-            <TemplateQueryEditor
-              datasource={props.datasource}
-              query={query}
-              onChange={onChangeInternal}
-              onRunQuery={onRunQuery}
-              timeRange={timeRange}
-              app={app}
-            />
-          ) : (
-            <>
-              {app === CoreApp.Explore && (
-                <StreamFilters
-                  datasource={datasource}
-                  query={query}
-                  timeRange={timeRange}
-                  onChange={onChangeInternal}
-                  onRunQuery={onRunQuery}
-                />
-              )}
-              <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
-            </>
-          )}
-          {query.adHocFilters && query.adHocFilters.length > 0 && app === CoreApp.Explore && (
-            <AdHocFiltersControl
+      <StreamFiltersProvider query={query} onChange={onChange} onRunQuery={onRunQuery}>
+        <div className={styles.wrapper}>
+          <EditorHeader
+            editorMode={editorMode}
+            onEditorModeChange={onEditorModeChange}
+            query={query}
+            datasource={datasource}
+            data={data}
+            app={app}
+            queries={queries}
+            dataIsStale={dataIsStale}
+            onRunQuery={onRunQuery}
+            onQueryExprChange={onQueryExprChange}
+            onChange={onChange}
+          />
+          {showStreamFilters && (
+            <StreamFiltersBar
               datasource={datasource}
+              timeRange={timeRange}
+              queryExpr={query.expr}
+            />
+          )}
+          <div className='flex-grow-1'>
+            {editorMode === QueryEditorMode.Builder ? (
+              <TemplateQueryEditor
+                datasource={props.datasource}
+                query={query}
+                onChange={onChangeInternal}
+                onRunQuery={onRunQuery}
+                timeRange={timeRange}
+                app={app}
+              />
+            ) : (
+              <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
+            )}
+            {query.adHocFilters && query.adHocFilters.length > 0 && app === CoreApp.Explore && (
+              <AdHocFiltersControl
+                datasource={datasource}
+                query={query}
+                timeRange={props.range}
+                app={app}
+                onChange={onChange}
+                onRunQuery={onRunQuery}
+              />
+            )}
+            {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange} />)}
+            {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType} />)}
+            <QueryEditorOptions
               query={query}
-              timeRange={props.range}
-              app={app}
               onChange={onChange}
               onRunQuery={onRunQuery}
+              app={app}
+              maxLines={datasource.maxLines}
             />
-          )}
-          {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange} />)}
-          {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType} />)}
-          <QueryEditorOptions
-            query={query}
-            onChange={onChange}
-            onRunQuery={onRunQuery}
-            app={app}
-            maxLines={datasource.maxLines}
-          />
+          </div>
         </div>
-      </div>
+      </StreamFiltersProvider>
     </>
   );
 });
@@ -193,6 +192,8 @@ const getStyles = (theme: GrafanaTheme2) => {
   return {
     wrapper: css`
       display: flex;
+      flex: 1;
+      min-width: 0;
       flex-direction: column;
       gap: ${theme.spacing(0.5)};
     `,

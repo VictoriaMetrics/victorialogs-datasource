@@ -36,7 +36,7 @@ import { correctRegExpValueAll, doubleQuoteRegExp, isRegExpOperatorInLastFilter 
 import QueryEditor from './components/QueryEditor/QueryEditor';
 import {
   buildStreamExtraFilters
-} from './components/QueryEditor/shared/streamFilterUtils';
+} from './components/QueryEditor/StreamFilters/streamFilterUtils';
 import { LogLevelRule } from './configuration/LogLevelRules/types';
 import {
   buildPresetDerivedFields,
@@ -64,7 +64,6 @@ import {
   Options,
   Query,
   QueryBuilderLimits,
-  QueryEditorMode,
   QueryFilterOptions,
   QueryType,
   StreamFilterState,
@@ -238,8 +237,7 @@ export class VictoriaLogsDatasource
       extraFilters = undefined;
     }
 
-    const isCodeMode = target.editorMode === QueryEditorMode.Code;
-    const extraStreamFilters = isCodeMode ? this.getExtraStreamFilters(target.streamFilters, scopedVars) : undefined;
+    const extraStreamFilters = this.getExtraStreamFilters(target.streamFilters, scopedVars);
     return {
       ...target,
       legendFormat: this.templateSrv.replace(target.legendFormat, rest),
