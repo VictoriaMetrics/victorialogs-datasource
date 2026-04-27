@@ -33,10 +33,10 @@ import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, Templ
 
 import { correctMultiExactOperatorValueAll } from './LogsQL/multiExactOperator';
 import { correctRegExpValueAll, doubleQuoteRegExp, isRegExpOperatorInLastFilter } from './LogsQL/regExpOperator';
+import QueryEditor from './components/QueryEditor/QueryEditor';
 import {
   buildStreamExtraFilters
-} from './components/QueryEditor/QueryBuilder/components/StreamFilters/streamFilterUtils';
-import QueryEditor from './components/QueryEditor/QueryEditor';
+} from './components/QueryEditor/StreamFilters/streamFilterUtils';
 import { LogLevelRule } from './configuration/LogLevelRules/types';
 import { LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { escapeLabelValueInSelector } from './languageUtils';

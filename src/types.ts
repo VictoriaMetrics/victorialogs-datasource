@@ -46,7 +46,7 @@ export enum QueryEditorMode {
 
 export type Format = 'histogram';
 
-export type StreamFilterOperator = 'in' | 'not_in';
+export type StreamFilterOperator = 'in';
 
 export interface StreamFilterState {
   label: string;
