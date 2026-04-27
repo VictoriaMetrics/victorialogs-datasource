@@ -14,4 +14,5 @@ export enum LogLevelRuleType {
   GreaterThan = 'greaterThan',
   LessThan = 'lessThan',
   Regex = 'regex',
+  CaseInsensitiveEquals = 'caseInsensitiveEquals',
 }

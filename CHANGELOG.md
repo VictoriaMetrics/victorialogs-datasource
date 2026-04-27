@@ -2,6 +2,9 @@
 
 ## tip
 
+* FEATURE: replace the `/health` endpoint in the datasource backend health check with a real query to `/select/logsql/query`. This verifies that the VictoriaLogs backend can actually serve log queries, not just that the HTTP server is up. See [#599](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/599).
+* FEATURE: add OpenTelemetry preset to datasource configuration. When enabled, the preset auto-detects field format (`snake_case` / `camelCase`) of `traceID` and severity field from recent logs, then generates Derived Fields for `trace_id` and Log level rules for OTel severity — without manual configuration. See [OpenTelemetry preset](https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/README.md#opentelemetry-preset) docs.
+
 * BUGFIX: protect Raw Logs queries from excessively large line limits. A hard upper bound of 10000 lines is now enforced on both the per-query `Line limit` and the datasource-wide `Maximum lines` settings; a confirmation dialog warns before committing a value above 1000 lines. See [#613](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/613).
 * BUGFIX: fix interpolation of a query with the variable at the end of the line. See [#614](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/614);
 

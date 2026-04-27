@@ -1,8 +1,10 @@
-import { AdHocVariableFilter, DataQueryRequest } from '@grafana/data';
+import { AdHocVariableFilter, DataQueryRequest, DataSourceInstanceSettings, LogLevel } from '@grafana/data';
 import { TemplateSrv } from '@grafana/runtime';
 
 // eslint-disable-next-line jest/no-mocks-import
 import { createDatasource } from './__mocks__/datasource';
+import { LogLevelRuleType } from './configuration/LogLevelRules/types';
+import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
 import { LOGS_LIMIT_HARD_CAP, VARIABLE_ALL_VALUE } from './constants';
 import { VictoriaLogsDatasource } from './datasource';
 import { Query } from './types';
@@ -415,5 +417,129 @@ describe('VictoriaLogsDatasource', () => {
         runQuerySpy.mockRestore();
       });
     });
+  });
+});
+
+function settingsWithPreset(preset: OpenTelemetryPreset): Partial<DataSourceInstanceSettings<any>> {
+  return {
+    id: 1,
+    uid: 'u',
+    jsonData: {
+      otelPreset: preset,
+    },
+  };
+}
+
+describe('VictoriaLogsDatasource preset merge', () => {
+  it('does not add preset entries when otelPreset is absent', () => {
+    const ds = createDatasource(templateSrvStub);
+    expect(ds.derivedFields).toEqual([]);
+    expect(ds.logLevelRules).toEqual([]);
+  });
+
+  it('does not add preset entries when enabled is false', () => {
+    const ds = createDatasource(templateSrvStub, settingsWithPreset({
+      enabled: false,
+      detection: {
+        traceIdField: 'trace_id',
+      },
+    }));
+    expect(ds.derivedFields).toEqual([]);
+    expect(ds.logLevelRules).toEqual([]);
+  });
+
+  it('does not add preset entries when detection snapshot is missing', () => {
+    const ds = createDatasource(templateSrvStub, settingsWithPreset({
+      enabled: true,
+    }));
+    expect(ds.derivedFields).toEqual([]);
+    expect(ds.logLevelRules).toEqual([]);
+  });
+
+  it('merges preset derived fields when enabled with detection', () => {
+    const ds = createDatasource(templateSrvStub, settingsWithPreset({
+      enabled: true,
+      tracesDatasourceUid: 'tempo-uid',
+      detection: {
+        traceIdField: 'trace_id',
+      },
+    }));
+    expect(ds.derivedFields.map(f => f.name)).toEqual(['trace_id']);
+    expect(ds.derivedFields.every(f => f.datasourceUid === 'tempo-uid')).toBe(true);
+  });
+
+  it('user derivedField with same name overrides preset entry', () => {
+    const userField = {
+      name: 'trace_id',
+      matcherRegex: 'user-regex',
+      matcherType: 'regex' as const,
+      datasourceUid: 'user-uid',
+      url: '',
+    };
+    const ds = createDatasource(templateSrvStub, {
+      id: 1,
+      uid: 'u',
+      jsonData: {
+        derivedFields: [userField],
+        otelPreset: {
+          enabled: true,
+          tracesDatasourceUid: 'tempo-uid',
+          detection: {
+            traceIdField: 'trace_id',
+          },
+        },
+      },
+    });
+    const traceFields = ds.derivedFields.filter(f => f.name === 'trace_id');
+    expect(traceFields).toHaveLength(1);
+    expect(traceFields[0].matcherRegex).toBe('user-regex');
+  });
+
+  it('merges preset log level rules when severity detection is present', () => {
+    const ds = createDatasource(templateSrvStub, settingsWithPreset({
+      enabled: true,
+      detection: {
+        traceIdField: 'trace_id',
+        severity: {
+          field: 'severity_text',
+          valueCase: 'string',
+          source: 'auto',
+        },
+      },
+    }));
+    expect(ds.logLevelRules).toHaveLength(18);
+    expect(ds.logLevelRules.every(r => r.field === 'severity_text')).toBe(true);
+  });
+
+  it('user rule with same field|operator|value overrides preset rule', () => {
+    const userRule = {
+      field: 'severity_text',
+      operator: LogLevelRuleType.Equals,
+      value: 'ERROR',
+      level: LogLevel.critical,
+      enabled: true,
+    };
+    const ds = createDatasource(templateSrvStub, {
+      id: 1,
+      uid: 'u',
+      jsonData: {
+        logLevelRules: [userRule],
+        otelPreset: {
+          enabled: true,
+          detection: {
+            traceIdField: 'trace_id',
+            severity: {
+              field: 'severity_text',
+              valueCase: 'string',
+              source: 'auto',
+            },
+          },
+        },
+      },
+    });
+    expect(ds.logLevelRules).toHaveLength(19);
+    const errorRules = ds.logLevelRules.filter(r => r.value === 'ERROR');
+    expect(errorRules).toHaveLength(1);
+    expect(errorRules[0].level).toBe(LogLevel.critical);
   });
 });

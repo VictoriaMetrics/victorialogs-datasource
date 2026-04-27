@@ -38,6 +38,12 @@ import {
 } from './components/QueryEditor/QueryBuilder/components/StreamFilters/streamFilterUtils';
 import QueryEditor from './components/QueryEditor/QueryEditor';
 import { LogLevelRule } from './configuration/LogLevelRules/types';
+import {
+  buildPresetDerivedFields,
+  buildPresetLogLevelRules,
+  mergePresetDerivedFields,
+  mergePresetLogLevelRules,
+} from './configuration/OpenTelemetryPreset/preset-builder';
 import { LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { escapeLabelValueInSelector } from './languageUtils';
 import LogsQlLanguageProvider from './language_provider';
@@ -110,7 +116,16 @@ export class VictoriaLogsDatasource
     this.withCredentials = instanceSettings.withCredentials;
     this.httpMethod = settingsData.httpMethod || 'POST';
     this.maxLines = Math.min(parseInt(settingsData.maxLines ?? '0', 10) || 1000, LOGS_LIMIT_HARD_CAP);
-    this.derivedFields = settingsData.derivedFields || [];
+    const userDerivedFields = settingsData.derivedFields || [];
+    const userLogLevelRules = settingsData.logLevelRules || [];
+    const preset = settingsData.otelPreset;
+    if (preset?.enabled && preset.detection) {
+      this.derivedFields = mergePresetDerivedFields(userDerivedFields, buildPresetDerivedFields(preset));
+      this.logLevelRules = mergePresetLogLevelRules(userLogLevelRules, buildPresetLogLevelRules(preset));
+    } else {
+      this.derivedFields = userDerivedFields;
+      this.logLevelRules = userLogLevelRules;
+    }
     this.customQueryParameters = new URLSearchParams(settingsData.customQueryParameters);
     this.languageProvider = languageProvider ?? new LogsQlLanguageProvider(this);
     this.annotations = {
@@ -118,7 +133,6 @@ export class VictoriaLogsDatasource
     };
     this.variables = new VariableSupport(this);
     this.queryBuilderLimits = settingsData.queryBuilderLimits;
-    this.logLevelRules = settingsData.logLevelRules || [];
     this.multitenancyHeaders = this.parseMultitenancyHeaders(settingsData.multitenancyHeaders);
   }
 
@@ -448,7 +462,7 @@ export class VictoriaLogsDatasource
         const totalSeconds = request.range.to.diff(request.range.from, 'second');
         const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || '';
 
-        const fields = this.getActiveLevelRules().map(r => r.field);
+        const fields = this.getActiveLevelRules().map(r => r.field).filter(Boolean);
         const uniqFields = Array.from(new Set([...fields, 'level']));
 
         return {

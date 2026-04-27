@@ -31,7 +31,6 @@ var (
 )
 
 const (
-	health          = "/health"
 	httpHeaderName  = "httpHeaderName"
 	httpHeaderValue = "httpHeaderValue"
 	// it is weird logic to pass an identifier for an alert request in the headers
@@ -486,34 +485,15 @@ func checkAlertingRequest(headers map[string]string) (bool, error) {
 // datasource configuration page which allows users to verify that
 // a datasource is working as expected.
 func (d *Datasource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
-	res := &backend.CheckHealthResult{}
 	di, err := d.getInstance(ctx, req.PluginContext)
 	if err != nil {
+		res := &backend.CheckHealthResult{}
 		res.Status = backend.HealthStatusError
 		res.Message = "Error getting datasource instance"
 		d.logger.Error("Error getting datasource instance", "err", err)
 		return res, nil
 	}
-	r, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s%s", strings.TrimRight(di.settings.URL, "/"), health), nil)
-	if err != nil {
-		return newHealthCheckErrorf("could not create request"), nil
-	}
-	resp, err := di.httpClient.Do(r)
-	if err != nil {
-		return newHealthCheckErrorf("request error"), nil
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.DefaultLogger.Error("check health: failed to close response body", "err", err.Error())
-		}
-	}()
-	if resp.StatusCode != http.StatusOK {
-		return newHealthCheckErrorf("got response code %d", resp.StatusCode), nil
-	}
-	return &backend.CheckHealthResult{
-		Status:  backend.HealthStatusOk,
-		Message: "Data source is working",
-	}, nil
+	return checkHealthWithInstance(ctx, di)
 }
 
 // RootHandler returns generic response to unsupported paths
@@ -834,6 +814,53 @@ func buildDatasourceSettings(settings backend.DataSourceInstanceSettings) (DataS
 	dstSettings.URL = settings.URL
 
 	return dstSettings, nil
+}
+
+func checkHealthWithInstance(ctx context.Context, di *DatasourceInstance) (*backend.CheckHealthResult, error) {
+	u, err := url.Parse(strings.TrimRight(di.settings.URL, "/"))
+	if err != nil {
+		return newHealthCheckErrorf("failed to parse datasource URL: %s", err), nil
+	}
+	u.Path = path.Join(u.Path, instantQueryPath)
+
+	values := u.Query()
+	values.Set("query", "*")
+	values.Set("limit", "1")
+	values.Set("start", "-5m")
+	u.RawQuery = values.Encode()
+
+	method := di.grafanaSettings.HTTPMethod
+	if method == "" {
+		method = http.MethodGet
+	}
+
+	r, err := http.NewRequestWithContext(ctx, method, u.String(), nil)
+	if err != nil {
+		return newHealthCheckErrorf("could not create request: %s", err), nil
+	}
+	// CustomHeaders includes multitenancy headers (AccountID, ProjectID) and user-defined headers.
+	r.Header = di.grafanaSettings.CustomHeaders.Clone()
+
+	resp, err := di.httpClient.Do(r)
+	if err != nil {
+		return newHealthCheckErrorf("request error: %s", err), nil
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.DefaultLogger.Error("check health: failed to close response body", "err", err.Error())
+		}
+	}()
+	if resp.StatusCode != http.StatusOK {
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return newHealthCheckErrorf("got response code %d, failed to read body: %s", resp.StatusCode, readErr), nil
+		}
+		return newHealthCheckErrorf("got response code %d: %s", resp.StatusCode, string(body)), nil
+	}
+	return &backend.CheckHealthResult{
+		Status:  backend.HealthStatusOk,
+		Message: "Data source is working",
+	}, nil
 }
 
 func parseMultitenancyHeaders(settings backend.DataSourceInstanceSettings) (MultitenancyHeaders, error) {
