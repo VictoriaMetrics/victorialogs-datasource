@@ -27,6 +27,7 @@ func getFieldsQueryFromRaw(data io.ReadCloser) (*FieldsQuery, error) {
 	return &q, nil
 }
 
+// API docs - https://docs.victoriametrics.com/victorialogs/querying/#querying-field-values
 func (fv *FieldsQuery) queryParams() url.Values {
 	params := url.Values{}
 	if fv.Query != "" {
