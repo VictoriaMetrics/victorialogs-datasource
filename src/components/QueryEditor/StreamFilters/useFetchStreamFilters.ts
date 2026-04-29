@@ -73,11 +73,10 @@ export const useFetchStreamFilters = ({
       return [];
     }
 
-    const totalHits = list.reduce((sum, item) => sum + item.hits, 0);
     const result: ComboboxOption[] = list.map(({ value, hits }) => ({
       value: value || '',
       label: value || ' ',
-      description: `${formatHits(hits)}${formatHitPercentage(hits, totalHits)}`,
+      description: `${formatHits(hits)}`,
     }));
 
     fieldNamesCache.current = result;

@@ -5,6 +5,7 @@ import { GrafanaTheme2, TimeRange } from '@grafana/data';
 import { useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
+import { useStreamFiltersContext } from '../StreamFiltersContext';
 import { useFetchStreamFilters } from '../useFetchStreamFilters';
 
 import { PopoverSearch } from './PopoverSearch';
@@ -19,9 +20,6 @@ interface Props {
   timeRange?: TimeRange;
   queryExpr?: string;
   label: string;
-  selectedValues: string[];
-  extraStreamFilters?: string;
-  onToggle: (value: string) => void;
 }
 
 export const StreamValuesPopover: React.FC<Props> = ({
@@ -29,19 +27,21 @@ export const StreamValuesPopover: React.FC<Props> = ({
   timeRange,
   queryExpr,
   label,
-  selectedValues,
-  extraStreamFilters,
-  onToggle,
 }) => {
   const styles = useStyles2(getStyles);
   const [search, setSearch] = useState('');
+  const {
+    selectedValuesForPopover,
+    popoverExtraStreamFilters,
+    handleToggleValue,
+  } = useStreamFiltersContext();
 
   const { loadStreamFieldValues } = useFetchStreamFilters({
     datasource,
     fieldName: label,
     timeRange,
     queryExpr,
-    extraStreamFilters,
+    extraStreamFilters: popoverExtraStreamFilters,
   });
 
   const { options, error } = useFetchedValues({ loadStreamFieldValues, search });
@@ -52,8 +52,8 @@ export const StreamValuesPopover: React.FC<Props> = ({
       <ValuesList
         options={options}
         error={error}
-        selectedValues={selectedValues}
-        onToggle={onToggle}
+        selectedValues={selectedValuesForPopover}
+        onToggle={handleToggleValue}
       />
     </div>
   );

@@ -6,6 +6,7 @@ import { ComboboxOption, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../datasource';
 
+import { useStreamFiltersContext } from './StreamFiltersContext';
 import { StreamLabelItem } from './StreamLabelItem';
 import { StreamValuesPopover } from './StreamValuesPopover/StreamValuesPopover';
 import { useFetchStreamFilters } from './useFetchStreamFilters';
@@ -14,13 +15,6 @@ interface Props {
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
   queryExpr?: string;
-  popoverLabel: string | null;
-  selectedValuesForPopover: string[];
-  sidebarExtraStreamFilters?: string;
-  popoverExtraStreamFilters?: string;
-  onLabelClick: (name: string) => void;
-  onToggleValue: (value: string) => void;
-  onClosePopover: () => void;
   emptyText: string;
 }
 
@@ -28,16 +22,15 @@ export const StreamLabelList: React.FC<Props> = ({
   datasource,
   timeRange,
   queryExpr,
-  popoverLabel,
-  selectedValuesForPopover,
-  sidebarExtraStreamFilters,
-  popoverExtraStreamFilters,
-  onLabelClick,
-  onToggleValue,
-  onClosePopover,
   emptyText,
 }) => {
   const styles = useStyles2(getStyles);
+  const {
+    popoverLabel,
+    sidebarExtraStreamFilters,
+    handleLabelClick,
+    closePopover,
+  } = useStreamFiltersContext();
   const { loadStreamFieldNames } = useFetchStreamFilters({
     datasource,
     timeRange,
@@ -92,14 +85,11 @@ export const StreamLabelList: React.FC<Props> = ({
                 timeRange={timeRange}
                 queryExpr={queryExpr}
                 label={name}
-                selectedValues={selectedValuesForPopover}
-                extraStreamFilters={popoverExtraStreamFilters}
-                onToggle={onToggleValue}
               />
             ) : undefined
           }
-          onClick={onLabelClick}
-          onClose={onClosePopover}
+          onClick={handleLabelClick}
+          onClose={closePopover}
         />
       );
     });
@@ -109,11 +99,8 @@ export const StreamLabelList: React.FC<Props> = ({
     datasource,
     timeRange,
     queryExpr,
-    selectedValuesForPopover,
-    popoverExtraStreamFilters,
-    onLabelClick,
-    onToggleValue,
-    onClosePopover,
+    handleLabelClick,
+    closePopover,
   ]);
 
   let content: React.ReactNode = renderedLabels;
