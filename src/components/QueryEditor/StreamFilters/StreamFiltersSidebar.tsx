@@ -5,47 +5,44 @@ import { GrafanaTheme2, TimeRange } from '@grafana/data';
 import { Icon, IconButton, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../datasource';
-import { CopyButton } from '../../shared/CopyButton/CopyButton';
+import { ResizeHandle } from '../../shared/ResizeHandle/ResizeHandle';
 
-import { useStreamFiltersContext } from './StreamFiltersContext';
 import { StreamLabelList } from './StreamLabelList';
 
 interface Props {
   datasource: VictoriaLogsDatasource;
   timeRange?: TimeRange;
   queryExpr?: string;
+  width: number;
+  onResize: (width: number) => void;
+  onCollapse: () => void;
 }
 
-export const StreamFiltersSidebar: React.FC<Props> = ({ datasource, timeRange, queryExpr }) => {
+export const StreamFiltersSidebar: React.FC<Props> = ({
+  datasource,
+  timeRange,
+  queryExpr,
+  width,
+  onResize,
+  onCollapse,
+}) => {
   const styles = useStyles2(getStyles);
-  const { streamFilters, sidebarExtraStreamFilters, clearAll } = useStreamFiltersContext();
-  const hasActiveFilters = streamFilters.length > 0;
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper} style={{ flex: `0 0 ${width}px`, width: `${width}px` }}>
       <div className={styles.header}>
         <Stack gap={0.5} alignItems={'center'}>
           <Icon name='filter' size='sm' />
           <span>Stream filters</span>
         </Stack>
-        <Stack gap={0.5}>
-          <CopyButton
-            text={sidebarExtraStreamFilters}
-            tooltip='Copy as LogsQL'
-            aria-label='Copy stream filters as LogsQL'
-            disabled={!hasActiveFilters}
-            successMessage='Stream filters copied to clipboard'
-            errorMessage='Failed to copy stream filters'
-          />
-          <IconButton
-            name='trash-alt'
-            size='sm'
-            tooltip='Clear all stream filters'
-            aria-label='Clear all stream filters'
-            disabled={!hasActiveFilters}
-            onClick={clearAll}
-          />
-        </Stack>
+        <IconButton
+          className={styles.collapseButton}
+          name='arrow-from-right'
+          size='sm'
+          tooltip='Hide stream filters'
+          aria-label='Hide stream filters'
+          onClick={onCollapse}
+        />
       </div>
       <StreamLabelList
         datasource={datasource}
@@ -53,18 +50,21 @@ export const StreamFiltersSidebar: React.FC<Props> = ({ datasource, timeRange, q
         queryExpr={queryExpr}
         emptyText='No stream labels'
       />
+      <ResizeHandle
+        currentWidth={width}
+        onResize={onResize}
+        ariaLabel='Resize stream filters sidebar'
+      />
     </div>
   );
 };
 
 const getStyles = (theme: GrafanaTheme2) => ({
   wrapper: css`
+    position: relative;
     display: flex;
     flex-direction: column;
-    flex: 0 0 280px;
-    width: 280px;
     min-width: 0;
-    max-width: 320px;
     height: 230px;
     border: 1px solid ${theme.colors.border.weak};
     border-radius: ${theme.shape.radius.default};
@@ -81,5 +81,8 @@ const getStyles = (theme: GrafanaTheme2) => ({
     font-size: ${theme.typography.bodySmall.fontSize};
     font-weight: ${theme.typography.fontWeightMedium};
     color: ${theme.colors.text.secondary};
-  `
+  `,
+  collapseButton: css`
+    transform: rotate(180deg);
+  `,
 });

@@ -3,7 +3,7 @@ import { isEqual } from 'lodash';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { CoreApp, GrafanaTheme2, LoadingState } from '@grafana/data';
-import { Button, ConfirmModal, Stack, useStyles2 } from '@grafana/ui';
+import { Button, ConfirmModal, IconButton, Stack, useStyles2 } from '@grafana/ui';
 
 import { getQueryExprVariableRegExp } from '../../LogsQL/regExpOperator';
 import { isExprHasStatsPipeFunctions } from '../../LogsQL/statsPipeFunctions';
@@ -25,6 +25,7 @@ import { QueryHintsExample } from './QueryHints';
 import { SelectedStreamFiltersChips } from './StreamFilters/SelectedStreamFiltersChips';
 import { StreamFiltersProvider } from './StreamFilters/StreamFiltersContext';
 import { StreamFiltersSidebar } from './StreamFilters/StreamFiltersSidebar';
+import { useStreamSidebarLayout } from './StreamFilters/useStreamSidebarLayout';
 import VmuiLink from './VmuiLink';
 import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from './constants';
 import { useDefaultExploreGraph } from './hooks/useDefaultExploreGraph';
@@ -45,6 +46,9 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const showStatsWarn = isStatsQuery && !isExprHasStatsPipeFunctions(query.expr || '');
   const isMaxLinesOverCap = query.maxLines !== undefined && query.maxLines > LOGS_LIMIT_HARD_CAP;
   const showStreamFilters = app === CoreApp.Explore && editorMode === QueryEditorMode.Code;
+  const sidebarLayout = useStreamSidebarLayout();
+  const renderStreamFiltersSidebar = showStreamFilters && !sidebarLayout.isCollapsed;
+  const renderStreamFiltersExpandButton = showStreamFilters && sidebarLayout.isCollapsed;
   useLogsSort(app, query, onChange, onRunQuery);
 
   const varRegExp = useMemo(() => {
@@ -109,16 +113,27 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       />
       <StreamFiltersProvider query={query} onChange={onChange} onRunQuery={onRunQuery}>
         <Stack direction={'row'} alignItems={'flex-start'} wrap={'nowrap'} width={'100%'}>
-          {showStreamFilters && (
+          {renderStreamFiltersSidebar && (
             <StreamFiltersSidebar
               datasource={datasource}
               timeRange={timeRange}
               queryExpr={query.expr}
+              width={sidebarLayout.width}
+              onResize={sidebarLayout.setWidth}
+              onCollapse={sidebarLayout.toggleCollapsed}
             />
           )}
           <div className={styles.wrapper}>
             <EditorHeader>
               <Stack direction={'row'} alignItems={'center'}>
+                {renderStreamFiltersExpandButton && (
+                  <IconButton
+                    name='filter'
+                    tooltip='Show stream filters'
+                    aria-label='Show stream filters'
+                    onClick={sidebarLayout.toggleCollapsed}
+                  />
+                )}
                 <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr} />
                 {app === CoreApp.Explore && (
                   <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />
