@@ -112,7 +112,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
         onDismiss={() => setParseModalOpen(false)}
       />
       <StreamFiltersProvider query={query} onChange={onChange} onRunQuery={onRunQuery}>
-        <Stack direction={'row'} alignItems={'flex-start'} wrap={'nowrap'} width={'100%'}>
+        <Stack direction={'row'} alignItems={'stretch'} wrap={'nowrap'} width={'100%'}>
           {renderStreamFiltersSidebar && (
             <StreamFiltersSidebar
               datasource={datasource}

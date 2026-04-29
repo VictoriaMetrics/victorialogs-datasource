@@ -30,26 +30,28 @@ export const StreamFiltersSidebar: React.FC<Props> = ({
 
   return (
     <div className={styles.wrapper} style={{ flex: `0 0 ${width}px`, width: `${width}px` }}>
-      <div className={styles.header}>
-        <Stack gap={0.5} alignItems={'center'}>
-          <Icon name='filter' size='sm' />
-          <span>Stream filters</span>
-        </Stack>
-        <IconButton
-          className={styles.collapseButton}
-          name='arrow-from-right'
-          size='sm'
-          tooltip='Hide stream filters'
-          aria-label='Hide stream filters'
-          onClick={onCollapse}
+      <div className={styles.inner}>
+        <div className={styles.header}>
+          <Stack gap={0.5} alignItems={'center'}>
+            <Icon name='filter' size='sm' />
+            <span>Stream filters</span>
+          </Stack>
+          <IconButton
+            className={styles.collapseButton}
+            name='arrow-from-right'
+            size='sm'
+            tooltip='Hide stream filters'
+            aria-label='Hide stream filters'
+            onClick={onCollapse}
+          />
+        </div>
+        <StreamLabelList
+          datasource={datasource}
+          timeRange={timeRange}
+          queryExpr={queryExpr}
+          emptyText='No stream labels'
         />
       </div>
-      <StreamLabelList
-        datasource={datasource}
-        timeRange={timeRange}
-        queryExpr={queryExpr}
-        emptyText='No stream labels'
-      />
       <ResizeHandle
         currentWidth={width}
         onResize={onResize}
@@ -62,14 +64,18 @@ export const StreamFiltersSidebar: React.FC<Props> = ({
 const getStyles = (theme: GrafanaTheme2) => ({
   wrapper: css`
     position: relative;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    height: 230px;
+    min-height: 200px;
     border: 1px solid ${theme.colors.border.weak};
     border-radius: ${theme.shape.radius.default};
     background: ${theme.colors.background.secondary};
     overflow: hidden;
+  `,
+  inner: css`
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
   `,
   header: css`
     display: flex;
