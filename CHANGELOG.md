@@ -2,6 +2,7 @@
 
 ## tip
 
+* FEATURE: add a visual query builder. Construct queries by chaining typed pipes (`filter`, `aggregate`, `modify`, `sort`, `limit`, `custom`) through an interactive UI with field name/value dropdowns and keyboard navigation. See [Query builder](https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/README.md#query-builder) docs and [#578](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/578).
 * FEATURE: replace the `/health` endpoint in the datasource backend health check with a real query to `/select/logsql/query`. This verifies that the VictoriaLogs backend can actually serve log queries, not just that the HTTP server is up. See [#599](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/599).
 * FEATURE: add OpenTelemetry preset to datasource configuration. When enabled, the preset auto-detects field format (`snake_case` / `camelCase`) of `traceID` and severity field from recent logs, then generates Derived Fields for `trace_id` and Log level rules for OTel severity — without manual configuration. See [OpenTelemetry preset](https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/README.md#opentelemetry-preset) docs.
 

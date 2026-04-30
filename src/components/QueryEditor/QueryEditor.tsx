@@ -2,28 +2,22 @@ import { css } from '@emotion/css';
 import { isEqual } from 'lodash';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { CoreApp, GrafanaTheme2, LoadingState } from '@grafana/data';
-import { Button, ConfirmModal, Stack, useStyles2 } from '@grafana/ui';
+import { CoreApp, GrafanaTheme2 } from '@grafana/data';
+import { ConfirmModal, useStyles2 } from '@grafana/ui';
 
 import { getQueryExprVariableRegExp } from '../../LogsQL/regExpOperator';
 import { isExprHasStatsPipeFunctions } from '../../LogsQL/statsPipeFunctions';
-import { LOGS_LIMIT_HARD_CAP } from '../../constants';
+import { TEXT_FILTER_ALL_VALUE } from '../../constants';
 import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from '../../types';
 import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 
 import { EditorHeader } from './EditorHeader';
-import { LevelQueryFilter } from './LevelQueryFilter/LeveQueryFilter';
-import { LogsQLSyntaxHelp } from './LogsQLSyntaxHelp';
-import { QueryBuilderContainer } from './QueryBuilder/QueryBuilderContainer';
-import { QueryEditorModeToggle } from './QueryBuilder/QueryEditorModeToggle';
-import { StreamFilters } from './QueryBuilder/components/StreamFilters/StreamFilters';
-import { buildVisualQueryFromString } from './QueryBuilder/utils/parseFromString';
 import QueryCodeEditor from './QueryCodeEditor';
-import { QueryEditorHelp } from './QueryEditorHelp';
 import { QueryEditorOptions } from './QueryEditorOptions';
 import QueryEditorVariableRegexpError from './QueryEditorVariableRegexpError';
-import { QueryHintsExample } from './QueryHints';
-import VmuiLink from './VmuiLink';
+import { StreamFilters } from './StreamFilters/StreamFilters';
+import TemplateQueryEditor from './TemplateBuilder/TemplateQueryEditor';
+import { serializeQuery } from './TemplateBuilder/serialization';
 import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from './constants';
 import { useDefaultExploreGraph } from './hooks/useDefaultExploreGraph';
 import { useLogsSort } from './hooks/usePanelSort';
@@ -40,20 +34,40 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const query = getQueryWithDefaults(props.query, app, data?.request?.panelPluginId);
   const editorMode = query.editorMode!;
   const isStatsQuery = query.queryType === QueryType.Stats || query.queryType === QueryType.StatsRange;
-  const showStatsWarn = isStatsQuery && !isExprHasStatsPipeFunctions(query.expr || '');
+  const showStatsWarn = useMemo(() => {
+    if (!isStatsQuery) {
+      return false;
+    }
+    // In builder mode, derive the expression from the model to avoid stale/empty expr edge cases.
+    if (editorMode === QueryEditorMode.Builder && query.templateBuilder) {
+      return !isExprHasStatsPipeFunctions(serializeQuery(query.templateBuilder));
+    }
+    return !isExprHasStatsPipeFunctions(query.expr || '');
+  }, [isStatsQuery, editorMode, query.templateBuilder, query.expr]);
   const varRegExp = useMemo(() => {
     return getQueryExprVariableRegExp(query.expr)?.[0] || null;
   }, [query.expr]);
-  const isMaxLinesOverCap = query.maxLines !== undefined && query.maxLines > LOGS_LIMIT_HARD_CAP;
   useLogsSort(app, query, onChange, onRunQuery);
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
     if (newEditorMode === QueryEditorMode.Builder) {
-      const result = buildVisualQueryFromString(query.expr || '');
-      if (result.errors.length) {
+      // If expr matches the serialized builder state, the user hasn't modified the code manually —
+      // switch to builder directly without showing the confirmation modal.
+      const builderExpr = query.templateBuilder ? serializeQuery(query.templateBuilder) : '';
+      const exprWillBeLost = !!query.expr && query.expr !== TEXT_FILTER_ALL_VALUE && query.expr !== builderExpr;
+      // Stream filters are only editable in code mode — switching to builder discards them.
+      const streamFiltersWillBeLost = (query.streamFilters || []).some((f) => !!f.label || f.values.length > 0);
+      if (exprWillBeLost || streamFiltersWillBeLost) {
         setParseModalOpen(true);
         return;
       }
+    }
+    if (newEditorMode === QueryEditorMode.Code) {
+      // Re-sync expr from templateBuilder in case it was cleared by the "switch to builder"
+      // confirmation modal while templateBuilder still has pipes.
+      const expr = query.templateBuilder ? serializeQuery(query.templateBuilder) : query.expr;
+      onChange({ ...query, expr, editorMode: newEditorMode });
+      return;
     }
     changeEditorMode(query, newEditorMode, onChange);
   },
@@ -83,6 +97,17 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     onChange(query);
   };
 
+  const onConfirmModal = () => {
+    onChange({
+      ...query,
+      expr: '',
+      editorMode: QueryEditorMode.Builder,
+      templateBuilder: { pipes: [] },
+      streamFilters: undefined,
+    });
+    setParseModalOpen(false);
+  };
+
   useEffect(() => {
     if (!query.expr && app === CoreApp.Explore) {
       onChange({ ...query, expr: DEFAULT_QUERY_EXPR });
@@ -94,63 +119,49 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     <>
       <ConfirmModal
         isOpen={parseModalOpen}
-        title='Query parsing'
-        body='There were errors while trying to parse the query. Continuing to visual builder may lose some parts of the query.'
+        title='Switch to visual builder'
+        body='Switching to visual builder will clear the current query and stream filters. The query cannot be automatically converted to visual steps.'
         confirmText='Continue'
-        onConfirm={() => {
-          onChange({ ...query, editorMode: QueryEditorMode.Builder });
-          setParseModalOpen(false);
-        }}
+        onConfirm={onConfirmModal}
         onDismiss={() => setParseModalOpen(false)}
       />
       <div className={styles.wrapper}>
-        <EditorHeader>
-          <Stack direction={'row'} alignItems={'center'}>
-            <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr} />
-            {app === CoreApp.Explore && (
-              <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />
-            )}
-          </Stack>
-          <Stack direction={'row'} justifyContent={'flex-end'} alignItems={'center'}>
-            <LogsQLSyntaxHelp />
-            <QueryEditorHelp />
-            <VmuiLink query={query} panelData={data} datasource={datasource} />
-            <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange} />
-            {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
-              <Button
-                variant={dataIsStale ? 'primary' : 'secondary'}
-                size='sm'
-                onClick={onRunQuery}
-                icon={data?.state === LoadingState.Loading ? 'fa fa-spinner' : undefined}
-                disabled={data?.state === LoadingState.Loading || isMaxLinesOverCap}
-                tooltip={isMaxLinesOverCap ? `Line limit must be ≤ ${LOGS_LIMIT_HARD_CAP}` : undefined}
-              >
-                {queries && queries.length > 1 ? 'Run queries' : 'Run query'}
-              </Button>
-            )}
-          </Stack>
-        </EditorHeader>
+        <EditorHeader
+          editorMode={editorMode}
+          onEditorModeChange={onEditorModeChange}
+          query={query}
+          datasource={datasource}
+          data={data}
+          app={app}
+          queries={queries}
+          dataIsStale={dataIsStale}
+          onRunQuery={onRunQuery}
+          onQueryExprChange={onQueryExprChange}
+          onChange={onChange}
+        />
         <div className='flex-grow-1'>
-          {app === CoreApp.Explore && (
-            <StreamFilters
-              datasource={datasource}
-              query={query}
-              timeRange={timeRange}
-              onChange={onChange}
-              onRunQuery={onRunQuery}
-            />
-          )}
           {editorMode === QueryEditorMode.Builder ? (
-            <QueryBuilderContainer
+            <TemplateQueryEditor
               datasource={props.datasource}
               query={query}
-              app={app}
               onChange={onChangeInternal}
-              onRunQuery={props.onRunQuery}
+              onRunQuery={onRunQuery}
               timeRange={timeRange}
+              app={app}
             />
           ) : (
-            <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
+            <>
+              {app === CoreApp.Explore && (
+                <StreamFilters
+                  datasource={datasource}
+                  query={query}
+                  timeRange={timeRange}
+                  onChange={onChangeInternal}
+                  onRunQuery={onRunQuery}
+                />
+              )}
+              <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
+            </>
           )}
           {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange} />)}
           {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType} />)}

@@ -1,6 +1,12 @@
 import React, { useCallback, useMemo } from 'react';
 
-import { AsyncMultiSelect, ComboboxOption, MultiCombobox, MultiSelect, SelectValue } from '@grafana/ui';
+import {
+  AsyncMultiSelect,
+  ComboboxOption,
+  MultiCombobox,
+  MultiSelect,
+  SelectValue,
+} from '@grafana/ui';
 
 const isComboboxOption = (option: unknown): option is ComboboxOption => {
   return Boolean(option && typeof option === 'object' && 'value' in option && option.value !== undefined);

@@ -33,10 +33,10 @@ import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, Templ
 
 import { correctMultiExactOperatorValueAll } from './LogsQL/multiExactOperator';
 import { correctRegExpValueAll, doubleQuoteRegExp, isRegExpOperatorInLastFilter } from './LogsQL/regExpOperator';
+import QueryEditor from './components/QueryEditor/QueryEditor';
 import {
   buildStreamExtraFilters
-} from './components/QueryEditor/QueryBuilder/components/StreamFilters/streamFilterUtils';
-import QueryEditor from './components/QueryEditor/QueryEditor';
+} from './components/QueryEditor/shared/streamFilterUtils';
 import { LogLevelRule } from './configuration/LogLevelRules/types';
 import {
   buildPresetDerivedFields,
@@ -66,6 +66,7 @@ import {
   Options,
   Query,
   QueryBuilderLimits,
+  QueryEditorMode,
   QueryFilterOptions,
   QueryType,
   StreamFilterState,
@@ -138,9 +139,9 @@ export class VictoriaLogsDatasource
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
     const timezoneOffset = formatOffsetDuration(request.timezone, request.range.from.utcOffset());
-    const queries = request.targets
+    const queries: Query[] = request.targets
       .filter((q) => q.expr || config.publicDashboardAccessToken !== '')
-      .map((q) => {
+      .map(({ templateBuilder, ...q }) => {
         return {
           ...q,
           // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
@@ -235,7 +236,8 @@ export class VictoriaLogsDatasource
       extraFilters = undefined;
     }
 
-    const extraStreamFilters = this.getExtraStreamFilters(target.streamFilters, scopedVars);
+    const isCodeMode = target.editorMode === QueryEditorMode.Code;
+    const extraStreamFilters = isCodeMode ? this.getExtraStreamFilters(target.streamFilters, scopedVars) : undefined;
     return {
       ...target,
       legendFormat: this.templateSrv.replace(target.legendFormat, rest),
