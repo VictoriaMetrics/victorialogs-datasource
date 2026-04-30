@@ -15,6 +15,7 @@ type FieldsQuery struct {
 	Field              string `json:"field"`
 	ExtraFilters       string `json:"extra_filters"`
 	ExtraStreamFilters string `json:"extra_stream_filters"`
+	IgnorePipes        string `json:"ignore_pipes"`
 }
 
 // getFieldsQueryFromRaw parses the field values query json from the raw message.
@@ -48,6 +49,9 @@ func (fv *FieldsQuery) queryParams() url.Values {
 	}
 	if fv.ExtraStreamFilters != "" {
 		params.Set("extra_stream_filters", fv.ExtraStreamFilters)
+	}
+	if fv.IgnorePipes != "" {
+		params.Set("ignore_pipes", fv.IgnorePipes)
 	}
 	return params
 }

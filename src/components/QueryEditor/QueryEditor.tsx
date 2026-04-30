@@ -3,7 +3,7 @@ import { isEqual } from 'lodash';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { CoreApp, GrafanaTheme2, LoadingState } from '@grafana/data';
-import { Button, ConfirmModal, Stack, useStyles2 } from '@grafana/ui';
+import { Button, ConfirmModal, IconButton, Stack, useStyles2 } from '@grafana/ui';
 
 import { getQueryExprVariableRegExp } from '../../LogsQL/regExpOperator';
 import { isExprHasStatsPipeFunctions } from '../../LogsQL/statsPipeFunctions';
@@ -16,13 +16,16 @@ import { LevelQueryFilter } from './LevelQueryFilter/LeveQueryFilter';
 import { LogsQLSyntaxHelp } from './LogsQLSyntaxHelp';
 import { QueryBuilderContainer } from './QueryBuilder/QueryBuilderContainer';
 import { QueryEditorModeToggle } from './QueryBuilder/QueryEditorModeToggle';
-import { StreamFilters } from './QueryBuilder/components/StreamFilters/StreamFilters';
 import { buildVisualQueryFromString } from './QueryBuilder/utils/parseFromString';
 import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorHelp } from './QueryEditorHelp';
 import { QueryEditorOptions } from './QueryEditorOptions';
 import QueryEditorVariableRegexpError from './QueryEditorVariableRegexpError';
 import { QueryHintsExample } from './QueryHints';
+import { SelectedStreamFiltersChips } from './StreamFilters/SelectedStreamFiltersChips';
+import { StreamFiltersProvider } from './StreamFilters/StreamFiltersContext';
+import { StreamFiltersSidebar } from './StreamFilters/StreamFiltersSidebar';
+import { useStreamSidebarLayout } from './StreamFilters/useStreamSidebarLayout';
 import VmuiLink from './VmuiLink';
 import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from './constants';
 import { useDefaultExploreGraph } from './hooks/useDefaultExploreGraph';
@@ -36,16 +39,21 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   const [dataIsStale, setDataIsStale] = useState(false);
   const [parseModalOpen, setParseModalOpen] = useState(false);
   useDefaultExploreGraph(app, EXPLORE_GRAPH_STYLES.BARS);
-
+ 
   const query = getQueryWithDefaults(props.query, app, data?.request?.panelPluginId);
   const editorMode = query.editorMode!;
   const isStatsQuery = query.queryType === QueryType.Stats || query.queryType === QueryType.StatsRange;
   const showStatsWarn = isStatsQuery && !isExprHasStatsPipeFunctions(query.expr || '');
+  const isMaxLinesOverCap = query.maxLines !== undefined && query.maxLines > LOGS_LIMIT_HARD_CAP;
+  const showStreamFilters = app === CoreApp.Explore && editorMode === QueryEditorMode.Code;
+  const sidebarLayout = useStreamSidebarLayout();
+  const renderStreamFiltersSidebar = showStreamFilters && !sidebarLayout.isCollapsed;
+  const renderStreamFiltersExpandButton = showStreamFilters && sidebarLayout.isCollapsed;
+  useLogsSort(app, query, onChange, onRunQuery);
+
   const varRegExp = useMemo(() => {
     return getQueryExprVariableRegExp(query.expr)?.[0] || null;
   }, [query.expr]);
-  const isMaxLinesOverCap = query.maxLines !== undefined && query.maxLines > LOGS_LIMIT_HARD_CAP;
-  useLogsSort(app, query, onChange, onRunQuery);
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
     if (newEditorMode === QueryEditorMode.Builder) {
@@ -103,66 +111,80 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
         }}
         onDismiss={() => setParseModalOpen(false)}
       />
-      <div className={styles.wrapper}>
-        <EditorHeader>
-          <Stack direction={'row'} alignItems={'center'}>
-            <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr} />
-            {app === CoreApp.Explore && (
-              <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />
-            )}
-          </Stack>
-          <Stack direction={'row'} justifyContent={'flex-end'} alignItems={'center'}>
-            <LogsQLSyntaxHelp />
-            <QueryEditorHelp />
-            <VmuiLink query={query} panelData={data} datasource={datasource} />
-            <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange} />
-            {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
-              <Button
-                variant={dataIsStale ? 'primary' : 'secondary'}
-                size='sm'
-                onClick={onRunQuery}
-                icon={data?.state === LoadingState.Loading ? 'fa fa-spinner' : undefined}
-                disabled={data?.state === LoadingState.Loading || isMaxLinesOverCap}
-                tooltip={isMaxLinesOverCap ? `Line limit must be ≤ ${LOGS_LIMIT_HARD_CAP}` : undefined}
-              >
-                {queries && queries.length > 1 ? 'Run queries' : 'Run query'}
-              </Button>
-            )}
-          </Stack>
-        </EditorHeader>
-        <div className='flex-grow-1'>
-          {app === CoreApp.Explore && (
-            <StreamFilters
+      <StreamFiltersProvider query={query} onChange={onChange} onRunQuery={onRunQuery}>
+        <Stack direction={'row'} alignItems={'stretch'} wrap={'nowrap'} width={'100%'}>
+          {renderStreamFiltersSidebar && (
+            <StreamFiltersSidebar
               datasource={datasource}
-              query={query}
               timeRange={timeRange}
-              onChange={onChange}
-              onRunQuery={onRunQuery}
+              queryExpr={query.expr}
+              width={sidebarLayout.width}
+              onResize={sidebarLayout.setWidth}
+              onCollapse={sidebarLayout.toggleCollapsed}
             />
           )}
-          {editorMode === QueryEditorMode.Builder ? (
-            <QueryBuilderContainer
-              datasource={props.datasource}
-              query={query}
-              app={app}
-              onChange={onChangeInternal}
-              onRunQuery={props.onRunQuery}
-              timeRange={timeRange}
-            />
-          ) : (
-            <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
-          )}
-          {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange} />)}
-          {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType} />)}
-          <QueryEditorOptions
-            query={query}
-            onChange={onChange}
-            onRunQuery={onRunQuery}
-            app={app}
-            maxLines={datasource.maxLines}
-          />
-        </div>
-      </div>
+          <div className={styles.wrapper}>
+            <EditorHeader>
+              <Stack direction={'row'} alignItems={'center'}>
+                {renderStreamFiltersExpandButton && (
+                  <IconButton
+                    name='filter'
+                    tooltip='Show stream filters'
+                    aria-label='Show stream filters'
+                    onClick={sidebarLayout.toggleCollapsed}
+                  />
+                )}
+                <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr} />
+                {app === CoreApp.Explore && (
+                  <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />
+                )}
+              </Stack>
+              <Stack direction={'row'} justifyContent={'flex-end'} alignItems={'center'}>
+                <LogsQLSyntaxHelp />
+                <QueryEditorHelp />
+                <VmuiLink query={query} panelData={data} datasource={datasource} />
+                <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange} />
+                {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
+                  <Button
+                    variant={dataIsStale ? 'primary' : 'secondary'}
+                    size='sm'
+                    onClick={onRunQuery}
+                    icon={data?.state === LoadingState.Loading ? 'fa fa-spinner' : undefined}
+                    disabled={data?.state === LoadingState.Loading || isMaxLinesOverCap}
+                    tooltip={isMaxLinesOverCap ? `Line limit must be ≤ ${LOGS_LIMIT_HARD_CAP}` : undefined}
+                  >
+                    {queries && queries.length > 1 ? 'Run queries' : 'Run query'}
+                  </Button>
+                )}
+              </Stack>
+            </EditorHeader>
+            <div className='flex-grow-1'>
+              {editorMode === QueryEditorMode.Builder ? (
+                <QueryBuilderContainer
+                  datasource={props.datasource}
+                  query={query}
+                  app={app}
+                  onChange={onChangeInternal}
+                  onRunQuery={props.onRunQuery}
+                  timeRange={timeRange}
+                />
+              ) : (
+                <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
+              )}
+              {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange} />)}
+              {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType} />)}
+              {showStreamFilters && <SelectedStreamFiltersChips />}
+              <QueryEditorOptions
+                query={query}
+                onChange={onChange}
+                onRunQuery={onRunQuery}
+                app={app}
+                maxLines={datasource.maxLines}
+              />
+            </div>
+          </div>
+        </Stack>
+      </StreamFiltersProvider>
     </>
   );
 });
@@ -171,6 +193,8 @@ const getStyles = (theme: GrafanaTheme2) => {
   return {
     wrapper: css`
       display: flex;
+      flex: 1;
+      min-width: 0;
       flex-direction: column;
       gap: ${theme.spacing(0.5)};
     `,

@@ -4,15 +4,21 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { formattedValueToString, getValueFormat, TimeRange } from '@grafana/data';
 import { ComboboxOption } from '@grafana/ui';
 
-import { splitByPipes } from '../../../../../LogsQL/splitByPipes';
-import { VictoriaLogsDatasource } from '../../../../../datasource';
-import { FilterFieldType } from '../../../../../types';
+import { VictoriaLogsDatasource } from '../../../datasource';
+import { FilterFieldType } from '../../../types';
 
 const DEBOUNCE_MS = 300;
 const MAX_VISIBLE_OPTIONS = 1000;
 
 const shortFormat = getValueFormat('short');
 const formatHits = (hits: number): string => formattedValueToString(shortFormat(hits));
+const formatHitPercentage = (hits: number, totalHits: number): string => {
+  if (totalHits <= 0) {
+    return '';
+  }
+
+  return ` (${((hits / totalHits) * 100).toFixed(1)}%)`;
+};
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -34,7 +40,6 @@ export const useFetchStreamFilters = ({
   extraStreamFilters,
   excludeLabels,
 }: Props) => {
-  const queryBeforePipe = useMemo(() => splitByPipes(queryExpr || '')[0], [queryExpr]);
   const fieldNamesCache = useRef<ComboboxOption[]>([]);
 
   // Fetch and cache stream field names (client-side filtering)
@@ -54,7 +59,12 @@ export const useFetchStreamFilters = ({
     }
 
     const list = await datasource.languageProvider?.getStreamFieldList(
-      { type: FilterFieldType.FieldName, timeRange, query: queryBeforePipe || undefined },
+      {
+        type: FilterFieldType.FieldName,
+        timeRange,
+        query: queryExpr || undefined,
+        ignorePipes: true
+      },
       customParams
     );
 
@@ -63,16 +73,15 @@ export const useFetchStreamFilters = ({
       return [];
     }
 
-    const totalHits = list.reduce((sum, item) => sum + item.hits, 0);
     const result: ComboboxOption[] = list.map(({ value, hits }) => ({
       value: value || '',
       label: value || ' ',
-      description: `hits: ${formatHits(hits)}${totalHits > 0 ? ` (${((hits / totalHits) * 100).toFixed(1)}%)` : ''}`,
+      description: `${formatHits(hits)}`,
     }));
 
     fieldNamesCache.current = result;
     return result;
-  }, [datasource.customQueryParameters, datasource.languageProvider, extraStreamFilters, timeRange, queryBeforePipe]);
+  }, [datasource.customQueryParameters, datasource.languageProvider, extraStreamFilters, timeRange, queryExpr]);
 
   // Fetch stream field values with server-side filtering
   const fetchStreamFieldValues = useCallback(
@@ -100,7 +109,8 @@ export const useFetchStreamFilters = ({
           field: fieldName,
           limit,
           fieldValueFilter: inputValue || undefined,
-          query: queryBeforePipe || undefined,
+          query: queryExpr || undefined,
+          ignorePipes: true
         },
         customParams
       );
@@ -125,13 +135,13 @@ export const useFetchStreamFilters = ({
       const mappedOptions = list.map(({ value, hits }) => ({
         value: value || '',
         label: value || ' ',
-        description: `hits: ${formatHits(hits)}${totalHits > 0 ? ` (${((hits / totalHits) * 100).toFixed(1)}%)` : ''}`,
+        description: `${formatHits(hits)}${formatHitPercentage(hits, totalHits)}`,
       }));
       options.push(...mappedOptions);
 
       return options;
     },
-    [fieldName, datasource, extraStreamFilters, timeRange, queryBeforePipe]
+    [fieldName, datasource, extraStreamFilters, timeRange, queryExpr]
   );
 
   // Client-side filter for field names — also excludes already-used labels
@@ -157,12 +167,17 @@ export const useFetchStreamFilters = ({
         async (
           inputValue: string,
           resolve: (options: ComboboxOption[]) => void,
+          reject: (err: unknown) => void,
           fetchFn: (inputValue: string) => Promise<ComboboxOption[]>,
           filterFn?: (options: ComboboxOption[], input: string) => ComboboxOption[]
         ) => {
-          const allOptions = await fetchFn(inputValue);
-          const filteredOptions = filterFn ? filterFn(allOptions, inputValue) : allOptions;
-          resolve(filteredOptions);
+          try {
+            const allOptions = await fetchFn(inputValue);
+            const filteredOptions = filterFn ? filterFn(allOptions, inputValue) : allOptions;
+            resolve(filteredOptions);
+          } catch (err) {
+            reject(err);
+          }
         },
         DEBOUNCE_MS
       ),
@@ -174,6 +189,7 @@ export const useFetchStreamFilters = ({
     (
       inputValue: string,
       resolve: (options: ComboboxOption[]) => void,
+      reject: (err: unknown) => void,
       fetchFn: (inputValue: string) => Promise<ComboboxOption[]>,
       filterFn?: (options: ComboboxOption[], input: string) => ComboboxOption[]
     ) => {
@@ -186,7 +202,7 @@ export const useFetchStreamFilters = ({
           pendingResolve.current = null;
         }
         resolve(...args);
-      }, fetchFn, filterFn);
+      }, reject, fetchFn, filterFn);
     },
     [debouncedFilter]
   );
@@ -194,13 +210,13 @@ export const useFetchStreamFilters = ({
   // Async options loader for stream field names with debounce (client-side filtering)
   const loadStreamFieldNames = useCallback(
     (inputValue: string): Promise<ComboboxOption[]> => {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         if (!inputValue) {
-          fetchStreamFieldNames().then((allOptions) => {
-            resolve(filterFieldNamesOptions(allOptions, inputValue));
-          });
+          fetchStreamFieldNames()
+            .then((allOptions) => resolve(filterFieldNamesOptions(allOptions, inputValue)))
+            .catch(reject);
         } else {
-          scheduleDebouncedFilter(inputValue, resolve, fetchStreamFieldNames, filterFieldNamesOptions);
+          scheduleDebouncedFilter(inputValue, resolve, reject, fetchStreamFieldNames, filterFieldNamesOptions);
         }
       });
     },
@@ -210,13 +226,13 @@ export const useFetchStreamFilters = ({
   // Async options loader for stream field values with debounce (server-side filtering)
   const loadStreamFieldValues = useCallback(
     (inputValue: string): Promise<ComboboxOption[]> => {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         if (!inputValue) {
-          fetchStreamFieldValues(inputValue).then((allOptions) => {
-            resolve(allOptions);
-          });
+          fetchStreamFieldValues(inputValue)
+            .then(resolve)
+            .catch(reject);
         } else {
-          scheduleDebouncedFilter(inputValue, resolve, fetchStreamFieldValues, filterOptions);
+          scheduleDebouncedFilter(inputValue, resolve, reject, fetchStreamFieldValues, filterOptions);
         }
       });
     },
@@ -226,7 +242,7 @@ export const useFetchStreamFilters = ({
   // Reset field names cache when dependencies change
   useEffect(() => {
     fieldNamesCache.current = [];
-  }, [timeRange, extraStreamFilters, queryBeforePipe]);
+  }, [timeRange, extraStreamFilters, queryExpr]);
 
   // Cleanup debounce on unmount
   useEffect(() => {

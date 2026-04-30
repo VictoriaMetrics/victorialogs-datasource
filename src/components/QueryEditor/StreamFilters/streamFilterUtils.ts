@@ -1,10 +1,10 @@
-import { StreamFilterState } from '../../../../../types';
-import { isVariable } from '../../../../../utils/isVariable';
+import { StreamFilterState } from '../../../types';
+import { isVariable } from '../../../utils/isVariable';
 
 /**
  * Escapes double quotes in a stream filter value.
  */
-function escapeStreamValue(value: string): string {
+function escapeDoubleQuotes(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
@@ -14,7 +14,7 @@ function escapeStreamValue(value: string): string {
  * be interpolated later; regular values are wrapped in double quotes.
  */
 function formatStreamValue(value: string): string {
-  return isVariable(value) ? value : `"${escapeStreamValue(value)}"`;
+  return isVariable(value) ? value : `"${escapeDoubleQuotes(value)}"`;
 }
 
 /**
@@ -51,28 +51,4 @@ export function buildStreamExtraFilters(filters: StreamFilterState[]): string {
   const parts = filters.map(streamFilterToString).filter((s) => s !== '');
 
   return parts.join(' AND ');
-}
-
-/**
- * Builds extra_stream_filters string from filters preceding the given index.
- * Used to scope subsequent filter dropdowns by already selected values.
- */
-export function buildPrecedingStreamFilters(filters: StreamFilterState[], currentIndex: number): string {
-  const preceding = filters
-    .slice(0, currentIndex)
-    .filter((f) => f.values.length > 0 && f.values.every((v) => !isVariable(v)));
-  return buildStreamExtraFilters(preceding);
-}
-
-/**
- * Returns the set of label names already used by other filters (excluding the given index).
- */
-export function getUsedLabelNames(filters: StreamFilterState[], excludeIndex: number): Set<string> {
-  const used = new Set<string>();
-  for (let i = 0; i < filters.length; i++) {
-    if (i !== excludeIndex && filters[i].label) {
-      used.add(filters[i].label);
-    }
-  }
-  return used;
 }

@@ -11,6 +11,7 @@ interface FetchFieldsOptions {
   limit?: number;
   /** Filter for field values using containing match (server-side filtering) */
   fieldValueFilter?: string;
+  ignorePipes?: boolean;
 }
 
 enum HitsValueType {
@@ -121,6 +122,10 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
 
     if (options.limit && options.limit > 0 && options.type === FilterFieldType.FieldValue) {
       urlParams.append('limit', options.limit.toString());
+    }
+
+    if (options.ignorePipes) {
+      urlParams.append('ignore_pipes', '1');
     }
 
     const params = Object.fromEntries(urlParams);

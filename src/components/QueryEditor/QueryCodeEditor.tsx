@@ -14,56 +14,54 @@ type Props = VictoriaLogsQueryEditorProps & {
 };
 
 const QueryCodeEditor = (props: Props) => {
-  const { query, datasource, range, onRunQuery, onChange, data, app, history } = props;
+  const { query, datasource, range: timeRange, onRunQuery, onChange, data, app, history } = props;
   const styles = useStyles2(getStyles);
 
   return (
     <div className={styles.wrapper}>
-      <QueryField
-        datasource={datasource}
-        query={query}
-        range={range}
-        onRunQuery={onRunQuery}
-        onChange={onChange}
-        history={history}
-        data={data}
-        app={app}
-        ExtraFieldElement={
-          query.extraFilters && (
-            <AdHocFiltersControl
-              query={query}
-              app={app}
-              onChange={onChange}
-              onRunQuery={onRunQuery}
-            />
-          )
-        }
-      />
+      <div className={styles.content}>
+        <QueryField
+          datasource={datasource}
+          query={query}
+          range={timeRange}
+          onRunQuery={onRunQuery}
+          onChange={onChange}
+          history={history}
+          data={data}
+          app={app}
+          ExtraFieldElement={
+            <>
+              {query.extraFilters && (
+                <AdHocFiltersControl
+                  query={query}
+                  app={app}
+                  onChange={onChange}
+                  onRunQuery={onRunQuery}
+                />
+              )}
+            </>
+          }
+        />
+      </div>
     </div>
   );
 };
 
-const getStyles = (theme: GrafanaTheme2) => {
-  return {
-    wrapper: css`
-      max-width: 100%;
-    `,
-    buttonGroup: css`
-      border: 1px solid ${theme.colors.border.medium};
-      border-top: none;
-      padding: ${theme.spacing(0.5, 0.5, 0.5, 0.5)};
-      margin-bottom: ${theme.spacing(0.5)};
-      display: flex;
-      flex-grow: 1;
-      justify-content: end;
-      font-size: ${theme.typography.bodySmall.fontSize};
-    `,
-    hint: css`
-      color: ${theme.colors.text.disabled};
-      white-space: nowrap;
-      cursor: help;
-    `,
-  };
-};
+const getStyles = (theme: GrafanaTheme2) => ({
+  wrapper: css`
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: ${theme.spacing(1)};
+    max-width: 100%;
+  `,
+  content: css`
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing(0.5)};
+    flex: 1 1 auto;
+    min-width: 0;
+  `,
+});
 
 export default QueryCodeEditor;
