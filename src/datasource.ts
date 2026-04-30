@@ -179,17 +179,18 @@ export class VictoriaLogsDatasource
   }
 
   toggleQueryFilter(query: Query, filter: ToggleFilterAction): Query {
-    let expression = query.expr ?? '';
-
     if (!filter.options?.key || !filter.options?.value) {
-      return { ...query, expr: expression };
+      return query;
     }
 
+    const { key } = filter.options;
     const value = escapeLabelValueInSelector(filter.options.value);
-    const hasFilter = queryHasFilter(expression, filter.options.key, value);
+    const current = query.extraFilters ?? '';
+    const hasFilter = queryHasFilter(current, key, value);
 
+    let updated = current;
     if (hasFilter) {
-      expression = removeLabelFromQuery(expression, filter.options.key, value);
+      updated = removeLabelFromQuery(updated, key, value);
     }
 
     const isFilterFor = filter.type === FilterActionType.FILTER_FOR;
@@ -197,10 +198,10 @@ export class VictoriaLogsDatasource
 
     if ((isFilterFor && !hasFilter) || isFilterOut) {
       const operator = isFilterFor ? '=' : '!=';
-      expression = addLabelToQuery(expression, { key: filter.options.key, value, operator });
+      updated = addLabelToQuery(updated, { key, value, operator });
     }
 
-    return { ...query, expr: expression };
+    return { ...query, extraFilters: updated || undefined };
   }
 
   queryHasFilter(query: Query, filter: QueryFilterOptions): boolean {

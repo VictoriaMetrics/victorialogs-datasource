@@ -14,7 +14,7 @@ import { LogLevelRuleType } from './configuration/LogLevelRules/types';
 import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
 import { LOGS_LIMIT_HARD_CAP, VARIABLE_ALL_VALUE } from './constants';
 import { VictoriaLogsDatasource } from './datasource';
-import { Query, QueryType, SupportingQueryType } from './types';
+import { FilterActionType, Query, QueryType, SupportingQueryType, ToggleFilterAction } from './types';
 
 const replaceMock = jest.fn().mockImplementation((a: string) => a);
 
@@ -423,6 +423,67 @@ describe('VictoriaLogsDatasource', () => {
         expect(req.targets[0].maxLines).toBe(2000);
         runQuerySpy.mockRestore();
       });
+    });
+  });
+
+  describe('toggleQueryFilter', () => {
+    const makeFilter = (
+      type: FilterActionType,
+      key = 'level',
+      value = 'error',
+    ): ToggleFilterAction => ({ type, options: { key, value } });
+
+    it('adds FILTER_FOR into extraFilters when extraFilters is empty', () => {
+      const query: Query = { refId: 'A', expr: '_time:5m' };
+      const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_FOR));
+      expect(result.extraFilters).toBe('level:="error"');
+      expect(result.expr).toBe('_time:5m');
+    });
+
+    it('adds FILTER_OUT with != operator', () => {
+      const query: Query = { refId: 'A', expr: '' };
+      const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_OUT));
+      expect(result.extraFilters).toBe('level:!="error"');
+      expect(result.expr).toBe('');
+    });
+
+    it('appends to existing extraFilters via AND', () => {
+      const query: Query = { refId: 'A', expr: '*', extraFilters: 'app:="api"' };
+      const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_FOR));
+      expect(result.extraFilters).toBe('app:="api" AND level:="error"');
+      expect(result.expr).toBe('*');
+    });
+
+    it('toggles off existing FILTER_FOR (second click removes it)', () => {
+      const query: Query = { refId: 'A', expr: '*', extraFilters: 'level:="error"' };
+      const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_FOR));
+      expect(result.extraFilters).toBeUndefined();
+      expect(result.expr).toBe('*');
+    });
+
+    it('does not modify expr even when the same filter is already in expr', () => {
+      const query: Query = { refId: 'A', expr: 'level:="error"' };
+      const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_FOR));
+      expect(result.expr).toBe('level:="error"');
+      expect(result.extraFilters).toBe('level:="error"');
+    });
+
+    it('returns query unchanged when key or value is missing', () => {
+      const query: Query = { refId: 'A', expr: '*' };
+      const result = ds.toggleQueryFilter(query, {
+        type: FilterActionType.FILTER_FOR,
+        options: { key: '', value: '' },
+      });
+      expect(result).toEqual(query);
+    });
+
+    it('normalizes keys with colons (e.g. span:attr_id)', () => {
+      const query: Query = { refId: 'A', expr: '' };
+      const result = ds.toggleQueryFilter(
+        query,
+        makeFilter(FilterActionType.FILTER_FOR, 'span:attr_id', '123'),
+      );
+      expect(result.extraFilters).toBe('"span:attr_id":="123"');
     });
   });
 });
