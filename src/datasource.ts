@@ -459,6 +459,13 @@ export class VictoriaLogsDatasource
 
     switch (options.type) {
       case SupplementaryQueryType.LogsVolume: {
+        // Logs volume histogram is only meaningful for raw log queries
+        // Skip it for stats query types (StatsRange/Stats) — their main response already
+        // produces the chart, so the extra /select/logsql/hits call is redundant
+        if (query.queryType !== QueryType.Instant) {
+          return undefined;
+        }
+
         const totalSeconds = request.range.to.diff(request.range.from, 'second');
         const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || '';
 
@@ -476,6 +483,12 @@ export class VictoriaLogsDatasource
         };
       }
       case SupplementaryQueryType.LogsSample:
+        // Logs sample is only meaningful for metric queries — it shows raw log lines
+        // behind an aggregated chart. For raw log queries it would just duplicate the main request
+        if (query.queryType !== QueryType.StatsRange && query.queryType !== QueryType.Stats) {
+          return undefined;
+        }
+
         return {
           ...query,
           queryType: QueryType.Instant,

@@ -1,4 +1,11 @@
-import { AdHocVariableFilter, DataQueryRequest, DataSourceInstanceSettings, LogLevel } from '@grafana/data';
+import {
+  AdHocVariableFilter,
+  DataQueryRequest,
+  DataSourceInstanceSettings,
+  LogLevel,
+  SupplementaryQueryOptions,
+  SupplementaryQueryType,
+} from '@grafana/data';
 import { TemplateSrv } from '@grafana/runtime';
 
 // eslint-disable-next-line jest/no-mocks-import
@@ -7,7 +14,7 @@ import { LogLevelRuleType } from './configuration/LogLevelRules/types';
 import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
 import { LOGS_LIMIT_HARD_CAP, VARIABLE_ALL_VALUE } from './constants';
 import { VictoriaLogsDatasource } from './datasource';
-import { Query } from './types';
+import { Query, QueryType, SupportingQueryType } from './types';
 
 const replaceMock = jest.fn().mockImplementation((a: string) => a);
 
@@ -541,5 +548,89 @@ describe('VictoriaLogsDatasource preset merge', () => {
     const errorRules = ds.logLevelRules.filter(r => r.value === 'ERROR');
     expect(errorRules).toHaveLength(1);
     expect(errorRules[0].level).toBe(LogLevel.critical);
+  });
+
+  describe('getSupplementaryQuery', () => {
+    let ds: VictoriaLogsDatasource;
+
+    beforeEach(() => {
+      ds = createDatasource(templateSrvStub);
+    });
+
+    const makeRequest = (): DataQueryRequest<Query> => ({
+      app: 'explore',
+      requestId: 'r1',
+      interval: '1s',
+      intervalMs: 1000,
+      range: {
+        from: { utcOffset: () => 0, diff: () => 3600 } as any,
+        to: { utcOffset: () => 0, diff: () => 3600 } as any,
+        raw: { from: 'now-1h', to: 'now' },
+      } as any,
+      scopedVars: {},
+      targets: [],
+      timezone: 'UTC',
+      startTime: 0,
+    }) as DataQueryRequest<Query>;
+
+    const makeQuery = (queryType: QueryType, overrides: Partial<Query> = {}): Query => ({
+      refId: 'A',
+      expr: '*',
+      queryType,
+      ...overrides,
+    });
+
+    describe('LogsVolume', () => {
+      const opts: SupplementaryQueryOptions = { type: SupplementaryQueryType.LogsVolume };
+
+      it('returns a Hits supplementary query for Raw Logs (Instant) queryType', () => {
+        const result = ds.getSupplementaryQuery(opts, makeQuery(QueryType.Instant), makeRequest());
+        expect(result).toBeDefined();
+        expect(result?.queryType).toBe(QueryType.Hits);
+        expect(result?.supportingQueryType).toBe(SupportingQueryType.LogsVolume);
+        expect(result?.refId).toBe('log-volume-A');
+      });
+
+      it.each([
+        ['StatsRange (Range UI)', QueryType.StatsRange],
+        ['Stats (Instant UI)', QueryType.Stats],
+        ['Hits (internal)', QueryType.Hits],
+      ])('returns undefined for %s — fix #630', (_label, queryType) => {
+        const result = ds.getSupplementaryQuery(opts, makeQuery(queryType), makeRequest());
+        expect(result).toBeUndefined();
+      });
+
+      it('returns undefined when the query is hidden', () => {
+        const result = ds.getSupplementaryQuery(
+          opts,
+          makeQuery(QueryType.Instant, { hide: true }),
+          makeRequest(),
+        );
+        expect(result).toBeUndefined();
+      });
+    });
+
+    describe('LogsSample', () => {
+      const opts: SupplementaryQueryOptions = { type: SupplementaryQueryType.LogsSample };
+
+      it.each([
+        ['StatsRange (Range UI)', QueryType.StatsRange],
+        ['Stats (Instant UI)', QueryType.Stats],
+      ])('returns an Instant supplementary query for %s', (_label, queryType) => {
+        const result = ds.getSupplementaryQuery(opts, makeQuery(queryType), makeRequest());
+        expect(result).toBeDefined();
+        expect(result?.queryType).toBe(QueryType.Instant);
+        expect(result?.supportingQueryType).toBe(SupportingQueryType.LogsSample);
+        expect(result?.refId).toBe('log-sample-A');
+      });
+
+      it.each([
+        ['Instant (Raw Logs UI)', QueryType.Instant],
+        ['Hits (internal)', QueryType.Hits],
+      ])('returns undefined for %s — would duplicate the main request', (_label, queryType) => {
+        const result = ds.getSupplementaryQuery(opts, makeQuery(queryType), makeRequest());
+        expect(result).toBeUndefined();
+      });
+    });
   });
 });
