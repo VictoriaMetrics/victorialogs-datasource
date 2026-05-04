@@ -57,6 +57,7 @@ import { removeDoubleQuotesAroundVar } from './parsing';
 import { replaceOperatorWithIn, returnVariables } from './parsingUtils';
 import { transformBackendResult } from './transformers';
 import {
+  AdHocFiltersMode,
   DerivedFieldConfig,
   FilterActionType,
   FilterFieldType,
@@ -229,12 +230,17 @@ export class VictoriaLogsDatasource
       },
     };
 
-    const baseAdHocExpr = serializeAdHocFilters(target.adHocFilters) ?? '';
-    let extraFilters = this.getExtraFilters(adhocFilters, baseAdHocExpr);
+    const mode = resolveAdHocFiltersMode(target);
     let expr = this.interpolateString(target.expr, variables);
-    if (target.isApplyExtraFiltersToRootQuery && extraFilters) {
-      expr = `${extraFilters} | ${expr}`;
-      extraFilters = undefined;
+    let extraFilters: string | undefined;
+    if (mode !== AdHocFiltersMode.Off) {
+      const baseAdHocExpr = serializeAdHocFilters(target.adHocFilters) ?? '';
+      const filters = this.getExtraFilters(adhocFilters, baseAdHocExpr);
+      if (mode === AdHocFiltersMode.RootQuery && filters) {
+        expr = `${filters} | ${expr}`;
+      } else if (mode === AdHocFiltersMode.ExtraFilters) {
+        extraFilters = filters;
+      }
     }
 
     const extraStreamFilters = this.getExtraStreamFilters(target.streamFilters, scopedVars);
@@ -642,4 +648,11 @@ export class VictoriaLogsDatasource
       [TenantHeaderNames.ProjectID]: formatTenantId(multitenancyHeaders?.ProjectID),
     };
   }
+}
+
+export function resolveAdHocFiltersMode(query: Query): AdHocFiltersMode {
+  if (query.adHocFiltersMode) {
+    return query.adHocFiltersMode;
+  }
+  return query.isApplyExtraFiltersToRootQuery ? AdHocFiltersMode.RootQuery : AdHocFiltersMode.ExtraFilters;
 }
