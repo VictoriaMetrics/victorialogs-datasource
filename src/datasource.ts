@@ -59,6 +59,7 @@ import { removeDoubleQuotesAroundVar } from './parsing';
 import { replaceOperatorWithIn, returnVariables } from './parsingUtils';
 import { transformBackendResult } from './transformers';
 import {
+  AdHocFiltersMode,
   DerivedFieldConfig,
   FilterActionType,
   FilterFieldType,
@@ -228,9 +229,12 @@ export class VictoriaLogsDatasource
       },
     };
 
-    let extraFilters = this.getExtraFilters(adhocFilters, target.extraFilters);
+    const mode = resolveAdHocFiltersMode(target);
+    let extraFilters = mode !== AdHocFiltersMode.Off
+      ? this.getExtraFilters(adhocFilters, target.extraFilters)
+      : undefined;
     let expr = this.interpolateString(target.expr, variables);
-    if (target.isApplyExtraFiltersToRootQuery && extraFilters) {
+    if (mode === AdHocFiltersMode.RootQuery && extraFilters) {
       expr = `${extraFilters} | ${expr}`;
       extraFilters = undefined;
     }
@@ -643,4 +647,11 @@ export class VictoriaLogsDatasource
       [TenantHeaderNames.ProjectID]: formatTenantId(multitenancyHeaders?.ProjectID),
     };
   }
+}
+
+export function resolveAdHocFiltersMode(query: Query): AdHocFiltersMode {
+  if (query.adHocFiltersMode) {
+    return query.adHocFiltersMode;
+  }
+  return query.isApplyExtraFiltersToRootQuery ? AdHocFiltersMode.RootQuery : AdHocFiltersMode.ExtraFilters;
 }

@@ -13,8 +13,8 @@ import { createDatasource } from './__mocks__/datasource';
 import { LogLevelRuleType } from './configuration/LogLevelRules/types';
 import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
 import { LOGS_LIMIT_HARD_CAP, VARIABLE_ALL_VALUE } from './constants';
-import { VictoriaLogsDatasource } from './datasource';
-import { Query, QueryType, SupportingQueryType } from './types';
+import { resolveAdHocFiltersMode, VictoriaLogsDatasource } from './datasource';
+import { AdHocFiltersMode, Query, QueryType, SupportingQueryType } from './types';
 
 const replaceMock = jest.fn().mockImplementation((a: string) => a);
 
@@ -210,7 +210,112 @@ describe('VictoriaLogsDatasource', () => {
       expect(replacedQuery.expr).toBe('baz: "foo" AND qux: "bar"');
     });
 
-    it('should apply ad-hoc filters to root query when isApplyExtraFiltersToRootQuery is true', () => {
+    it('should apply ad-hoc filters to root query when adHocFiltersMode is rootQuery', () => {
+      const adhocFilters: AdHocVariableFilter[] = [
+        { key: 'level', operator: '=', value: 'error' },
+      ];
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.RootQuery },
+        {},
+        adhocFilters
+      );
+      expect(replacedQuery.expr).toBe('level:="error" | _time:5m');
+      expect(replacedQuery.extraFilters).toBeUndefined();
+    });
+
+    it('should apply ad-hoc filters as extra_filters when adHocFiltersMode is extraFilters', () => {
+      const adhocFilters: AdHocVariableFilter[] = [
+        { key: 'level', operator: '=', value: 'error' },
+      ];
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.ExtraFilters },
+        {},
+        adhocFilters
+      );
+      expect(replacedQuery.expr).toBe('_time:5m');
+      expect(replacedQuery.extraFilters).toBe('level:="error"');
+    });
+
+    it('should not apply ad-hoc filters when adHocFiltersMode is off', () => {
+      const adhocFilters: AdHocVariableFilter[] = [
+        { key: 'level', operator: '=', value: 'error' },
+      ];
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.Off },
+        {},
+        adhocFilters
+      );
+      expect(replacedQuery.expr).toBe('_time:5m');
+      expect(replacedQuery.extraFilters).toBeUndefined();
+    });
+
+    it('should apply multiple ad-hoc filters to root query when adHocFiltersMode is rootQuery', () => {
+      const adhocFilters: AdHocVariableFilter[] = [
+        { key: 'level', operator: '=', value: 'error' },
+        { key: 'app', operator: '!=', value: 'test' },
+      ];
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.RootQuery },
+        {},
+        adhocFilters
+      );
+      expect(replacedQuery.expr).toBe('level:="error" AND app:!="test" | _time:5m');
+      expect(replacedQuery.extraFilters).toBeUndefined();
+    });
+
+    it('should handle rootQuery mode when no ad-hoc filters are present', () => {
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.RootQuery },
+        {}
+      );
+      expect(replacedQuery.expr).toBe('_time:5m');
+      expect(replacedQuery.extraFilters).toBeUndefined();
+    });
+
+    it('should preserve existing extraFilters and apply them to root query in rootQuery mode', () => {
+      const adhocFilters: AdHocVariableFilter[] = [
+        { key: 'level', operator: '=', value: 'error' },
+      ];
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', extraFilters: 'app:="frontend"', adHocFiltersMode: AdHocFiltersMode.RootQuery },
+        {},
+        adhocFilters
+      );
+      expect(replacedQuery.expr).toBe('app:="frontend" AND level:="error" | _time:5m');
+      expect(replacedQuery.extraFilters).toBeUndefined();
+    });
+
+    it('should fall back to legacy isApplyExtraFiltersToRootQuery when adHocFiltersMode is not set', () => {
       const adhocFilters: AdHocVariableFilter[] = [
         { key: 'level', operator: '=', value: 'error' },
       ];
@@ -225,75 +330,6 @@ describe('VictoriaLogsDatasource', () => {
         adhocFilters
       );
       expect(replacedQuery.expr).toBe('level:="error" | _time:5m');
-      expect(replacedQuery.extraFilters).toBeUndefined();
-    });
-
-    it('should not apply ad-hoc filters to root query when isApplyExtraFiltersToRootQuery is false', () => {
-      const adhocFilters: AdHocVariableFilter[] = [
-        { key: 'level', operator: '=', value: 'error' },
-      ];
-      const templateSrvMock = {
-        replace: jest.fn((a: string) => a),
-        getVariables: jest.fn().mockReturnValue([]),
-      } as unknown as TemplateSrv;
-      const ds = createDatasource(templateSrvMock);
-      const replacedQuery = ds.applyTemplateVariables(
-        { expr: '_time:5m', refId: 'A', isApplyExtraFiltersToRootQuery: false },
-        {},
-        adhocFilters
-      );
-      expect(replacedQuery.expr).toBe('_time:5m');
-      expect(replacedQuery.extraFilters).toBe('level:="error"');
-    });
-
-    it('should apply multiple ad-hoc filters to root query when isApplyExtraFiltersToRootQuery is true', () => {
-      const adhocFilters: AdHocVariableFilter[] = [
-        { key: 'level', operator: '=', value: 'error' },
-        { key: 'app', operator: '!=', value: 'test' },
-      ];
-      const templateSrvMock = {
-        replace: jest.fn((a: string) => a),
-        getVariables: jest.fn().mockReturnValue([]),
-      } as unknown as TemplateSrv;
-      const ds = createDatasource(templateSrvMock);
-      const replacedQuery = ds.applyTemplateVariables(
-        { expr: '_time:5m', refId: 'A', isApplyExtraFiltersToRootQuery: true },
-        {},
-        adhocFilters
-      );
-      expect(replacedQuery.expr).toBe('level:="error" AND app:!="test" | _time:5m');
-      expect(replacedQuery.extraFilters).toBeUndefined();
-    });
-
-    it('should handle isApplyExtraFiltersToRootQuery when no ad-hoc filters are present', () => {
-      const templateSrvMock = {
-        replace: jest.fn((a: string) => a),
-        getVariables: jest.fn().mockReturnValue([]),
-      } as unknown as TemplateSrv;
-      const ds = createDatasource(templateSrvMock);
-      const replacedQuery = ds.applyTemplateVariables(
-        { expr: '_time:5m', refId: 'A', isApplyExtraFiltersToRootQuery: true },
-        {}
-      );
-      expect(replacedQuery.expr).toBe('_time:5m');
-      expect(replacedQuery.extraFilters).toBeUndefined();
-    });
-
-    it('should preserve existing extraFilters and apply them to root query when isApplyExtraFiltersToRootQuery is true', () => {
-      const adhocFilters: AdHocVariableFilter[] = [
-        { key: 'level', operator: '=', value: 'error' },
-      ];
-      const templateSrvMock = {
-        replace: jest.fn((a: string) => a),
-        getVariables: jest.fn().mockReturnValue([]),
-      } as unknown as TemplateSrv;
-      const ds = createDatasource(templateSrvMock);
-      const replacedQuery = ds.applyTemplateVariables(
-        { expr: '_time:5m', refId: 'A', extraFilters: 'app:="frontend"', isApplyExtraFiltersToRootQuery: true },
-        {},
-        adhocFilters
-      );
-      expect(replacedQuery.expr).toBe('app:="frontend" AND level:="error" | _time:5m');
       expect(replacedQuery.extraFilters).toBeUndefined();
     });
 
@@ -314,6 +350,23 @@ describe('VictoriaLogsDatasource', () => {
       ];
       const result = ds.getExtraFilters(filters);
       expect(result).toBe('key1:="value1" AND key2:!="value2"');
+    });
+  });
+
+  describe('resolveAdHocFiltersMode', () => {
+    it('should return adHocFiltersMode when set', () => {
+      expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', adHocFiltersMode: AdHocFiltersMode.Off })).toBe(AdHocFiltersMode.Off);
+      expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', adHocFiltersMode: AdHocFiltersMode.RootQuery })).toBe(AdHocFiltersMode.RootQuery);
+      expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', adHocFiltersMode: AdHocFiltersMode.ExtraFilters })).toBe(AdHocFiltersMode.ExtraFilters);
+    });
+
+    it('should fall back to legacy isApplyExtraFiltersToRootQuery', () => {
+      expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', isApplyExtraFiltersToRootQuery: true })).toBe(AdHocFiltersMode.RootQuery);
+      expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', isApplyExtraFiltersToRootQuery: false })).toBe(AdHocFiltersMode.ExtraFilters);
+    });
+
+    it('should default to extraFilters when neither field is set', () => {
+      expect(resolveAdHocFiltersMode({ expr: '', refId: 'A' })).toBe(AdHocFiltersMode.ExtraFilters);
     });
   });
 
