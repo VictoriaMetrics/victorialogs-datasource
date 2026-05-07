@@ -1,14 +1,14 @@
 import { AdHocVariableFilter, CoreApp, LogsSortOrder } from '@grafana/data';
 
 import { isExprHasStatsPipeFunc } from './LogsQL/statsPipeFunctions';
-import {
-  buildVisualQueryFromString,
-  splitExpression
-} from './components/QueryEditor/QueryBuilder/utils/parseFromString';
-import { parseVisualQueryToString } from './components/QueryEditor/QueryBuilder/utils/parseToString';
 import { storeKeys } from './store/constants';
 import store from './store/store';
 import { FilterVisualQuery, Format, Query, QueryDirection, QueryType } from './types';
+import {
+  buildVisualQueryFromString,
+  splitExpression
+} from './utils/query/parseFromString';
+import { parseVisualQueryToString } from './utils/query/parseToString';
 
 const operators = ['=', '!=', '=~', '!~', '<', '>'];
 const multiValueOperators = ['=|', '!=|'];
@@ -136,8 +136,8 @@ export const addSortPipeToQuery = ({ expr, queryType, direction }: Query, app: C
   if (queryType !== QueryType.Instant || isLiveStreaming || !sortDirection) {
     return expr;
   }
-  // checks for existing sort pipe `sort by (_time)` or `order by (_time)`
-  const exprContainsSort = /\|\s*(?:sort|order)\s*by\s*\([^)]*\b_time\b[^)]*\)/i.test(expr);
+  // checks for existing sort pipe `sort by (...)` or `order by (...)`
+  const exprContainsSort = /\|\s*(?:sort|order)\s*by\s*\(/i.test(expr);
   if (exprContainsSort) {
     return expr;
   }

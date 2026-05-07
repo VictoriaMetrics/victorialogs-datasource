@@ -61,6 +61,55 @@ Queries can be built using raw LogsQL or via QueryBuilder.
 See panels examples at [VictoriaMetrics playground](https://play-grafana.victoriametrics.com/d/be5zidev72m80f/k8s-logs-demo)
 and LogsQL examples [here](https://docs.victoriametrics.com/victorialogs/logsql-examples/).
 
+### Query builder
+
+A visual alternative to the LogsQL code editor: build queries by chaining typed pipes through an interactive UI with field/value dropdowns and keyboard navigation.
+
+<img alt="Query builder" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/query_builder.gif?raw=true">
+
+
+#### Switching between Builder and Code
+
+Use the **Builder** / **Code** toggle in the query editor header to switch modes.
+
+* **Builder → Code** is always safe — the current builder state is serialized to LogsQL.
+* **Code → Builder** shows a confirmation dialog and discards the manual query and any stream filters. Automatic conversion of raw LogsQL into builder pipes is not supported yet — it is planned for a future release.
+
+#### Available pipe types
+
+* **Filter**:
+  * **exact** — `field:in(values)`. Stream fields are available in the field picker (under the "Stream fields" group) — selecting one converts the filter into a stream filter automatically.
+  * **phrase** — substring match: `field:value`
+  * **range** — numeric comparison: `>`, `>=`, `<`, `<=`
+  * **regexp** — regex match: `~`, `!~`
+* **Modify** — `rename`, `copy`, `delete`, `keep`, `replace`, `replace_regexp`, `extract`.
+* **Aggregate** — `count`, `sum`, `avg`, `min`, `max`, `median`, `quantile`, `rate`, `histogram`. Each supports optional `by`, `if`, and `as` clauses.
+* **Sort** — `sort by field asc|desc`, with optional `limit`, `offset`, `partition by`, `rank as`.
+* **Limit** — `limit`, `offset`, `first`, `last`, `top`.
+* **Custom** — raw LogsQL escape hatch for syntax not covered by the structured pipes (not validated).
+
+See the [LogsQL pipes reference](https://docs.victoriametrics.com/victorialogs/logsql/#pipes) for the underlying semantics.
+
+#### Adding and editing pipes
+
+* Click the **+** button (Add pipe) to open the pipe picker. Pipes are grouped by category and searchable by name.
+* Hover the **|** separator between pipes to insert a new pipe at that position.
+* Click any placeholder chip to edit it. Field-name and field-value chips fetch live suggestions from VictoriaLogs; stream fields are surfaced first under a separate group as the faster lookup.
+* Multi-value chips (e.g., `field:in(...)`) accept comma-separated values rendered as inline pills.
+* Each pipe has a **✕** button to delete it and a **⋯** button to add optional clauses available for that pipe type (e.g., `by`, `if`, `as` on aggregations).
+* The trash icon at the bottom-right clears all pipes via the **Clear query** action.
+
+#### Keyboard navigation
+
+| Key | Action |
+|-----|--------|
+| **Tab** | Confirm the current segment and move to the next one. After the last segment, opens the Add pipe menu. |
+| **Enter** | Pick the highlighted dropdown option. |
+| **↑ / ↓** | Navigate dropdown options. |
+| **Escape** | Cancel the current edit and revert the value. |
+| **Backspace** | In an empty multi-value chip — remove the last entered value. |
+| **Shift+Enter** | Run the query. |
+
 ### Logs panel
 
 For using [Logs panel](https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/logs/)
