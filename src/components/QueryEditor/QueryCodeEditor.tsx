@@ -6,7 +6,6 @@ import { useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsQueryEditorProps } from '../../types';
 
-import { AdHocFiltersControl } from './AdHocFiltersControl';
 import QueryField from './QueryField';
 
 type Props = VictoriaLogsQueryEditorProps & {
@@ -28,16 +27,6 @@ const QueryCodeEditor = (props: Props) => {
         history={history}
         data={data}
         app={app}
-        ExtraFieldElement={
-          query.extraFilters && (
-            <AdHocFiltersControl
-              query={query}
-              app={app}
-              onChange={onChange}
-              onRunQuery={onRunQuery}
-            />
-          )
-        }
       />
     </div>
   );

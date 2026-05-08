@@ -279,7 +279,7 @@ describe('VictoriaLogsDatasource', () => {
       expect(replacedQuery.extraFilters).toBeUndefined();
     });
 
-    it('should preserve existing extraFilters and apply them to root query when isApplyExtraFiltersToRootQuery is true', () => {
+    it('should preserve existing adHocFilters and apply them to root query when isApplyExtraFiltersToRootQuery is true', () => {
       const adhocFilters: AdHocVariableFilter[] = [
         { key: 'level', operator: '=', value: 'error' },
       ];
@@ -289,7 +289,12 @@ describe('VictoriaLogsDatasource', () => {
       } as unknown as TemplateSrv;
       const ds = createDatasource(templateSrvMock);
       const replacedQuery = ds.applyTemplateVariables(
-        { expr: '_time:5m', refId: 'A', extraFilters: 'app:="frontend"', isApplyExtraFiltersToRootQuery: true },
+        {
+          expr: '_time:5m',
+          refId: 'A',
+          adHocFilters: [{ key: 'app', operator: '=', value: 'frontend' }],
+          isApplyExtraFiltersToRootQuery: true,
+        },
         {},
         adhocFilters
       );
@@ -433,31 +438,42 @@ describe('VictoriaLogsDatasource', () => {
       value = 'error',
     ): ToggleFilterAction => ({ type, options: { key, value } });
 
-    it('adds FILTER_FOR into extraFilters when extraFilters is empty', () => {
+    it('adds FILTER_FOR into adHocFilters when adHocFilters is empty', () => {
       const query: Query = { refId: 'A', expr: '_time:5m' };
       const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_FOR));
-      expect(result.extraFilters).toBe('level:="error"');
+      expect(result.adHocFilters).toEqual([{ key: 'level', operator: '=', value: 'error' }]);
       expect(result.expr).toBe('_time:5m');
     });
 
     it('adds FILTER_OUT with != operator', () => {
       const query: Query = { refId: 'A', expr: '' };
       const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_OUT));
-      expect(result.extraFilters).toBe('level:!="error"');
+      expect(result.adHocFilters).toEqual([{ key: 'level', operator: '!=', value: 'error' }]);
       expect(result.expr).toBe('*');
     });
 
-    it('appends to existing extraFilters via AND', () => {
-      const query: Query = { refId: 'A', expr: '*', extraFilters: 'app:="api"' };
+    it('appends to existing adHocFilters', () => {
+      const query: Query = {
+        refId: 'A',
+        expr: '*',
+        adHocFilters: [{ key: 'app', operator: '=', value: 'api' }],
+      };
       const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_FOR));
-      expect(result.extraFilters).toBe('app:="api" AND level:="error"');
+      expect(result.adHocFilters).toEqual([
+        { key: 'app', operator: '=', value: 'api' },
+        { key: 'level', operator: '=', value: 'error' },
+      ]);
       expect(result.expr).toBe('*');
     });
 
     it('toggles off existing FILTER_FOR (second click removes it)', () => {
-      const query: Query = { refId: 'A', expr: '*', extraFilters: 'level:="error"' };
+      const query: Query = {
+        refId: 'A',
+        expr: '*',
+        adHocFilters: [{ key: 'level', operator: '=', value: 'error' }],
+      };
       const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_FOR));
-      expect(result.extraFilters).toBeUndefined();
+      expect(result.adHocFilters).toBeUndefined();
       expect(result.expr).toBe('*');
     });
 
@@ -465,7 +481,7 @@ describe('VictoriaLogsDatasource', () => {
       const query: Query = { refId: 'A', expr: 'level:="error"' };
       const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_FOR));
       expect(result.expr).toBe('level:="error"');
-      expect(result.extraFilters).toBe('level:="error"');
+      expect(result.adHocFilters).toEqual([{ key: 'level', operator: '=', value: 'error' }]);
     });
 
     it('returns query unchanged when key or value is missing', () => {
@@ -477,13 +493,15 @@ describe('VictoriaLogsDatasource', () => {
       expect(result).toEqual(query);
     });
 
-    it('normalizes keys with colons (e.g. span:attr_id)', () => {
+    it('preserves keys with colons in adHocFilters as-is', () => {
       const query: Query = { refId: 'A', expr: '' };
       const result = ds.toggleQueryFilter(
         query,
         makeFilter(FilterActionType.FILTER_FOR, 'span:attr_id', '123'),
       );
-      expect(result.extraFilters).toBe('"span:attr_id":="123"');
+      expect(result.adHocFilters).toEqual([
+        { key: 'span:attr_id', operator: '=', value: '123' },
+      ]);
     });
   });
 });

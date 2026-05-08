@@ -1,100 +1,81 @@
-import { css } from '@emotion/css';
+import { css, cx } from '@emotion/css';
 import React, { useMemo } from 'react';
 
-import { CoreApp, GrafanaTheme2 } from '@grafana/data';
-import { Button, Icon, useStyles2 } from '@grafana/ui';
+import { CoreApp, GrafanaTheme2, TimeRange } from '@grafana/data';
+import { Button, Icon, Tooltip, useStyles2 } from '@grafana/ui';
 
-import { FilterVisualQuery, Query } from '../../types';
-import { buildVisualQueryFromString } from '../../utils/query/parseFromString';
+import { VictoriaLogsDatasource } from '../../datasource';
+import { addLabelToQuery } from '../../modifyQuery';
+import { Query } from '../../types';
+import {
+  appendFilterPipeToQuery,
+  formatAdHocFilterLabel,
+  queryHasPipes,
+} from '../../utils/query/adHocFilters';
+
+import { useAdHocFilterValidation } from './useAdHocFilterValidation';
 
 interface AdHocFiltersControlProps {
+  datasource: VictoriaLogsDatasource;
   query: Query;
+  timeRange?: TimeRange;
   app?: CoreApp;
   onChange: (query: Query) => void;
   onRunQuery: () => void;
 }
 
+const buildInvalidFieldTooltip = (key: string): string =>
+  `Field "${key}" is produced by the query (e.g. by extract, unpack or another pipe) and doesn't exist in the source data.
+   The ad-hoc filter is applied at the source level,
+    so it will filter out the rows needed to produce this field — your results will be empty or incorrect.
+   To fix this, use the "Move to query" button — it will append this filter as a post-filter pipe (\`| filter ...\`) at the end of the query,
+    so it runs after the pipes that produce the field.
+   You can also add the filter manually at the appropriate position in the query expression.`;
+
 export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
+  datasource,
   query,
+  timeRange,
   app,
   onChange,
   onRunQuery,
 }) => {
   const styles = useStyles2(getStyles);
 
-  // Parse extra_filters into individual filter strings
-  const adHocFilters = useMemo(() => {
-    if (!query.extraFilters) {
-      return [];
-    }
+  const filters = useMemo(() => query.adHocFilters ?? [], [query.adHocFilters]);
 
-    try {
-      const parsed = buildVisualQueryFromString(query.extraFilters);
-      const filters: string[] = [];
+  const fieldNames = useMemo(() => Array.from(new Set(filters.map((f) => f.key))), [filters]);
+  const validation = useAdHocFilterValidation({ datasource, query, timeRange, fieldNames });
 
-      // Extract individual filter values from the parsed structure
-      const extractFilters = (values: (string | FilterVisualQuery)[]) => {
-        for (const value of values) {
-          if (typeof value === 'string') {
-            // Only add if it looks like a complete filter (has a colon)
-            if (value.includes(':')) {
-              filters.push(value);
-            }
-          } else if (value && typeof value === 'object' && value.values) {
-            // Recursively extract from nested filters
-            extractFilters(value.values);
-          }
-        }
-      };
-
-      extractFilters(parsed.query.filters.values);
-      return filters;
-    } catch (e) {
-      console.error('Failed to parse extra_filters:', e);
-      return [];
-    }
-  }, [query.extraFilters]);
-
-  const handleDeleteFilter = (filterToDelete: string) => {
-    if (!query.extraFilters) {
-      return;
-    }
-
-    const remainingFilters = adHocFilters.filter(f => f !== filterToDelete);
-    const newExtraFilters = remainingFilters.join(' AND ');
-
-    onChange({
-      ...query,
-      extraFilters: newExtraFilters || undefined,
-    });
+  const handleDeleteFilter = (index: number) => {
+    const next = filters.filter((_, i) => i !== index);
+    onChange({ ...query, adHocFilters: next.length ? next : undefined });
     onRunQuery();
   };
 
-  const handleMoveToQuery = (filterToMove: string) => {
-    if (!query.extraFilters) {
+  const handleMoveToQuery = (index: number) => {
+    const filter = filters[index];
+    if (!filter) {
       return;
     }
-
-    // Remove from extra_filters
-    const remainingFilters = adHocFilters.filter(f => f !== filterToMove);
-    const newExtraFilters = remainingFilters.join(' AND ');
-
-    // Add to query expression
     const currentExpr = query.expr?.trim() || '*';
-    const newExpr = currentExpr === '*'
-      ? filterToMove
-      : `${filterToMove} AND ${currentExpr}`;
-
+    const isInvalid = validation[filter.key] === 'invalid';
+    const filterStr = formatAdHocFilterLabel(filter);
+    const newExpr = isInvalid
+      ? appendFilterPipeToQuery(currentExpr, filter)
+      : currentExpr === '*'
+        ? filterStr
+        : addLabelToQuery(currentExpr, filter);
+    const next = filters.filter((_, i) => i !== index);
     onChange({
       ...query,
       expr: newExpr,
-      extraFilters: newExtraFilters || undefined,
+      adHocFilters: next.length ? next : undefined,
     });
     onRunQuery();
   };
 
-  // Only show on Explore page and when there are filters
-  if (app !== CoreApp.Explore || adHocFilters.length === 0) {
+  if (app !== CoreApp.Explore || filters.length === 0) {
     return null;
   }
 
@@ -104,31 +85,55 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
         <Icon name='filter' size='sm' />
         <span>Ad-hoc filters:</span>
       </div>
-      {adHocFilters.map((filter, index) => (
-        <div key={index} className={styles.adHocFilterItem}>
-          <span className={styles.filterText}>{filter}</span>
-          <div className={styles.filterActions}>
-            <Button
-              size='sm'
-              variant='secondary'
-              onClick={() => handleMoveToQuery(filter)}
-              tooltip='Move to query'
-              fill='text'
-            >
-              <Icon name='arrow-up' />
-            </Button>
-            <Button
-              size='sm'
-              variant='secondary'
-              onClick={() => handleDeleteFilter(filter)}
-              tooltip='Delete filter'
-              fill='text'
-            >
-              <Icon name='times' />
-            </Button>
+      {filters.map((filter, index) => {
+        const isInvalid = validation[filter.key] === 'invalid';
+        const willAppendAsPipe = isInvalid && queryHasPipes(query.expr ?? '');
+        const moveTooltip = willAppendAsPipe ? (
+          <>
+            Append as a post-filter pipe at the end of the query:
+            <br />
+            <code>| filter {formatAdHocFilterLabel(filter)}</code>
+          </>
+        ) : (
+          'Move to query'
+        );
+        const chip = (
+          <div className={cx(styles.adHocFilterItem, isInvalid && styles.adHocFilterItemInvalid)}>
+            {isInvalid && (
+              <Icon name='exclamation-triangle' className={styles.warningIcon} size='sm' />
+            )}
+            <span className={styles.filterText}>{formatAdHocFilterLabel(filter)}</span>
+            <div className={styles.filterActions}>
+              <Button
+                size='sm'
+                variant='secondary'
+                onClick={() => handleMoveToQuery(index)}
+                tooltip={moveTooltip}
+                fill='text'
+              >
+                <Icon name='arrow-up' />
+              </Button>
+              <Button
+                size='sm'
+                variant='secondary'
+                onClick={() => handleDeleteFilter(index)}
+                tooltip='Delete filter'
+                fill='text'
+              >
+                <Icon name='times' />
+              </Button>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+
+        return isInvalid ? (
+          <Tooltip key={index} content={buildInvalidFieldTooltip(filter.key)} placement='top'>
+            {chip}
+          </Tooltip>
+        ) : (
+          <React.Fragment key={index}>{chip}</React.Fragment>
+        );
+      })}
     </div>
   );
 };
@@ -171,6 +176,17 @@ const getStyles = (theme: GrafanaTheme2) => {
         border-color: ${theme.colors.border.medium};
       }
     `,
+    adHocFilterItemInvalid: css`
+      border-color: ${theme.colors.warning.border};
+      background-color: ${theme.colors.warning.transparent};
+
+      &:hover {
+        border-color: ${theme.colors.warning.text};
+      }
+    `,
+    warningIcon: css`
+      color: ${theme.colors.warning.text};
+    `,
     filterText: css`
       color: ${theme.colors.text.primary};
       white-space: nowrap;
@@ -181,11 +197,11 @@ const getStyles = (theme: GrafanaTheme2) => {
       align-items: center;
       padding-left: ${theme.spacing(0.25)};
       border-left: 1px solid ${theme.colors.border.weak};
-      
+
       button {
         padding: 0 ${theme.spacing(0.25)};
         color: ${theme.colors.text.secondary};
-        
+
         &:hover {
           color: ${theme.colors.text.primary};
         }
