@@ -10,6 +10,7 @@
 * BUGFIX: protect Raw Logs queries from excessively large line limits. A hard upper bound of 10000 lines is now enforced on both the per-query `Line limit` and the datasource-wide `Maximum lines` settings; a confirmation dialog warns before committing a value above 1000 lines. See [#613](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/613).
 * BUGFIX: fix interpolation of a query with the variable at the end of the line. See [#614](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/614);
 * BUGFIX: skip the redundant `/select/logsql/hits` (logs volume) request for `Range` and `Instant` query types in Grafana Explore. The histogram is only meaningful for `Raw Logs` queries; for stats query types the main response already provides the chart. See [#630](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/630).
+* BUGFIX: prevent the wildcard `*` value of a multi-value template variable from being wrapped in double quotes inside the `in(...)` operator during query interpolation. See [pr #638](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/638).
 
 ## v0.26.3
 
