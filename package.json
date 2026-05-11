@@ -104,6 +104,10 @@
     "protobufjs": "7.5.5",
     "protocol-buffers-schema": "3.6.1",
     "serialize-javascript": "7.0.5",
+    "fast-uri": "^3.1.2",
+    "ip-address": "^10.1.1",
+    "postcss": "^8.5.10",
+    "uuid": "11.1.1",
     "yaml": "1.10.3"
   },
   "packageManager": "yarn@4.13.0"
