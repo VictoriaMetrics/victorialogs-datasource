@@ -7,13 +7,11 @@ import { Options, Query } from '../../types';
 import { MonacoQueryFieldWrapper } from '../monaco-query-field/MonacoQueryFieldWrapper';
 
 export interface QueryFieldProps extends QueryEditorProps<VictoriaLogsDatasource, Query, Options> {
-  ExtraFieldElement?: React.ReactNode;
   'data-testid'?: string;
 }
 
 const QueryField: React.FC<QueryFieldProps> = (
   {
-    ExtraFieldElement,
     query,
     history,
     onRunQuery,
@@ -42,7 +40,6 @@ const QueryField: React.FC<QueryFieldProps> = (
           />
         </div>
       </div>
-      {ExtraFieldElement}
     </>
   );
 };

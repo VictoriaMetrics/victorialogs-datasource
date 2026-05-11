@@ -52,8 +52,6 @@ import {
   addLabelToQuery,
   addSortPipeToQuery,
   getQueryFormat,
-  queryHasFilter,
-  removeLabelFromQuery,
 } from './modifyQuery';
 import { removeDoubleQuotesAroundVar } from './parsing';
 import { replaceOperatorWithIn, returnVariables } from './parsingUtils';
@@ -67,6 +65,7 @@ import {
   Query,
   QueryBuilderLimits,
   QueryEditorMode,
+  QueryFilterOptions,
   QueryType,
   StreamFilterState,
   SupportingQueryType,
@@ -75,6 +74,7 @@ import {
   ToggleFilterAction,
   VariableQuery,
 } from './types';
+import { serializeAdHocFilters } from './utils/query/adHocFilters';
 import { formatOffsetDuration, getMillisecondsFromDuration } from './utils/timeUtils';
 import { VariableSupport } from './variableSupport/VariableSupport';
 
@@ -185,24 +185,29 @@ export class VictoriaLogsDatasource
 
     const { key } = filter.options;
     const value = escapeLabelValueInSelector(filter.options.value);
-    const current = query.extraFilters ?? '';
-    const hasFilter = queryHasFilter(current, key, value);
+    const current = query.adHocFilters ?? [];
+    const exists = current.some((f) => f.key === key && f.value === value);
 
-    let updated = current;
-    if (hasFilter) {
-      updated = removeLabelFromQuery(updated, key, value);
-    }
+    let next = exists ? current.filter((f) => !(f.key === key && f.value === value)) : current;
 
     const isFilterFor = filter.type === FilterActionType.FILTER_FOR;
     const isFilterOut = filter.type === FilterActionType.FILTER_OUT;
 
-    if ((isFilterFor && !hasFilter) || isFilterOut) {
-      const operator = isFilterFor ? '=' : '!=';
-      updated = addLabelToQuery(updated, { key, value, operator });
+    if ((isFilterFor && !exists) || isFilterOut) {
+      next = [...next, { key, value, operator: isFilterFor ? '=' : '!=' }];
     }
 
-    const expr = query.expr || (updated ? '*' : '');
-    return { ...query, expr, extraFilters: updated || undefined };
+    const expr = query.expr || (next.length ? '*' : '');
+    return { ...query, expr, adHocFilters: next.length ? next : undefined };
+  }
+
+  // The `hasToggleableQueryFiltersSupport` type guard checks for both
+  // `toggleQueryFilter` and `queryHasFilter` on the datasource — without this
+  // method the Logs viewer hides the "Filter for / Filter out" icons next to
+  // log field values
+  queryHasFilter(query: Query, filter: QueryFilterOptions): boolean {
+    const value = escapeLabelValueInSelector(filter.value);
+    return (query.adHocFilters ?? []).some((f) => f.key === filter.key && f.value === value);
   }
 
   filterQuery(query: Query): boolean {
@@ -225,7 +230,8 @@ export class VictoriaLogsDatasource
       },
     };
 
-    let extraFilters = this.getExtraFilters(adhocFilters, target.extraFilters);
+    const baseAdHocExpr = serializeAdHocFilters(target.adHocFilters) ?? '';
+    let extraFilters = this.getExtraFilters(adhocFilters, baseAdHocExpr);
     let expr = this.interpolateString(target.expr, variables);
     if (target.isApplyExtraFiltersToRootQuery && extraFilters) {
       expr = `${extraFilters} | ${expr}`;
@@ -240,19 +246,17 @@ export class VictoriaLogsDatasource
       expr,
       extraFilters,
       extraStreamFilters,
+      // Backend protocol uses `extraFilters` (string); the structured array is editor-only
+      adHocFilters: undefined,
     };
   }
 
   getExtraFilters(adhocFilters?: AdHocVariableFilter[], initialExpr = ''): string | undefined {
-    if (!adhocFilters) {
+    if (!adhocFilters?.length) {
       return initialExpr || undefined;
     }
-
-    const expr = adhocFilters.reduce((acc: string, filter: AdHocVariableFilter) => {
-      return addLabelToQuery(acc, filter);
-    }, initialExpr);
-
-    return returnVariables(expr);
+    const expr = adhocFilters.reduce<string>((acc, filter) => addLabelToQuery(acc, filter), initialExpr);
+    return returnVariables(expr) || undefined;
   }
 
   getExtraStreamFilters(streamFilters: StreamFilterState[] | undefined, scopedVars: ScopedVars): string | undefined {
@@ -283,8 +287,9 @@ export class VictoriaLogsDatasource
         datasource: this.getRef(),
         expr: this.interpolateString(query.expr, scopedVars),
         interval: this.templateSrv.replace(query.interval, scopedVars),
-        extraFilters: this.getExtraFilters(filters, query.extraFilters),
-        extraStreamFilters: this.getExtraStreamFilters(query.streamFilters, scopedVars)
+        extraFilters: this.getExtraFilters(filters, serializeAdHocFilters(query.adHocFilters) ?? ''),
+        extraStreamFilters: this.getExtraStreamFilters(query.streamFilters, scopedVars),
+        adHocFilters: undefined,
       }));
     }
     return expandedQueries;

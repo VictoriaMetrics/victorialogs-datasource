@@ -66,7 +66,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       urlParams.append('field', options.field);
     }
 
-    if (options.limit && options.limit > 0 && options.type === FilterFieldType.FieldValue) {
+    if (options.limit && options.limit > 0) {
       urlParams.append('limit', options.limit.toString());
     }
 
@@ -114,7 +114,7 @@ export default class LogsQlLanguageProvider extends LanguageProvider {
       urlParams.append('field', options.field);
     }
 
-    if (options.limit && options.limit > 0 && options.type === FilterFieldType.FieldValue) {
+    if (options.limit && options.limit > 0) {
       urlParams.append('limit', options.limit.toString());
     }
 

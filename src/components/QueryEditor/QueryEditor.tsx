@@ -11,6 +11,7 @@ import { TEXT_FILTER_ALL_VALUE } from '../../constants';
 import { Query, QueryEditorMode, QueryType, VictoriaLogsQueryEditorProps } from '../../types';
 import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 
+import { AdHocFiltersControl } from './AdHocFiltersControl';
 import { EditorHeader } from './EditorHeader';
 import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorOptions } from './QueryEditorOptions';
@@ -162,6 +163,16 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
               )}
               <QueryCodeEditor {...props} query={query} onChange={onChangeInternal} showExplain={true} />
             </>
+          )}
+          {query.adHocFilters && query.adHocFilters.length > 0 && app === CoreApp.Explore && (
+            <AdHocFiltersControl
+              datasource={datasource}
+              query={query}
+              timeRange={props.range}
+              app={app}
+              onChange={onChange}
+              onRunQuery={onRunQuery}
+            />
           )}
           {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange} />)}
           {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType} />)}

@@ -57,17 +57,29 @@ export interface StreamFilterState {
   values: string[];
 }
 
+export type AdHocFilterOperator = '=' | '!=' | '=~' | '!~' | '<' | '>' | '=|' | '!=|';
+
+export interface AdHocFilter {
+  key: string;
+  operator: AdHocFilterOperator;
+  value: string;
+  values?: string[];
+}
+
 export interface Query extends DataQuery {
   editorMode?: QueryEditorMode;
   expr: string;
   legendFormat?: string;
   maxLines?: number;
   step?: string;
+  /** Editor state — structured ad-hoc filter chips. Source of truth in editor; serialized to `extraFilters` only on the request boundary */
+  adHocFilters?: AdHocFilter[];
+  /** serialized adHocFilters for extra_filters query param (set during applyTemplateVariables) */
   extraFilters?: string;
-  /** serialized stream filters for extra_stream_filters query param (set during applyTemplateVariables) */
-  extraStreamFilters?: string;
   /** stream filters stored as structured data, serialized to extraStreamFilters before request */
   streamFilters?: StreamFilterState[];
+  /** serialized stream filters for extra_stream_filters query param (set during applyTemplateVariables) */
+  extraStreamFilters?: string;
   direction?: QueryDirection;
   supportingQueryType?: SupportingQueryType;
   queryType?: QueryType;
