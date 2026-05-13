@@ -12,7 +12,7 @@ import { TemplateSrv } from '@grafana/runtime';
 import { createDatasource } from './__mocks__/datasource';
 import { LogLevelRuleType } from './configuration/LogLevelRules/types';
 import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
-import { LOGS_LIMIT_HARD_CAP, VARIABLE_ALL_VALUE } from './constants';
+import { LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { VictoriaLogsDatasource } from './datasource';
 import { FilterActionType, Query, QueryType, SupportingQueryType, ToggleFilterAction } from './types';
 
@@ -347,6 +347,38 @@ describe('VictoriaLogsDatasource', () => {
       const ds = createDatasource(templateSrvMock);
       const result = ds.interpolateString('foo: $var1 bar: $var2', scopedVars);
       expect(result).toStrictEqual('foo: in(\"foo\",\"bar\") bar:in(*)');
+    });
+
+    it('does not wrap wildcard `*` of a textbox variable in double quotes inside in(...) (regression)', () => {
+      const variables = [
+        {
+          name: 'tenant',
+          current: { value: ['0'] },
+          multi: true,
+          type: 'query',
+          query: {
+            type: 'fieldValue'
+          }
+        },
+        {
+          name: 'query_hash',
+          current: { value: TEXT_FILTER_ALL_VALUE },
+          type: 'textbox',
+          multi: false,
+        }
+      ];
+      const templateSrvMock = {
+        replace: jest.fn(() =>
+          'tenant:in($_StartMultiVariable_0_EndMultiVariable) | query_hash:in($_StartMultiVariable_*_EndMultiVariable) | type:="range" | count()'
+        ),
+        getVariables: jest.fn().mockReturnValue(variables),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const result = ds.interpolateString(
+        'tenant:in($tenant) | query_hash:$query_hash | type:="range" | count()',
+        {},
+      );
+      expect(result).toBe('tenant:in("0") | query_hash:in(*) | type:="range" | count()');
     });
   });
 

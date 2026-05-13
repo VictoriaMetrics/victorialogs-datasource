@@ -364,9 +364,10 @@ export class VictoriaLogsDatasource
     const variableNamesList = this.templateSrv.getVariables().map(v => v.name);
     expr = doubleQuoteRegExp(expr, variableNamesList);
     expr = this.templateSrv.replace(expr, scopedVars, this.interpolateQueryExpr);
+    expr = this.replaceMultiVariables(expr);
     expr = correctRegExpValueAll(expr);
     expr = correctMultiExactOperatorValueAll(expr);
-    return this.replaceMultiVariables(expr);
+    return expr;
   }
 
   private replaceMultiVariables(input: string): string {
