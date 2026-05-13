@@ -53,6 +53,7 @@ const getStyles = (theme: GrafanaTheme2, placeholder: string) => {
     container: css`
       border-radius: ${theme.shape.borderRadius()};
       border: 1px solid ${theme.components.input.borderColor};
+      overflow: hidden;
     `,
     placeholder: css`
       ::after {

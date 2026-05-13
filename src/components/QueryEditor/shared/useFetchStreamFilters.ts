@@ -17,6 +17,13 @@ const streamFieldNamesCache = new LRUCache<ComboboxOption[]>(50);
 
 const shortFormat = getValueFormat('short');
 const formatHits = (hits: number): string => formattedValueToString(shortFormat(hits));
+const formatHitPercentage = (hits: number, totalHits: number): string => {
+  if (totalHits <= 0) {
+    return '';
+  }
+
+  return ` (${((hits / totalHits) * 100).toFixed(1)}%)`;
+};
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -44,9 +51,15 @@ export const useFetchStreamFilters = ({
   // (which don't change the raw string) are picked up immediately.
   const interpolatedQuery = queryBeforePipe ? datasource.interpolateString(queryBeforePipe) : undefined;
   const interpolatedStreamFilters = extraStreamFilters ? datasource.interpolateString(extraStreamFilters) : undefined;
+  // Grafana frequently passes a fresh TimeRange object on every parent re-render even when from/to
+  // values are unchanged. Pin a stable reference keyed on the resolved timestamps so downstream
+  // useCallbacks aren't invalidated on every render and don't re-trigger redundant fetches.
+  const fromTs = timeRange?.from?.valueOf();
+  const toTs = timeRange?.to?.valueOf();
+  const stableTimeRange = useMemo(() => timeRange, [fromTs, toTs]);
   const cacheKey = useMemo(
-    () => `stream::${interpolatedQuery ?? ''}::${interpolatedStreamFilters ?? ''}::${timeRange?.from.valueOf() ?? ''}::${timeRange?.to.valueOf() ?? ''}`,
-    [interpolatedQuery, interpolatedStreamFilters, timeRange]
+    () => `stream::${interpolatedQuery ?? ''}::${interpolatedStreamFilters ?? ''}::${fromTs ?? ''}::${toTs ?? ''}`,
+    [interpolatedQuery, interpolatedStreamFilters, fromTs, toTs]
   );
 
   // Fetch stream field names with server-side filtering
@@ -68,7 +81,7 @@ export const useFetchStreamFilters = ({
     }
 
     const list = await datasource.languageProvider?.getStreamFieldList(
-      { type: FilterFieldType.FieldName, timeRange, query: interpolatedQuery || undefined, filter: inputValue || undefined },
+      { type: FilterFieldType.FieldName, timeRange: stableTimeRange, query: interpolatedQuery || undefined, filter: inputValue || undefined },
       customParams
     );
 
@@ -77,16 +90,15 @@ export const useFetchStreamFilters = ({
       return [];
     }
 
-    const totalHits = list.reduce((sum, item) => sum + item.hits, 0);
     const result: ComboboxOption[] = list.map(({ value, hits }) => ({
       value: value || '',
       label: value || ' ',
-      description: `hits: ${formatHits(hits)}${totalHits > 0 ? ` (${((hits / totalHits) * 100).toFixed(1)}%)` : ''}`,
+      description: `${formatHits(hits)}`,
     }));
 
     streamFieldNamesCache.set(filterCacheKey, result);
     return result;
-  }, [datasource.customQueryParameters, datasource.languageProvider, interpolatedStreamFilters, timeRange, interpolatedQuery, cacheKey]);
+  }, [datasource.customQueryParameters, datasource.languageProvider, interpolatedStreamFilters, stableTimeRange, interpolatedQuery, cacheKey]);
 
   // Fetch stream field values with server-side filtering
   const fetchStreamFieldValues = useCallback(
@@ -110,7 +122,7 @@ export const useFetchStreamFilters = ({
       const list = await datasource.languageProvider?.getStreamFieldList(
         {
           type: FilterFieldType.FieldValue,
-          timeRange,
+          timeRange: stableTimeRange,
           field: fieldName,
           limit,
           filter: inputValue || undefined,
@@ -139,13 +151,13 @@ export const useFetchStreamFilters = ({
       const mappedOptions = list.map(({ value, hits }) => ({
         value: value || '',
         label: value || ' ',
-        description: `hits: ${formatHits(hits)}${totalHits > 0 ? ` (${((hits / totalHits) * 100).toFixed(1)}%)` : ''}`,
+        description: `${formatHits(hits)}${formatHitPercentage(hits, totalHits)}`,
       }));
       options.push(...mappedOptions);
 
       return options;
     },
-    [fieldName, datasource, interpolatedStreamFilters, timeRange, interpolatedQuery]
+    [fieldName, datasource, interpolatedStreamFilters, stableTimeRange, interpolatedQuery]
   );
 
   // Client-side filter for field names — also excludes already-used labels
@@ -171,12 +183,17 @@ export const useFetchStreamFilters = ({
         async (
           inputValue: string,
           resolve: (options: ComboboxOption[]) => void,
+          reject: (err: unknown) => void,
           fetchFn: (inputValue: string) => Promise<ComboboxOption[]>,
           filterFn?: (options: ComboboxOption[], input: string) => ComboboxOption[]
         ) => {
-          const allOptions = await fetchFn(inputValue);
-          const filteredOptions = filterFn ? filterFn(allOptions, inputValue) : allOptions;
-          resolve(filteredOptions);
+          try {
+            const allOptions = await fetchFn(inputValue);
+            const filteredOptions = filterFn ? filterFn(allOptions, inputValue) : allOptions;
+            resolve(filteredOptions);
+          } catch (err) {
+            reject(err);
+          }
         },
         DEBOUNCE_MS
       ),
@@ -188,6 +205,7 @@ export const useFetchStreamFilters = ({
     (
       inputValue: string,
       resolve: (options: ComboboxOption[]) => void,
+      reject: (err: unknown) => void,
       fetchFn: (inputValue: string) => Promise<ComboboxOption[]>,
       filterFn?: (options: ComboboxOption[], input: string) => ComboboxOption[]
     ) => {
@@ -200,7 +218,7 @@ export const useFetchStreamFilters = ({
           pendingResolve.current = null;
         }
         resolve(...args);
-      }, fetchFn, filterFn);
+      }, reject, fetchFn, filterFn);
     },
     [debouncedFilter]
   );
@@ -208,15 +226,13 @@ export const useFetchStreamFilters = ({
   // Async options loader for stream field names with server-side filtering
   const loadStreamFieldNames = useCallback(
     (inputValue: string): Promise<ComboboxOption[]> => {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         if (!inputValue) {
-          fetchStreamFieldNames('').then((allOptions) => {
-            resolve(filterFieldNamesOptions(allOptions, inputValue));
-          });
+          fetchStreamFieldNames('')
+            .then((allOptions) => resolve(filterFieldNamesOptions(allOptions, inputValue)))
+            .catch(reject);
         } else {
-          scheduleDebouncedFilter(inputValue, resolve, fetchStreamFieldNames, (opts, input) =>
-            filterFieldNamesOptions(opts, input)
-          );
+          scheduleDebouncedFilter(inputValue, resolve, reject, fetchStreamFieldNames, filterFieldNamesOptions);
         }
       });
     },
@@ -226,13 +242,13 @@ export const useFetchStreamFilters = ({
   // Async options loader for stream field values with debounce (server-side filtering)
   const loadStreamFieldValues = useCallback(
     (inputValue: string): Promise<ComboboxOption[]> => {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         if (!inputValue) {
-          fetchStreamFieldValues(inputValue).then((allOptions) => {
-            resolve(withVariables(allOptions, inputValue));
-          });
+          fetchStreamFieldValues(inputValue)
+            .then((allOptions) => resolve(withVariables(allOptions, inputValue)))
+            .catch(reject);
         } else {
-          scheduleDebouncedFilter(inputValue, resolve, fetchStreamFieldValues, (opts, input) =>
+          scheduleDebouncedFilter(inputValue, resolve, reject, fetchStreamFieldValues, (opts, input) =>
             withVariables(filterOptions(opts, input), input)
           );
         }
@@ -261,7 +277,7 @@ export const useFetchStreamFilters = ({
         const list = await datasource.languageProvider?.getStreamFieldList(
           {
             type: FilterFieldType.FieldValue,
-            timeRange,
+            timeRange: stableTimeRange,
             field,
             limit,
             filter: iv || undefined,
@@ -289,22 +305,24 @@ export const useFetchStreamFilters = ({
         opts.push(...list.map(({ value, hits }) => ({
           value: value || '',
           label: value || ' ',
-          description: `hits: ${formatHits(hits)}${totalHits > 0 ? ` (${((hits / totalHits) * 100).toFixed(1)}%)` : ''}`,
+          description: `${formatHits(hits)}${formatHitPercentage(hits, totalHits)}`,
         })));
         return opts;
       };
 
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         if (!inputValue) {
-          fetchFn(inputValue).then((allOptions) => resolve(withVariables(allOptions, inputValue)));
+          fetchFn(inputValue)
+            .then((allOptions) => resolve(withVariables(allOptions, inputValue)))
+            .catch(reject);
         } else {
-          scheduleDebouncedFilter(inputValue, resolve, fetchFn, (opts, input) =>
+          scheduleDebouncedFilter(inputValue, resolve, reject, fetchFn, (opts, input) =>
             withVariables(filterOptions(opts, input), input)
           );
         }
       });
     },
-    [datasource, interpolatedStreamFilters, timeRange, interpolatedQuery, scheduleDebouncedFilter, withVariables]
+    [datasource, interpolatedStreamFilters, stableTimeRange, interpolatedQuery, scheduleDebouncedFilter, withVariables]
   );
 
   // Cleanup debounce on unmount

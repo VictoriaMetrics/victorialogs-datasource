@@ -5,8 +5,8 @@ import { IconButton, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../datasource';
 import { Query } from '../../../types';
+import { buildStreamExtraFilters } from '../StreamFilters/streamFilterUtils';
 import { PipelineContext } from '../shared/PipelineContext';
-import { buildStreamExtraFilters } from '../shared/streamFilterUtils';
 
 import { PipeList } from './PipeList';
 import { PipeFieldLoadersProvider, PipeRenderer } from './PipeRenderer';
