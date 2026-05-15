@@ -3,10 +3,6 @@ import { css } from '@emotion/css';
 import { GrafanaTheme2 } from '@grafana/data';
 
 export const getStyles = (theme: GrafanaTheme2) => ({
-  staticText: css({
-    color: theme.colors.text.secondary,
-    whiteSpace: 'pre',
-  }),
   pipeSeparator: css({
     color: theme.colors.text.disabled,
     padding: theme.spacing(0, 0.25),

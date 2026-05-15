@@ -11,10 +11,12 @@ export const STREAM_TEMPLATE: TemplateConfig = {
     const fieldId = uniqueId('streamFieldName');
     const valuesId = uniqueId('streamValues');
     return [
+      text('{'),
       placeholder(fieldId, { role: 'streamFieldName', displayHint: 'stream_field', optionSource: 'streamFieldNames' }),
       text(' in('),
       placeholder(valuesId, { role: 'streamFieldValue', displayHint: 'values', optionSource: 'streamFieldValues', multi: true, dependsOn: fieldId }),
       text(')'),
+      text('}'),
     ];
   },
   tabOrder: getTabOrder,

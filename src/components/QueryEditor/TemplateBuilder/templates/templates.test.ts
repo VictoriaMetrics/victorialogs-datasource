@@ -35,14 +35,16 @@ describe('filter templates', () => {
     expect(segments[3]).toMatchObject({ type: 'placeholder', role: 'number' });
   });
 
-  it('stream creates field name and multi values placeholders', () => {
+  it('stream creates field name and multi values placeholders wrapped in braces', () => {
     const config = STREAM_TEMPLATE;
     const segments = config.createSegments();
-    expect(segments).toHaveLength(4);
-    expect(segments[0]).toMatchObject({ type: 'placeholder', role: 'streamFieldName', optionSource: 'streamFieldNames' });
-    expect(segments[1]).toMatchObject({ type: 'text', value: ' in(' });
-    expect(segments[2]).toMatchObject({ type: 'placeholder', role: 'streamFieldValue', optionSource: 'streamFieldValues', multi: true });
-    expect(segments[3]).toMatchObject({ type: 'text', value: ')' });
+    expect(segments).toHaveLength(6);
+    expect(segments[0]).toMatchObject({ type: 'text', value: '{' });
+    expect(segments[1]).toMatchObject({ type: 'placeholder', role: 'streamFieldName', optionSource: 'streamFieldNames' });
+    expect(segments[2]).toMatchObject({ type: 'text', value: ' in(' });
+    expect(segments[3]).toMatchObject({ type: 'placeholder', role: 'streamFieldValue', optionSource: 'streamFieldValues', multi: true });
+    expect(segments[4]).toMatchObject({ type: 'text', value: ')' });
+    expect(segments[5]).toMatchObject({ type: 'text', value: '}' });
   });
 
   it('tabOrder returns placeholder IDs in order', () => {
