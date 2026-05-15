@@ -10,7 +10,7 @@ export const getStyles = (theme: GrafanaTheme2) => ({
   pipeGroup: css({
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 2,
+    gap: theme.spacing(0.5),
   }),
   deleteButton: css({
     opacity: 0,

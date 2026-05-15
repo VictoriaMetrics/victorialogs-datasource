@@ -29,7 +29,7 @@ export const getStyles = (theme: GrafanaTheme2) => ({
     background: theme.colors.background.secondary,
     color: theme.colors.text.secondary,
     cursor: 'pointer',
-    fontSize: 12,
+    fontSize: theme.typography.bodySmall.fontSize,
     lineHeight: 1,
     padding: 0,
     marginLeft: theme.spacing(0.25),
