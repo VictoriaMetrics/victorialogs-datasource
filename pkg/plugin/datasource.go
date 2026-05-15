@@ -558,6 +558,7 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 			writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to create new request with context: %w", err))
 			return
 		}
+		newReq.Header = di.grafanaSettings.CustomHeaders.Clone()
 
 		// Something in the middle between client and datasource might be closing
 		// the connection. So we do a one more attempt in hope request will succeed.
