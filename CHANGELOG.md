@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.27.1
+
 * BUGFIX: fix a case where tenant settings (`AccountID`, `ProjectID`) and custom HTTP headers configured for the datasource could be silently dropped when the plugin automatically retried a request after a transient network error. This could lead to authorization failures or requests being served from the wrong tenant. The retried request now uses the same headers as the original one.
 
 ## v0.27.0
