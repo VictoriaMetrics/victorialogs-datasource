@@ -1,4 +1,3 @@
-import { STREAM_TEMPLATE_TYPE } from './segmentHelpers';
 import { getTemplate } from './templates/registry';
 import { Pipe, PlaceholderSegment, Segment, TemplateQueryModel } from './types';
 
@@ -47,8 +46,6 @@ export const serializePipe = (pipe: Pipe): string => {
   return pipe.segments.map(serializeSegment).join('');
 };
 
-const isStreamPipe = (pipe: Pipe): boolean => pipe.templateType === STREAM_TEMPLATE_TYPE;
-
 const FILTER_CATEGORIES = new Set(['stream', 'filter']);
 
 const hasFilterPipe = (pipes: Pipe[]): boolean =>
@@ -65,11 +62,7 @@ export const serializeQuery = (model: TemplateQueryModel): string => {
     if (!serialized) {
       continue;
     }
-    if (isStreamPipe(pipe)) {
-      parts.push(`{${serialized}}`);
-    } else {
-      parts.push(serialized);
-    }
+    parts.push(serialized);
   }
 
   if (parts.length === 0) {

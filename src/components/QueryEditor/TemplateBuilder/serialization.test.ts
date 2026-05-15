@@ -57,7 +57,7 @@ describe('serializeQuery', () => {
       ...placeholder('v', { role: 'streamFieldValue' as const, displayHint: '', optionSource: 'streamFieldValues' as const, multi: true }),
       multiValues: ['nginx'],
     };
-    const p = makePipe('stream', [field, text(' in('), vals, text(')')]);
+    const p = makePipe('stream', [text('{'), field, text(' in('), vals, text(')'), text('}')]);
     expect(serializeQuery({ pipes: [p] })).toBe('{app in("nginx")}');
   });
 
@@ -67,14 +67,14 @@ describe('serializeQuery', () => {
       ...placeholder('v1', { role: 'streamFieldValue' as const, displayHint: '', optionSource: 'streamFieldValues' as const, multi: true }),
       multiValues: ['nginx'],
     };
-    const p1 = makePipe('stream', [f1, text(' in('), v1, text(')')]);
+    const p1 = makePipe('stream', [text('{'), f1, text(' in('), v1, text(')'), text('}')]);
 
     const f2 = { ...placeholder('f2', { role: 'streamFieldName' as const, displayHint: '', optionSource: 'streamFieldNames' as const }), value: 'host' };
     const v2: PlaceholderSegment = {
       ...placeholder('v2', { role: 'streamFieldValue' as const, displayHint: '', optionSource: 'streamFieldValues' as const, multi: true }),
       multiValues: ['h1', 'h2'],
     };
-    const p2 = makePipe('stream', [f2, text(' in('), v2, text(')')]);
+    const p2 = makePipe('stream', [text('{'), f2, text(' in('), v2, text(')'), text('}')]);
 
     expect(serializeQuery({ pipes: [p1, p2] })).toBe('{app in("nginx")} | {host in("h1", "h2")}');
   });
@@ -85,7 +85,7 @@ describe('serializeQuery', () => {
       ...placeholder('sv', { role: 'streamFieldValue' as const, displayHint: '', optionSource: 'streamFieldValues' as const, multi: true }),
       multiValues: ['nginx'],
     };
-    const stream = makePipe('stream', [sf, text(' in('), sv, text(')')]);
+    const stream = makePipe('stream', [text('{'), sf, text(' in('), sv, text(')'), text('}')]);
     const regular = makePipe('phrase', [text('*')]);
     expect(serializeQuery({ pipes: [stream, regular] })).toBe('{app in("nginx")} | *');
   });
@@ -106,7 +106,7 @@ describe('serializeQuery', () => {
       ...placeholder('sv', { role: 'streamFieldValue' as const, displayHint: '', optionSource: 'streamFieldValues' as const, multi: true }),
       multiValues: ['*'],
     };
-    const stream = makePipe('stream', [sf, text(' in('), sv, text(')')]);
+    const stream = makePipe('stream', [text('{'), sf, text(' in('), sv, text(')'), text('}')]);
     expect(serializeQuery({ pipes: [stream] })).toBe('{app in(*)}');
   });
 
@@ -174,7 +174,7 @@ describe('serializeQuery — auto * prefix', () => {
       ...placeholder('sv', { role: 'streamFieldValue' as const, displayHint: '', optionSource: 'streamFieldValues' as const, multi: true }),
       multiValues: ['nginx'],
     };
-    const stream = makePipe('stream', [sf, text(' in('), sv, text(')')]);
+    const stream = makePipe('stream', [text('{'), sf, text(' in('), sv, text(')'), text('}')]);
     const stat = makePipe('stats_count', [text('stats count()')]);
     expect(serializeQuery({ pipes: [stream, stat] })).toBe('{app in("nginx")} | stats count()');
   });
@@ -219,8 +219,8 @@ describe('field name quoting', () => {
       ...placeholder('v', { role: 'streamFieldValue' as const, displayHint: '', optionSource: 'streamFieldValues' as const, multi: true }),
       multiValues: ['nginx'],
     };
-    const pipe = makePipe('stream', [field, text(' in('), vals, text(')')]);
-    expect(serializePipe(pipe)).toBe('"my-app" in("nginx")');
+    const pipe = makePipe('stream', [text('{'), field, text(' in('), vals, text(')'), text('}')]);
+    expect(serializePipe(pipe)).toBe('{"my-app" in("nginx")}');
   });
 
   it('does not quote * as field name', () => {

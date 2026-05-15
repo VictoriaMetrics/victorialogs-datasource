@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix a case where tenant settings (`AccountID`, `ProjectID`) and custom HTTP headers configured for the datasource could be silently dropped when the plugin automatically retried a request after a transient network error. This could lead to authorization failures or requests being served from the wrong tenant. The retried request now uses the same headers as the original one.
+
 ## v0.27.0
 
 * FEATURE: add a visual query builder. Construct queries by chaining typed pipes (`filter`, `aggregate`, `modify`, `sort`, `limit`, `custom`) through an interactive UI with field name/value dropdowns and keyboard navigation. See [Query builder](https://docs.victoriametrics.com/victorialogs/integrations/grafana/#query-builder) docs and [#578](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/578).
