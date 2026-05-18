@@ -65,7 +65,7 @@ and LogsQL examples [here](https://docs.victoriametrics.com/victorialogs/logsql-
 
 A visual alternative to the LogsQL code editor: build queries by chaining typed pipes through an interactive UI with field/value dropdowns and keyboard navigation.
 
-<img alt="Query builder" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/query_builder.gif?raw=true">
+<img alt="Query builder" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/query_builder.gif?raw=true">
 
 
 #### Switching between Builder and Code
