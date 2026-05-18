@@ -608,14 +608,11 @@ export class VictoriaLogsDatasource
     return { ...timeRange, raw: timeRange };
   };
 
-  async fetchTenantIds(): Promise<{ hint: string } | string[]> {
+  async fetchTenantIds(): Promise<string[]> {
     try {
       const res = await this.postResource<{ hint: string } | Tenant[]>('select/tenant_ids', {});
 
       if (!Array.isArray(res)) {
-        if (res.hint) {
-          return res;
-        }
         return [];
       }
 

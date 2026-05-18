@@ -1,5 +1,6 @@
 import { dateTime, TimeRange } from '@grafana/data';
 
+import { VictoriaLogsDatasource } from '../../datasource';
 import { FieldHits, FilterFieldType } from '../../types';
 
 import {
@@ -65,10 +66,13 @@ export function classifyValueCase(severityField: string): SeverityValueCase {
 }
 
 export async function runDetection(
-  backend: DetectionBackend,
+  backend: VictoriaLogsDatasource,
   options: RunDetectionOptions = {},
 ): Promise<[OpenTelemetryPresetDetection, string[]]> {
   const timeRange = buildDetectionTimeRange();
+  if (!backend.languageProvider) {
+    throw new Error('Language provider is not available');
+  }
   const fieldHits = await backend.languageProvider.getFieldList({
     type: FilterFieldType.FieldName,
     limit: FIELD_NAMES_SAMPLE_LIMIT,

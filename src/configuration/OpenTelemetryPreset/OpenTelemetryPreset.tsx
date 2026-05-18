@@ -16,7 +16,6 @@ export const OpenTelemetryPreset = (props: PropsConfigEditor) => {
   const {
     preset,
     healthStatus,
-    healthMessage,
     fieldNames,
     isDetecting,
     error,
@@ -47,7 +46,7 @@ export const OpenTelemetryPreset = (props: PropsConfigEditor) => {
             Auto-generate derived fields for trace/span IDs and log level rules for OTel severity.
             Your own derived fields and log level rules are preserved.
           </Text>
-          {healthStatus === HealthStatus.Error && healthMessage && (
+          {healthStatus === HealthStatus.Error && (
             <Text variant='bodySmall' color='warning' element='p'>
               To use the OpenTelemetry preset, need to set the datasource url first and save the datasource configuration
             </Text>
