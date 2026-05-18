@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: disable tenant configuration inputs (`Tenant`, `AccountID`, `ProjectID`) until the datasource health check passes. Previously, entering and clearing a tenant on a freshly created (not yet saved) datasource produced a validation error. See [#639](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/639).
+
 ## v0.27.1
 
 * BUGFIX: fix a case where tenant settings (`AccountID`, `ProjectID`) and custom HTTP headers configured for the datasource could be silently dropped when the plugin automatically retried a request after a transient network error. This could lead to authorization failures or requests being served from the wrong tenant. The retried request now uses the same headers as the original one.

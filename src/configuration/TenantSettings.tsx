@@ -1,7 +1,7 @@
 import React, { SyntheticEvent, useCallback, useEffect, useState } from 'react';
 
 import { SelectableValue } from '@grafana/data';
-import { getDataSourceSrv } from '@grafana/runtime';
+import { getDataSourceSrv, HealthStatus } from '@grafana/runtime';
 import { ComboboxOption, InlineField, Input, Stack, Text, TextLink } from '@grafana/ui';
 
 import { CompatibleCombobox } from '../components/CompatibleCombobox';
@@ -10,6 +10,7 @@ import { VictoriaLogsDatasource } from '../datasource';
 import { TenantHeaderNames } from '../types';
 
 import { PropsConfigEditor } from './ConfigEditor';
+import { useHealthCheck } from './useHealthCheck';
 import { getValueFromEventItem } from './utils';
 
 const documentationLink = (
@@ -29,25 +30,18 @@ export const TenantSettings = (props: PropsConfigEditor) => {
 
   const [tenants, setTenants] = useState<ComboboxOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [hint, setHint] = useState<string>('');
+  const { healthStatus } = useHealthCheck(options);
 
   const loadTenantIds = useCallback(async () => {
-    // Only try to load if datasource is saved (has ID)
-    if (!options.id) {
+    if (!options.id || healthStatus !== HealthStatus.OK) {
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
-    setHint('');
     try {
       const ds = await getDataSourceSrv().get(options.uid) as VictoriaLogsDatasource;
       const tenantList = await ds.fetchTenantIds();
-      if (!Array.isArray(tenantList)) {
-        setHint(tenantList.hint);
-        return;
-      }
-
       setTenants(tenantList.map(id => ({ label: id, value: id })));
     } catch (error) {
       // Silently fail - tenant IDs are optional
@@ -55,9 +49,9 @@ export const TenantSettings = (props: PropsConfigEditor) => {
     } finally {
       setIsLoading(false);
     }
-  }, [options.id, options.uid]);
+  }, [options.id, options.uid, healthStatus]);
 
-  // if changed version, reload tenant IDs, because the datasource url may have changed
+  // if changed version or health status, reload tenant IDs
   useEffect(() => {
     void loadTenantIds();
   }, [loadTenantIds, options.version]);
@@ -94,6 +88,8 @@ export const TenantSettings = (props: PropsConfigEditor) => {
   };
 
   const hasTenants = tenants.length > 0;
+  const isReady = healthStatus === HealthStatus.OK;
+  const isDisabled = isReadOnly || isLoading || !isReady;
 
   // Combine current accountId and projectId into tenant format
   const currentTenant = multitenancyHeaders?.[TenantHeaderNames.AccountID] && multitenancyHeaders?.[TenantHeaderNames.ProjectID]
@@ -107,9 +103,11 @@ export const TenantSettings = (props: PropsConfigEditor) => {
         <Text variant='bodySmall' color='disabled' element='p'>
           Manage tenants and multitenancy settings. {documentationLink}
         </Text>
-        {hint && <Text variant='bodySmall' color='warning' element='p'>
-          {hint}
-        </Text>}
+        {healthStatus === HealthStatus.Error && (
+          <Text variant='bodySmall' color='warning' element='p'>
+            To use multitenancy, need to set the datasource url first and save the datasource configuration
+          </Text>
+        )}
       </div>
 
       <div className='gf-form-group'>
@@ -120,7 +118,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
               labelWidth={28}
               interactive={true}
               tooltip='Format: accountId:projectId (e.g., 1:2)'
-              disabled={isReadOnly || isLoading}
+              disabled={isDisabled}
             >
               <CompatibleCombobox
                 placeholder='Select Tenant'
@@ -130,7 +128,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
                 onChange={onTenantChange}
                 loading={isLoading}
                 width={30}
-                disabled={isReadOnly || isLoading}
+                disabled={isDisabled}
               />
             </InlineField>
           </div>
@@ -141,7 +139,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
                 label='Account ID'
                 labelWidth={28}
                 interactive={true}
-                disabled={isReadOnly || isLoading}
+                disabled={isDisabled}
               >
                 <Input
                   className='width-8'
@@ -150,7 +148,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
                   placeholder='0'
                   value={`${multitenancyHeaders?.[TenantHeaderNames.AccountID] || ''}`}
                   onChange={onInputChange(TenantHeaderNames.AccountID)}
-                  disabled={isReadOnly || isLoading}
+                  disabled={isDisabled}
                 />
               </InlineField>
             </div>
@@ -160,7 +158,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
                 label='Project ID'
                 labelWidth={28}
                 interactive={true}
-                disabled={isReadOnly || isLoading}
+                disabled={isDisabled}
               >
                 <Input
                   className='width-8'
@@ -169,7 +167,7 @@ export const TenantSettings = (props: PropsConfigEditor) => {
                   placeholder='0'
                   value={`${multitenancyHeaders?.[TenantHeaderNames.ProjectID] || ''}`}
                   onChange={onInputChange(TenantHeaderNames.ProjectID)}
-                  disabled={isReadOnly || isLoading}
+                  disabled={isDisabled}
                 />
               </InlineField>
             </div>
