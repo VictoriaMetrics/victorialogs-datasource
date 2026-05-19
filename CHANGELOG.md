@@ -2,8 +2,9 @@
 
 ## tip
 
-* BUGFIX: disable tenant configuration inputs (`Tenant`, `AccountID`, `ProjectID`) until the datasource health check passes. Previously, entering and clearing a tenant on a freshly created (not yet saved) datasource produced a validation error. See [#639](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/639).
 * FEATURE: add ability to set custom field names in dashboard variables, since fields do not necessarily exist at the time of creation or manipulation (e.g. when importing a dashboard from JSON, then editing a variable). See [pr #606](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/606). Thanks to @github-vincent-miszczak for contributing.
+
+* BUGFIX: disable tenant configuration inputs (`Tenant`, `AccountID`, `ProjectID`) until the datasource health check passes. Previously, entering and clearing a tenant on a freshly created (not yet saved) datasource produced a validation error. See [#639](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/639).
 
 ## v0.27.1
 
