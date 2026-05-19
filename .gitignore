@@ -44,3 +44,5 @@ tsconfig.tsbuildinfo
 # Docker
 .cache
 gocache-for-docker
+
+.DS_Store
