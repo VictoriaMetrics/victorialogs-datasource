@@ -27,6 +27,13 @@ export const CompatibleCombobox: typeof Combobox = (props) => {
     });
   };
 
+  const handleCreateOption = (customValue: string) => {
+    props.onChange({
+      value: customValue as any,
+      label: customValue,
+    });
+  };
+
   const asyncOption = useCallback((value: SelectValue<any>) => {
     if (typeof props.options === 'function') {
       return props.options(value);
@@ -61,7 +68,9 @@ export const CompatibleCombobox: typeof Combobox = (props) => {
         loadOptions={selectOptions}
         defaultOptions
         allowCustomValue={props.createCustomValue}
+        onCreateOption={props.createCustomValue ? handleCreateOption : undefined}
         onChange={handleSelectChange}
+        onBlur={props.onBlur}
         isClearable={props.isClearable}
         isLoading={props.loading}
         disabled={props.disabled}
@@ -76,7 +85,9 @@ export const CompatibleCombobox: typeof Combobox = (props) => {
       value={normalizedValue}
       options={selectOptions}
       allowCustomValue={props.createCustomValue}
+      onCreateOption={props.createCustomValue ? handleCreateOption : undefined}
       onChange={handleSelectChange}
+      onBlur={props.onBlur}
       isClearable={props.isClearable}
       isLoading={props.loading}
       disabled={props.disabled}
