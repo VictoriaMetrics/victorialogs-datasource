@@ -63,6 +63,8 @@ and LogsQL examples [here](https://docs.victoriametrics.com/victorialogs/logsql-
 
 ### Query builder
 
+> **Note:** available since [v0.27.1](https://github.com/VictoriaMetrics/victorialogs-datasource/releases/tag/v0.27.1).
+
 A visual alternative to the LogsQL code editor: build queries by chaining typed pipes through an interactive UI with field/value dropdowns and keyboard navigation.
 
 <img alt="Query builder" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/query_builder.gif?raw=true">
@@ -284,6 +286,8 @@ correlation in [this issue](https://github.com/VictoriaMetrics/VictoriaMetrics/i
 Log to traces correlation is possible via Derived Fields functionality. See its description in the sections below.
 
 ## OpenTelemetry preset
+
+> **Note:** available since [v0.27.1](https://github.com/VictoriaMetrics/victorialogs-datasource/releases/tag/v0.27.1).
 
 The **OpenTelemetry preset** in the datasource configuration automatically sets up [Derived Fields](#derived-fields) for trace IDs and [Log level rules](#log-level-rules) for OTel severity — without manual configuration.
 
