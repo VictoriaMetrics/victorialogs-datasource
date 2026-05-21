@@ -57,7 +57,6 @@ import { removeDoubleQuotesAroundVar } from './parsing';
 import { replaceOperatorWithIn, returnVariables } from './parsingUtils';
 import { transformBackendResult } from './transformers';
 import {
-  AdHocFiltersMode,
   DerivedFieldConfig,
   FilterActionType,
   FilterFieldType,
@@ -74,9 +73,14 @@ import {
   ToggleFilterAction,
   VariableQuery,
 } from './types';
-import { serializeAdHocFilters } from './utils/query/adHocFilters';
+import {
+  resolveAdHocFilters,
+  serializeChipsForBackend,
+} from './utils/query/adHocFilters';
 import { formatOffsetDuration, getMillisecondsFromDuration } from './utils/timeUtils';
 import { VariableSupport } from './variableSupport/VariableSupport';
+
+export { resolveAdHocFiltersMode } from './utils/query/adHocFilters';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 export const REF_ID_STARTER_LOG_SAMPLE = 'log-sample-';
@@ -230,26 +234,15 @@ export class VictoriaLogsDatasource
       },
     };
 
-    const mode = resolveAdHocFiltersMode(target);
-    let expr = this.interpolateString(target.expr, variables);
-    let extraFilters: string | undefined;
-    if (mode !== AdHocFiltersMode.Off) {
-      const baseAdHocExpr = serializeAdHocFilters(target.adHocFilters) ?? '';
-      const filters = this.getExtraFilters(adhocFilters, baseAdHocExpr);
-      if (mode === AdHocFiltersMode.RootQuery && filters) {
-        expr = `${filters} | ${expr}`;
-      } else if (mode === AdHocFiltersMode.ExtraFilters) {
-        extraFilters = filters;
-      }
-    }
+    const interpolated = this.interpolateString(target.expr, variables);
+    const { expr, chips } = resolveAdHocFilters(target, interpolated, adhocFilters);
 
-    const extraStreamFilters = this.getExtraStreamFilters(target.streamFilters, scopedVars);
     return {
       ...target,
       legendFormat: this.templateSrv.replace(target.legendFormat, rest),
       expr,
-      extraFilters,
-      extraStreamFilters,
+      extraFilters: serializeChipsForBackend(chips),
+      extraStreamFilters: this.getExtraStreamFilters(target.streamFilters, scopedVars),
       // Backend protocol uses `extraFilters` (string); the structured array is editor-only
       adHocFilters: undefined,
     };
@@ -284,19 +277,25 @@ export class VictoriaLogsDatasource
   }
 
   interpolateVariablesInQueries(queries: Query[], scopedVars: ScopedVars, filters?: AdHocVariableFilter[]): Query[] {
-    let expandedQueries = queries;
-    if (queries && queries.length) {
-      expandedQueries = queries.map((query) => ({
+    if (!queries?.length) {
+      return queries;
+    }
+
+    return queries.map((query) => {
+      const interpolated = this.interpolateString(query.expr, scopedVars);
+      const { expr, chips } = resolveAdHocFilters(query, interpolated, filters);
+
+      return {
         ...query,
         datasource: this.getRef(),
-        expr: this.interpolateString(query.expr, scopedVars),
+        expr,
         interval: this.templateSrv.replace(query.interval, scopedVars),
-        extraFilters: this.getExtraFilters(filters, serializeAdHocFilters(query.adHocFilters) ?? ''),
+        // Keep chips on the target so Explore can render them; applyTemplateVariables
+        // will serialise them into `extraFilters` at query-run time.
+        adHocFilters: chips,
         extraStreamFilters: this.getExtraStreamFilters(query.streamFilters, scopedVars),
-        adHocFilters: undefined,
-      }));
-    }
-    return expandedQueries;
+      };
+    });
   }
 
   async metricFindQuery(
@@ -650,9 +649,3 @@ export class VictoriaLogsDatasource
   }
 }
 
-export function resolveAdHocFiltersMode(query: Query): AdHocFiltersMode {
-  if (query.adHocFiltersMode) {
-    return query.adHocFiltersMode;
-  }
-  return query.isApplyExtraFiltersToRootQuery ? AdHocFiltersMode.RootQuery : AdHocFiltersMode.ExtraFilters;
-}

@@ -13,8 +13,8 @@ import { createDatasource } from './__mocks__/datasource';
 import { LogLevelRuleType } from './configuration/LogLevelRules/types';
 import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
 import { LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
-import { resolveAdHocFiltersMode, VictoriaLogsDatasource } from './datasource';
-import { AdHocFiltersMode, FilterActionType, Query, QueryType, SupportingQueryType, ToggleFilterAction } from './types';
+import { VictoriaLogsDatasource } from './datasource';
+import { AdHocFilter, AdHocFiltersMode, FilterActionType, Query, QueryType, SupportingQueryType, ToggleFilterAction } from './types';
 
 const replaceMock = jest.fn().mockImplementation((a: string) => a);
 
@@ -432,20 +432,114 @@ describe('VictoriaLogsDatasource', () => {
     });
   });
 
-  describe('resolveAdHocFiltersMode', () => {
-    it('should return adHocFiltersMode when set', () => {
-      expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', adHocFiltersMode: AdHocFiltersMode.Off })).toBe(AdHocFiltersMode.Off);
-      expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', adHocFiltersMode: AdHocFiltersMode.RootQuery })).toBe(AdHocFiltersMode.RootQuery);
-      expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', adHocFiltersMode: AdHocFiltersMode.ExtraFilters })).toBe(AdHocFiltersMode.ExtraFilters);
+  describe('interpolateVariablesInQueries', () => {
+    const dashboardFilters: AdHocVariableFilter[] = [
+      { key: 'level', operator: '=', value: 'error' },
+    ];
+
+    it('materialises dashboard ad-hoc filters as chips when mode is extraFilters', () => {
+      const result = ds.interpolateVariablesInQueries(
+        [{ expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.ExtraFilters }],
+        {},
+        dashboardFilters
+      );
+      expect(result[0].adHocFilters).toEqual(dashboardFilters);
+      expect(result[0].expr).toBe('_time:5m');
+      expect(result[0].extraFilters).toBeUndefined();
     });
 
-    it('should fall back to legacy isApplyExtraFiltersToRootQuery', () => {
-      expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', isApplyExtraFiltersToRootQuery: true })).toBe(AdHocFiltersMode.RootQuery);
-      expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', isApplyExtraFiltersToRootQuery: false })).toBe(AdHocFiltersMode.ExtraFilters);
+    it('materialises dashboard ad-hoc filters as chips when no mode is set (defaults to extraFilters)', () => {
+      const result = ds.interpolateVariablesInQueries(
+        [{ expr: '_time:5m', refId: 'A' }],
+        {},
+        dashboardFilters
+      );
+      expect(result[0].adHocFilters).toEqual(dashboardFilters);
+      expect(result[0].extraFilters).toBeUndefined();
     });
 
-    it('should default to extraFilters when neither field is set', () => {
-      expect(resolveAdHocFiltersMode({ expr: '', refId: 'A' })).toBe(AdHocFiltersMode.ExtraFilters);
+    it('inlines dashboard ad-hoc filters into expr when mode is rootQuery', () => {
+      const result = ds.interpolateVariablesInQueries(
+        [{ expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.RootQuery }],
+        {},
+        dashboardFilters
+      );
+      expect(result[0].expr).toBe('level:="error" | _time:5m');
+      expect(result[0].adHocFilters).toBeUndefined();
+      expect(result[0].extraFilters).toBeUndefined();
+    });
+
+    it('combines panel chips with dashboard ad-hoc filters into expr in rootQuery mode', () => {
+      const panelChips: AdHocFilter[] = [{ key: 'app', operator: '=', value: 'frontend' }];
+      const result = ds.interpolateVariablesInQueries(
+        [{
+          expr: '_time:5m',
+          refId: 'A',
+          adHocFiltersMode: AdHocFiltersMode.RootQuery,
+          adHocFilters: panelChips,
+        }],
+        {},
+        dashboardFilters
+      );
+      expect(result[0].expr).toBe('app:="frontend" AND level:="error" | _time:5m');
+      expect(result[0].adHocFilters).toBeUndefined();
+    });
+
+    it('drops dashboard ad-hoc filters when mode is off', () => {
+      const result = ds.interpolateVariablesInQueries(
+        [{ expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.Off }],
+        {},
+        dashboardFilters
+      );
+      expect(result[0].adHocFilters).toBeUndefined();
+    });
+
+    it('preserves panel-level adHocFilters even in off mode', () => {
+      const panelChips: AdHocFilter[] = [{ key: 'app', operator: '=', value: 'frontend' }];
+      const result = ds.interpolateVariablesInQueries(
+        [{
+          expr: '_time:5m',
+          refId: 'A',
+          adHocFiltersMode: AdHocFiltersMode.Off,
+          adHocFilters: panelChips,
+        }],
+        {},
+        dashboardFilters
+      );
+      expect(result[0].adHocFilters).toEqual(panelChips);
+    });
+
+    it('honours legacy isApplyExtraFiltersToRootQuery flag (inlines into expr)', () => {
+      const result = ds.interpolateVariablesInQueries(
+        [{ expr: '_time:5m', refId: 'A', isApplyExtraFiltersToRootQuery: true }],
+        {},
+        dashboardFilters
+      );
+      expect(result[0].expr).toBe('level:="error" | _time:5m');
+      expect(result[0].adHocFilters).toBeUndefined();
+    });
+
+    it('merges existing panel chips with dashboard ad-hoc filters', () => {
+      const panelChips: AdHocFilter[] = [{ key: 'app', operator: '=', value: 'frontend' }];
+      const result = ds.interpolateVariablesInQueries(
+        [{ expr: '_time:5m', refId: 'A', adHocFilters: panelChips }],
+        {},
+        dashboardFilters
+      );
+      expect(result[0].adHocFilters).toEqual([...panelChips, ...dashboardFilters]);
+    });
+
+    it('leaves adHocFilters undefined when there are no chips to materialise', () => {
+      const result = ds.interpolateVariablesInQueries(
+        [{ expr: '_time:5m', refId: 'A' }],
+        {},
+        []
+      );
+      expect(result[0].adHocFilters).toBeUndefined();
+    });
+
+    it('returns input unchanged when queries is empty', () => {
+      expect(ds.interpolateVariablesInQueries([], {}, dashboardFilters)).toEqual([]);
     });
   });
 

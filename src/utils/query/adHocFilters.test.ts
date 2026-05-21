@@ -1,11 +1,16 @@
-import { AdHocFilter } from '../../types';
+import { AdHocVariableFilter } from '@grafana/data';
+
+import { AdHocFilter, AdHocFiltersMode } from '../../types';
 
 import {
   adHocFilterMatches,
   appendFilterPipeToQuery,
   formatAdHocFilterLabel,
   queryHasPipes,
+  resolveAdHocFilters,
+  resolveAdHocFiltersMode,
   serializeAdHocFilters,
+  serializeChipsForBackend,
 } from './adHocFilters';
 
 describe('serializeAdHocFilters', () => {
@@ -168,5 +173,171 @@ describe('adHocFilterMatches', () => {
 
   it('does not match different value', () => {
     expect(adHocFilterMatches(f, 'service', 'web')).toBe(false);
+  });
+});
+
+describe('serializeChipsForBackend', () => {
+  it('returns undefined for undefined input', () => {
+    expect(serializeChipsForBackend(undefined)).toBeUndefined();
+  });
+
+  it('returns undefined for empty array', () => {
+    expect(serializeChipsForBackend([])).toBeUndefined();
+  });
+
+  it('serialises a single chip into a LogsQL filter', () => {
+    const chips: AdHocFilter[] = [{ key: 'level', operator: '=', value: 'error' }];
+    expect(serializeChipsForBackend(chips)).toBe('level:="error"');
+  });
+
+  it('joins multiple chips with AND', () => {
+    const chips: AdHocFilter[] = [
+      { key: 'level', operator: '=', value: 'error' },
+      { key: 'app', operator: '!=', value: 'test' },
+    ];
+    expect(serializeChipsForBackend(chips)).toBe('level:="error" AND app:!="test"');
+  });
+
+  it('restores placeholder variables via returnVariables', () => {
+    // returnVariables turns the internal `__V_0__name__V__` placeholder back into `$name`
+    const chips: AdHocFilter[] = [{ key: 'level', operator: '=', value: '__V_0__severity__V__' }];
+    expect(serializeChipsForBackend(chips)).toBe('level:="$severity"');
+  });
+});
+
+describe('resolveAdHocFiltersMode', () => {
+  it('returns AdHocFiltersMode.Off when set explicitly', () => {
+    expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', adHocFiltersMode: AdHocFiltersMode.Off })).toBe(AdHocFiltersMode.Off);
+  });
+
+  it('returns AdHocFiltersMode.RootQuery when set explicitly', () => {
+    expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', adHocFiltersMode: AdHocFiltersMode.RootQuery })).toBe(AdHocFiltersMode.RootQuery);
+  });
+
+  it('returns AdHocFiltersMode.ExtraFilters when set explicitly', () => {
+    expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', adHocFiltersMode: AdHocFiltersMode.ExtraFilters })).toBe(AdHocFiltersMode.ExtraFilters);
+  });
+
+  it('falls back to legacy isApplyExtraFiltersToRootQuery=true → RootQuery', () => {
+    expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', isApplyExtraFiltersToRootQuery: true })).toBe(AdHocFiltersMode.RootQuery);
+  });
+
+  it('falls back to legacy isApplyExtraFiltersToRootQuery=false → ExtraFilters', () => {
+    expect(resolveAdHocFiltersMode({ expr: '', refId: 'A', isApplyExtraFiltersToRootQuery: false })).toBe(AdHocFiltersMode.ExtraFilters);
+  });
+
+  it('defaults to ExtraFilters when neither flag is set', () => {
+    expect(resolveAdHocFiltersMode({ expr: '', refId: 'A' })).toBe(AdHocFiltersMode.ExtraFilters);
+  });
+});
+
+describe('resolveAdHocFilters', () => {
+  const dashboard: AdHocVariableFilter[] = [{ key: 'level', operator: '=', value: 'error' }];
+
+  describe('mode Off', () => {
+    it('returns interpolated expr untouched and preserves panel chips', () => {
+      const panelChips: AdHocFilter[] = [{ key: 'app', operator: '=', value: 'frontend' }];
+      const result = resolveAdHocFilters(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.Off, adHocFilters: panelChips },
+        '_time:5m',
+        dashboard
+      );
+      expect(result).toEqual({ expr: '_time:5m', chips: panelChips });
+    });
+
+    it('drops dashboard filters', () => {
+      const result = resolveAdHocFilters(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.Off },
+        '_time:5m',
+        dashboard
+      );
+      expect(result.chips).toBeUndefined();
+    });
+  });
+
+  describe('mode RootQuery', () => {
+    it('prefixes dashboard filters to expr', () => {
+      const result = resolveAdHocFilters(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.RootQuery },
+        '_time:5m',
+        dashboard
+      );
+      expect(result).toEqual({ expr: 'level:="error" | _time:5m', chips: undefined });
+    });
+
+    it('combines panel chips with dashboard filters, panel first', () => {
+      const panelChips: AdHocFilter[] = [{ key: 'app', operator: '=', value: 'frontend' }];
+      const result = resolveAdHocFilters(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.RootQuery, adHocFilters: panelChips },
+        '_time:5m',
+        dashboard
+      );
+      expect(result.expr).toBe('app:="frontend" AND level:="error" | _time:5m');
+      expect(result.chips).toBeUndefined();
+    });
+
+    it('leaves expr unchanged when there are no chips to prepend', () => {
+      const result = resolveAdHocFilters(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.RootQuery },
+        '_time:5m',
+        []
+      );
+      expect(result).toEqual({ expr: '_time:5m', chips: undefined });
+    });
+  });
+
+  describe('mode ExtraFilters (and default)', () => {
+    it('materialises dashboard filters into chips', () => {
+      const result = resolveAdHocFilters(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.ExtraFilters },
+        '_time:5m',
+        dashboard
+      );
+      expect(result.expr).toBe('_time:5m');
+      expect(result.chips).toEqual([{ key: 'level', operator: '=', value: 'error' }]);
+    });
+
+    it('behaves like ExtraFilters when mode is unset (default)', () => {
+      const result = resolveAdHocFilters(
+        { expr: '_time:5m', refId: 'A' },
+        '_time:5m',
+        dashboard
+      );
+      expect(result.chips).toEqual([{ key: 'level', operator: '=', value: 'error' }]);
+    });
+
+    it('combines panel chips with dashboard filters, panel first', () => {
+      const panelChips: AdHocFilter[] = [{ key: 'app', operator: '=', value: 'frontend' }];
+      const result = resolveAdHocFilters(
+        { expr: '_time:5m', refId: 'A', adHocFilters: panelChips },
+        '_time:5m',
+        dashboard
+      );
+      expect(result.chips).toEqual([
+        { key: 'app', operator: '=', value: 'frontend' },
+        { key: 'level', operator: '=', value: 'error' },
+      ]);
+    });
+
+    it('returns chips=undefined when nothing to materialise', () => {
+      const result = resolveAdHocFilters(
+        { expr: '_time:5m', refId: 'A' },
+        '_time:5m',
+        []
+      );
+      expect(result.chips).toBeUndefined();
+    });
+  });
+
+  describe('legacy flag', () => {
+    it('isApplyExtraFiltersToRootQuery=true behaves as RootQuery', () => {
+      const result = resolveAdHocFilters(
+        { expr: '_time:5m', refId: 'A', isApplyExtraFiltersToRootQuery: true },
+        '_time:5m',
+        dashboard
+      );
+      expect(result.expr).toBe('level:="error" | _time:5m');
+      expect(result.chips).toBeUndefined();
+    });
   });
 });
