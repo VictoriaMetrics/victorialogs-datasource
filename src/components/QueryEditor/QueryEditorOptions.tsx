@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
 
 import { CoreApp, isValidGrafanaDuration, SelectableValue } from '@grafana/data';
-import { AutoSizeInput, InlineSwitch, Input, RadioButtonGroup, TextLink } from '@grafana/ui';
+import { AutoSizeInput, Input, RadioButtonGroup, TextLink } from '@grafana/ui';
 
 import { VICTORIA_LOGS_DOCS_HOST } from '../../conf';
 import { LOGS_LIMIT_HARD_CAP, LOGS_LIMIT_WARNING_THRESHOLD } from '../../constants';
-import { Query, QueryType } from '../../types';
+import { resolveAdHocFiltersMode } from '../../datasource';
+import { AdHocFiltersMode, Query, QueryType } from '../../types';
 import { isVariable } from '../../utils/isVariable';
 import { useMaxLinesWarning } from '../shared/shared/useMaxLinesWarning';
 
@@ -38,6 +39,12 @@ export const queryTypeOptions: Array<SelectableValue<QueryType>> = [
     label: 'Instant',
     description: 'Use `/select/logsql/stats_query` for querying log stats at the given time.'
   },
+];
+
+const adHocFiltersModeOptions: Array<SelectableValue<AdHocFiltersMode>> = [
+  { value: AdHocFiltersMode.ExtraFilters, label: 'Extra Filters' },
+  { value: AdHocFiltersMode.RootQuery, label: 'Root Query' },
+  { value: AdHocFiltersMode.Off, label: 'Off' },
 ];
 
 export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onChange, onRunQuery }) => {
@@ -94,8 +101,8 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
     onRunQuery();
   };
 
-  const onFiltersToRootQueryChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
-    onChange({ ...query, isApplyExtraFiltersToRootQuery: e.currentTarget.checked });
+  const onAdHocFiltersModeChange = (value: AdHocFiltersMode) => {
+    onChange({ ...query, adHocFiltersMode: value, isApplyExtraFiltersToRootQuery: undefined });
     onRunQuery();
   };
 
@@ -169,12 +176,13 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
         )}
         {app !== CoreApp.Explore && (
           <EditorField
-            label='Ad-hoc filters to root query'
-            tooltip='When enabled, ad-hoc filters are prepended to the query expression instead of being sent as extra_filters parameter. This prevents filters from propagating into join/union subqueries.'
+            label='Ad-hoc filters'
+            tooltip='Controls how ad-hoc filters are applied. "Extra Filters" sends them as a query parameter (default). "Root Query" prepends them to the query expression. "Off" disables automatic injection entirely.'
           >
-            <InlineSwitch
-              value={query.isApplyExtraFiltersToRootQuery ?? false}
-              onChange={onFiltersToRootQueryChange}
+            <RadioButtonGroup
+              options={adHocFiltersModeOptions}
+              value={resolveAdHocFiltersMode(query)}
+              onChange={onAdHocFiltersModeChange}
             />
           </EditorField>
         )}
@@ -211,11 +219,9 @@ function getCollapsedInfo({ app, query, queryType, maxLines, isValidStep }: Coll
   }
 
   if (app !== CoreApp.Explore) {
-    if (query.isApplyExtraFiltersToRootQuery) {
-      items.push('Ad-hoc filters: root query');
-    } else {
-      items.push('Ad-hoc filters: extra_filters');
-    }
+    const mode = resolveAdHocFiltersMode(query);
+    const modeLabel = adHocFiltersModeOptions.find(o => o.value === mode)?.label ?? mode;
+    items.push(`Ad-hoc filters: ${modeLabel}`);
   }
 
   return items;

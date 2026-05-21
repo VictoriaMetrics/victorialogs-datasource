@@ -221,8 +221,18 @@ VictoriaLogs datasource supports [variables](https://grafana.com/docs/grafana/la
 
 #### Ad Hoc filter
 You can use [Ad Hoc filters](https://grafana.com/docs/grafana/latest/visualizations/dashboards/variables/add-template-variables/#add-ad-hoc-filters) to filter logs in Dashboards.
-Ad Hoc filters are applied to all panels in the Dashboard as [extra_filters](https://docs.victoriametrics.com/victorialogs/querying/#extra-filters) query parameter. If you navigate to the Explore page from the Dashboard, Ad Hoc filters are also applied there.
+By default, ad-hoc filters are applied to all panels in the Dashboard as the [extra_filters](https://docs.victoriametrics.com/victorialogs/querying/#extra-filters) query parameter. If you navigate to the Explore page from the Dashboard, ad-hoc filters are also applied there.
 <img alt="Ad hoc filters" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/extra_filters_explore_page.png?raw=true">
+
+##### Ad-hoc filters mode
+
+> **Note:** available since [v0.28.0](https://github.com/VictoriaMetrics/victorialogs-datasource/releases/tag/v0.28.0).
+
+Each panel exposes an **Ad-hoc filters** selector in the Query Editor *Options* section that controls how ad-hoc values reach the query:
+
+* **Extra Filters** — *default*. Filters are sent as the `extra_filters` query parameter. They are applied at the top of the pipeline and do **not** propagate into `join` / `union` subqueries.
+* **Root Query** — filters are prepended to the query expression (e.g. `level:="error" | <your-query>`). Use this when you want ad-hoc values to participate in the main pipeline as ordinary filters.
+* **Off** — disables automatic ad-hoc filter injection for the panel. Choose this when you intentionally interpolate ad-hoc values yourself (e.g. through template variables) to avoid double filtering, or when filtering on fields produced by pipe transformations would silently drop all rows.
 
 
 #### Word filter
