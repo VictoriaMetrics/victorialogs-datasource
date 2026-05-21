@@ -547,7 +547,7 @@ export class VictoriaLogsDatasource
     return lastValueFrom(this.runQuery(contextRequest));
   };
 
-  private prepareLogContextQueryExpr = (row: LogRowModel): string => {
+  private prepareLogContextQueryExpr = (row: LogRowModel, direction: LogRowContextQueryDirection): string => {
     let streamId = '';
     const streamIds = row.dataFrame.meta?.custom?.streamIds;
     if (streamIds && streamIds.length > 0) {
@@ -568,14 +568,15 @@ export class VictoriaLogsDatasource
       streamId = transformedLabels[LABEL_STREAM_ID];
     }
 
-    return addLabelToQuery('', { key: LABEL_STREAM_ID, value: streamId, operator: '' });
+    const sortDir = direction === LogRowContextQueryDirection.Forward ? 'asc' : 'desc';
+    return `${LABEL_STREAM_ID}:"${streamId}" | sort by (_time) ${sortDir}`;
   };
 
   private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions): DataQueryRequest<Query> => {
     const direction = options?.direction || LogRowContextQueryDirection.Backward;
 
     const query: Query = {
-      expr: this.prepareLogContextQueryExpr(row),
+      expr: this.prepareLogContextQueryExpr(row, direction),
       refId: `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${options?.direction}`
     };
 
