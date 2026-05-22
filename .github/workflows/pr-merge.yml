@@ -19,22 +19,29 @@ jobs:
         with:
           script: |
             const prBody = context.payload.pull_request.body || '';
-            
+
+            // Match either `#123` or a full URL to an issue in this same repo.
+            // Cross-repo URLs are intentionally ignored (we have no permissions there).
+            const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const owner = escape(context.repo.owner);
+            const repo = escape(context.repo.repo);
+            const issueRef = `(?:#(\\d+)|https?:\\/\\/github\\.com\\/${owner}\\/${repo}\\/issues\\/(\\d+))`;
+
             let issueNumbers = new Set();
-            
-            // pattern 1: Related issue: #123
-            const relatedPattern = /Related issue:\s*#(\d+)/gi;
+
+            // pattern 1: `Related issue: #123` or `Related issue: <issue-url>`
+            const relatedPattern = new RegExp(`Related issue:\\s*${issueRef}`, 'gi');
             let match;
             while ((match = relatedPattern.exec(prBody)) !== null) {
-              issueNumbers.add(match[1]);
+              issueNumbers.add(match[1] || match[2]);
             }
-            
-            // pattern 2: Closes #123, Fixes #123, Resolves #123
-            const closingPattern = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s*#(\d+)/gi;
+
+            // pattern 2: `Closes/Fixes/Resolves #123` or `Closes/Fixes/Resolves <issue-url>`
+            const closingPattern = new RegExp(`(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\\s*${issueRef}`, 'gi');
             while ((match = closingPattern.exec(prBody)) !== null) {
-              issueNumbers.add(match[1]);
+              issueNumbers.add(match[1] || match[2]);
             }
-            
+
             const issues = Array.from(issueNumbers);
             console.log('Found related issues:', issues);
             
@@ -72,12 +79,28 @@ jobs:
                 });
             
                 // check label `bug` to show in comment `this feature ...` or `this bug ...`
-                const isBug = issue.labels.some(label => 
+                const isBug = issue.labels.some(label =>
                   (typeof label === 'string' ? label : label.name).toLowerCase() === 'bug'
                 );
                 const changeType = isBug ? 'fix' : 'feature';
                 console.log(`Issue #${issueNumber} is a ${changeType}`);
-            
+
+                // remove label "in progress" if present
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: parseInt(issueNumber),
+                    name: 'in progress'
+                  });
+                  console.log(`Removed label "in progress" from issue #${issueNumber}`);
+                } catch (error) {
+                  if (error.status !== 404) {
+                    throw error;
+                  }
+                  console.log(`Label "in progress" not set on issue #${issueNumber}, skipping`);
+                }
+
                 // add label "waiting for release"
                 await github.rest.issues.addLabels({
                   owner: context.repo.owner,
