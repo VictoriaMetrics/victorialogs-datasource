@@ -70,6 +70,8 @@ export interface AdHocFilter {
   operator: AdHocFilterOperator;
   value: string;
   values?: string[];
+  /** Editor-only: set by the level filter buttons; expanded into LogsQL at serialization */
+  fromLevelFilter?: boolean;
 }
 
 export interface Query extends DataQuery {

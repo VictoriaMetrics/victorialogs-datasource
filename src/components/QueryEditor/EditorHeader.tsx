@@ -45,6 +45,10 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   const styles = useStyles2(getStyles);
   const isMaxLinesOverCap = query.maxLines !== undefined && query.maxLines > LOGS_LIMIT_HARD_CAP;
 
+  const levelFilter = app === CoreApp.Explore && (
+    <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} onRunQuery={onRunQuery} />
+  );
+
   const rightSection = (
     <div className={styles.rightSection}>
       <Stack direction={'row'} justifyContent={'flex-end'} alignItems={'center'}>
@@ -71,6 +75,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   if (editorMode === QueryEditorMode.Builder) {
     return (
       <div className={styles.root}>
+        {levelFilter && <Stack direction={'row'} alignItems={'center'}>{levelFilter}</Stack>}
         {rightSection}
       </div>
     );
@@ -80,9 +85,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
     <div className={styles.root}>
       <Stack direction={'row'} alignItems={'center'}>
         <QueryHintsExample onQueryChange={onQueryExprChange} query={query.expr} />
-        {app === CoreApp.Explore && (
-          <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} />
-        )}
+        {levelFilter}
       </Stack>
       {rightSection}
     </div>

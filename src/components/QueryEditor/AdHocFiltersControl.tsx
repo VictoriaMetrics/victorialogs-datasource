@@ -104,15 +104,17 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
             )}
             <span className={styles.filterText}>{formatAdHocFilterLabel(filter)}</span>
             <div className={styles.filterActions}>
-              <Button
-                size='sm'
-                variant='secondary'
-                onClick={() => handleMoveToQuery(index)}
-                tooltip={moveTooltip}
-                fill='text'
-              >
-                <Icon name='arrow-up' />
-              </Button>
+              {!filter.fromLevelFilter && (
+                <Button
+                  size='sm'
+                  variant='secondary'
+                  onClick={() => handleMoveToQuery(index)}
+                  tooltip={moveTooltip}
+                  fill='text'
+                >
+                  <Icon name='arrow-up' />
+                </Button>
+              )}
               <Button
                 size='sm'
                 variant='secondary'
