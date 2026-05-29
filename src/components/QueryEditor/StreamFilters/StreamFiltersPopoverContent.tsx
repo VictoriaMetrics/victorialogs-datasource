@@ -12,9 +12,11 @@ import { StreamLabelList } from './StreamLabelList';
 import { StreamValuesPanel } from './StreamValuesPanel';
 
 const POPOVER_WIDTH = 740;
-const POPOVER_HEIGHT = 420;
+const COLUMNS_PREFERRED_HEIGHT = 340;
+const COLUMNS_MIN_HEIGHT = 180;
 const LABELS_COL_WIDTH = 320;
-const FOOTER_HEIGHT = 80;
+const VIEWPORT_RESERVE = 100;
+const FOOTER_MAX_HEIGHT = 350;
 
 interface Props {
   datasource: VictoriaLogsDatasource;
@@ -33,7 +35,7 @@ export const StreamFiltersPopoverContent: React.FC<Props> = ({
 
   return (
     <div className={styles.root}>
-      <div className={styles.columns}>
+      <div className={hasFilters ? styles.columnsWithFooter : styles.columns}>
         <div className={styles.leftColumn}>
           <StreamLabelList
             datasource={datasource}
@@ -56,21 +58,22 @@ export const StreamFiltersPopoverContent: React.FC<Props> = ({
           )}
         </div>
       </div>
-      <div className={styles.footer}>
-        <div className={styles.footerScroll}>
-          <SelectedStreamFiltersChips />
+      {hasFilters && (
+        <div className={styles.footer}>
+          <div className={styles.footerScroll}>
+            <SelectedStreamFiltersChips />
+          </div>
+          <div className={styles.clearButton}>
+            <IconButton
+              name='trash-alt'
+              size='sm'
+              tooltip='Clear all stream filters'
+              aria-label='Clear all stream filters'
+              onClick={clearAll}
+            />
+          </div>
         </div>
-        <div className={styles.clearButton}>
-          <IconButton
-            name='trash-alt'
-            size='sm'
-            tooltip='Clear all stream filters'
-            aria-label='Clear all stream filters'
-            disabled={!hasFilters}
-            onClick={clearAll}
-          />
-        </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -78,7 +81,7 @@ export const StreamFiltersPopoverContent: React.FC<Props> = ({
 const getStyles = (theme: GrafanaTheme2) => ({
   root: css`
     width: ${POPOVER_WIDTH}px;
-    height: ${POPOVER_HEIGHT}px;
+    max-height: calc(100vh - ${VIEWPORT_RESERVE}px);
     display: flex;
     flex-direction: column;
     // Pull against the Toggletip's built-in padding so the visible gap
@@ -86,9 +89,16 @@ const getStyles = (theme: GrafanaTheme2) => ({
     margin: -20px -12px;
   `,
   columns: css`
-    flex: 1 1 auto;
+    flex: 0 1 ${COLUMNS_PREFERRED_HEIGHT}px;
+    min-height: ${COLUMNS_MIN_HEIGHT}px;
     display: flex;
-    min-height: 0;
+    overflow: hidden;
+  `,
+  columnsWithFooter: css`
+    flex: 0 1 ${COLUMNS_PREFERRED_HEIGHT}px;
+    min-height: ${COLUMNS_MIN_HEIGHT}px;
+    display: flex;
+    overflow: hidden;
     border-bottom: 1px solid ${theme.colors.border.weak};
   `,
   leftColumn: css`
@@ -112,13 +122,17 @@ const getStyles = (theme: GrafanaTheme2) => ({
     font-size: ${theme.typography.bodySmall.fontSize};
   `,
   footer: css`
-    flex: 0 0 ${FOOTER_HEIGHT}px;
-    height: ${FOOTER_HEIGHT}px;
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: ${FOOTER_MAX_HEIGHT}px;
     position: relative;
     background: ${theme.colors.background.secondary};
   `,
   footerScroll: css`
-    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
     width: 100%;
     overflow-y: auto;
     padding: ${theme.spacing(1)};

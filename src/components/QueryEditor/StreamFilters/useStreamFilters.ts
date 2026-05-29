@@ -119,6 +119,17 @@ export function useStreamFilters({ query, onChange, onRunQuery }: Props) {
     [streamFilters, setFilterValues]
   );
 
+  const handleRemoveFilter = useCallback(
+    (filterIndex: number) => {
+      const filter = streamFilters[filterIndex];
+      if (!filter) {
+        return;
+      }
+      setFilterValues(filter.label, []);
+    },
+    [streamFilters, setFilterValues]
+  );
+
   const clearAll = useCallback(() => {
     if (streamFilters.length === 0) {
       return;
@@ -152,6 +163,7 @@ export function useStreamFilters({ query, onChange, onRunQuery }: Props) {
     handleLabelClick,
     handleToggleValue,
     handleRemoveValue,
+    handleRemoveFilter,
     clearAll,
     selectedValuesForPopover,
     selectedExtraStreamFilters,

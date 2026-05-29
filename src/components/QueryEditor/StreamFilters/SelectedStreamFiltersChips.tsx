@@ -2,31 +2,30 @@ import React from 'react';
 
 import { Stack } from '@grafana/ui';
 
-import { Chip } from '../../shared/Chip/Chip';
+import { GroupedChip } from '../../shared/Chip/GroupedChip';
 
 import { useStreamFiltersContext } from './StreamFiltersContext';
 
 export const SelectedStreamFiltersChips: React.FC = () => {
-  const { streamFilters, handleRemoveValue } = useStreamFiltersContext();
+  const { streamFilters, handleRemoveValue, handleRemoveFilter } = useStreamFiltersContext();
 
-  const rows = streamFilters.flatMap((filter, filterIndex) =>
-    filter.label && filter.values.length > 0
-      ? filter.values.map((value) => ({ filterIndex, label: filter.label, value }))
-      : []
-  );
+  const groups = streamFilters
+    .map((filter, filterIndex) => ({ filterIndex, filter }))
+    .filter(({ filter }) => filter.label && filter.values.length > 0);
 
-  if (rows.length === 0) {
+  if (groups.length === 0) {
     return null;
   }
 
   return (
     <Stack wrap='wrap' gap={0.5}>
-      {rows.map(({ filterIndex, label, value }) => (
-        <Chip
-          key={`${label}:${value}`}
-          label={label}
-          value={value}
-          onRemove={() => handleRemoveValue(filterIndex, value)}
+      {groups.map(({ filterIndex, filter }) => (
+        <GroupedChip
+          key={filter.label}
+          label={filter.label}
+          values={filter.values}
+          onRemoveValue={(value) => handleRemoveValue(filterIndex, value)}
+          onRemoveAll={() => handleRemoveFilter(filterIndex)}
         />
       ))}
     </Stack>
