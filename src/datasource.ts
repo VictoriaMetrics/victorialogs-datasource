@@ -235,13 +235,14 @@ export class VictoriaLogsDatasource
     };
 
     const interpolated = this.interpolateString(target.expr, variables);
-    const { expr, chips } = resolveAdHocFilters(target, interpolated, adhocFilters);
+    const rules = this.getActiveLevelRules();
+    const { expr, chips } = resolveAdHocFilters(target, interpolated, adhocFilters, rules);
 
     return {
       ...target,
       legendFormat: this.templateSrv.replace(target.legendFormat, rest),
       expr,
-      extraFilters: serializeChipsForBackend(chips),
+      extraFilters: serializeChipsForBackend(chips, rules),
       extraStreamFilters: this.getExtraStreamFilters(target.streamFilters, scopedVars),
       // Backend protocol uses `extraFilters` (string); the structured array is editor-only
       adHocFilters: undefined,
@@ -281,9 +282,10 @@ export class VictoriaLogsDatasource
       return queries;
     }
 
+    const rules = this.getActiveLevelRules();
     return queries.map((query) => {
       const interpolated = this.interpolateString(query.expr, scopedVars);
-      const { expr, chips } = resolveAdHocFilters(query, interpolated, filters);
+      const { expr, chips } = resolveAdHocFilters(query, interpolated, filters, rules);
 
       return {
         ...query,

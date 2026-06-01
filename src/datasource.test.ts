@@ -412,7 +412,92 @@ describe('VictoriaLogsDatasource', () => {
       expect(replacedQuery.extraFilters).toBeUndefined();
     });
 
+    it('expands a marked level chip into extra_filters in extraFilters mode', () => {
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const adHocFilters: AdHocFilter[] = [
+        { key: 'level', operator: '=', value: 'error', fromLevelFilter: true },
+      ];
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.ExtraFilters, adHocFilters },
+        {},
+      );
+      expect(replacedQuery.expr).toBe('_time:5m');
+      expect(replacedQuery.extraFilters).toMatch(/^\(level:contains_common_case\(.+\)\)$/);
+    });
 
+    it('expands a marked level chip into the root query in rootQuery mode', () => {
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const adHocFilters: AdHocFilter[] = [
+        { key: 'level', operator: '=', value: 'error', fromLevelFilter: true },
+      ];
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.RootQuery, adHocFilters },
+        {},
+      );
+      expect(replacedQuery.expr).toMatch(/^\(level:contains_common_case\(.+\)\) \| _time:5m$/);
+      expect(replacedQuery.extraFilters).toBeUndefined();
+    });
+
+    it('keeps a marked level chip in extra_filters in off mode', () => {
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const adHocFilters: AdHocFilter[] = [
+        { key: 'level', operator: '=', value: 'error', fromLevelFilter: true },
+      ];
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.Off, adHocFilters },
+        {},
+      );
+      expect(replacedQuery.expr).toBe('_time:5m');
+      expect(replacedQuery.extraFilters).toMatch(/^\(level:contains_common_case\(.+\)\)$/);
+    });
+
+    it('OR-combines two marked level chips into one parenthesised group', () => {
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const adHocFilters: AdHocFilter[] = [
+        { key: 'level', operator: '=', value: 'error', fromLevelFilter: true },
+        { key: 'level', operator: '=', value: 'warning', fromLevelFilter: true },
+      ];
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.ExtraFilters, adHocFilters },
+        {},
+      );
+      expect(replacedQuery.extraFilters).toMatch(
+        /^\(level:contains_common_case\(.+\) OR level:contains_common_case\(.+\)\)$/,
+      );
+    });
+
+    it('expands a marked unknown-level chip into a negation', () => {
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const adHocFilters: AdHocFilter[] = [
+        { key: 'level', operator: '=', value: LogLevel.unknown, fromLevelFilter: true },
+      ];
+      const replacedQuery = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.ExtraFilters, adHocFilters },
+        {},
+      );
+      // unknown = !(<all known levels OR'd>), wrapped by expandLevelChips in parens
+      expect(replacedQuery.extraFilters).toMatch(/^\(!\(.+\)\)$/);
+    });
 
   });
 
@@ -540,6 +625,24 @@ describe('VictoriaLogsDatasource', () => {
 
     it('returns input unchanged when queries is empty', () => {
       expect(ds.interpolateVariablesInQueries([], {}, dashboardFilters)).toEqual([]);
+    });
+
+    it('preserves the fromLevelFilter marker on returned adHocFilters (Explore round-trip)', () => {
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds = createDatasource(templateSrvMock);
+      const adHocFilters: AdHocFilter[] = [
+        { key: 'level', operator: '=', value: 'error', fromLevelFilter: true },
+      ];
+      const [out] = ds.interpolateVariablesInQueries(
+        [{ expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.ExtraFilters, adHocFilters }],
+        {},
+      );
+      expect(out.adHocFilters).toEqual([
+        { key: 'level', operator: '=', value: 'error', fromLevelFilter: true },
+      ]);
     });
   });
 

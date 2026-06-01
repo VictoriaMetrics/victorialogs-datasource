@@ -5,6 +5,7 @@ import { AdHocFilter, AdHocFiltersMode } from '../../types';
 import {
   adHocFilterMatches,
   appendFilterPipeToQuery,
+  expandLevelChips,
   formatAdHocFilterLabel,
   queryHasPipes,
   resolveAdHocFilters,
@@ -339,5 +340,64 @@ describe('resolveAdHocFilters', () => {
       expect(result.expr).toBe('level:="error" | _time:5m');
       expect(result.chips).toBeUndefined();
     });
+  });
+});
+
+describe('expandLevelChips', () => {
+  it('leaves chips untouched when none are marked', () => {
+    const chips: AdHocFilter[] = [{ key: 'level', operator: '=', value: 'error' }];
+    const { levelExpr, rest } = expandLevelChips(chips, []);
+    expect(levelExpr).toBeUndefined();
+    expect(rest).toEqual(chips);
+  });
+
+  it('expands a single marked level chip, wrapped in parens', () => {
+    const chips: AdHocFilter[] = [{ key: 'level', operator: '=', value: 'error', fromLevelFilter: true }];
+    const { levelExpr, rest } = expandLevelChips(chips, []);
+    expect(rest).toEqual([]);
+    expect(levelExpr).toMatch(/^\(level:contains_common_case\(.+\)\)$/);
+  });
+
+  it('OR-combines multiple marked level chips inside one paren group', () => {
+    const chips: AdHocFilter[] = [
+      { key: 'level', operator: '=', value: 'error', fromLevelFilter: true },
+      { key: 'level', operator: '=', value: 'warning', fromLevelFilter: true },
+    ];
+    const { levelExpr, rest } = expandLevelChips(chips, []);
+    expect(rest).toEqual([]);
+    expect(levelExpr).toMatch(/^\(level:contains_common_case\(.+\) OR level:contains_common_case\(.+\)\)$/);
+  });
+
+  it('keeps non-level chips in rest', () => {
+    const chips: AdHocFilter[] = [
+      { key: 'level', operator: '=', value: 'error', fromLevelFilter: true },
+      { key: 'service', operator: '=', value: 'api' },
+    ];
+    const { levelExpr, rest } = expandLevelChips(chips, []);
+    expect(levelExpr).toMatch(/^\(level:contains_common_case\(.+\)\)$/);
+    expect(rest).toEqual([{ key: 'service', operator: '=', value: 'api' }]);
+  });
+
+  it('keeps a marked chip with an unknown level value in rest (defensive)', () => {
+    const chips: AdHocFilter[] = [{ key: 'level', operator: '=', value: 'bogus', fromLevelFilter: true }];
+    const { levelExpr, rest } = expandLevelChips(chips, []);
+    expect(levelExpr).toBeUndefined();
+    expect(rest).toEqual([{ key: 'level', operator: '=', value: 'bogus', fromLevelFilter: true }]);
+  });
+});
+
+describe('serializeChipsForBackend with level rules', () => {
+  it('AND-combines an expanded level group with other chips', () => {
+    const chips: AdHocFilter[] = [
+      { key: 'level', operator: '=', value: 'error', fromLevelFilter: true },
+      { key: 'service', operator: '=', value: 'api' },
+    ];
+    const result = serializeChipsForBackend(chips, []);
+    expect(result).toMatch(/^\(level:contains_common_case\(.+\)\) AND service:="api"$/);
+  });
+
+  it('leaves unmarked level chips literal even when rules are passed', () => {
+    const chips: AdHocFilter[] = [{ key: 'level', operator: '=', value: 'error' }];
+    expect(serializeChipsForBackend(chips, [])).toBe('level:="error"');
   });
 });
