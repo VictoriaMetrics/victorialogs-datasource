@@ -1,12 +1,15 @@
 import { debounce } from 'lodash';
-import React, { FormEvent, useEffect, useState } from 'react';
+import React, { FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { DEFAULT_FIELD_DISPLAY_VALUES_LIMIT, QueryEditorProps, SelectableValue } from '@grafana/data';
+import { getTemplateSrv } from '@grafana/runtime';
 import { InlineField, InlineFieldRow, Input, Select } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../datasource';
 import { FilterFieldType, Options, Query, VariableQuery } from '../../types';
 import { CompatibleCombobox } from '../CompatibleCombobox';
+
+import { FieldOption, toVariableOptions } from './variableOptions';
 
 const variableOptions = [
   { label: 'Field names', value: FilterFieldType.FieldName },
@@ -22,9 +25,12 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
   const [queryFilter, setQueryFilter] = useState<string>('');
   const [field, setField] = useState<string>('');
   const [limit, setLimit] = useState<number>(DEFAULT_FIELD_DISPLAY_VALUES_LIMIT);
-  const [fieldNames, setFieldNames] = useState<Array<{ value: string; label: string; description?: string }>>([]);
+  const [fieldNames, setFieldNames] = useState<FieldOption[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+
+  const dashboardVariableOptions = useMemo(() => toVariableOptions(getTemplateSrv().getVariables()), []);
+  const fieldOptions = useMemo(() => [...dashboardVariableOptions, ...fieldNames], [dashboardVariableOptions, fieldNames]);
 
   const handleTypeChange = (newType: SelectableValue<FilterFieldType>) => {
     if (!newType.value) {
@@ -140,7 +146,7 @@ export const VariableQueryEditor = ({ onChange, query, datasource, range }: Prop
               placeholder='Select field'
               onChange={handleFieldChange}
               value={field || null}
-              options={fieldNames}
+              options={fieldOptions}
               width={20}
               loading={isLoading}
               createCustomValue
