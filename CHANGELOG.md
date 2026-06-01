@@ -8,6 +8,7 @@
 * FEATURE: group selected values under the same stream filter field into a single chip in the Stream Filters bar and popover. Each value keeps its own remove button, and a separate remove button clears the whole field at once. See [#647](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/647).
 * FEATURE: log level filter buttons now add removable filter chips and refresh results on click, instead of editing your query text. Your query stays exactly as you wrote it, and the buttons are available in both the code and visual builder editors.
 * FEATURE: support dashboard variables in the Field of a "Field values" template variable query. See [#377](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/377).
+* FEATURE: narrow down the Ad hoc filter field and value dropdowns based on the filters you have already selected. See [#313](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/313).
 
 * BUGFIX: restore propagation of dashboard ad-hoc filters when navigating from a panel to Grafana Explore.
 * BUGFIX: disable tenant configuration inputs (`Tenant`, `AccountID`, `ProjectID`) until the datasource health check passes. Previously, entering and clearing a tenant on a freshly created (not yet saved) datasource produced a validation error. See [#639](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/639).

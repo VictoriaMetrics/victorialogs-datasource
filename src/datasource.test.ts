@@ -1068,4 +1068,83 @@ describe('VictoriaLogsDatasource preset merge', () => {
       });
     });
   });
+
+  describe('getTagKeys / getTagValues narrow-down', () => {
+    let dsLocal: VictoriaLogsDatasource;
+    let getFieldList: jest.Mock;
+
+    beforeEach(() => {
+      const templateSrvMock = {
+        replace: jest.fn((a: string) => a),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      dsLocal = createDatasource(templateSrvMock);
+      getFieldList = jest.fn().mockResolvedValue([{ value: 'foo' }]);
+      dsLocal.languageProvider = { getFieldList } as any;
+    });
+
+    it('getTagKeys without filters sends no narrowing query', async () => {
+      await dsLocal.getTagKeys({ filters: [] });
+      expect(getFieldList.mock.calls[0][0].query).toBeUndefined();
+    });
+
+    it('getTagKeys with one filter builds LogsQL query', async () => {
+      const filters: AdHocVariableFilter[] = [{ key: 'level', operator: '=', value: 'error' }];
+      await dsLocal.getTagKeys({ filters });
+      expect(getFieldList.mock.calls[0][0].query).toBe('level:="error"');
+    });
+
+    it('getTagKeys with two filters joins them with AND', async () => {
+      const filters: AdHocVariableFilter[] = [
+        { key: 'level', operator: '=', value: 'error' },
+        { key: 'app', operator: '=', value: 'api' },
+      ];
+      await dsLocal.getTagKeys({ filters });
+      expect(getFieldList.mock.calls[0][0].query).toBe('level:="error" AND app:="api"');
+    });
+
+    it('getTagValues excludes filters on the queried key', async () => {
+      const filters: AdHocVariableFilter[] = [
+        { key: 'level', operator: '=', value: 'error' },
+        { key: 'app', operator: '=', value: 'api' },
+      ];
+      await dsLocal.getTagValues({ key: 'level', filters });
+      const opts = getFieldList.mock.calls[0][0];
+      expect(opts.field).toBe('level');
+      expect(opts.query).toBe('app:="api"');
+    });
+
+    it('getTagValues narrows by other-key filters', async () => {
+      const filters: AdHocVariableFilter[] = [{ key: 'level', operator: '=', value: 'error' }];
+      await dsLocal.getTagValues({ key: 'app', filters });
+      const opts = getFieldList.mock.calls[0][0];
+      expect(opts.field).toBe('app');
+      expect(opts.query).toBe('level:="error"');
+    });
+
+    it('getTagValues with only same-key filter sends no narrowing query', async () => {
+      const filters: AdHocVariableFilter[] = [{ key: 'level', operator: '=', value: 'error' }];
+      await dsLocal.getTagValues({ key: 'level', filters });
+      expect(getFieldList.mock.calls[0][0].query).toBeUndefined();
+    });
+
+    it('getTagKeys resolves a variable in the filter value', async () => {
+      const templateSrvMock = {
+        replace: jest.fn(() => 'env:="prod"'),
+        getVariables: jest.fn().mockReturnValue([]),
+      } as unknown as TemplateSrv;
+      const ds2 = createDatasource(templateSrvMock);
+      const gfl = jest.fn().mockResolvedValue([]);
+      ds2.languageProvider = { getFieldList: gfl } as any;
+      const filters: AdHocVariableFilter[] = [{ key: 'env', operator: '=', value: '$env' }];
+      await ds2.getTagKeys({ filters });
+      expect(gfl.mock.calls[0][0].query).toBe('env:="prod"');
+    });
+
+    it('getTagKeys builds regex operator filter', async () => {
+      const filters: AdHocVariableFilter[] = [{ key: 'app', operator: '=~', value: 'api.*' }];
+      await dsLocal.getTagKeys({ filters });
+      expect(getFieldList.mock.calls[0][0].query).toBe('app:~"api.*"');
+    });
+  });
 });
