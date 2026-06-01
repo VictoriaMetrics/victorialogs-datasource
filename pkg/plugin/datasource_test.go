@@ -201,7 +201,14 @@ func TestDatasourceQueryRequest(t *testing.T) {
 		b, _ := labelsToJSON(labels)
 
 		labelsField.Append(b)
-		frame := data.NewFrame("", timeFd, lineField, labelsField)
+		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+		idField.Name = gIDField
+		idField.Append(buildLogID(
+			time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC),
+			"123",
+			`{application="logs-benchmark-Apache.log-1708437847",hostname="e28a622d7792"}`,
+		))
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 
 		rsp := backend.DataResponse{}
 		frame.Meta = &data.FrameMeta{}
@@ -280,7 +287,14 @@ func TestDatasourceQueryRequest(t *testing.T) {
 		b, _ := labelsToJSON(labels)
 
 		labelsField.Append(b)
-		frame := data.NewFrame("", timeFd, lineField, labelsField)
+		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+		idField.Name = gIDField
+		idField.Append(buildLogID(
+			time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC),
+			"123",
+			`{application="logs-benchmark-Apache.log-1708437847",hostname="e28a622d7792"}`,
+		))
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 
 		rsp := backend.DataResponse{}
 		frame.Meta = &data.FrameMeta{}
@@ -417,8 +431,8 @@ func TestDatasourceQueryRequestWithRetry(t *testing.T) {
 			t.Fatalf("expected 1 frame got %d", len(response.Frames))
 		}
 		for _, frame := range response.Frames {
-			if len(frame.Fields) != 3 {
-				t.Fatalf("expected 3 fields got %d", len(frame.Fields))
+			if len(frame.Fields) != 4 {
+				t.Fatalf("expected 4 fields got %d", len(frame.Fields))
 			}
 			if frame.Fields[1].At(0) != v {
 				t.Fatalf("unexpected value %v", frame.Fields[1].At(0))
@@ -579,7 +593,14 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 		b, _ := labelsToJSON(labels)
 
 		labelsField.Append(b)
-		frame := data.NewFrame("", timeFd, lineField, labelsField)
+		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+		idField.Name = gIDField
+		idField.Append(buildLogID(
+			time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC),
+			"123",
+			`{application="logs-benchmark-Apache.log-1708437847",hostname="e28a622d7792"}`,
+		))
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
 
 		return frame
@@ -631,7 +652,14 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 		b, _ := labelsToJSON(labels)
 
 		labelsField.Append(b)
-		frame := data.NewFrame("", timeFd, lineField, labelsField)
+		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+		idField.Name = gIDField
+		idField.Append(buildLogID(
+			time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC),
+			"123",
+			`{application="logs-benchmark-Apache.log-1708437847",hostname="e28a622d7792"}`,
+		))
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
 		return frame
 	}
@@ -783,7 +811,14 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 		b, _ := labelsToJSON(labels)
 
 		labelsField.Append(b)
-		frame := data.NewFrame("", timeFd, lineField, labelsField)
+		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+		idField.Name = gIDField
+		idField.Append(buildLogID(
+			time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC),
+			"123",
+			`{application="logs-benchmark-Apache.log-1708437847",hostname="e28a622d7792"}`,
+		))
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
 
 		return frame
@@ -835,7 +870,14 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 		b, _ := labelsToJSON(labels)
 
 		labelsField.Append(b)
-		frame := data.NewFrame("", timeFd, lineField, labelsField)
+		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+		idField.Name = gIDField
+		idField.Append(buildLogID(
+			time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC),
+			"123",
+			`{application="logs-benchmark-Apache.log-1708437847",hostname="e28a622d7792"}`,
+		))
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
 		return frame
 	}

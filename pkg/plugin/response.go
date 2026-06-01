@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"strconv"
 	"time"
@@ -28,9 +29,22 @@ const (
 	gTimeField   = "Time"
 	gLineField   = "Line"
 	gValueField  = "Value"
+	gIDField     = "id"
 
 	logsVisualisation = "logs"
 )
+
+// buildLogID returns a stable identifier for a log row, used by Grafana's
+// Logs panel to enable per-row permalinks ("Copy shortlink").
+func buildLogID(ts time.Time, msg, stream string) string {
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(strconv.FormatInt(ts.UnixNano(), 10)))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(msg))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(stream))
+	return strconv.FormatUint(h.Sum64(), 16)
+}
 
 var nowFunc = time.Now
 
@@ -46,6 +60,9 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 
 	lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 	lineField.Name = gLineField
+
+	idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+	idField.Name = gIDField
 
 	br := bufio.NewReaderSize(reader, 64*1024)
 	var parser fastjson.Parser
@@ -75,9 +92,16 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 			return newResponseError(fmt.Errorf("error decode response: %s", err), backend.StatusInternal)
 		}
 
+		var (
+			rowMsg    string
+			rowStream string
+			rowTime   time.Time
+		)
+
 		if value.Exists(messageField) {
 			message := value.GetStringBytes(messageField)
-			lineField.Append(string(message))
+			rowMsg = string(message)
+			lineField.Append(rowMsg)
 		}
 		if value.Exists(timeField) {
 			t := value.GetStringBytes(timeField)
@@ -85,13 +109,15 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 			if err != nil {
 				return newResponseError(fmt.Errorf("error parse time from _time field: %s", err), backend.StatusInternal)
 			}
-			timeFd.Append(getTime)
+			rowTime = getTime
+			timeFd.Append(rowTime)
 		}
 
 		labels := data.Labels{}
 		if value.Exists(streamField) {
 			stream := value.GetStringBytes(streamField)
-			stf, err := utils.ParseStreamFields(string(stream))
+			rowStream = string(stream)
+			stf, err := utils.ParseStreamFields(rowStream)
 			if err != nil {
 				return newResponseError(fmt.Errorf("%s", err), backend.StatusInternal)
 			}
@@ -123,6 +149,7 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 			return newResponseError(err, backend.StatusInternal)
 		}
 		labelsField.Append(d)
+		idField.Append(buildLogID(rowTime, rowMsg, rowStream))
 	}
 
 	// Grafana expects lineFields to be always non-empty.
@@ -141,7 +168,7 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 		}
 	}
 
-	frame := data.NewFrame("", timeFd, lineField, labelsField)
+	frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 
 	rsp := backend.DataResponse{}
 	frame.Meta = &data.FrameMeta{}
@@ -169,6 +196,9 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 		lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		lineField.Name = gLineField
 
+		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+		idField.Name = gIDField
+
 		b, err := br.ReadBytes('\n')
 		if err != nil {
 			if errors.Is(err, bufio.ErrBufferFull) {
@@ -193,9 +223,16 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 			return fmt.Errorf("error decode response: %s", err)
 		}
 
+		var (
+			rowMsg    string
+			rowStream string
+			rowTime   time.Time
+		)
+
 		if value.Exists(messageField) {
 			message := value.GetStringBytes(messageField)
-			lineField.Append(string(message))
+			rowMsg = string(message)
+			lineField.Append(rowMsg)
 		}
 		if value.Exists(timeField) {
 			t := value.GetStringBytes(timeField)
@@ -203,13 +240,15 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 			if err != nil {
 				return fmt.Errorf("error parse time from _time field: %s", err)
 			}
-			timeFd.Append(getTime)
+			rowTime = getTime
+			timeFd.Append(rowTime)
 		}
 
 		labels := data.Labels{}
 		if value.Exists(streamField) {
 			stream := value.GetStringBytes(streamField)
-			stf, err := utils.ParseStreamFields(string(stream))
+			rowStream = string(stream)
+			stf, err := utils.ParseStreamFields(rowStream)
 			if err != nil {
 				return err
 			}
@@ -238,6 +277,7 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 			return err
 		}
 		labelsField.Append(d)
+		idField.Append(buildLogID(rowTime, rowMsg, rowStream))
 
 		// Grafana expects lineFields to be always non-empty.
 		if lineField.Len() == 0 {
@@ -255,7 +295,7 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 			}
 		}
 
-		frame := data.NewFrame("", timeFd, lineField, labelsField)
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 		// this is necessary information because the logs visualization is preferred
 		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
 
