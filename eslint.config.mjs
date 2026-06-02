@@ -74,6 +74,8 @@ export default defineConfig([
     rules: {
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/refs': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
       'unused-imports/no-unused-imports': 'error',
       '@typescript-eslint/no-unused-vars': [
