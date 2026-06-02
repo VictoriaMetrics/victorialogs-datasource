@@ -322,6 +322,7 @@ export class VictoriaLogsDatasource
       type: FilterFieldType.FieldName,
       timeRange: options?.timeRange,
       limit: DEFAULT_FIELD_DISPLAY_VALUES_LIMIT,
+      query: this.buildNarrowingQuery(options?.filters),
     }, this.customQueryParameters);
     return list
       ? list.map(({ value }) => ({ text: value || ' ' }))
@@ -329,15 +330,32 @@ export class VictoriaLogsDatasource
   }
 
   async getTagValues(options: DataSourceGetTagValuesOptions<Query>): Promise<MetricFindValue[]> {
+    // Exclude filters on the queried key so its own value can still be changed
+    const otherFilters = options.filters?.filter((f) => f.key !== options.key);
     const list = await this.languageProvider?.getFieldList({
       type: FilterFieldType.FieldValue,
       timeRange: options.timeRange,
       limit: DEFAULT_FIELD_DISPLAY_VALUES_LIMIT,
       field: options.key,
+      query: this.buildNarrowingQuery(otherFilters),
     }, this.customQueryParameters);
     return list
       ? list.map(({ value }) => ({ text: value || ' ' }))
       : [];
+  }
+
+  /**
+   * Builds a LogsQL query that narrows field/value lookups to the logs matching the
+   * already-selected Ad Hoc filters. Returns undefined when there are no filters so the
+   * caller falls back to the default `*` (all logs)
+   */
+  private buildNarrowingQuery(filters?: AdHocVariableFilter[]): string | undefined {
+    const expr = this.getExtraFilters(filters);
+    if (!expr) {
+      return undefined;
+    }
+    // Resolve template variables (incl. multi-value) before hitting the VL endpoint directly
+    return this.interpolateString(expr);
   }
 
   isAllOption(variable: TypedVariableModel): boolean {
