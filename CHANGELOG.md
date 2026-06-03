@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.28.0
+
 * FEATURE: add a per-row stable `id` field to log query frames so Grafana's built-in "Copy shortlink" action becomes available next to every log line in Explore and the Logs panel. See [#344](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/344).
 * FEATURE: replace the "Ad-hoc filters to root query" checkbox in Query Editor options with a three-mode selector: `Extra Filters` (default, sends filters as the `extra_filters` query parameter), `Root Query` (prepends filters to the query expression, preventing propagation into `join`/`union` subqueries) and `Off` (disables automatic ad-hoc filter injection entirely — useful when ad-hoc values are managed through Grafana variable interpolation or applied to pipe-transformed fields). Saved dashboards using the previous `isApplyExtraFiltersToRootQuery` flag continue to work without migration. See [#633](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/633). Thanks to @edspc for contributing.
 * FEATURE: add ability to set custom field names in dashboard variables, since fields do not necessarily exist at the time of creation or manipulation (e.g. when importing a dashboard from JSON, then editing a variable). See [pr #606](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/606). Thanks to @github-vincent-miszczak for contributing.
