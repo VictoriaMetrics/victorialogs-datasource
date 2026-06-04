@@ -45,4 +45,9 @@ tsconfig.tsbuildinfo
 .cache
 gocache-for-docker
 
+# Playwright
+test-results/
+playwright-report/
+playwright/.auth/
+
 .DS_Store

@@ -4,8 +4,9 @@ process.env.TZ = 'UTC';
 
 const { grafanaESModules, nodeModulesToTransform } = require('./.config/jest/utils');
 
-// Add d3-scale-chromatic to the list of modules that need to be transformed
-const additionalESModules = ['d3-scale-chromatic'];
+// Add ESM-only modules missing from grafanaESModules to the list of modules
+// that need to be transformed
+const additionalESModules = ['d3-scale-chromatic', '@react-hookz/web', '@ver0/deep-equal'];
 
 module.exports = {
   // Jest configuration provided by Grafana scaffolding

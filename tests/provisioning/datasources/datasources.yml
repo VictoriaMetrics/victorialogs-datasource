@@ -1,0 +1,12 @@
+# Datasource provisioning used only by e2e tests, see docker-compose.e2e.yaml
+# and provisioningRootDir in playwright.config.ts.
+apiVersion: 1
+datasources:
+  - name: VictoriaLogs
+    type: victoriametrics-logs-datasource
+    uid: victorialogs-e2e
+    access: proxy
+    # The hostname must match the VictoriaLogs service name in docker-compose.e2e.yaml.
+    url: http://victorialogs:9428
+    isDefault: true
+    editable: true

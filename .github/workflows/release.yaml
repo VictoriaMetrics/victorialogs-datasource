@@ -66,11 +66,21 @@ jobs:
           name: osv-scan-results
           path: osv-results.json
 
+  run-e2e-tests:
+    name: E2E tests
+    needs: security-scan
+    if: ${{ always() && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/e2e.yml
+    with:
+      full-matrix: true
+
   release:
     name: Release on GitHub
     runs-on: ubuntu-latest
-    needs: security-scan
-    if: ${{ always() && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') }}
+    needs: [security-scan, run-e2e-tests]
+    if: ${{ always() && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && needs.run-e2e-tests.result == 'success' }}
     outputs:
       PKG_TAG: ${{ env.PKG_TAG }}
     permissions:

@@ -42,6 +42,22 @@ app-via-docker-local:
 vl-backend-plugin-build: mage
 	$(MAGE) -v
 
+vl-backend-plugin-build-e2e: mage
+	$(MAGE) -v build:linux build:linuxARM64
+
+vl-e2e-build: vl-backend-plugin-build-e2e
+	yarn install --immutable && yarn build
+
+vl-e2e-test:
+	@test -f plugins/$(PLUGIN_ID)/plugin.json && ls plugins/$(PLUGIN_ID)/$(APP_NAME)_linux_* >/dev/null 2>&1 || { \
+		echo "The plugin is not built in plugins/$(PLUGIN_ID), run 'make vl-e2e-build' first"; \
+		exit 1; \
+	}
+	docker compose -f docker-compose.e2e.yaml up -d && yarn e2e; \
+	status=$$?; \
+	docker compose -f docker-compose.e2e.yaml down; \
+	exit $$status
+
 vl-frontend-plugin-build: frontend-build
 
 vl-plugin-build-local: vl-frontend-plugin-build app-via-docker-local

@@ -60,7 +60,7 @@ export default defineConfig([
         ecmaFeatures: {
           jsx: true,
         },
-        project: './tsconfig.json',
+        project: ['./tsconfig.json', './tests/tsconfig.json'],
       },
       globals: {
         // Browser globals

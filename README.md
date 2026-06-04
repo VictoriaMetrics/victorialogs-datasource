@@ -426,6 +426,12 @@ The grafana data is stored in `./grafana` folder, so you can stop and start graf
 
 This command will build frontend part and backend part or the plugin and locate both parts into `victoriametrics-logs-datasource` folder.
 
+### 8. How to run e2e tests
+
+End-to-end tests run against a real Grafana + VictoriaLogs stack and can be executed
+against different Grafana and VictoriaLogs versions. See [tests/README.md](tests/README.md)
+for instructions.
+
 ## How to make new release
 
 1. Make sure there are no open security issues.
