@@ -18,12 +18,12 @@ jobs:
       url: https://docs.victoriametrics.com/victorialogs/victorialogs-datasource/
     steps:
       - name: Checkout datasource repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
           path: __vl-datasource
 
       - name: Checkout docs code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
           repository: VictoriaMetrics/vmdocs
           ref: main
@@ -31,7 +31,7 @@ jobs:
           path: __vm-docs
 
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6
+        uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec  # v6.3.0
         id: import-gpg
         with:
           gpg_private_key: ${{ secrets.VM_BOT_GPG_PRIVATE_KEY }}

@@ -14,11 +14,11 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
       
       - name: Get issues with 'waiting for publish' label
         id: get-issues
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b  # v7.1.0
         with:
           script: |
             const issues = await github.rest.issues.listForRepo({
@@ -71,7 +71,7 @@ jobs:
       
       - name: Close issues and remove label
         if: steps.check.outputs.should_continue == 'true' && steps.check-store.outputs.is_published == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b  # v7.1.0
         with:
           script: |
             const issues = ${{ steps.get-issues.outputs.issues }};
