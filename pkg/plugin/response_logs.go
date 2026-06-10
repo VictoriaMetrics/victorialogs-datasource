@@ -3,6 +3,7 @@ package plugin
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"hash/fnv"
@@ -17,15 +18,19 @@ import (
 	"github.com/VictoriaMetrics/victorialogs-datasource/pkg/utils"
 )
 
+// idSeparator delimits the fields hashed into a log id so that values can't
+// run together across field boundaries (e.g. "ab"+"cd" vs "a"+"bcd").
+var idSeparator = []byte{0}
+
 // buildLogID returns a stable identifier for a log row, used by Grafana's
 // Logs panel to enable per-row permalinks ("Copy shortlink").
-func buildLogID(ts time.Time, msg, stream string) string {
+func buildLogID(ts, msg, streamId []byte) string {
 	h := fnv.New64a()
-	_, _ = h.Write([]byte(strconv.FormatInt(ts.UnixNano(), 10)))
-	_, _ = h.Write([]byte{0})
-	_, _ = h.Write([]byte(msg))
-	_, _ = h.Write([]byte{0})
-	_, _ = h.Write([]byte(stream))
+	_, _ = h.Write(ts)
+	_, _ = h.Write(idSeparator)
+	_, _ = h.Write(msg)
+	_, _ = h.Write(idSeparator)
+	_, _ = h.Write(streamId)
 	return strconv.FormatUint(h.Sum64(), 16)
 }
 
@@ -75,64 +80,42 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 			return newResponseError(fmt.Errorf("error decode response: %s", err), backend.StatusInternal)
 		}
 
+		if value.Type() != fastjson.TypeObject {
+			return newResponseError(fmt.Errorf("error get object from decoded response: value doesn't contain object; it contains %s", value.Type()), backend.StatusInternal)
+		}
+
 		var (
-			rowMsg    string
-			rowStream string
-			rowTime   time.Time
+			rowMsg      []byte
+			rowStreamId []byte
+			rowTime     []byte
 		)
 
 		if value.Exists(messageField) {
-			message := value.GetStringBytes(messageField)
-			rowMsg = string(message)
-			lineField.Append(rowMsg)
+			rowMsg = value.GetStringBytes(messageField)
+			lineField.Append(string(rowMsg))
+			value.Del(messageField)
+		} else {
+			// pad lineField on rows without _msg to keep frame fields equal length
+			lineField.Append("")
 		}
+
 		if value.Exists(timeField) {
-			t := value.GetStringBytes(timeField)
-			getTime, err := utils.GetTime(string(t))
+			rowTime = value.GetStringBytes(timeField)
+			getTime, err := utils.GetTime(string(rowTime))
 			if err != nil {
 				return newResponseError(fmt.Errorf("error parse time from _time field: %s", err), backend.StatusInternal)
 			}
-			rowTime = getTime
-			timeFd.Append(rowTime)
+			timeFd.Append(getTime)
+			value.Del(timeField)
 		}
 
-		labels := data.Labels{}
-		if value.Exists(streamField) {
-			stream := value.GetStringBytes(streamField)
-			rowStream = string(stream)
-			stf, err := utils.ParseStreamFields(rowStream)
-			if err != nil {
-				return newResponseError(fmt.Errorf("%s", err), backend.StatusInternal)
-			}
-			for _, field := range stf {
-				labels[field.Label] = field.Value
-			}
-			if !value.Exists(messageField) && len(stf) >= 0 {
-				lineField.Append("")
-			}
+		if value.Exists(streamIdField) {
+			rowStreamId = value.GetStringBytes(streamIdField)
 		}
 
-		obj, err := value.Object()
-		if err != nil {
-			return newResponseError(fmt.Errorf("error get object from decoded response: %s", err), backend.StatusInternal)
-		}
-		obj.Visit(func(key []byte, v *fastjson.Value) {
-			if bytes.Equal(key, []byte(timeField)) ||
-				bytes.Equal(key, []byte(streamField)) ||
-				bytes.Equal(key, []byte(messageField)) {
-				return
-			}
-			fieldName := string(key)
-			value := string(v.GetStringBytes())
-			labels[fieldName] = value
-		})
-
-		d, err := labelsToJSON(labels)
-		if err != nil {
-			return newResponseError(err, backend.StatusInternal)
-		}
-		labelsField.Append(d)
-		idField.Append(buildLogID(rowTime, rowMsg, rowStream))
+		// not deleting `_stream` field from `value`, cause it's needed for displaying stream labels in the log context
+		labelsField.Append(json.RawMessage(value.MarshalTo(nil)))
+		idField.Append(buildLogID(rowTime, rowMsg, rowStreamId))
 	}
 
 	// Grafana expects lineFields to be always non-empty.
@@ -205,62 +188,38 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 		if err != nil {
 			return fmt.Errorf("error decode response: %s", err)
 		}
+		if value.Type() != fastjson.TypeObject {
+			return fmt.Errorf("error get object from decoded response: value doesn't contain object; it contains %s", value.Type())
+		}
 
 		var (
-			rowMsg    string
-			rowStream string
-			rowTime   time.Time
+			rowMsg      []byte
+			rowStreamId []byte
+			rowTime     []byte
 		)
 
 		if value.Exists(messageField) {
-			message := value.GetStringBytes(messageField)
-			rowMsg = string(message)
-			lineField.Append(rowMsg)
+			rowMsg = value.GetStringBytes(messageField)
+			lineField.Append(string(rowMsg))
+			value.Del(messageField)
 		}
 		if value.Exists(timeField) {
-			t := value.GetStringBytes(timeField)
-			getTime, err := utils.GetTime(string(t))
+			rowTime = value.GetStringBytes(timeField)
+			getTime, err := utils.GetTime(string(rowTime))
 			if err != nil {
 				return fmt.Errorf("error parse time from _time field: %s", err)
 			}
-			rowTime = getTime
-			timeFd.Append(rowTime)
+			timeFd.Append(getTime)
+			value.Del(timeField)
 		}
 
-		labels := data.Labels{}
-		if value.Exists(streamField) {
-			stream := value.GetStringBytes(streamField)
-			rowStream = string(stream)
-			stf, err := utils.ParseStreamFields(rowStream)
-			if err != nil {
-				return err
-			}
-			for _, field := range stf {
-				labels[field.Label] = field.Value
-			}
+		if value.Exists(streamIdField) {
+			rowStreamId = value.GetStringBytes(streamIdField)
 		}
 
-		obj, err := value.Object()
-		if err != nil {
-			return fmt.Errorf("error get object from decoded response: %s", err)
-		}
-		obj.Visit(func(key []byte, v *fastjson.Value) {
-			if bytes.Equal(key, []byte(timeField)) ||
-				bytes.Equal(key, []byte(streamField)) ||
-				bytes.Equal(key, []byte(messageField)) {
-				return
-			}
-			fieldName := string(key)
-			value := string(v.GetStringBytes())
-			labels[fieldName] = value
-		})
-
-		d, err := labelsToJSON(labels)
-		if err != nil {
-			return err
-		}
-		labelsField.Append(d)
-		idField.Append(buildLogID(rowTime, rowMsg, rowStream))
+		// not deleting `_stream` field from `value`, cause it's needed for displaying stream labels in the log context
+		labelsField.Append(json.RawMessage(value.MarshalTo(nil)))
+		idField.Append(buildLogID(rowTime, rowMsg, rowStreamId))
 
 		// Grafana expects lineFields to be always non-empty.
 		if lineField.Len() == 0 {
