@@ -10,9 +10,10 @@ import (
 
 const (
 	// VictoriaLogs field types
-	messageField = "_msg"
-	streamField  = "_stream"
-	timeField    = "_time"
+	messageField  = "_msg"
+	streamField   = "_stream"
+	streamIdField = "_stream_id"
+	timeField     = "_time"
 
 	// Grafana logs fields
 	gLabelsField = "labels"
