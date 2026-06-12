@@ -19,6 +19,8 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/klauspost/compress/zstd"
+
+	"github.com/VictoriaMetrics/victorialogs-datasource/pkg/utils"
 )
 
 func TestQueryData(t *testing.T) {
@@ -68,32 +70,27 @@ func TestDatasourceQueryRequest(t *testing.T) {
 		case 1:
 			_, err := w.Write([]byte("123"))
 			if err != nil {
-				t.Fatalf("error write reposne: %s", err)
+				t.Fatalf("error write response: %s", err)
 			}
 		case 2:
 			_, err := w.Write([]byte(`{"_time":"acdf"}`))
 			if err != nil {
-				t.Fatalf("error write reposne: %s", err)
+				t.Fatalf("error write response: %s", err)
 			}
 		case 3:
 			_, err := w.Write([]byte(`cannot parse query []: missing query; context: []`))
 			if err != nil {
-				t.Fatalf("error write reposne: %s", err)
+				t.Fatalf("error write response: %s", err)
 			}
 		case 4:
-			_, err := w.Write([]byte(`{"_time":"2024-02-20", "_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=}"}`))
-			if err != nil {
-				t.Fatalf("error write reposne: %s", err)
-			}
-		case 5:
 			_, err := w.Write([]byte(`{"_msg":"123","_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","_time":"2024-02-20T14:04:27Z"}`))
 			if err != nil {
-				t.Fatalf("error write reposne: %s", err)
+				t.Fatalf("error write response: %s", err)
 			}
-		case 6:
+		case 5:
 			_, err := w.Write([]byte(`{"_msg":"123","_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","_time":"2024-02-20T14:04:27Z", "job": "vlogs"}`))
 			if err != nil {
-				t.Fatalf("error write reposne: %s", err)
+				t.Fatalf("error write response: %s", err)
 			}
 		}
 	})
@@ -143,9 +140,8 @@ func TestDatasourceQueryRequest(t *testing.T) {
 	expErr(ctx, "error get object from decoded response: value doesn't contain object; it contains number")                                                                    // 1
 	expErr(ctx, "error parse time from _time field: cannot parse acdf: cannot parse duration \"acdf\"")                                                                        // 2
 	expErr(ctx, "error decode response: cannot parse JSON: cannot parse number: unexpected char: \"c\"; unparsed tail: \"cannot parse query []: missing query; context: []\"") // 3
-	expErr(ctx, "_stream field \"hostname=\" must have quoted value")                                                                                                          // 4
 
-	// 5
+	// 4
 	queryJSON := []byte(`{
     "datasourceId":27,
 	"expr":".*",
@@ -186,27 +182,25 @@ func TestDatasourceQueryRequest(t *testing.T) {
 		timeFd := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
 		timeFd.Name = gTimeField
 
+		lineRaw := "123"
 		lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		lineField.Name = gLineField
+		lineField.Append(lineRaw)
 
-		timeFd.Append(time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC))
-
-		lineField.Append("123")
-
-		labels := data.Labels{
-			"application": "logs-benchmark-Apache.log-1708437847",
-			"hostname":    "e28a622d7792",
+		tsRaw := "2024-02-20T14:04:27Z"
+		ts, err := utils.GetTime(tsRaw)
+		if err != nil {
+			t.Fatal(err)
 		}
+		timeFd.Append(ts)
 
-		b, _ := labelsToJSON(labels)
-
-		labelsField.Append(b)
+		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
-			time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC),
-			"123",
-			`{application="logs-benchmark-Apache.log-1708437847",hostname="e28a622d7792"}`,
+			[]byte(tsRaw),
+			[]byte(lineRaw),
+			nil,
 		))
 		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 
@@ -234,7 +228,7 @@ func TestDatasourceQueryRequest(t *testing.T) {
 		}
 	}
 
-	// 6
+	// 5
 	queryJSON = []byte(`{
     "datasourceId":27,
 	"expr":".*",
@@ -274,25 +268,23 @@ func TestDatasourceQueryRequest(t *testing.T) {
 		lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		lineField.Name = gLineField
 
-		timeFd.Append(time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC))
-
-		lineField.Append("123")
-
-		labels := data.Labels{
-			"application": "logs-benchmark-Apache.log-1708437847",
-			"hostname":    "e28a622d7792",
-			"job":         "vlogs",
+		tsRaw := "2024-02-20T14:04:27Z"
+		ts, err := utils.GetTime(tsRaw)
+		if err != nil {
+			t.Fatal(err)
 		}
+		timeFd.Append(ts)
 
-		b, _ := labelsToJSON(labels)
+		lineRaw := "123"
+		lineField.Append(lineRaw)
 
-		labelsField.Append(b)
+		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
-			time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC),
-			"123",
-			`{application="logs-benchmark-Apache.log-1708437847",hostname="e28a622d7792"}`,
+			[]byte(tsRaw),
+			[]byte(lineRaw),
+			nil,
 		))
 		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 
@@ -501,16 +493,11 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 				t.Fatalf("error write reposne: %s", err)
 			}
 		case 4:
-			_, err := w.Write([]byte(`{"_time":"2024-02-20", "_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=}"}`))
-			if err != nil {
-				t.Fatalf("error write reposne: %s", err)
-			}
-		case 5:
 			_, err := w.Write([]byte(`{"_msg":"123","_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","_time":"2024-02-20T14:04:27Z"}`))
 			if err != nil {
 				t.Fatalf("error write reposne: %s", err)
 			}
-		case 6:
+		case 5:
 			_, err := w.Write([]byte(`{"_msg":"123","_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","_time":"2024-02-20T14:04:27Z", "job": "vlogs"}`))
 			if err != nil {
 				t.Fatalf("error write reposne: %s", err)
@@ -568,9 +555,8 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 	expErr(ctx, "error get object from decoded response: value doesn't contain object; it contains number")                                                                    // 1
 	expErr(ctx, "error parse time from _time field: cannot parse acdf: cannot parse duration \"acdf\"")                                                                        // 2
 	expErr(ctx, "error decode response: cannot parse JSON: cannot parse number: unexpected char: \"c\"; unparsed tail: \"cannot parse query []: missing query; context: []\"") // 3
-	expErr(ctx, "_stream field \"hostname=\" must have quoted value")                                                                                                          // 4
 
-	expErr(ctx, "") // 5
+	expErr(ctx, "") // 4
 	dataResponse := func() *data.Frame {
 		labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 		labelsField.Name = gLabelsField
@@ -581,24 +567,23 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 		lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		lineField.Name = gLineField
 
-		timeFd.Append(time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC))
-
-		lineField.Append("123")
-
-		labels := data.Labels{
-			"application": "logs-benchmark-Apache.log-1708437847",
-			"hostname":    "e28a622d7792",
+		tsRaw := "2024-02-20T14:04:27Z"
+		ts, err := utils.GetTime(tsRaw)
+		if err != nil {
+			t.Fatal(err)
 		}
+		timeFd.Append(ts)
 
-		b, _ := labelsToJSON(labels)
+		lineRaw := "123"
+		lineField.Append(lineRaw)
 
-		labelsField.Append(b)
+		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
-			time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC),
-			"123",
-			`{application="logs-benchmark-Apache.log-1708437847",hostname="e28a622d7792"}`,
+			[]byte(tsRaw),
+			[]byte(lineRaw),
+			nil,
 		))
 		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
@@ -628,7 +613,7 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 		}
 	}
 
-	expErr(ctx, "") // 6
+	expErr(ctx, "") // 5
 	dataResponse = func() *data.Frame {
 		labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 		labelsField.Name = gLabelsField
@@ -639,25 +624,23 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 		lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		lineField.Name = gLineField
 
-		timeFd.Append(time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC))
-
-		lineField.Append("123")
-
-		labels := data.Labels{
-			"application": "logs-benchmark-Apache.log-1708437847",
-			"hostname":    "e28a622d7792",
-			"job":         "vlogs",
+		tsRaw := "2024-02-20T14:04:27Z"
+		ts, err := utils.GetTime(tsRaw)
+		if err != nil {
+			t.Fatal(err)
 		}
+		timeFd.Append(ts)
 
-		b, _ := labelsToJSON(labels)
+		lineRaw := "123"
+		lineField.Append(lineRaw)
 
-		labelsField.Append(b)
+		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
-			time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC),
-			"123",
-			`{application="logs-benchmark-Apache.log-1708437847",hostname="e28a622d7792"}`,
+			[]byte(tsRaw),
+			[]byte(lineRaw),
+			nil,
 		))
 		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
@@ -799,24 +782,23 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 		lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		lineField.Name = gLineField
 
-		timeFd.Append(time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC))
-
-		lineField.Append("123")
-
-		labels := data.Labels{
-			"application": "logs-benchmark-Apache.log-1708437847",
-			"hostname":    "e28a622d7792",
+		tsRaw := "2024-02-20T14:04:27Z"
+		ts, err := utils.GetTime(tsRaw)
+		if err != nil {
+			t.Fatal(err)
 		}
+		timeFd.Append(ts)
 
-		b, _ := labelsToJSON(labels)
+		lineRaw := "123"
+		lineField.Append(lineRaw)
 
-		labelsField.Append(b)
+		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
-			time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC),
-			"123",
-			`{application="logs-benchmark-Apache.log-1708437847",hostname="e28a622d7792"}`,
+			[]byte(tsRaw),
+			[]byte(lineRaw),
+			nil,
 		))
 		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
@@ -857,25 +839,23 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 		lineField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		lineField.Name = gLineField
 
-		timeFd.Append(time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC))
-
-		lineField.Append("123")
-
-		labels := data.Labels{
-			"application": "logs-benchmark-Apache.log-1708437847",
-			"hostname":    "e28a622d7792",
-			"job":         "vlogs",
+		tsRaw := "2024-02-20T14:04:27Z"
+		ts, err := utils.GetTime(tsRaw)
+		if err != nil {
+			t.Fatal(err)
 		}
+		timeFd.Append(ts)
 
-		b, _ := labelsToJSON(labels)
+		lineRaw := "123"
+		lineField.Append(lineRaw)
 
-		labelsField.Append(b)
+		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
-			time.Date(2024, 02, 20, 14, 04, 27, 0, time.UTC),
-			"123",
-			`{application="logs-benchmark-Apache.log-1708437847",hostname="e28a622d7792"}`,
+			[]byte(tsRaw),
+			[]byte(lineRaw),
+			nil,
 		))
 		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}

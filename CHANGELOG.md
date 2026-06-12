@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: keep log fields in the order returned by VictoriaLogs (for example the order from `| fields a, b, c`) instead of sorting them alphabetically. See [#563](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/563).
+
 ## v0.28.0
 
 * FEATURE: add a per-row stable `id` field to log query frames so Grafana's built-in "Copy shortlink" action becomes available next to every log line in Explore and the Logs panel. See [#344](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/344).
