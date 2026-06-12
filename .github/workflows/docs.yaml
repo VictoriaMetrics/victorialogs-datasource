@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
           path: __vl-datasource
+          persist-credentials: false
 
       - name: Checkout docs code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
@@ -28,6 +29,7 @@ jobs:
           repository: VictoriaMetrics/vmdocs
           ref: main
           token: ${{ secrets.VM_BOT_GH_TOKEN }}
+          persist-credentials: true  # required by the "Push to docs repo" step below
           path: __vm-docs
 
       - name: Import GPG key
