@@ -27,7 +27,7 @@ describe('QuerySettings — Maximum lines protection', () => {
 
     render(<QuerySettings maxLines='' onMaxLinedChange={onMaxLinedChange} />);
 
-    fireEvent.change(screen.getByPlaceholderText('1000'), { target: { value: '500' } });
+    fireEvent.change(screen.getByPlaceholderText('50'), { target: { value: '500' } });
 
     expect(onMaxLinedChange).toHaveBeenCalledWith('500');
     expect(screen.queryByText('Large line limit')).not.toBeInTheDocument();
@@ -36,7 +36,7 @@ describe('QuerySettings — Maximum lines protection', () => {
   it('does not open the modal on blur when the stored value is within the safe range', () => {
     render(<QuerySettings maxLines='500' onMaxLinedChange={jest.fn()} />);
 
-    fireEvent.blur(screen.getByPlaceholderText('1000'));
+    fireEvent.blur(screen.getByPlaceholderText('50'));
 
     expect(screen.queryByText('Large line limit')).not.toBeInTheDocument();
   });
@@ -46,7 +46,7 @@ describe('QuerySettings — Maximum lines protection', () => {
 
     render(<QuerySettings maxLines='5000' onMaxLinedChange={onMaxLinedChange} />);
 
-    fireEvent.blur(screen.getByPlaceholderText('1000'));
+    fireEvent.blur(screen.getByPlaceholderText('50'));
 
     const modal = screen.getByText('Large line limit').closest('[role="dialog"]') as HTMLElement;
     expect(modal).toBeInTheDocument();
@@ -63,7 +63,7 @@ describe('QuerySettings — Maximum lines protection', () => {
 
     render(<QuerySettings maxLines='' onMaxLinedChange={onMaxLinedChange} />);
 
-    fireEvent.change(screen.getByPlaceholderText('1000'), { target: { value: '50000' } });
+    fireEvent.change(screen.getByPlaceholderText('50'), { target: { value: '50000' } });
 
     expect(onMaxLinedChange).toHaveBeenCalledWith('10000');
   });
@@ -73,7 +73,7 @@ describe('QuerySettings — Maximum lines protection', () => {
 
     render(<QuerySettings maxLines='500' onMaxLinedChange={onMaxLinedChange} />);
 
-    fireEvent.change(screen.getByPlaceholderText('1000'), { target: { value: '-5' } });
+    fireEvent.change(screen.getByPlaceholderText('50'), { target: { value: '-5' } });
 
     expect(onMaxLinedChange).toHaveBeenCalledWith('');
   });
@@ -89,7 +89,7 @@ describe('QuerySettings — Maximum lines protection', () => {
 
     render(<QuerySettings maxLines='500' onMaxLinedChange={onMaxLinedChange} />);
 
-    fireEvent.change(screen.getByPlaceholderText('1000'), { target: { value: '' } });
+    fireEvent.change(screen.getByPlaceholderText('50'), { target: { value: '' } });
     expect(onMaxLinedChange).toHaveBeenCalledWith('');
   });
 });

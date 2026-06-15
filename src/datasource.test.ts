@@ -12,7 +12,7 @@ import { TemplateSrv } from '@grafana/runtime';
 import { createDatasource } from './__mocks__/datasource';
 import { LogLevelRuleType } from './configuration/LogLevelRules/types';
 import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
-import { LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
+import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { VictoriaLogsDatasource } from './datasource';
 import { AdHocFilter, AdHocFiltersMode, FilterActionType, Query, QueryType, SupportingQueryType, ToggleFilterAction } from './types';
 
@@ -722,9 +722,9 @@ describe('VictoriaLogsDatasource', () => {
         expect(ok.maxLines).toBe(500);
       });
 
-      it('falls back to default 1000 when maxLines is missing', () => {
+      it('falls back to default when maxLines is missing', () => {
         const def = createDatasource(templateSrvStub, { jsonData: {} });
-        expect(def.maxLines).toBe(1000);
+        expect(def.maxLines).toBe(LOGS_LIMIT_DEFAULT);
       });
     });
 

@@ -267,6 +267,40 @@ VictoriaLogs datasource supports automatic variable interpolation with the follo
 - Avoid using variables as values in regexp filters (e.g., `field:~$var`), in this case, you will get a warning message
 - Invalid usage will show an error message
 
+## Line limits
+
+Every VictoriaLogs query is sent with a limit on the maximum number of log lines returned. Keeping this limit low
+reduces the rendering load on the browser and prevents the page from freezing when displaying heavy log results.
+
+There are two levels of control:
+
+- **Maximum lines** — the datasource-wide default, configured in the datasource settings. It applies to every query
+  that does not set its own limit. The default value is `50` and the maximum allowed value is `10000`.
+- **Line limit** — a per-query override available in the query editor options. When set, it takes precedence over the
+  datasource-wide **Maximum lines** for that query. It is also capped at `10000`.
+
+Increase these limits only if needed; large values may make the browser sluggish.
+
+<img alt="Line limits configuration" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/line_limits.png?raw=true">
+
+### Configuring the default limit via file
+
+When [provisioning the datasource via file](#configuration-via-file), set the default limit through the `maxLines`
+field in `jsonData`:
+
+```yaml
+apiVersion: 1
+datasources:
+  - name: VictoriaLogs
+    type: victoriametrics-logs-datasource
+    access: proxy
+    url: http://victorialogs:9428
+    jsonData:
+      # Default maximum number of log lines returned per query.
+      # Defaults to 50, maximum allowed value is 10000.
+      maxLines: 50
+```
+
 ## Correlations
 
 Signals can be correlated together if they share the same list of attributes, so they can uniquely identify the
