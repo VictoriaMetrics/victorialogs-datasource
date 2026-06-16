@@ -3,7 +3,7 @@ import React, { useCallback } from 'react';
 import { InlineField, Input } from '@grafana/ui';
 
 import { useMaxLinesWarning } from '../components/shared/shared/useMaxLinesWarning';
-import { LOGS_LIMIT_HARD_CAP, LOGS_LIMIT_WARNING_THRESHOLD } from '../constants';
+import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, LOGS_LIMIT_WARNING_THRESHOLD } from '../constants';
 
 type Props = {
   maxLines: string;
@@ -61,7 +61,7 @@ export const QuerySettings = (props: Props) => {
         labelWidth={28}
         tooltip={
           <>
-            VictoriaLogs queries must contain a limit of the maximum number of lines returned (default: 1000).
+            VictoriaLogs queries must contain a limit of the maximum number of lines returned (default: {LOGS_LIMIT_DEFAULT}).
             Maximum allowed value is {LOGS_LIMIT_HARD_CAP}. Decrease this limit if your browser becomes sluggish
             when displaying the log results.
           </>
@@ -77,7 +77,7 @@ export const QuerySettings = (props: Props) => {
           value={maxLines}
           onChange={onChange}
           onBlur={onBlur}
-          placeholder='1000'
+          placeholder={String(LOGS_LIMIT_DEFAULT)}
           spellCheck={false}
         />
       </InlineField>

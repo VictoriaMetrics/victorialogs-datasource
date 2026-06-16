@@ -44,7 +44,7 @@ import {
   mergePresetDerivedFields,
   mergePresetLogLevelRules,
 } from './configuration/OpenTelemetryPreset/preset-builder';
-import { LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
+import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { escapeLabelValueInSelector } from './languageUtils';
 import LogsQlLanguageProvider from './language_provider';
 import { LOGS_VOLUME_BARS, queryLogsVolume } from './logsVolumeLegacy';
@@ -119,7 +119,7 @@ export class VictoriaLogsDatasource
     this.basicAuth = instanceSettings.basicAuth;
     this.withCredentials = instanceSettings.withCredentials;
     this.httpMethod = settingsData.httpMethod || 'POST';
-    this.maxLines = Math.min(parseInt(settingsData.maxLines ?? '0', 10) || 1000, LOGS_LIMIT_HARD_CAP);
+    this.maxLines = Math.min(parseInt(settingsData.maxLines ?? '0', 10) || LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP);
     const userDerivedFields = settingsData.derivedFields || [];
     const userLogLevelRules = settingsData.logLevelRules || [];
     const preset = settingsData.otelPreset;

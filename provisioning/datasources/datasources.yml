@@ -12,6 +12,9 @@ datasources:
     # see https://docs.victoriametrics.com/victorialogs/querying/
     url: http://victorialogs:9428
     jsonData:
+      # Default maximum number of log lines returned per query.
+      # Defaults to 50, maximum allowed value is 10000.
+      #maxLines: 50
       # Multitenancy settings, see https://docs.victoriametrics.com/victorialogs/#multitenancy
       # to use the multitenancy uncomment lines below: AccountID and ProjectID
       multitenancyHeaders:
