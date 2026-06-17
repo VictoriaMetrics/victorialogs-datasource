@@ -36,6 +36,16 @@ func buildLogID(ts, msg, streamId []byte) string {
 
 var nowFunc = time.Now
 
+// streamFieldsToMap turns the parsed `_stream` fields into a label->value map
+// for meta.custom.streams, consumed by the "Show context" stream label selector
+func streamFieldsToMap(stf []utils.StreamField) map[string]string {
+	m := make(map[string]string, len(stf))
+	for _, f := range stf {
+		m[f.Label] = f.Value
+	}
+	return m
+}
+
 // parseStreamResponse reads data from the reader and collects
 // fields and frame with necessary information
 func parseInstantResponse(reader io.Reader) backend.DataResponse {
@@ -51,6 +61,10 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 
 	idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 	idField.Name = gIDField
+
+	// per-row data for the "Show context" stream label selector
+	streamIds := make([]string, 0)
+	streams := make([]map[string]string, 0)
 
 	br := bufio.NewReaderSize(reader, 64*1024)
 	var parser fastjson.Parser
@@ -113,7 +127,17 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 			rowStreamId = value.GetStringBytes(streamIdField)
 		}
 
-		// not deleting `_stream` field from `value`, cause it's needed for displaying stream labels in the log context
+		// parse `_stream` into a per-row label map for the log context UI and
+		// drop it from the row so it does not show up among the log labels
+		rowStream := string(value.GetStringBytes(streamField))
+		value.Del(streamField)
+		stf, err := utils.ParseStreamFields(rowStream)
+		if err != nil {
+			return newResponseError(fmt.Errorf("error parse _stream field: %s", err), backend.StatusInternal)
+		}
+		streamIds = append(streamIds, string(rowStreamId))
+		streams = append(streams, streamFieldsToMap(stf))
+
 		labelsField.Append(json.RawMessage(value.MarshalTo(nil)))
 		idField.Append(buildLogID(rowTime, rowMsg, rowStreamId))
 	}
@@ -137,7 +161,12 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 	frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 
 	rsp := backend.DataResponse{}
-	frame.Meta = &data.FrameMeta{}
+	frame.Meta = &data.FrameMeta{
+		Custom: map[string]any{
+			"streamIds": streamIds,
+			"streams":   streams,
+		},
+	}
 	rsp.Frames = append(rsp.Frames, frame)
 
 	return rsp
@@ -164,6 +193,10 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
+
+		// per-row data for the "Show context" stream label selector
+		streamIds := make([]string, 0)
+		streams := make([]map[string]string, 0)
 
 		b, err := br.ReadBytes('\n')
 		if err != nil {
@@ -217,7 +250,17 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 			rowStreamId = value.GetStringBytes(streamIdField)
 		}
 
-		// not deleting `_stream` field from `value`, cause it's needed for displaying stream labels in the log context
+		// parse `_stream` into a per-row label map for the log context UI and
+		// drop it from the row so it does not show up among the log labels
+		rowStream := string(value.GetStringBytes(streamField))
+		value.Del(streamField)
+		stf, err := utils.ParseStreamFields(rowStream)
+		if err != nil {
+			return fmt.Errorf("error parse _stream field: %s", err)
+		}
+		streamIds = append(streamIds, string(rowStreamId))
+		streams = append(streams, streamFieldsToMap(stf))
+
 		labelsField.Append(json.RawMessage(value.MarshalTo(nil)))
 		idField.Append(buildLogID(rowTime, rowMsg, rowStreamId))
 
@@ -239,7 +282,13 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 
 		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 		// this is necessary information because the logs visualization is preferred
-		frame.Meta = &data.FrameMeta{PreferredVisualization: logsVisualisation}
+		frame.Meta = &data.FrameMeta{
+			PreferredVisualization: logsVisualisation,
+			Custom: map[string]any{
+				"streamIds": streamIds,
+				"streams":   streams,
+			},
+		}
 
 		ch <- frame
 	}

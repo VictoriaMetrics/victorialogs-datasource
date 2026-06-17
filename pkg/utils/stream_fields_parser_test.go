@@ -468,4 +468,88 @@ func TestParseStreamFields(t *testing.T) {
 	}
 	f(o)
 
+	// no braces around the stream selector
+	o = opts{
+		streamFields: `app="nginx"`,
+		want:         []StreamField(nil),
+		wantErr:      true,
+	}
+	f(o)
+
+	// label without a value
+	o = opts{
+		streamFields: `{app=}`,
+		want:         []StreamField(nil),
+		wantErr:      true,
+	}
+	f(o)
+
+	// unclosed quote in the value
+	o = opts{
+		streamFields: `{app="nginx}`,
+		want:         []StreamField(nil),
+		wantErr:      true,
+	}
+	f(o)
+
+	// lenient to a trailing comma
+	o = opts{
+		streamFields: `{a="1",}`,
+		want: []StreamField{{
+			Label: "a",
+			Value: "1",
+		}},
+	}
+	f(o)
+
+	// a quoted label is rejected
+	o = opts{
+		streamFields: `{"field1"="value1"}`,
+		want:         []StreamField(nil),
+		wantErr:      true,
+	}
+	f(o)
+
+	// a quoted label anywhere fails the whole selector
+	o = opts{
+		streamFields: `{field1="v1","field 2"="v2"}`,
+		want:         []StreamField(nil),
+		wantErr:      true,
+	}
+	f(o)
+
+	// an incomplete trailing pair fails the whole selector
+	o = opts{
+		streamFields: `{field1="value1", field2=}`,
+		want:         []StreamField(nil),
+		wantErr:      true,
+	}
+	f(o)
+
+	// an incomplete pair in the middle fails the whole selector
+	o = opts{
+		streamFields: `{field1=, field2="v2"}`,
+		want:         []StreamField(nil),
+		wantErr:      true,
+	}
+	f(o)
+
+	// an unquoted value in the middle fails the whole selector
+	o = opts{
+		streamFields: `{a="1",b=2,c="3"}`,
+		want:         []StreamField(nil),
+		wantErr:      true,
+	}
+	f(o)
+
+	// unescapes a newline control sequence in the value
+	o = opts{
+		streamFields: `{a="x\ny"}`,
+		want: []StreamField{{
+			Label: "a",
+			Value: "x\ny",
+		}},
+	}
+	f(o)
+
 }
