@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: keep log fields in the order returned by VictoriaLogs (for example the order from `| fields a, b, c`) instead of sorting them alphabetically. See [#563](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/563).
+
 * BUGFIX: lower the default datasource `Maximum lines` limit from 1000 to 50 to reduce browser rendering load and prevent the page from freezing on heavy log results. You can change this value in the datasource configuration. See [Line limits](https://docs.victoriametrics.com/victorialogs/integrations/grafana/#line-limits) docs and [#669](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/669).
 
 ## v0.28.0
