@@ -1,9 +1,9 @@
 import { cloneDeep } from 'lodash';
-import { lastValueFrom, map, merge, Observable } from 'rxjs';
+import { ReactNode } from 'react';
+import { map, merge, Observable } from 'rxjs';
 
 import {
   AdHocVariableFilter,
-  CoreApp,
   DataFrame,
   DataQueryRequest,
   DataQueryResponse,
@@ -12,21 +12,17 @@ import {
   DataSourceInstanceSettings,
   DataSourceWithLogsContextSupport,
   DEFAULT_FIELD_DISPLAY_VALUES_LIMIT,
-  Labels,
   LegacyMetricFindQueryOptions,
   LiveChannelScope,
   LoadingState,
   LogRowContextOptions,
-  LogRowContextQueryDirection,
   LogRowModel,
   MetricFindValue,
   QueryVariableModel,
-  rangeUtil,
   ScopedVars,
   SupplementaryQueryOptions,
   SupplementaryQueryType,
   TimeRange,
-  toUtc,
   TypedVariableModel,
 } from '@grafana/data';
 import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, TemplateSrv } from '@grafana/runtime';
@@ -47,6 +43,7 @@ import {
 import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { escapeLabelValueInSelector } from './languageUtils';
 import LogsQlLanguageProvider from './language_provider';
+import { LogContextProvider } from './logContext/LogContextProvider';
 import { LOGS_VOLUME_BARS, queryLogsVolume } from './logsVolumeLegacy';
 import {
   addLabelToQuery,
@@ -84,9 +81,6 @@ export { resolveAdHocFiltersMode } from './utils/query/adHocFilters';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 export const REF_ID_STARTER_LOG_SAMPLE = 'log-sample-';
-export const REF_ID_STARTER_LOG_CONTEXT_REQUEST = 'log-context-request-';
-export const REF_ID_STARTER_LOG_CONTEXT_QUERY = 'log-context-query-';
-export const LABEL_STREAM_ID = '_stream_id';
 
 export class VictoriaLogsDatasource
   extends DataSourceWithBackend<Query, Options>
@@ -104,6 +98,7 @@ export class VictoriaLogsDatasource
   queryBuilderLimits?: QueryBuilderLimits;
   logLevelRules: LogLevelRule[];
   multitenancyHeaders?: MultitenancyHeaders;
+  logContextProvider: LogContextProvider;
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<Options>,
@@ -138,6 +133,7 @@ export class VictoriaLogsDatasource
     this.variables = new VariableSupport(this);
     this.queryBuilderLimits = settingsData.queryBuilderLimits;
     this.multitenancyHeaders = this.parseMultitenancyHeaders(settingsData.multitenancyHeaders);
+    this.logContextProvider = new LogContextProvider(this);
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
@@ -562,76 +558,18 @@ export class VictoriaLogsDatasource
     row: LogRowModel,
     options?: LogRowContextOptions,
   ): Promise<{ data: DataFrame[] }> => {
-    const contextRequest = this.makeLogContextDataRequest(row, options);
-    return lastValueFrom(this.runQuery(contextRequest));
+    return this.logContextProvider.getLogRowContext(row, options);
   };
 
-  private prepareLogContextQueryExpr = (row: LogRowModel, direction: LogRowContextQueryDirection): string => {
-    let streamId = '';
-    const streamIds = row.dataFrame.meta?.custom?.streamIds;
-    if (streamIds && streamIds.length > 0) {
-      streamId = streamIds[row.rowIndex];
-    }
-
-    if (!streamId && row.labels[LABEL_STREAM_ID]) {
-      // Explore View
-      streamId = row.labels[LABEL_STREAM_ID];
-    } else if (!streamId) {
-      // Dashboard View
-      const transformedLabels: Labels = {};
-      Object.values(row.labels).forEach((label) => {
-        const [key, value] = label.split(':');
-        const cleanedKey = key.trim();
-        transformedLabels[cleanedKey] = value.trim().replace(/"/g, '');
-      });
-      streamId = transformedLabels[LABEL_STREAM_ID];
-    }
-
-    const sortDir = direction === LogRowContextQueryDirection.Forward ? 'asc' : 'desc';
-    return `${LABEL_STREAM_ID}:"${streamId}" | sort by (_time) ${sortDir}`;
+  getLogRowContextQuery = async (
+    row: LogRowModel,
+    options?: LogRowContextOptions
+  ): Promise<Query | null> => {
+    return this.logContextProvider.getLogRowContextQuery(row, options);
   };
 
-  private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions): DataQueryRequest<Query> => {
-    const direction = options?.direction || LogRowContextQueryDirection.Backward;
-
-    const query: Query = {
-      expr: this.prepareLogContextQueryExpr(row, direction),
-      refId: `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${options?.direction}`
-    };
-
-    const range = this.createContextTimeRange(row.timeEpochMs, direction);
-
-    const interval = rangeUtil.calculateInterval(range, 1);
-
-    return {
-      app: CoreApp.Explore,
-      interval: interval.interval,
-      intervalMs: interval.intervalMs,
-      range: range,
-      requestId: `${REF_ID_STARTER_LOG_CONTEXT_REQUEST}${row.dataFrame.refId}-${options?.direction}`,
-      scopedVars: {},
-      startTime: Date.now(),
-      targets: [query],
-      timezone: 'UTC'
-    };
-  };
-
-  private createContextTimeRange = (rowTimeEpochMs: number, direction?: LogRowContextQueryDirection): TimeRange => {
-    const offset = 2 * 60 * 60 * 1000;  // 2h
-    const overlap = 1000;
-
-    const timeRange =
-      direction === LogRowContextQueryDirection.Backward
-        ? {
-          from: toUtc(rowTimeEpochMs - offset),
-          to: toUtc(rowTimeEpochMs + overlap)
-        }
-        : {
-          from: toUtc(rowTimeEpochMs),
-          to: toUtc(rowTimeEpochMs + offset) // Add 1 second to avoid missing results
-        };
-
-    return { ...timeRange, raw: timeRange };
+  getLogRowContextUi = (row: LogRowModel, runContextQuery?: () => void): ReactNode => {
+    return this.logContextProvider.getLogRowContextUi(row, runContextQuery);
   };
 
   async fetchTenantIds(): Promise<string[]> {
