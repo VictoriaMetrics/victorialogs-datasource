@@ -6,6 +6,8 @@
 
 * BUGFIX: lower the default datasource `Maximum lines` limit from 1000 to 50 to reduce browser rendering load and prevent the page from freezing on heavy log results. You can change this value in the datasource configuration. See [Line limits](https://docs.victoriametrics.com/victorialogs/integrations/grafana/#line-limits) docs and [#669](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/669).
 
+* BUGFIX: pad missing `_time` values in instant log query responses so mixed rows with and without `_time` still produce valid Grafana log frames.
+
 ## v0.28.0
 
 * FEATURE: add a per-row stable `id` field to log query frames so Grafana's built-in "Copy shortlink" action becomes available next to every log line in Explore and the Logs panel. See [#344](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/344).

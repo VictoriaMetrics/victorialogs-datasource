@@ -55,6 +55,7 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 	br := bufio.NewReaderSize(reader, 64*1024)
 	var parser fastjson.Parser
 	var finishedReading bool
+	var fallbackTime time.Time
 	for n := 0; !finishedReading; n++ {
 		b, err := br.ReadBytes('\n')
 		if err != nil {
@@ -107,6 +108,11 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 			}
 			timeFd.Append(getTime)
 			value.Del(timeField)
+		} else {
+			if fallbackTime.IsZero() {
+				fallbackTime = nowFunc()
+			}
+			timeFd.Append(fallbackTime)
 		}
 
 		if value.Exists(streamIdField) {
@@ -128,9 +134,11 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 
 	// Grafana expects time field to be always non-empty.
 	if timeFd.Len() == 0 {
-		now := nowFunc()
+		if fallbackTime.IsZero() {
+			fallbackTime = nowFunc()
+		}
 		for i := 0; i < lineField.Len(); i++ {
-			timeFd.Append(now)
+			timeFd.Append(fallbackTime)
 		}
 	}
 
