@@ -1,8 +1,9 @@
 import { groupBy } from 'lodash';
 
-import { FieldType, DataFrame, DataLink, Field } from '@grafana/data';
+import { FieldType, DataFrame, DataLink, Field, DataSourceInstanceSettings } from '@grafana/data';
 import { getDataSourceSrv } from '@grafana/runtime';
 
+import { PLUGIN_ID } from '../../constants';
 import { DerivedFieldConfig } from '../../types';
 
 export function getDerivedFields(dataFrame: DataFrame, derivedFieldConfigs: DerivedFieldConfig[]): Field[] {
@@ -64,6 +65,41 @@ export function getDerivedFields(dataFrame: DataFrame, derivedFieldConfigs: Deri
   return newFields;
 }
 
+const buildDefaultQuery = (url: string | undefined, type?: string)=> {
+  return { query: url ?? 'Need to provide url in the datasource settings', queryType: type };
+};
+
+const buildInternalLink = (derivedFieldConfig: DerivedFieldConfig, dsSettings: DataSourceInstanceSettings | undefined, datasourceUid: string): DataLink => {
+  let query;
+  switch (dsSettings?.type) {
+    case 'tempo': {
+      query = buildDefaultQuery(derivedFieldConfig.url, 'traceql');
+      break;
+    }
+    case 'grafana-x-ray-datasource': {
+      query = buildDefaultQuery(derivedFieldConfig.url, 'getTrace');
+      break;
+    }
+    case PLUGIN_ID: {
+      query = { expr: derivedFieldConfig.url, refId: 'A' };
+      break;
+    }
+    default: {
+      query = buildDefaultQuery(derivedFieldConfig.url);
+    }
+  }
+
+  return {
+    // Will be filled out later
+    title: derivedFieldConfig.urlDisplayLabel || '',
+    url: '',
+    internal: {
+      query: query,
+      datasourceUid,
+      datasourceName: dsSettings?.name ?? 'Data source not found',
+    },
+  };
+};
 
 function fieldFromDerivedFieldConfig(derivedFieldConfigs: DerivedFieldConfig[]): Field {
   const dataSourceSrv = getDataSourceSrv();
@@ -72,28 +108,7 @@ function fieldFromDerivedFieldConfig(derivedFieldConfigs: DerivedFieldConfig[]):
     // Having field.datasourceUid means it is an internal link.
     if (derivedFieldConfig.datasourceUid) {
       const dsSettings = dataSourceSrv.getInstanceSettings(derivedFieldConfig.datasourceUid);
-      const queryType = (type: string | undefined): string | undefined => {
-        switch (type) {
-          case 'tempo':
-            return 'traceql';
-          case 'grafana-x-ray-datasource':
-            return 'getTrace';
-          default:
-            return undefined;
-        }
-      };
-
-      acc.push({
-        // Will be filled out later
-        title: derivedFieldConfig.urlDisplayLabel || '',
-        url: '',
-        // This is hardcoded for Jaeger or Zipkin not way right now to specify datasource specific query object
-        internal: {
-          query: { query: derivedFieldConfig.url, queryType: queryType(dsSettings?.type) },
-          datasourceUid: derivedFieldConfig.datasourceUid,
-          datasourceName: dsSettings?.name ?? 'Data source not found',
-        },
-      });
+      acc.push(buildInternalLink(derivedFieldConfig, dsSettings, derivedFieldConfig.datasourceUid));
     } else if (derivedFieldConfig.url) {
       acc.push({
         // We do not know what title to give here so we count on presentation layer to create a title from metadata.

@@ -15,8 +15,29 @@ datasources:
       # Default maximum number of log lines returned per query.
       # Defaults to 50, maximum allowed value is 10000.
       #maxLines: 50
+
       # Multitenancy settings, see https://docs.victoriametrics.com/victorialogs/#multitenancy
       # to use the multitenancy uncomment lines below: AccountID and ProjectID
       multitenancyHeaders:
         #AccountID: 0
         #ProjectID: 0
+
+      # Derived Fields turn a value inside a log message into a clickable link.
+      # The example below extracts a `trace_id` and links to a Tempo datasource
+      # to open the matching trace. The target can be a tracing datasource
+      # (Tempo, Jaeger, Zipkin) or another VictoriaLogs datasource (logs -> logs).
+      # `datasourceUid` must match the `uid` of the target datasource.
+      #derivedFields:
+      #  - name: trace_id
+      #    # Take the value from the `trace_id` log field:
+      #    matcherType: label
+      #    matcherRegex: trace_id
+      #    # ...or extract it from the raw log line instead:
+      #    # matcherType: regex
+      #    # matcherRegex: 'trace_id=(\w+)'
+      #    # Value handed to the target datasource. For a tracing datasource this
+      #    # is the trace ID; for logs -> logs use a LogsQL query, e.g.
+      #    # 'trace_id:${__value.raw}'.
+      #    url: '${__value.raw}'
+      #    urlDisplayLabel: View trace
+      #    datasourceUid: tempo
