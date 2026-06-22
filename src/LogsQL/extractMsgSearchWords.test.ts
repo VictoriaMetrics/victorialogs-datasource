@@ -90,6 +90,12 @@ describe('extractMsgSearchWords', () => {
       expect(extractMsgSearchWords('-i(debug) warn')).toEqual(['warn']);
       expect(extractMsgSearchWords('NOT exact(debug) warn')).toEqual(['warn']);
     });
+    it('skips a negated _msg function-style filter without leaking inner terms', () => {
+      expect(extractMsgSearchWords('-_msg:i(error)')).toEqual([]);
+      expect(extractMsgSearchWords('!_msg:i(error)')).toEqual([]);
+      expect(extractMsgSearchWords('NOT _msg:i(error)')).toEqual([]);
+      expect(extractMsgSearchWords('NOT _msg:i(error) warn')).toEqual(['warn']);
+    });
   });
 
   describe('grouped values after a field', () => {
@@ -105,6 +111,12 @@ describe('extractMsgSearchWords', () => {
     });
     it('skips a negated grouped value of a non-_msg field', () => {
       expect(extractMsgSearchWords('-app:(buggy_app) warn')).toEqual(['warn']);
+    });
+    it('skips a negated _msg grouped value without leaking inner terms', () => {
+      expect(extractMsgSearchWords('-_msg:(a OR b)')).toEqual([]);
+      expect(extractMsgSearchWords('!_msg:(a OR b)')).toEqual([]);
+      expect(extractMsgSearchWords('NOT _msg:(a OR b)')).toEqual([]);
+      expect(extractMsgSearchWords('-_msg:(a OR b) warn')).toEqual(['warn']);
     });
   });
 
