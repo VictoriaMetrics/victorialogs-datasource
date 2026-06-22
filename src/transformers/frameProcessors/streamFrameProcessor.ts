@@ -6,7 +6,6 @@ import { DerivedFieldConfig, Query } from '../../types';
 import { getDerivedFields } from '../fields/derivedField';
 import { getStreamFields } from '../fields/labelField';
 import { addLevelField } from '../fields/levelField';
-import { getStreamIds } from '../fields/streamUtils';
 import { ANNOTATIONS_REF_ID } from '../types';
 import { dataFrameHasError, setFrameMeta } from '../utils/frame/frameUtils';
 
@@ -30,8 +29,8 @@ function processStreamFrame(
   logLevelRules: LogLevelRule[],
   transformLabels = false
 ): DataFrame {
-  const custom: Record<string, string> = {
-    ...frame.meta?.custom, // keep the original meta.custom
+  const custom: Record<string, unknown> = {
+    ...frame.meta?.custom, // keep the original meta.custom (incl. backend streamIds/streams)
   };
 
   if (dataFrameHasError(frame)) {
@@ -42,11 +41,7 @@ function processStreamFrame(
     preferredVisualisationType: 'logs',
     limit: query?.maxLines,
     searchWords: query !== undefined ? getHighlighterExpressionsFromQuery(query.expr) : undefined,
-    custom: {
-      ...custom,
-      // if the user decides to hide labels via transforms so that we can get the streamId for `Log context`
-      streamIds: getStreamIds(frame),
-    },
+    custom,
   };
 
   const frameWithMeta = setFrameMeta(frame, meta);
