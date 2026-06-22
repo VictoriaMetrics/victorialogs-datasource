@@ -73,6 +73,54 @@ describe('extractMsgSearchWords', () => {
     expect(extractMsgSearchWords('_msg:~"err.*"')).toEqual(['err.*']);
   });
 
+  describe('function-style filters', () => {
+    it('does not highlight the filter function name', () => {
+      expect(extractMsgSearchWords('i(error)')).toEqual(['error']);
+      expect(extractMsgSearchWords('exact(error)')).toEqual(['error']);
+    });
+    it('does not highlight the function name of an explicit _msg filter', () => {
+      expect(extractMsgSearchWords('_msg:i(error)')).toEqual(['error']);
+      expect(extractMsgSearchWords('_msg: i(error)')).toEqual(['error']);
+      expect(extractMsgSearchWords('_msg:exact(error)')).toEqual(['error']);
+    });
+    it('skips a function-style filter on a non-_msg field', () => {
+      expect(extractMsgSearchWords('app:i(error)')).toEqual([]);
+    });
+    it('skips a negated function-style filter entirely', () => {
+      expect(extractMsgSearchWords('-i(debug) warn')).toEqual(['warn']);
+      expect(extractMsgSearchWords('NOT exact(debug) warn')).toEqual(['warn']);
+    });
+  });
+
+  describe('grouped values after a field', () => {
+    it('skips a grouped value of a non-_msg field', () => {
+      expect(extractMsgSearchWords('app:(buggy_app OR foobar)')).toEqual([]);
+      expect(extractMsgSearchWords('level:(error OR warn)')).toEqual([]);
+    });
+    it('still highlights a grouped value of the _msg field', () => {
+      expect(extractMsgSearchWords('_msg:(a OR b)')).toEqual(['a', 'b']);
+    });
+    it('handles a space before the grouped value', () => {
+      expect(extractMsgSearchWords('app: (buggy_app OR foobar)')).toEqual([]);
+    });
+    it('skips a negated grouped value of a non-_msg field', () => {
+      expect(extractMsgSearchWords('-app:(buggy_app) warn')).toEqual(['warn']);
+    });
+  });
+
+  describe('comments', () => {
+    it('strips a trailing comment', () => {
+      expect(extractMsgSearchWords('error # debug')).toEqual(['error']);
+    });
+    it('strips a comment but keeps the next line', () => {
+      expect(extractMsgSearchWords('error # debug\nwarn')).toEqual(['error', 'warn']);
+    });
+    it('does not treat a # inside a quoted value as a comment', () => {
+      expect(extractMsgSearchWords('_msg:"a#b"')).toEqual(['a#b']);
+      expect(extractMsgSearchWords('"a # b"')).toEqual(['a # b']);
+    });
+  });
+
   describe('segments after the first pipe', () => {
     it('does not highlight bare words inside non-filter pipes', () => {
       expect(extractMsgSearchWords('* | stats count()')).toEqual([]);

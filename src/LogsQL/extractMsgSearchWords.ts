@@ -3,6 +3,7 @@ import { escapeRegExp } from 'lodash';
 import { skipBalanced } from '../utils';
 
 import { splitByPipes } from './splitByPipes';
+import { stripComments } from './stripComments';
 
 // Tabs/newlines are normalized to spaces in extractMsgSearchWords, so a plain space is enough here
 const TERM_SEPARATORS = [' ', ':', '|', '(', ')', '{', '}'];
@@ -204,9 +205,33 @@ function scanFilterSegment(segment: string): string[] {
       while (segment[i] === ' ') {
         i++; // a space after the colon still binds the value to its field
       }
+      // grouped value: `field:(...)` — the whole group binds to the field
+      if (segment[i] === '(') {
+        if (word === '_msg') {
+          continue; // scan the group as default _msg context
+        }
+        i = skipBalanced(segment, i, '(', ')'); // group filters a non-_msg field — skip it
+        negateNext = false;
+        continue;
+      }
       const { term, next } = readValueTerm(segment, i);
       i = next;
+      // function-style value: `field:fn(...)` — the value word is a function name, not a term
+      if (segment[i] === '(') {
+        if (word === '_msg') {
+          continue; // scan the function args as default _msg context
+        }
+        i = skipBalanced(segment, i, '(', ')'); // function filters a non-_msg field — skip it
+        negateNext = false;
+        continue;
+      }
       emit(word === '_msg' ? term : null);
+      continue;
+    }
+
+    // function-style filter call: `word(...)` — the word is a function name, not a term
+    // (e.g. i(error), exact(error)); the group itself is scanned as default _msg context
+    if (segment[i] === '(') {
       continue;
     }
 
@@ -253,8 +278,9 @@ function filterBodyOfPipe(segment: string): string | null {
  * regexp filters are returned raw.
  */
 export function extractMsgSearchWords(expr = ''): string[] {
-  // Normalize tabs/newlines to spaces up front so the scanner only deals with one whitespace kind
-  const segments = splitByPipes(expr.replace(/[\t\n\r]/g, ' '));
+  const exprWithoutComments = stripComments(expr);
+  const normalizedExpr = exprWithoutComments.replace(/[\t\n\r]/g, ' ');
+  const segments = splitByPipes(normalizedExpr);
   const results: string[] = [];
 
   segments.forEach((segment, index) => {
