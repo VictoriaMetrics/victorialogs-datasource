@@ -18,6 +18,7 @@ import {
   useTheme2,
 } from '@grafana/ui';
 
+import { PLUGIN_ID } from '../constants';
 import { DerivedFieldConfig } from '../types';
 
 type MatcherType = 'label' | 'regex';
@@ -190,7 +191,7 @@ export const DerivedField = (props: Props) => {
         {showInternalLink && (
           <Field label='' className={styles.dataSource}>
             <DataSourcePicker
-              tracing={true}
+              filter={(ds: DataSourceInstanceSettings) => Boolean(ds.meta.tracing) || ds.type === PLUGIN_ID}
               onChange={(ds: DataSourceInstanceSettings) =>
                 onChange({
                   ...value,

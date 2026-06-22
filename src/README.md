@@ -377,6 +377,34 @@ open a Jaeger datasource and search for the `trace_id` value:
 If the trace ID is not stored in a separate field but in a log message itself, then use `Regex in log line` option
 to specify a regex expression for extracting the trace value from log message.
 
+The target of a Derived Field can be a tracing datasource (Tempo, Jaeger, Zipkin) or another VictoriaLogs datasource
+(logs → logs). When the target is VictoriaLogs, set `url` to a LogsQL query such as `trace_id:${__value.raw}`, and
+clicking the field opens Explore with that query — letting you pivot from a value like `trace_id` or `request_id`
+to all related logs.
+
+Derived Fields can also be configured via provisioning:
+
+```yaml
+apiVersion: 1
+datasources:
+  - name: VictoriaLogs
+    type: victoriametrics-logs-datasource
+    url: http://victorialogs:9428
+    jsonData:
+      derivedFields:
+        - name: trace_id
+          # Take the value from the `trace_id` log field (or use matcherType: regex
+          # with a capture group to extract it from the raw log line instead).
+          matcherType: label
+          matcherRegex: trace_id
+          # Value handed to the target datasource: the trace ID for a tracing
+          # datasource, or a LogsQL query like 'trace_id:${__value.raw}' for logs → logs.
+          url: '${__value.raw}'
+          urlDisplayLabel: View trace
+          # `uid` of the target datasource (a tracing or VictoriaLogs datasource).
+          datasourceUid: tempo
+```
+
 Learn more about [Derived Fields in Grafana](https://grafana.com/docs/grafana/next/datasources/loki/configure-loki-data-source/#derived-fields).
 
 ## License
