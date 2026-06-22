@@ -5,7 +5,7 @@ import { GrafanaTheme2, LogRowModel } from '@grafana/data';
 import { Stack, useStyles2 } from '@grafana/ui';
 
 import { ToggleChip } from '../../components/shared/Chip/ToggleChip';
-import type { LogContextProvider } from '../LogContextProvider';
+import { LABEL_STREAM_ID, type LogContextProvider } from '../LogContextProvider';
 
 interface Props {
   provider: LogContextProvider;
@@ -31,8 +31,28 @@ export const LogContextUI = ({ provider, row, runContextQuery }: Props) => {
     return () => provider.resetStreamLabels(streamId);
   }, [provider, streamId]);
 
+  // neither `_stream_id` nor `_stream` labels: the context search can't be
+  // scoped, so explain it instead of silently rendering nothing
+  if (!provider.hasContextData(row)) {
+    return (
+      <span className={styles.message}>
+        Cannot show stream context: this log row has neither a _stream nor a _stream_id field.
+      </span>
+    );
+  }
+
+  // `_stream_id` present but no `_stream` labels: context is scoped by stream id,
+  // there are no chips to toggle. Show the id and note that stream labels could
+  // not be determined because the `_stream` field is absent
   if (!pairs.length) {
-    return null;
+    return (
+      <Stack direction='column' gap={0.5}>
+        <span className={styles.item}>{`${LABEL_STREAM_ID}="${streamId}"`}</span>
+        <span className={styles.message}>
+          Stream labels unavailable: this log row has no _stream field. Context is filtered by _stream_id.
+        </span>
+      </Stack>
+    );
   }
 
   const enabledCount = pairs.filter(([key]) => provider.isStreamLabelEnabled(streamId, key)).length;
@@ -79,5 +99,9 @@ const getStyles = (theme: GrafanaTheme2) => ({
     display: 'inline-flex',
     alignItems: 'center',
     color: theme.colors.text.secondary,
+  }),
+  message: css({
+    color: theme.colors.text.secondary,
+    fontStyle: 'italic',
   }),
 });

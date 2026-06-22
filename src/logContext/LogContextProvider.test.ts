@@ -100,6 +100,60 @@ describe('LogContextProvider', () => {
     expect(query?.expr).toBe('_stream_id:"stream-id-1" | sort by (_time) desc');
   });
 
+  it('treats a null _stream (field absent) as no stream labels', () => {
+    const row = buildLogRow({
+      dataFrame: {
+        refId: 'A',
+        fields: [],
+        length: 1,
+        meta: { custom: { streamIds: ['stream-id-1'], streams: [null] } },
+      },
+    });
+    expect(provider.getStreamLabels(row)).toEqual({});
+    // still has a _stream_id, so context can be shown
+    expect(provider.hasContextData(row)).toBe(true);
+  });
+
+  it('builds context by _stream labels when _stream_id is missing', async () => {
+    const row = buildLogRow({
+      dataFrame: {
+        refId: 'A',
+        fields: [],
+        length: 1,
+        meta: { custom: { streamIds: [''], streams: [{ app: 'nginx', host: 'h-1' }] } },
+      },
+    });
+    const query = await provider.getLogRowContextQuery(row);
+    expect(query?.expr).toBe('_stream:{app="nginx",host="h-1"} | sort by (_time) desc');
+  });
+
+  it('narrows the _stream selector by enabled labels when _stream_id is missing', async () => {
+    const row = buildLogRow({
+      dataFrame: {
+        refId: 'A',
+        fields: [],
+        length: 1,
+        meta: { custom: { streamIds: [''], streams: [{ app: 'nginx', host: 'h-1' }] } },
+      },
+    });
+    // with no _stream_id the toggle state is keyed by an empty stream id
+    provider.toggleStreamLabel('', 'host');
+    const query = await provider.getLogRowContextQuery(row);
+    expect(query?.expr).toBe('_stream:{app="nginx"} | sort by (_time) desc');
+  });
+
+  it('reports no context data when both _stream and _stream_id are missing', () => {
+    const row = buildLogRow({
+      dataFrame: {
+        refId: 'A',
+        fields: [],
+        length: 1,
+        meta: { custom: { streamIds: [''], streams: [null] } },
+      },
+    });
+    expect(provider.hasContextData(row)).toBe(false);
+  });
+
   it('keeps toggle state isolated between different streams', async () => {
     const otherStreamRow = buildLogRow({
       dataFrame: {

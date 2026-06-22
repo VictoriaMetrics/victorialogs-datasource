@@ -275,7 +275,7 @@ func Test_parseInstantResponse(t *testing.T) {
 				row{"", "", ""},
 			)
 
-			return newFrame(timeFd, lineField, idField, labelsField, []string{"", ""}, []map[string]string{{}, {}})
+			return newFrame(timeFd, lineField, idField, labelsField, []string{"", ""}, []map[string]string{nil, nil})
 		},
 	}
 	f(o)
@@ -292,7 +292,7 @@ func Test_parseInstantResponse(t *testing.T) {
 			lineField.Append("")
 			labelsField.Append(json.RawMessage(`{"level":""}`))
 
-			return newFrame(timeFd, lineField, newIDField(row{"", "", ""}), labelsField, []string{""}, []map[string]string{{}})
+			return newFrame(timeFd, lineField, newIDField(row{"", "", ""}), labelsField, []string{""}, []map[string]string{nil})
 		},
 	}
 	f(o)
@@ -314,7 +314,7 @@ func Test_parseInstantResponse(t *testing.T) {
 			labelsField.Append(json.RawMessage(`{"logs":"1400"}`))
 			labelsField.Append(json.RawMessage(`{"logs":"374"}`))
 
-			return newFrame(timeFd, lineField, newIDField(row{ts1, "", ""}, row{ts2, "", ""}), labelsField, []string{"", ""}, []map[string]string{{}, {}})
+			return newFrame(timeFd, lineField, newIDField(row{ts1, "", ""}, row{ts2, "", ""}), labelsField, []string{"", ""}, []map[string]string{nil, nil})
 		},
 	}
 	f(o)
@@ -377,7 +377,7 @@ func Test_parseInstantResponse(t *testing.T) {
 			lineField.Append("507")
 			labelsField.Append(json.RawMessage(`{"count":"507"}`))
 
-			return newFrame(timeFd, lineField, newIDField(row{"", "507", ""}), labelsField, []string{""}, []map[string]string{{}})
+			return newFrame(timeFd, lineField, newIDField(row{"", "507", ""}), labelsField, []string{""}, []map[string]string{nil})
 		},
 	}
 	f(o)
@@ -542,6 +542,33 @@ func Test_parseInstantResponse(t *testing.T) {
 				{"namespace": "ops-monitoring-ns"},
 				{},
 			})
+		},
+	}
+	f(o)
+
+	// missing `_stream` field: it must come back as nil (JSON null) so the
+	// frontend can fall back to `_stream_id`; the second row also lacks
+	// `_stream_id`, so both stream fields are absent
+	o = opts{
+		filename: "test-data/missing_stream_fields",
+		want: func() backend.DataResponse {
+			timeFd := newField(data.FieldTypeTime, gTimeField)
+			lineField := newField(data.FieldTypeString, gLineField)
+			labelsField := newField(data.FieldTypeJSON, gLabelsField)
+
+			ts := "2024-02-20"
+			streamID := "00000000000000009eaf29866f70976a098adc735393deb1"
+			timeFd.Append(getTimeType(ts))
+			timeFd.Append(getTimeType(ts))
+			lineField.Append("hello")
+			lineField.Append("world")
+			labelsField.Append(json.RawMessage(`{"_stream_id":"00000000000000009eaf29866f70976a098adc735393deb1"}`))
+			labelsField.Append(json.RawMessage(`{"foo":"bar"}`))
+
+			return newFrame(timeFd, lineField, newIDField(
+				row{ts, "hello", streamID},
+				row{ts, "world", ""},
+			), labelsField, []string{streamID, ""}, []map[string]string{nil, nil})
 		},
 	}
 	f(o)

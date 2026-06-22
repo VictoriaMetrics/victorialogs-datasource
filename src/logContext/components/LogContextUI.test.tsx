@@ -74,9 +74,27 @@ describe('LogContextUi', () => {
     expect(ds.logContextProvider.isStreamLabelEnabled('stream-id-1', 'host')).toBe(true);
   });
 
-  it('renders nothing when the row has no stream labels', () => {
-    const { container } = render(<LogContextUI provider={ds.logContextProvider} row={buildLogRow([{}])} />);
-    expect(container).toBeEmptyDOMElement();
+  it('shows the _stream_id and a note when the row has no stream labels', () => {
+    render(<LogContextUI provider={ds.logContextProvider} row={buildLogRow([{}])} />);
+    expect(screen.getByText('_stream_id="stream-id-1"')).toBeInTheDocument();
+    expect(screen.getByText(/Stream labels unavailable/i)).toBeInTheDocument();
+  });
+
+  it('shows an explanatory message when both _stream and _stream_id are missing', () => {
+    const row = {
+      rowIndex: 0,
+      dataFrame: {
+        refId: 'A',
+        fields: [],
+        length: 1,
+        meta: { custom: { streamIds: [''], streams: [null] } },
+      },
+      labels: {},
+      timeEpochMs: 1700000000000,
+    } as unknown as LogRowModel;
+
+    render(<LogContextUI provider={ds.logContextProvider} row={row} />);
+    expect(screen.getByText(/Cannot show stream context/i)).toBeInTheDocument();
   });
 
   it('does not allow toggling off the only stream label', () => {

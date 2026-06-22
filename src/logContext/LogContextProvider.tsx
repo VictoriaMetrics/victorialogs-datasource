@@ -56,8 +56,16 @@ export class LogContextProvider {
   };
 
   getStreamLabels = (row: LogRowModel): Record<string, string> => {
-    const streams = row.dataFrame.meta?.custom?.streams as Array<Record<string, string>> | undefined;
+    const streams = row.dataFrame.meta?.custom?.streams as Array<Record<string, string> | null> | undefined;
+    // a missing `_stream` field comes back as null from the backend
     return streams?.[row.rowIndex] ?? {};
+  };
+
+  // whether the row carries enough data to build a context query: either a
+  // `_stream_id` or at least one `_stream` label. With neither, the modal
+  // cannot scope the context search and shows an explanatory message instead
+  hasContextData = (row: LogRowModel): boolean => {
+    return Boolean(this.getRowStreamId(row)) || Object.keys(this.getStreamLabels(row)).length > 0;
   };
 
   isStreamLabelEnabled = (streamId: string, key: string): boolean => {
@@ -80,28 +88,42 @@ export class LogContextProvider {
     this.disabledStreamLabels.delete(streamId);
   };
 
+  // builds a `_stream:{...}` selector from the given label keys
+  private buildStreamSelector = (labels: Record<string, string>, keys: string[]): string => {
+    const selector = keys
+      .map((key) => `${formatStreamSelectorKey(key)}="${escapeLabelValueInSelector(labels[key])}"`)
+      .join(',');
+    return `${LABEL_STREAM}:{${selector}}`;
+  };
+
   private buildContextFilterExpr = (row: LogRowModel): string => {
     const streamId = this.getRowStreamId(row);
-    const byStreamId = `${LABEL_STREAM_ID}:"${streamId}"`;
-
     const labels = this.getStreamLabels(row);
     const keys = Object.keys(labels);
     const disabled = this.disabledStreamLabels.get(streamId);
+    const selected = keys.filter((key) => !disabled?.has(key));
+
+    // no `_stream_id`: the only way to scope the context is by stream labels.
+    // an empty set would make the query unbounded — the UI keeps at least one
+    // label enabled, fall back to all labels defensively anyway
+    if (!streamId) {
+      return keys.length ? this.buildStreamSelector(labels, selected.length ? selected : keys) : '';
+    }
+
+    const byStreamId = `${LABEL_STREAM_ID}:"${streamId}"`;
+
+    // no labels, or the user hasn't narrowed anything: use the exact stream id
     if (!keys.length || !disabled?.size) {
       return byStreamId;
     }
 
-    const selected = keys.filter((key) => !disabled.has(key));
     // a full set means nothing is narrowed; an empty set would make the query
     // unbounded — the UI prevents it, fall back defensively anyway
     if (!selected.length || selected.length === keys.length) {
       return byStreamId;
     }
 
-    const selector = selected
-      .map((key) => `${formatStreamSelectorKey(key)}="${escapeLabelValueInSelector(labels[key])}"`)
-      .join(',');
-    return `${LABEL_STREAM}:{${selector}}`;
+    return this.buildStreamSelector(labels, selected);
   };
 
   private prepareLogContextQueryExpr = (row: LogRowModel, direction: LogRowContextQueryDirection): string => {

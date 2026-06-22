@@ -128,15 +128,21 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 		}
 
 		// parse `_stream` into a per-row label map for the log context UI and
-		// drop it from the row so it does not show up among the log labels
-		rowStream := string(value.GetStringBytes(streamField))
-		value.Del(streamField)
-		stf, err := utils.ParseStreamFields(rowStream)
-		if err != nil {
-			return newResponseError(fmt.Errorf("error parse _stream field: %s", err), backend.StatusInternal)
+		// drop it from the row so it does not show up among the log labels.
+		// A missing `_stream` field yields a nil map (JSON null) so the frontend
+		// can tell "field absent" apart from "field empty" and fall back to `_stream_id`
+		var streamMap map[string]string
+		if value.Exists(streamField) {
+			rowStream := string(value.GetStringBytes(streamField))
+			value.Del(streamField)
+			stf, err := utils.ParseStreamFields(rowStream)
+			if err != nil {
+				return newResponseError(fmt.Errorf("error parse _stream field: %s", err), backend.StatusInternal)
+			}
+			streamMap = streamFieldsToMap(stf)
 		}
 		streamIds = append(streamIds, string(rowStreamId))
-		streams = append(streams, streamFieldsToMap(stf))
+		streams = append(streams, streamMap)
 
 		labelsField.Append(json.RawMessage(value.MarshalTo(nil)))
 		idField.Append(buildLogID(rowTime, rowMsg, rowStreamId))
@@ -251,15 +257,21 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 		}
 
 		// parse `_stream` into a per-row label map for the log context UI and
-		// drop it from the row so it does not show up among the log labels
-		rowStream := string(value.GetStringBytes(streamField))
-		value.Del(streamField)
-		stf, err := utils.ParseStreamFields(rowStream)
-		if err != nil {
-			return fmt.Errorf("error parse _stream field: %s", err)
+		// drop it from the row so it does not show up among the log labels.
+		// A missing `_stream` field yields a nil map (JSON null) so the frontend
+		// can tell "field absent" apart from "field empty" and fall back to `_stream_id`
+		var streamMap map[string]string
+		if value.Exists(streamField) {
+			rowStream := string(value.GetStringBytes(streamField))
+			value.Del(streamField)
+			stf, err := utils.ParseStreamFields(rowStream)
+			if err != nil {
+				return fmt.Errorf("error parse _stream field: %s", err)
+			}
+			streamMap = streamFieldsToMap(stf)
 		}
 		streamIds = append(streamIds, string(rowStreamId))
-		streams = append(streams, streamFieldsToMap(stf))
+		streams = append(streams, streamMap)
 
 		labelsField.Append(json.RawMessage(value.MarshalTo(nil)))
 		idField.Append(buildLogID(rowTime, rowMsg, rowStreamId))
