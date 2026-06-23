@@ -1,6 +1,6 @@
 module github.com/VictoriaMetrics/victorialogs-datasource
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/VictoriaMetrics/metricsql v0.84.4
