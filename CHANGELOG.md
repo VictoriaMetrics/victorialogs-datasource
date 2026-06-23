@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.29.0
+
 * FEATURE: keep log fields in the order returned by VictoriaLogs (for example the order from `| fields a, b, c`) instead of sorting them alphabetically. See [#563](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/563).
 * FEATURE: highlight the terms you search for directly in the matching log lines for LogsQL queries — word filters (e.g. `error`), quoted phrases, `_msg:` filters, and `filter` pipes. See [#519](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/519).
 * FEATURE: derived fields can now link to another VictoriaLogs datasource (logs → logs). Clicking such a field opens Explore with a ready LogsQL query, letting you pivot from a value like `trace_id` or `request_id` to all related logs. See [#671](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/671).
