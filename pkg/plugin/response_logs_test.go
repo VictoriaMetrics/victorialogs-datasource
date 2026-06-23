@@ -382,6 +382,35 @@ func Test_parseInstantResponse(t *testing.T) {
 	}
 	f(o)
 
+	// response mixes rows with and without _time
+	o = opts{
+		filename: "test-data/time_field_missing_in_one_row",
+		want: func() backend.DataResponse {
+			timeFd := newField(data.FieldTypeTime, gTimeField)
+			lineField := newField(data.FieldTypeString, gLineField)
+			labelsField := newField(data.FieldTypeJSON, gLabelsField)
+
+			tsRaw := "2024-02-20T14:04:27Z"
+			timeFd.Append(getTimeType(tsRaw))
+			timeFd.Append(now)
+			lineField.Append("123")
+			lineField.Append("456")
+			labelsField.Append(json.RawMessage(`{"_stream":"{app=\"test\"}"}`))
+			labelsField.Append(json.RawMessage(`{"_stream":"{app=\"test\"}"}`))
+
+			return newFrame(
+				timeFd,
+				lineField,
+				newIDField(
+					row{tsRaw, "123", ""},
+					row{"", "456", ""},
+				),
+				labelsField,
+			)
+		},
+	}
+	f(o)
+
 	// double labels
 	o = opts{
 		filename: "test-data/double_labels",
