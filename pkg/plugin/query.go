@@ -60,6 +60,7 @@ type Query struct {
 	TimezoneOffset     string    `json:"timezoneOffset"`
 	url                *url.URL
 	ForAlerting        bool `json:"-"`
+	PackJson           bool `json:"packJson"`
 }
 
 // GetQueryURL calculates step and clear expression from template variables,

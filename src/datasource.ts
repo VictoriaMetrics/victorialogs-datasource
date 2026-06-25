@@ -70,6 +70,7 @@ import {
   ToggleFilterAction,
   VariableQuery,
 } from './types';
+import { hashString } from './utils';
 import {
   resolveAdHocFilters,
   serializeChipsForBackend,
@@ -141,10 +142,12 @@ export class VictoriaLogsDatasource
     const queries: Query[] = request.targets
       .filter((q) => q.expr || config.publicDashboardAccessToken !== '')
       .map(({ templateBuilder, ...q }) => {
+        // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
+        const expr = addSortPipeToQuery(q, request.app, request.liveStreaming);
+
         return {
           ...q,
-          // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
-          expr: addSortPipeToQuery(q, request.app, request.liveStreaming),
+          expr,
           maxLines: Math.min(q.maxLines ?? this.maxLines, LOGS_LIMIT_HARD_CAP),
           timezoneOffset,
           format: getQueryFormat(q.expr),
@@ -433,7 +436,12 @@ export class VictoriaLogsDatasource
             // so we need to send both for compatibility with older versions
             namespace: this.uid,
             stream: this.uid,
-            path: `${request.requestId}/${query.refId}`,
+            // The channel path must encode the query content. Grafana Live de-duplicates
+            // subscriptions by channel address and the backend snapshots the query from the
+            // subscribe payload only once (RunStream). Without the query hash the path stays
+            // constant across query edits, so changing `expr` reuses the existing
+            // channel and keeps streaming the previous query until a full page reload.
+            path: `${request.requestId}/${query.refId}/${hashString(JSON.stringify(query))}`,
             data: {
               ...query,
             },

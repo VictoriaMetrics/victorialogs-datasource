@@ -2,6 +2,10 @@
 
 ## tip
 
+* FEATURE: add a `Pack to JSON` toggle in the query options for raw logs that packs all log labels into a single JSON object shown in the `Line` field. See [#677](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/677).
+
+* BUGFIX: live tailing now picks up query changes immediately. Previously, editing the query expression while live logs were streaming kept showing results for the previous query until the page was reloaded.
+
 ## v0.29.0
 
 * FEATURE: keep log fields in the order returned by VictoriaLogs (for example the order from `| fields a, b, c`) instead of sorting them alphabetically. See [#563](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/563).

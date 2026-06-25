@@ -206,6 +206,7 @@ func TestDatasourceQueryRequest(t *testing.T) {
 
 		rsp := backend.DataResponse{}
 		frame.Meta = &data.FrameMeta{
+			PreferredVisualization: logsVisualisation,
 			Custom: map[string]any{
 				"streamIds": []string{""},
 				"streams":   []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
@@ -295,6 +296,7 @@ func TestDatasourceQueryRequest(t *testing.T) {
 
 		rsp := backend.DataResponse{}
 		frame.Meta = &data.FrameMeta{
+			PreferredVisualization: logsVisualisation,
 			Custom: map[string]any{
 				"streamIds": []string{""},
 				"streams":   []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
