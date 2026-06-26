@@ -74,14 +74,6 @@ func Test_buildLogID(t *testing.T) {
 }
 
 func Test_parseInstantResponse(t *testing.T) {
-	now := time.Now()
-	nowFunc = func() time.Time {
-		return now
-	}
-	defer func() {
-		nowFunc = time.Now
-	}()
-
 	// mustTime parses a raw _time string the same way production does.
 	getTimeType := func(s string) time.Time {
 		tt, err := utils.GetTime(s)
@@ -96,6 +88,7 @@ func Test_parseInstantResponse(t *testing.T) {
 	newFrame := func(timeFd, lineField, idField, labelsField *data.Field, streamIds []string, streams []map[string]string) backend.DataResponse {
 		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
 		frame.Meta = &data.FrameMeta{
+			PreferredVisualization: logsVisualisation,
 			Custom: map[string]any{
 				"streamIds": streamIds,
 				"streams":   streams,
@@ -117,7 +110,7 @@ func Test_parseInstantResponse(t *testing.T) {
 
 		r := io.NopCloser(bytes.NewBuffer(file))
 		w := opts.want()
-		resp := parseInstantResponse(r)
+		resp := parseInstantResponse(r, &Query{})
 
 		if w.Error != nil {
 			if !reflect.DeepEqual(w, resp) {
@@ -264,8 +257,8 @@ func Test_parseInstantResponse(t *testing.T) {
 			lineField := newField(data.FieldTypeString, gLineField)
 			labelsField := newField(data.FieldTypeJSON, gLabelsField)
 
-			timeFd.Append(now)
-			timeFd.Append(now)
+			timeFd.Append(time.Time{})
+			timeFd.Append(time.Time{})
 			lineField.Append("")
 			lineField.Append("")
 			labelsField.Append(json.RawMessage(`{"stream":"stderr","count(*)":"394"}`))
@@ -288,7 +281,7 @@ func Test_parseInstantResponse(t *testing.T) {
 			lineField := newField(data.FieldTypeString, gLineField)
 			labelsField := newField(data.FieldTypeJSON, gLabelsField)
 
-			timeFd.Append(now)
+			timeFd.Append(time.Time{})
 			lineField.Append("")
 			labelsField.Append(json.RawMessage(`{"level":""}`))
 
@@ -373,7 +366,7 @@ func Test_parseInstantResponse(t *testing.T) {
 			lineField := newField(data.FieldTypeString, gLineField)
 			labelsField := newField(data.FieldTypeJSON, gLabelsField)
 
-			timeFd.Append(now)
+			timeFd.Append(time.Time{})
 			lineField.Append("507")
 			labelsField.Append(json.RawMessage(`{"count":"507"}`))
 
@@ -523,9 +516,9 @@ func Test_parseInstantResponse(t *testing.T) {
 			lineField := newField(data.FieldTypeString, gLineField)
 			labelsField := newField(data.FieldTypeJSON, gLabelsField)
 
-			timeFd.Append(now)
-			timeFd.Append(now)
-			timeFd.Append(now)
+			timeFd.Append(time.Time{})
+			timeFd.Append(time.Time{})
+			timeFd.Append(time.Time{})
 			lineField.Append("")
 			lineField.Append("")
 			lineField.Append("")
