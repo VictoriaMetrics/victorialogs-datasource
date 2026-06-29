@@ -15,6 +15,7 @@ export const LOG_OPERATOR_OPTIONS: LogOperatorOption[] = [
   { label: '=~', description: 'Matches regex', value: LogLevelRuleType.Regex },
   { label: '<', description: 'Less than', value: LogLevelRuleType.LessThan },
   { label: '>', description: 'Greater than', value: LogLevelRuleType.GreaterThan },
+  { label: ':', description: 'Word filter', value: LogLevelRuleType.WordFilter },
 ];
 
 export const OperatorLabels: Record<LogLevelRuleType, string> = {
@@ -24,6 +25,7 @@ export const OperatorLabels: Record<LogLevelRuleType, string> = {
   [LogLevelRuleType.Regex]: '~',
   [LogLevelRuleType.LessThan]: '<',
   [LogLevelRuleType.GreaterThan]: '>',
+  [LogLevelRuleType.WordFilter]: ':',
 };
 
 export const OperatorLabelsQueryBuilder: Record<LogLevelRuleType, (rule: LogLevelRule) => string> = {
@@ -33,6 +35,7 @@ export const OperatorLabelsQueryBuilder: Record<LogLevelRuleType, (rule: LogLeve
   [LogLevelRuleType.Regex]: (rule) => `${rule.field}:~"${rule.value}"`,
   [LogLevelRuleType.LessThan]: (rule) => `${rule.field}:<"${rule.value}"`,
   [LogLevelRuleType.GreaterThan]: (rule) => `${rule.field}:>"${rule.value}"`,
+  [LogLevelRuleType.WordFilter]: (rule) => `${rule.field}:"${rule.value}"`,
 };
 
 export const LOG_LEVEL_OPTIONS: Array<ComboboxOption<LogLevel>> = Array.from(

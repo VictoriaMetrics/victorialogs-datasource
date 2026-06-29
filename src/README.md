@@ -173,7 +173,7 @@ The **Log level rules** section in the datasource configuration allows you to as
 
     * **Enable switch** – enable or disable the rule.
     * **Field name** – the log field the condition will evaluate.
-    * **Operator** – choose from: `Equals`, `Not equal`, `Matches regex`, `Less than`, `Greater than`
+    * **Operator** – choose from: `Equals`, `Not equal`, `Matches regex`, `Less than`, `Greater than`, `Word filter`
     * **Value** – the value to compare the field against.
     * **Log level** – level to assign if the condition matches: `critical`, `warning`, `error`, `info`, `debug`, `trace`, `unknown`
     * **Delete button** – remove the rule.
@@ -213,7 +213,7 @@ Where:
 * `field` is the name of the log field to evaluate (e.g. `_stream_id`, `status_code`, `message`).
 * `value` is the value to compare against. Can be a string or a number, depending on the field.
 * `level` is the log level to assign if the condition matches. Valid values: `critical`, `error`, `warning`, `info`, `debug`, `trace`, `unknown`.
-* `operator` is the comparison operator to use, such as `equals`, `notEquals`, `regex`, `lessThan`, `greaterThan`.
+* `operator` is the comparison operator to use, such as `equals`, `notEquals`, `regex`, `lessThan`, `greaterThan`, `wordFilter`. The `wordFilter` operator follows [LogsQL word filter](https://docs.victoriametrics.com/victorialogs/logsql/#word-filter) semantics: the value matches whole tokens, not substrings (e.g. `error` matches `an error happened` but not `terror`).
 * `enabled` is a boolean flag to enable or disable the rule. Defaults to `true` if omitted.
 
 ### Variables
