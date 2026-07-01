@@ -62,7 +62,17 @@ describe('WordFilter operator (LogsQL word filter `:`)', () => {
     expect(resolve({ other: 'error' } as Labels, [matchRule])).toBe(LogLevel.unknown);
   });
 
-  it('does not match when the rule value is empty (avoids matching everything)', () => {
+  it('empty value matches a missing field (mirrors LogsQL `field:""`)', () => {
+    const rules = [rule({ field: 'msg', value: '', level: LogLevel.error })];
+    expect(resolve({ other: 'x' } as Labels, rules)).toBe(LogLevel.error);
+  });
+
+  it('empty value matches an empty-string field', () => {
+    const rules = [rule({ field: 'msg', value: '', level: LogLevel.error })];
+    expect(resolve({ msg: '' }, rules)).toBe(LogLevel.error);
+  });
+
+  it('empty value does not match a non-empty field', () => {
     const rules = [rule({ field: 'msg', value: '', level: LogLevel.error })];
     expect(resolve({ msg: 'an error happened' }, rules)).toBe(LogLevel.unknown);
   });

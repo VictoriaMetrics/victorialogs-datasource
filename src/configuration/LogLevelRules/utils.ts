@@ -71,16 +71,19 @@ const WORD_CHAR_RE = /[\p{L}\p{N}_]/u;
 const isWordChar = (char: string | undefined): boolean => char !== undefined && WORD_CHAR_RE.test(char);
 
 const matchesWordFilter = (fieldValueRaw: unknown, ruleValueRaw: string | number): boolean => {
-  if (fieldValueRaw === undefined || ruleValueRaw === null) {
+  const ruleValue = String(ruleValueRaw ?? '');
+
+  // An empty word filter mirrors LogsQL `field:""`: it matches an empty or missing field
+  // (LogsQL treats empty values as non-existing).
+  if (ruleValue === '') {
+    return fieldValueRaw === undefined || fieldValueRaw === null || String(fieldValueRaw) === '';
+  }
+
+  if (fieldValueRaw === undefined || fieldValueRaw === null) {
     return false;
   }
 
   const fieldValue = String(fieldValueRaw);
-  const ruleValue = String(ruleValueRaw);
-
-  if (ruleValue === '') {
-    return false;
-  }
 
   for (let at = fieldValue.indexOf(ruleValue); at !== -1; at = fieldValue.indexOf(ruleValue, at + 1)) {
     const charBefore = fieldValue[at - 1];

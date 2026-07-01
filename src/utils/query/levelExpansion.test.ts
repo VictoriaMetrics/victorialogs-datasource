@@ -35,4 +35,18 @@ describe('buildLevelExprs', () => {
     ];
     expect(buildLevelExprMap(rules)[LogLevel.error]).toContain(' OR log.level:"err"');
   });
+
+  it('emits field:"" for an empty WordFilter (matches empty/missing fields, mirrors LogsQL)', () => {
+    const rules = [
+      { field: 'message', operator: LogLevelRuleType.WordFilter, value: '', level: LogLevel.error, enabled: true },
+    ];
+    expect(buildLevelExprMap(rules)[LogLevel.error]).toContain(' OR message:""');
+  });
+
+  it('includes WordFilter rules with a non-empty value', () => {
+    const rules = [
+      { field: 'message', operator: LogLevelRuleType.WordFilter, value: 'error', level: LogLevel.error, enabled: true },
+    ];
+    expect(buildLevelExprMap(rules)[LogLevel.error]).toContain(' OR message:"error"');
+  });
 });
