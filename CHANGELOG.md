@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: add a `:` (word filter) operator to Log Level Rules, matching a field value by whole word like LogsQL (e.g. `error` matches the word `error`, not `terror`). See [#611](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/611).
+
 ## v0.29.0
 
 * FEATURE: keep log fields in the order returned by VictoriaLogs (for example the order from `| fields a, b, c`) instead of sorting them alphabetically. See [#563](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/563).
