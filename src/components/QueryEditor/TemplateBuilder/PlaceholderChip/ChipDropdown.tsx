@@ -4,6 +4,8 @@ import React from 'react';
 import { ComboboxOption, useStyles2 } from '@grafana/ui';
 
 import { FloatingDropdown } from '../FloatingDropdown';
+import { KeyboardHintsBar } from '../KeyboardHintsBar';
+import { getPlaceholderHints } from '../keyboardHints';
 
 import { getStyles } from './styles';
 import { OptionGroup } from './useOptionLoading';
@@ -19,6 +21,8 @@ interface Props {
   floatingRef: (el: HTMLElement | null) => void;
   floatingStyles: React.CSSProperties;
   listRef: React.RefObject<HTMLDivElement | null>;
+  /** Multi-value chip */
+  isMulti?: boolean;
 }
 
 /**
@@ -34,6 +38,7 @@ export const ChipDropdown: React.FC<Props> = ({
   floatingRef,
   floatingStyles,
   listRef,
+  isMulti,
 }) => {
   const styles = useStyles2(getStyles);
 
@@ -53,7 +58,7 @@ export const ChipDropdown: React.FC<Props> = ({
 
   return (
     <FloatingDropdown floatingRef={floatingRef} floatingStyles={floatingStyles} className={styles.optionsList}>
-      <div ref={listRef} onMouseDown={(e) => e.preventDefault()}>
+      <div ref={listRef} className={styles.optionsScroll} onMouseDown={(e) => e.preventDefault()}>
         {optionGroups ? (
           // Grouped rendering — flat index is pre-computed via options order
           optionGroups.map((group) => (
@@ -70,6 +75,7 @@ export const ChipDropdown: React.FC<Props> = ({
           options.map((opt, index) => renderOption(opt, index))
         )}
       </div>
+      <KeyboardHintsBar hints={getPlaceholderHints({ isMulti, hasHighlightedOption: highlightedIndex >= 0 })} />
     </FloatingDropdown>
   );
 };

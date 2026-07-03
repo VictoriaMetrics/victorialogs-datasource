@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: the visual query builder now shows context-aware keyboard hints at the bottom of its dropdowns, so the available shortcuts (select, navigate, confirm, run) are visible while you build a query. See [pr #683](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/683).
+
 ## v0.29.0
 
 * FEATURE: keep log fields in the order returned by VictoriaLogs (for example the order from `| fields a, b, c`) instead of sorting them alphabetically. See [#563](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/563).
