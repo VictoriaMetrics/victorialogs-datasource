@@ -15,4 +15,6 @@ export enum LogLevelRuleType {
   LessThan = 'lessThan',
   Regex = 'regex',
   CaseInsensitiveEquals = 'caseInsensitiveEquals',
+  // LogsQL word filter (`field:value`): matches whole tokens, not substrings
+  WordFilter = 'wordFilter',
 }
