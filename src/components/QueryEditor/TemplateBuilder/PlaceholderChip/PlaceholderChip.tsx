@@ -153,6 +153,7 @@ export const PlaceholderChip: React.FC<Props> = ({
           floatingRef={setFloating}
           floatingStyles={floatingStyles}
           listRef={listRef}
+          isMulti={isMulti}
         />
       )}
     </>

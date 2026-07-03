@@ -4,7 +4,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useStyles2 } from '@grafana/ui';
 
 import { FloatingDropdown } from '../FloatingDropdown';
+import { KeyboardHintsBar } from '../KeyboardHintsBar';
 import { useDropdownNavigation } from '../hooks/useDropdownNavigation';
+import { getPipeMenuHints } from '../keyboardHints';
 import { MenuGroup } from '../templates/registry';
 
 import { getStyles } from './styles';
@@ -140,6 +142,7 @@ export const PipeTypeSearchPopup: React.FC<Props> = ({
         ))}
         {navItems.length === 0 && <div className={styles.pipeSearchEmpty}>No matches</div>}
       </div>
+      <KeyboardHintsBar hints={getPipeMenuHints()} />
     </FloatingDropdown>
   );
 };

@@ -56,8 +56,16 @@ export const getStyles = (theme: GrafanaTheme2) => ({
     borderRadius: theme.shape.radius.default,
     boxShadow: theme.shadows.z2,
     maxHeight: 240,
-    overflowY: 'auto',
     minWidth: 160,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  }),
+  // Only the options list scrolls, so the hints footer stays full-width below the scrollbar
+  optionsScroll: css({
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
   }),
   optionItem: css({
     display: 'flex',
