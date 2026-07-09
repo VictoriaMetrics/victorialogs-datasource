@@ -43,6 +43,7 @@ import {
 import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { escapeLabelValueInSelector } from './languageUtils';
 import LogsQlLanguageProvider from './language_provider';
+import { LiveChannelPathProvider } from './live/LiveChannelPathProvider';
 import { LogContextProvider } from './logContext/LogContextProvider';
 import { LOGS_VOLUME_BARS, queryLogsVolume } from './logsVolumeLegacy';
 import {
@@ -70,7 +71,6 @@ import {
   ToggleFilterAction,
   VariableQuery,
 } from './types';
-import { hashString } from './utils';
 import {
   resolveAdHocFilters,
   serializeChipsForBackend,
@@ -100,6 +100,7 @@ export class VictoriaLogsDatasource
   logLevelRules: LogLevelRule[];
   multitenancyHeaders?: MultitenancyHeaders;
   logContextProvider: LogContextProvider;
+  private readonly liveChannelPathProvider = new LiveChannelPathProvider();
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<Options>,
@@ -434,12 +435,8 @@ export class VictoriaLogsDatasource
             // so we need to send both for compatibility with older versions
             namespace: this.uid,
             stream: this.uid,
-            // The channel path must encode the query content. Grafana Live de-duplicates
-            // subscriptions by channel address and the backend snapshots the query from the
-            // subscribe payload only once (RunStream). Without the query hash the path stays
-            // constant across query edits, so changing `expr` reuses the existing
-            // channel and keeps streaming the previous query until a full page reload.
-            path: `${request.requestId}/${query.refId}/${hashString(JSON.stringify(query))}`,
+            // The path must change when the query content changes and stay stable
+            path: this.liveChannelPathProvider.getPath(request.requestId, query),
             data: {
               ...query,
             },

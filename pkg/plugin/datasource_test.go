@@ -693,6 +693,70 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 
 }
 
+func TestRunStreamCleansUpLiveChannel(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/select/logsql/tail", func(w http.ResponseWriter, r *http.Request) {
+		_, err := w.Write([]byte(`{"_msg":"123","_stream":"{application=\"logs\"}","_time":"2024-02-20T14:04:27Z"}`))
+		if err != nil {
+			t.Fatalf("error write response: %s", err)
+		}
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	ctx := context.Background()
+	d := NewDatasource()
+	sender := backend.NewStreamSender(&mockStreamSender{packets: []json.RawMessage{}})
+	pluginCtx := backend.PluginContext{
+		DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+			URL:      srv.URL,
+			JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+		},
+	}
+
+	const path = "request_id/ref_id/0-abc1234"
+	if _, err := d.SubscribeStream(ctx, &backend.SubscribeStreamRequest{PluginContext: pluginCtx, Path: path}); err != nil {
+		t.Fatalf("unexpected subscribe error: %s", err)
+	}
+
+	di, err := d.getInstance(ctx, pluginCtx)
+	if err != nil {
+		t.Fatalf("unexpected instance error: %s", err)
+	}
+	chVal, ok := di.liveModeResponses.Load(path)
+	if !ok {
+		t.Fatalf("expected the channel to be registered after subscribe")
+	}
+
+	if err := d.RunStream(ctx, &backend.RunStreamRequest{
+		PluginContext: pluginCtx,
+		Path:          path,
+		Data:          json.RawMessage(`{"expr":"*","refId":"A"}`),
+	}, sender); err != nil {
+		t.Fatalf("unexpected stream error: %s", err)
+	}
+
+	if _, ok := di.liveModeResponses.Load(path); ok {
+		t.Fatalf("expected the channel entry to be removed after RunStream returns")
+	}
+
+	// the sender goroutine may still be draining buffered frames,
+	// so wait for the close instead of asserting an immediate one
+	livestream := chVal.(chan *data.Frame)
+	deadline := time.After(5 * time.Second)
+	for {
+		select {
+		case _, open := <-livestream:
+			if !open {
+				return
+			}
+		case <-deadline:
+			t.Fatalf("expected the channel to be closed after RunStream returns")
+		}
+	}
+}
+
 func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(_ http.ResponseWriter, _ *http.Request) {
@@ -741,6 +805,10 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 		},
 	}
 	expErr := func(e string) {
+		_, _ = d.SubscribeStream(ctx, &backend.SubscribeStreamRequest{
+			PluginContext: pluginCtx,
+			Path:          "request_id/ref_id",
+		})
 		err := d.RunStream(ctx, &backend.RunStreamRequest{
 			PluginContext: pluginCtx,
 			Path:          "request_id/ref_id",
