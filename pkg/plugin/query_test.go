@@ -91,7 +91,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 		},
 		QueryType: QueryTypeStats,
 		rawURL:    "http://127.0.0.1:9428",
-		want:      "http://127.0.0.1:9428/select/logsql/stats_query?query=&time=1609462800",
+		want:      "http://127.0.0.1:9428/select/logsql/stats_query?end=1609462800&query=&start=1609459200&time=1609462800",
 		wantErr:   false,
 	}
 	f(o)
@@ -135,7 +135,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 		},
 		QueryType: QueryTypeStats,
 		rawURL:    "http://127.0.0.1:9428",
-		want:      "http://127.0.0.1:9428/select/logsql/stats_query?query=_time%3A1s+%7C+stats+by%28type%29+count%28%29&time=1609462800",
+		want:      "http://127.0.0.1:9428/select/logsql/stats_query?end=1609462800&query=_time%3A1s+%7C+stats+by%28type%29+count%28%29&start=1609459200&time=1609462800",
 	}
 	f(o)
 
@@ -182,7 +182,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 		QueryType:   QueryTypeStats,
 		rawURL:      "http://127.0.0.1:9428",
 		queryParams: "a=1&b=2",
-		want:        "http://127.0.0.1:9428/select/logsql/stats_query?a=1&b=2&query=_time%3A1s+and+syslog+%7C+stats+by%28type%29+count%28%29&time=1609462800",
+		want:        "http://127.0.0.1:9428/select/logsql/stats_query?a=1&b=2&end=1609462800&query=_time%3A1s+and+syslog+%7C+stats+by%28type%29+count%28%29&start=1609459200&time=1609462800",
 	}
 	f(o)
 
@@ -202,7 +202,8 @@ func TestQuery_getQueryURL(t *testing.T) {
 	}
 	f(o)
 
-	// stats query without time field
+	// stats query without time field: time range is passed via start/end params,
+	// not injected into the query, so the query is left untouched
 	o = opts{
 		RefID:    "1",
 		Expr:     "* and syslog | stats by(type) count()",
@@ -214,7 +215,26 @@ func TestQuery_getQueryURL(t *testing.T) {
 		QueryType:   QueryTypeStats,
 		rawURL:      "http://127.0.0.1:9428",
 		queryParams: "a=1&b=2",
-		want:        "http://127.0.0.1:9428/select/logsql/stats_query?a=1&b=2&query=_time%3A%5B1609459200%2C+1609462800%5D+%2A+and+syslog+%7C+stats+by%28type%29+count%28%29&time=1609462800",
+		want:        "http://127.0.0.1:9428/select/logsql/stats_query?a=1&b=2&end=1609462800&query=%2A+and+syslog+%7C+stats+by%28type%29+count%28%29&start=1609459200&time=1609462800",
+	}
+	f(o)
+
+	// stats query with a top-level OR: previously the time range used to be
+	// injected as a `_time:[...]` prefix without parentheses, which bound only
+	// to the first OR branch and disabled time-based block skipping on
+	// VictoriaLogs, causing full-retention scans. Passing start/end as params
+	// instead avoids the query rewrite entirely and scopes the whole query.
+	o = opts{
+		RefID:    "1",
+		Expr:     `level:error OR level:critical OR level:"ERROR" | stats count() as _count`,
+		MaxLines: 10,
+		TimeRange: backend.TimeRange{
+			From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		QueryType: QueryTypeStats,
+		rawURL:    "http://127.0.0.1:9428",
+		want:      "http://127.0.0.1:9428/select/logsql/stats_query?end=1609462800&query=level%3Aerror+OR+level%3Acritical+OR+level%3A%22ERROR%22+%7C+stats+count%28%29+as+_count&start=1609459200&time=1609462800",
 	}
 	f(o)
 
