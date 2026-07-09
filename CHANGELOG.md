@@ -5,6 +5,8 @@
 * FEATURE: add a `:` (word filter) operator to Log Level Rules, matching a field value by whole word like LogsQL (e.g. `error` matches the word `error`, not `terror`). See [#611](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/611).
 * FEATURE: the visual query builder now shows context-aware keyboard hints at the bottom of its dropdowns, so the available shortcuts (select, navigate, confirm, run) are visible while you build a query. See [pr #683](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/683).
 
+* BUGFIX: pass the panel time range to the `Instant` (stats) query type via the `start`/`end` query parameters instead of prepending a `_time:[...]` filter to the query text. The prepended filter was not parenthesized, so a top-level `OR` (e.g. `level:error OR level:warn | stats count()`) left part of the query outside the time range, making VictoriaLogs scan the full retention and the panel time out.
+
 ## v0.29.0
 
 * FEATURE: keep log fields in the order returned by VictoriaLogs (for example the order from `| fields a, b, c`) instead of sorting them alphabetically. See [#563](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/563).
