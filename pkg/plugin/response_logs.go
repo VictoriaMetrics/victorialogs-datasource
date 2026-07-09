@@ -44,7 +44,7 @@ func streamFieldsToMap(stf []utils.StreamField) map[string]string {
 	return m
 }
 
-type LogRow struct {
+type logRow struct {
 	Time     time.Time
 	Line     string
 	ID       string
@@ -53,22 +53,22 @@ type LogRow struct {
 	Stream   map[string]string
 }
 
-type LogFrame struct {
-	frame     *data.Frame
+type logFrame struct {
+	dataFrame *data.Frame
 	streamIds []string
 	streams   []map[string]string
 }
 
 // append adds a row to the frame
-func (b *LogFrame) append(r LogRow) {
+func (b *logFrame) append(r logRow) {
 	// order of fields must match the order of fields in the frame
-	b.frame.AppendRow(r.Time, r.Line, r.ID, r.Labels)
+	b.dataFrame.AppendRow(r.Time, r.Line, r.ID, r.Labels)
 	b.streamIds = append(b.streamIds, r.StreamID)
 	b.streams = append(b.streams, r.Stream)
 }
 
 // newLogFrame creates a new frame with the necessary fields
-func newLogFrame() *LogFrame {
+func newLogFrame() *logFrame {
 	labelsField := data.NewFieldFromFieldType(data.FieldTypeJSON, 0)
 	labelsField.Name = gLabelsField
 
@@ -81,15 +81,15 @@ func newLogFrame() *LogFrame {
 	idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 	idField.Name = gIDField
 
-	return &LogFrame{
-		frame:     data.NewFrame("", timeFd, lineField, idField, labelsField),
+	return &logFrame{
+		dataFrame: data.NewFrame("", timeFd, lineField, idField, labelsField),
 		streams:   make([]map[string]string, 0),
 		streamIds: make([]string, 0),
 	}
 }
 
-// parseLogLine trims, decodes and validates that the line is a JSON object.
-func parseLogLine(parser *fastjson.Parser, b []byte) (*fastjson.Value, error) {
+// parseJsonLine trims, decodes and validates that the line is a JSON object.
+func parseJsonLine(parser *fastjson.Parser, b []byte) (*fastjson.Value, error) {
 	b = bytes.Trim(b, "\n")
 	value, err := parser.ParseBytes(b)
 	if err != nil {
@@ -102,14 +102,14 @@ func parseLogLine(parser *fastjson.Parser, b []byte) (*fastjson.Value, error) {
 }
 
 // getLogRow processes one parsed log object
-func getLogRow(value *fastjson.Value) (LogRow, error) {
+func getLogRow(value *fastjson.Value) (logRow, error) {
 	// Time field
 	var ts time.Time
 	rawTime := value.GetStringBytes(timeField)
 	if rawTime != nil {
 		t, err := utils.GetTime(string(rawTime))
 		if err != nil {
-			return LogRow{}, fmt.Errorf("error parse time from _time field: %s", err)
+			return logRow{}, fmt.Errorf("error parse time from _time field: %s", err)
 		}
 		ts = t
 	} else {
@@ -129,7 +129,7 @@ func getLogRow(value *fastjson.Value) (LogRow, error) {
 		rawStream := string(value.GetStringBytes(streamField))
 		stf, err := utils.ParseStreamFields(rawStream)
 		if err != nil {
-			return LogRow{}, fmt.Errorf("error parse _stream field: %s", err)
+			return logRow{}, fmt.Errorf("error parse _stream field: %s", err)
 		}
 		streamMap = streamFieldsToMap(stf)
 	}
@@ -146,7 +146,7 @@ func getLogRow(value *fastjson.Value) (LogRow, error) {
 	// ID field
 	id := buildLogID(rawTime, rawMsg, rawStreamID)
 
-	return LogRow{
+	return logRow{
 		Time:     ts,
 		Line:     line,
 		Labels:   labels,
@@ -159,7 +159,7 @@ func getLogRow(value *fastjson.Value) (LogRow, error) {
 // parseInstantResponse reads data from the reader and collects
 // fields and frame with necessary information
 func parseInstantResponse(reader io.Reader) backend.DataResponse {
-	logFrame := newLogFrame()
+	frame := newLogFrame()
 	br := bufio.NewReaderSize(reader, 64*1024)
 	var parser fastjson.Parser
 	var finishedReading bool
@@ -182,28 +182,28 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 			continue
 		}
 
-		value, err := parseLogLine(&parser, b)
+		value, err := parseJsonLine(&parser, b)
 		if err != nil {
 			return newResponseError(err, backend.StatusInternal)
 		}
 
-		logRow, err := getLogRow(value)
+		row, err := getLogRow(value)
 		if err != nil {
 			return newResponseError(err, backend.StatusInternal)
 		}
 
-		logFrame.append(logRow)
+		frame.append(row)
 	}
 
 	rsp := backend.DataResponse{}
-	logFrame.frame.Meta = &data.FrameMeta{
+	frame.dataFrame.Meta = &data.FrameMeta{
 		PreferredVisualization: logsVisualisation,
 		Custom: map[string]any{
-			"streamIds": logFrame.streamIds,
-			"streams":   logFrame.streams,
+			"streamIds": frame.streamIds,
+			"streams":   frame.streams,
 		},
 	}
-	rsp.Frames = append(rsp.Frames, logFrame.frame)
+	rsp.Frames = append(rsp.Frames, frame.dataFrame)
 
 	return rsp
 }
@@ -217,7 +217,7 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 	var parser fastjson.Parser
 	var finishedReading bool
 	for n := 0; !finishedReading; n++ {
-		logFrame := newLogFrame()
+		frame := newLogFrame()
 
 		b, err := br.ReadBytes('\n')
 		if err != nil {
@@ -237,27 +237,27 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 			continue
 		}
 
-		value, err := parseLogLine(&parser, b)
+		value, err := parseJsonLine(&parser, b)
 		if err != nil {
 			return err
 		}
 
-		logRow, err := getLogRow(value)
+		row, err := getLogRow(value)
 		if err != nil {
 			return err
 		}
 
-		logFrame.append(logRow)
+		frame.append(row)
 		// this is necessary information because the logs visualization is preferred
-		logFrame.frame.Meta = &data.FrameMeta{
+		frame.dataFrame.Meta = &data.FrameMeta{
 			PreferredVisualization: logsVisualisation,
 			Custom: map[string]any{
-				"streamIds": logFrame.streamIds,
-				"streams":   logFrame.streams,
+				"streamIds": frame.streamIds,
+				"streams":   frame.streams,
 			},
 		}
 
-		ch <- logFrame.frame
+		ch <- frame.dataFrame
 	}
 
 	return nil
