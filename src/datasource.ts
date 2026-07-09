@@ -70,6 +70,7 @@ import {
   ToggleFilterAction,
   VariableQuery,
 } from './types';
+import { hashString } from './utils';
 import {
   resolveAdHocFilters,
   serializeChipsForBackend,
@@ -433,7 +434,12 @@ export class VictoriaLogsDatasource
             // so we need to send both for compatibility with older versions
             namespace: this.uid,
             stream: this.uid,
-            path: `${request.requestId}/${query.refId}`,
+            // The channel path must encode the query content. Grafana Live de-duplicates
+            // subscriptions by channel address and the backend snapshots the query from the
+            // subscribe payload only once (RunStream). Without the query hash the path stays
+            // constant across query edits, so changing `expr` reuses the existing
+            // channel and keeps streaming the previous query until a full page reload.
+            path: `${request.requestId}/${query.refId}/${hashString(JSON.stringify(query))}`,
             data: {
               ...query,
             },
