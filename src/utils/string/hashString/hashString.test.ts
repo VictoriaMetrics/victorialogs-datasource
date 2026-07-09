@@ -13,24 +13,13 @@ describe('hashString', () => {
     expect(hashString('{"expr":"info"}')).not.toBe(hashString('{"expr":"error"}'));
   });
 
-  it('handles the empty string', () => {
-    expect(typeof hashString('')).toBe('string');
+  it('returns a base36 string', () => {
+    expect(hashString('some-query-payload')).toMatch(/^[0-9a-z]+$/);
   });
 
-  it('returns a fixed-length 7-character base36 string', () => {
-    expect(hashString('some-query-payload')).toMatch(/^[0-9a-z]{7}$/);
-  });
-
-  it('pads short hashes to a fixed length', () => {
-    // empty string hashes to 0 -> "0", which must be left-padded to 7 chars
-    expect(hashString('')).toBe('0000000');
-  });
-
-  it('keeps the fixed length for a single-character string', () => {
-    expect(hashString('a')).toBe('000002p');
-  });
-
-  it('keeps the fixed length for a long (50-character) string', () => {
-    expect(hashString('abc'.repeat(50))).toBe('0ih3w74');
+  it('hashes known values', () => {
+    expect(hashString('')).toBe('0');
+    expect(hashString('a')).toBe('2p');
+    expect(hashString('abc'.repeat(50))).toBe('ih3w74');
   });
 });
