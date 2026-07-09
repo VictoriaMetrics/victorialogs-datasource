@@ -4,6 +4,7 @@ import { hashString } from '../utils';
 interface ChannelState {
   payload: string;
   generation: number;
+  path: string;
 }
 
 /**
@@ -37,13 +38,30 @@ export class LiveChannelPathProvider {
   private channels = new Map<string, ChannelState>();
 
   getPath(requestId: string, query: Query): string {
-    const key = `${requestId}/${query.refId}`;
+    const key = this.buildKey(requestId, query.refId);
     const payload = serializeLiveQuery(query);
     let state = this.channels.get(key);
     if (!state || state.payload !== payload) {
-      state = { payload, generation: state ? state.generation + 1 : 0 };
+      const generation = state ? state.generation + 1 : 0;
+      state = { payload, generation, path: `${key}/${generation}-${hashString(payload)}` };
       this.channels.set(key, state);
     }
-    return `${key}/${state.generation}-${hashString(payload)}`;
+    return state.path;
+  }
+
+  /**
+   * Drops the stored channel state once the live stream for `path` ends.
+   * A stale `path` (already replaced by a newer generation) is ignored, so a
+   * late teardown of the previous stream cannot evict the active state.
+   */
+  release(requestId: string, refId: string, path: string): void {
+    const key = this.buildKey(requestId, refId);
+    if (this.channels.get(key)?.path === path) {
+      this.channels.delete(key);
+    }
+  }
+
+  private buildKey(requestId: string, refId: string): string {
+    return `${requestId}/${refId}`;
   }
 }

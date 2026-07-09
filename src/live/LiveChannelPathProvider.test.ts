@@ -62,4 +62,32 @@ describe('LiveChannelPathProvider', () => {
     provider.getPath('req_1', buildQuery({ refId: 'A', expr: 'error' }));
     expect(provider.getPath('req_1', buildQuery({ refId: 'B' }))).toBe(pathB);
   });
+
+  describe('release', () => {
+    it('evicts the channel state when the released path is current', () => {
+      provider.getPath('req_1', buildQuery({ expr: 'error' }));
+      const current = provider.getPath('req_1', buildQuery({ expr: 'info' }));
+
+      provider.release('req_1', 'A', current);
+
+      // the state was dropped, so the generation counter restarts from zero
+      const fresh = provider.getPath('req_1', buildQuery({ expr: 'info' }));
+      expect(fresh).not.toBe(current);
+      expect(fresh).toContain('/0-');
+    });
+
+    it('keeps the state when a newer generation replaced the released path', () => {
+      const stale = provider.getPath('req_1', buildQuery({ expr: 'error' }));
+      const current = provider.getPath('req_1', buildQuery({ expr: 'info' }));
+
+      // a late teardown of the previous stream must not evict the active state
+      provider.release('req_1', 'A', stale);
+
+      expect(provider.getPath('req_1', buildQuery({ expr: 'info' }))).toBe(current);
+    });
+
+    it('ignores a release for an unknown channel', () => {
+      expect(() => provider.release('req_1', 'A', 'req_1/A/0-abc')).not.toThrow();
+    });
+  });
 });

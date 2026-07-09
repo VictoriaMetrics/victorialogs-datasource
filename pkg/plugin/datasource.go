@@ -228,20 +228,20 @@ func (d *Datasource) RunStream(ctx context.Context, req *backend.RunStreamReques
 	// request.Path is created in the frontend by LiveChannelPathProvider (used in
 	// runLiveQueryThroughBackend), path format:
 	// `${request.requestId}/${query.refId}/${generation}-${queryHash}`
-	ch, ok := di.liveModeResponses.Load(req.Path)
+	// A channel lives for exactly one RunStream call: every query edit produces
+	// a new channel path, so without this cleanup entries would accumulate until
+	// Dispose. LoadAndDelete transfers channel ownership from the map to this
+	// RunStream call, so a re-subscribe that stores a new channel under the same
+	// path cannot prevent the old channel from being closed, and Dispose can
+	// never double-close (or close mid-write) a channel owned by a running stream.
+	ch, ok := di.liveModeResponses.LoadAndDelete(req.Path)
 	if !ok {
 		return fmt.Errorf("failed to find the channel for the query: %s", req.Path)
 	}
 	livestream := ch.(chan *data.Frame)
-	// A channel lives for exactly one RunStream call: every query edit produces a new
-	// channel path, so without this cleanup entries would accumulate until Dispose.
-	// CompareAndDelete guards against a double close when Dispose runs concurrently
-	// or when a re-subscribe has already replaced the entry with a new channel.
-	defer func() {
-		if di.liveModeResponses.CompareAndDelete(req.Path, ch) {
-			close(livestream)
-		}
-	}()
+	// closing the channel stops the frame-forwarding goroutine below;
+	// safe because streamQuery (the only writer) has already returned
+	defer close(livestream)
 	go func() {
 		prev := data.FrameJSONCache{}
 		var canceled bool
@@ -287,8 +287,9 @@ func (di *DatasourceInstance) Dispose() {
 	// Clean up datasource instance resources.
 	di.httpClient.CloseIdleConnections()
 	di.httpStreamingClient.CloseIdleConnections()
-	// close all live channels; LoadAndDelete guards against a double close
-	// when RunStream cleans up its own channel concurrently
+	// close live channels that were subscribed but never picked up by RunStream;
+	// running streams already took their channel out of the map via LoadAndDelete,
+	// so no channel can be closed twice or while it is still being written to
 	di.liveModeResponses.Range(func(key, _ interface{}) bool {
 		if ch, loaded := di.liveModeResponses.LoadAndDelete(key); loaded {
 			close(ch.(chan *data.Frame))

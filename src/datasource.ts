@@ -1,6 +1,6 @@
 import { cloneDeep } from 'lodash';
 import { ReactNode } from 'react';
-import { map, merge, Observable } from 'rxjs';
+import { finalize, map, merge, Observable } from 'rxjs';
 
 import {
   AdHocVariableFilter,
@@ -426,6 +426,8 @@ export class VictoriaLogsDatasource
 
   private runLiveQueryThroughBackend(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
     const observables = request.targets.map((query) => {
+      // The path must change when the query content changes and stay stable
+      const path = this.liveChannelPathProvider.getPath(request.requestId, query);
       return getGrafanaLiveSrv()
         .getDataStream({
           addr: {
@@ -435,8 +437,7 @@ export class VictoriaLogsDatasource
             // so we need to send both for compatibility with older versions
             namespace: this.uid,
             stream: this.uid,
-            // The path must change when the query content changes and stay stable
-            path: this.liveChannelPathProvider.getPath(request.requestId, query),
+            path,
             data: {
               ...query,
             },
@@ -449,7 +450,10 @@ export class VictoriaLogsDatasource
               key: `victoriametrics-logs-datasource-${request.requestId}-${query.refId}`,
               state: LoadingState.Streaming,
             };
-          })
+          }),
+          // Evict the per-channel state once the stream is torn down, so
+          // request-scoped keys do not accumulate over long Explore sessions
+          finalize(() => this.liveChannelPathProvider.release(request.requestId, query.refId, path))
         );
     });
 
