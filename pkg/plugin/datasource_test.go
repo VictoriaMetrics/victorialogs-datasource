@@ -194,7 +194,7 @@ func TestDatasourceQueryRequest(t *testing.T) {
 		}
 		timeFd.Append(ts)
 
-		labelsField.Append(json.RawMessage(`{}`))
+		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
@@ -206,6 +206,7 @@ func TestDatasourceQueryRequest(t *testing.T) {
 
 		rsp := backend.DataResponse{}
 		frame.Meta = &data.FrameMeta{
+			PreferredVisualization: logsVisualisation,
 			Custom: map[string]any{
 				"streamIds": []string{""},
 				"streams":   []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
@@ -283,7 +284,7 @@ func TestDatasourceQueryRequest(t *testing.T) {
 		lineRaw := "123"
 		lineField.Append(lineRaw)
 
-		labelsField.Append(json.RawMessage(`{"job":"vlogs"}`))
+		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
@@ -295,6 +296,7 @@ func TestDatasourceQueryRequest(t *testing.T) {
 
 		rsp := backend.DataResponse{}
 		frame.Meta = &data.FrameMeta{
+			PreferredVisualization: logsVisualisation,
 			Custom: map[string]any{
 				"streamIds": []string{""},
 				"streams":   []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
@@ -587,7 +589,7 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 		lineRaw := "123"
 		lineField.Append(lineRaw)
 
-		labelsField.Append(json.RawMessage(`{}`))
+		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
@@ -650,7 +652,7 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 		lineRaw := "123"
 		lineField.Append(lineRaw)
 
-		labelsField.Append(json.RawMessage(`{"job":"vlogs"}`))
+		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
@@ -814,7 +816,7 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 		lineRaw := "123"
 		lineField.Append(lineRaw)
 
-		labelsField.Append(json.RawMessage(`{}`))
+		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
@@ -877,7 +879,7 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 		lineRaw := "123"
 		lineField.Append(lineRaw)
 
-		labelsField.Append(json.RawMessage(`{"job":"vlogs"}`))
+		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
