@@ -187,11 +187,15 @@ func (q *Query) statsQueryURL(queryParams url.Values) string {
 	if q.TimeRange.From.IsZero() {
 		q.TimeRange.From = now.Add(-time.Minute * 5)
 	}
+	if q.TimeRange.To.IsZero() {
+		q.TimeRange.To = now
+	}
 
 	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, q.TimeRange)
-	q.Expr = utils.AddTimeFieldWithRange(q.Expr, q.TimeRange)
 
 	values.Set("query", q.Expr)
+	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
+	values.Set("end", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
 	values.Set("time", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
 
 	q.url.RawQuery = values.Encode()
