@@ -225,19 +225,34 @@ func (d *Datasource) RunStream(ctx context.Context, req *backend.RunStreamReques
 	if err != nil {
 		return err
 	}
-	// request.Path is created in the frontend. Please check this function in the frontend
-	// runLiveQueryThroughBackend where the path is created.
-	// path: `${request.requestId}/${query.refId}`
-	ch, ok := di.liveModeResponses.Load(req.Path)
+	// request.Path is created in the frontend by LiveChannelPathProvider (used in
+	// runLiveQueryThroughBackend), path format:
+	// `${request.requestId}/${query.refId}/${generation}-${queryHash}`
+	// A channel lives for exactly one RunStream call: every query edit produces
+	// a new channel path, so without this cleanup entries would accumulate until
+	// Dispose. LoadAndDelete transfers channel ownership from the map to this
+	// RunStream call, so a re-subscribe that stores a new channel under the same
+	// path cannot prevent the old channel from being closed, and Dispose can
+	// never double-close (or close mid-write) a channel owned by a running stream.
+	ch, ok := di.liveModeResponses.LoadAndDelete(req.Path)
 	if !ok {
 		return fmt.Errorf("failed to find the channel for the query: %s", req.Path)
 	}
 	livestream := ch.(chan *data.Frame)
+	// closing the channel stops the frame-forwarding goroutine below;
+	// safe because streamQuery (the only writer) has already returned
+	defer close(livestream)
 	go func() {
 		prev := data.FrameJSONCache{}
-		var err error
+		var canceled bool
 		for frame := range livestream {
+			if canceled {
+				// keep draining so streamQuery never blocks on send;
+				// the loop ends when RunStream closes the channel on return
+				continue
+			}
 			next, _ := data.FrameToJSONCache(frame)
+			var err error
 			if next.SameSchema(&prev) {
 				err = sender.SendBytes(next.Bytes(data.IncludeAll))
 			} else {
@@ -250,14 +265,15 @@ func (d *Datasource) RunStream(ctx context.Context, req *backend.RunStreamReques
 				// so just check the error message
 				if strings.Contains(err.Error(), "rpc error: code = Canceled desc = context canceled") {
 					backend.Logger.Debug("Client has canceled the request")
-					break
+					canceled = true
+					continue
 				}
 				backend.Logger.Error("Failed send frame", "error", err)
 			}
 		}
 	}()
 
-	if err := di.streamQuery(ctx, req); err != nil {
+	if err := di.streamQuery(ctx, req, livestream); err != nil {
 		return fmt.Errorf("failed to parse stream response: %w", err)
 	}
 
@@ -271,14 +287,15 @@ func (di *DatasourceInstance) Dispose() {
 	// Clean up datasource instance resources.
 	di.httpClient.CloseIdleConnections()
 	di.httpStreamingClient.CloseIdleConnections()
-	// close all channels before clear the map
-	di.liveModeResponses.Range(func(key, value interface{}) bool {
-		ch := value.(chan *data.Frame)
-		close(ch)
+	// close live channels that were subscribed but never picked up by RunStream;
+	// running streams already took their channel out of the map via LoadAndDelete,
+	// so no channel can be closed twice or while it is still being written to
+	di.liveModeResponses.Range(func(key, _ interface{}) bool {
+		if ch, loaded := di.liveModeResponses.LoadAndDelete(key); loaded {
+			close(ch.(chan *data.Frame))
+		}
 		return true
 	})
-	// clear the map
-	di.liveModeResponses.Clear()
 }
 
 // QueryData handles multiple queries and returns multiple responses.
@@ -322,8 +339,9 @@ func (d *Datasource) QueryData(ctx context.Context, req *backend.QueryDataReques
 	return response, nil
 }
 
-// streamQuery sends a query to the datasource and parse the tail results.
-func (di *DatasourceInstance) streamQuery(ctx context.Context, request *backend.RunStreamRequest) error {
+// streamQuery sends a query to the datasource and parses the tail results
+// into the livestream channel owned by the calling RunStream.
+func (di *DatasourceInstance) streamQuery(ctx context.Context, request *backend.RunStreamRequest, livestream chan *data.Frame) error {
 	q, err := getQueryFromRaw(request.Data, false)
 	if err != nil {
 		return err
@@ -345,12 +363,6 @@ func (di *DatasourceInstance) streamQuery(ctx context.Context, request *backend.
 		}
 	}()
 
-	ch, ok := di.liveModeResponses.Load(request.Path)
-	if !ok {
-		return fmt.Errorf("failed to find the channel for the query: %s", request.Path)
-	}
-
-	livestream := ch.(chan *data.Frame)
 	return parseStreamResponse(r, livestream)
 }
 

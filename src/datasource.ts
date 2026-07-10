@@ -1,6 +1,6 @@
 import { cloneDeep } from 'lodash';
 import { ReactNode } from 'react';
-import { map, merge, Observable } from 'rxjs';
+import { finalize, map, merge, Observable } from 'rxjs';
 
 import {
   AdHocVariableFilter,
@@ -43,6 +43,7 @@ import {
 import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { escapeLabelValueInSelector } from './languageUtils';
 import LogsQlLanguageProvider from './language_provider';
+import { LiveChannelPathProvider } from './live/LiveChannelPathProvider';
 import { LogContextProvider } from './logContext/LogContextProvider';
 import { LOGS_VOLUME_BARS, queryLogsVolume } from './logsVolumeLegacy';
 import {
@@ -99,6 +100,7 @@ export class VictoriaLogsDatasource
   logLevelRules: LogLevelRule[];
   multitenancyHeaders?: MultitenancyHeaders;
   logContextProvider: LogContextProvider;
+  private readonly liveChannelPathProvider = new LiveChannelPathProvider();
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<Options>,
@@ -424,6 +426,8 @@ export class VictoriaLogsDatasource
 
   private runLiveQueryThroughBackend(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
     const observables = request.targets.map((query) => {
+      // The path must change when the query content changes and stay stable
+      const path = this.liveChannelPathProvider.getPath(request.requestId, query);
       return getGrafanaLiveSrv()
         .getDataStream({
           addr: {
@@ -433,7 +437,7 @@ export class VictoriaLogsDatasource
             // so we need to send both for compatibility with older versions
             namespace: this.uid,
             stream: this.uid,
-            path: `${request.requestId}/${query.refId}`,
+            path,
             data: {
               ...query,
             },
@@ -446,7 +450,10 @@ export class VictoriaLogsDatasource
               key: `victoriametrics-logs-datasource-${request.requestId}-${query.refId}`,
               state: LoadingState.Streaming,
             };
-          })
+          }),
+          // Evict the per-channel state once the stream is torn down, so
+          // request-scoped keys do not accumulate over long Explore sessions
+          finalize(() => this.liveChannelPathProvider.release(request.requestId, query.refId, path))
         );
     });
 

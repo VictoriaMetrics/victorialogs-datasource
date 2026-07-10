@@ -693,6 +693,176 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 
 }
 
+func TestRunStreamCleansUpLiveChannel(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/select/logsql/tail", func(w http.ResponseWriter, r *http.Request) {
+		_, err := w.Write([]byte(`{"_msg":"123","_stream":"{application=\"logs\"}","_time":"2024-02-20T14:04:27Z"}`))
+		if err != nil {
+			t.Fatalf("error write response: %s", err)
+		}
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	ctx := context.Background()
+	d := NewDatasource()
+	sender := backend.NewStreamSender(&mockStreamSender{packets: []json.RawMessage{}})
+	pluginCtx := backend.PluginContext{
+		DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+			URL:      srv.URL,
+			JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+		},
+	}
+
+	const path = "request_id/ref_id/0-abc1234"
+	if _, err := d.SubscribeStream(ctx, &backend.SubscribeStreamRequest{PluginContext: pluginCtx, Path: path}); err != nil {
+		t.Fatalf("unexpected subscribe error: %s", err)
+	}
+
+	di, err := d.getInstance(ctx, pluginCtx)
+	if err != nil {
+		t.Fatalf("unexpected instance error: %s", err)
+	}
+	chVal, ok := di.liveModeResponses.Load(path)
+	if !ok {
+		t.Fatalf("expected the channel to be registered after subscribe")
+	}
+
+	if err := d.RunStream(ctx, &backend.RunStreamRequest{
+		PluginContext: pluginCtx,
+		Path:          path,
+		Data:          json.RawMessage(`{"expr":"*","refId":"A"}`),
+	}, sender); err != nil {
+		t.Fatalf("unexpected stream error: %s", err)
+	}
+
+	if _, ok := di.liveModeResponses.Load(path); ok {
+		t.Fatalf("expected the channel entry to be removed after RunStream returns")
+	}
+
+	// the sender goroutine may still be draining buffered frames,
+	// so wait for the close instead of asserting an immediate one
+	livestream := chVal.(chan *data.Frame)
+	deadline := time.After(5 * time.Second)
+	for {
+		select {
+		case _, open := <-livestream:
+			if !open {
+				return
+			}
+		case <-deadline:
+			t.Fatalf("expected the channel to be closed after RunStream returns")
+		}
+	}
+}
+
+func TestRunStreamClosesReplacedChannel(t *testing.T) {
+	// a re-subscribe to the same path replaces the map entry with a new
+	// channel while RunStream still owns the old one; RunStream must close
+	// its own channel anyway, otherwise the frame-forwarding goroutine
+	// blocks on receive forever
+	handlerStarted := make(chan struct{})
+	releaseHandler := make(chan struct{})
+	mux := http.NewServeMux()
+	mux.HandleFunc("/select/logsql/tail", func(w http.ResponseWriter, r *http.Request) {
+		if _, err := w.Write([]byte(`{"_msg":"123","_stream":"{application=\"logs\"}","_time":"2024-02-20T14:04:27Z"}` + "\n")); err != nil {
+			t.Errorf("error write response: %s", err)
+		}
+		w.(http.Flusher).Flush()
+		close(handlerStarted)
+		// keep the tail connection open until the test has re-subscribed
+		<-releaseHandler
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	ctx := context.Background()
+	d := NewDatasource()
+	sender := backend.NewStreamSender(&mockStreamSender{packets: []json.RawMessage{}})
+	pluginCtx := backend.PluginContext{
+		DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+			URL:      srv.URL,
+			JSONData: []byte(`{"httpMethod":"POST","customQueryParameters":""}`),
+		},
+	}
+
+	const path = "request_id/ref_id/0-abc1234"
+	if _, err := d.SubscribeStream(ctx, &backend.SubscribeStreamRequest{PluginContext: pluginCtx, Path: path}); err != nil {
+		t.Fatalf("unexpected subscribe error: %s", err)
+	}
+
+	di, err := d.getInstance(ctx, pluginCtx)
+	if err != nil {
+		t.Fatalf("unexpected instance error: %s", err)
+	}
+	chVal, ok := di.liveModeResponses.Load(path)
+	if !ok {
+		t.Fatalf("expected the channel to be registered after subscribe")
+	}
+	oldStream := chVal.(chan *data.Frame)
+
+	runStreamDone := make(chan error, 1)
+	go func() {
+		runStreamDone <- d.RunStream(ctx, &backend.RunStreamRequest{
+			PluginContext: pluginCtx,
+			Path:          path,
+			Data:          json.RawMessage(`{"expr":"*","refId":"A"}`),
+		}, sender)
+	}()
+
+	// wait until RunStream has loaded the channel and started tailing
+	select {
+	case <-handlerStarted:
+	case <-time.After(5 * time.Second):
+		t.Fatalf("expected the tail handler to be called")
+	}
+
+	// simulate a client reconnect: the same path gets a new channel
+	if _, err := d.SubscribeStream(ctx, &backend.SubscribeStreamRequest{PluginContext: pluginCtx, Path: path}); err != nil {
+		t.Fatalf("unexpected re-subscribe error: %s", err)
+	}
+	newVal, ok := di.liveModeResponses.Load(path)
+	if !ok {
+		t.Fatalf("expected the channel to be registered after re-subscribe")
+	}
+	newStream := newVal.(chan *data.Frame)
+	if newStream == oldStream {
+		t.Fatalf("expected re-subscribe to register a new channel")
+	}
+
+	// let the tail response end so RunStream returns
+	close(releaseHandler)
+	select {
+	case err := <-runStreamDone:
+		if err != nil {
+			t.Fatalf("unexpected stream error: %s", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatalf("expected RunStream to return")
+	}
+
+	// the old channel is owned by the finished RunStream and must be closed
+	// even though the map entry now points to the new channel
+	deadline := time.After(5 * time.Second)
+	for closed := false; !closed; {
+		select {
+		case _, open := <-oldStream:
+			closed = !open
+		case <-deadline:
+			t.Fatalf("expected the replaced channel to be closed after RunStream returns")
+		}
+	}
+
+	// the new channel belongs to the next RunStream and must stay registered
+	if val, ok := di.liveModeResponses.Load(path); !ok {
+		t.Fatalf("expected the re-subscribed channel entry to survive the old RunStream cleanup")
+	} else if val.(chan *data.Frame) != newStream {
+		t.Fatalf("expected the map entry to still point to the re-subscribed channel")
+	}
+}
+
 func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(_ http.ResponseWriter, _ *http.Request) {
@@ -741,6 +911,10 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 		},
 	}
 	expErr := func(e string) {
+		_, _ = d.SubscribeStream(ctx, &backend.SubscribeStreamRequest{
+			PluginContext: pluginCtx,
+			Path:          "request_id/ref_id",
+		})
 		err := d.RunStream(ctx, &backend.RunStreamRequest{
 			PluginContext: pluginCtx,
 			Path:          "request_id/ref_id",
