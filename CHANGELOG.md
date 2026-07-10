@@ -6,6 +6,7 @@
 * FEATURE: the visual query builder now shows context-aware keyboard hints at the bottom of its dropdowns, so the available shortcuts (select, navigate, confirm, run) are visible while you build a query. See [pr #683](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/683).
 
 * BUGFIX: restore the `_stream` label in log query results. Previously, it was hidden from the log line labels. See [pr #685](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/685).
+* BUGFIX: live tailing now picks up query changes immediately. Previously, editing the query expression while live logs were streaming kept showing results for the previous query until the page was reloaded.
 
 ## v0.29.0
 
