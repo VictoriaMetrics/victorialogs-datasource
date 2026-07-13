@@ -24,6 +24,8 @@ interface Props {
   /** Called when the user selects a field from the stream group (fieldNamesWithStream source) */
   onStreamFieldSelected?: (fieldName: string) => void;
   dependencyValue?: string | null;
+  /** 'seamless' drops the chip's own frame for use as a SegmentedChip segment; 'default' is the standalone look */
+  variant?: 'default' | 'seamless';
 }
 
 export const PlaceholderChip: React.FC<Props> = ({
@@ -36,6 +38,7 @@ export const PlaceholderChip: React.FC<Props> = ({
   onDeactivate,
   onStreamFieldSelected,
   dependencyValue,
+  variant = 'default',
 }) => {
   const styles = useStyles2(getStyles);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -112,10 +115,11 @@ export const PlaceholderChip: React.FC<Props> = ({
     <>
       <span
         ref={setReference}
-        className={cx(
-          isFilled ? styles.placeholderFilled : styles.placeholderEmpty,
-          isActive && styles.placeholderActive
-        )}
+        className={
+          variant === 'seamless'
+            ? cx(isFilled ? styles.seamlessFilled : styles.seamlessEmpty, isActive && styles.seamlessActive)
+            : cx(isFilled ? styles.placeholderFilled : styles.placeholderEmpty, isActive && styles.placeholderActive)
+        }
         onClick={onClick}
         role='button'
         tabIndex={0}

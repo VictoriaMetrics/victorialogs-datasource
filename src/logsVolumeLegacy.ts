@@ -10,6 +10,7 @@ import {
   LoadingState,
   LogLevel,
   MutableDataFrame,
+  TimeRange,
   toDataFrame
 } from '@grafana/data';
 import { BarAlignment, GraphDrawStyle, StackingMode } from '@grafana/schema';
@@ -21,6 +22,12 @@ import { VictoriaLogsDatasource } from './datasource';
 import { Query } from './types';
 
 export const LOGS_VOLUME_BARS = 100;
+
+/** Computes the bucket step (seconds) so a time range is split into `bars` buckets */
+export function calculateVolumeStep(range: TimeRange, bars = LOGS_VOLUME_BARS): number {
+  const totalSeconds = range.to.diff(range.from, 'second');
+  return Math.ceil(totalSeconds / bars) || 1;
+}
 
 export const queryLogsVolume = (datasource: VictoriaLogsDatasource, request: DataQueryRequest<Query>): Observable<DataQueryResponse> | undefined => {
   return new Observable((observer) => {
@@ -88,7 +95,8 @@ export function aggregateRawLogsVolume(
   rawLogsVolume: DataFrame[],
   extractLevel: (dataFrame: DataFrame, rules: LogLevelRule[]) => LogLevel,
   request: DataQueryRequest<Query>,
-  rules: LogLevelRule[]
+  rules: LogLevelRule[],
+  bars = LOGS_VOLUME_BARS
 ): DataFrame[] {
   const logsVolumeByLevelMap: Partial<Record<LogLevel, DataFrame[]>> = {};
 
@@ -104,7 +112,8 @@ export function aggregateRawLogsVolume(
     return aggregateFields(
       logsVolumeByLevelMap[level as LogLevel]!,
       getLogVolumeFieldConfig(level as LogLevel),
-      request
+      request,
+      bars
     );
   });
 }
@@ -117,36 +126,38 @@ export function aggregateRawLogsVolume(
 function aggregateFields(
   dataFrames: DataFrame[],
   config: FieldConfig,
-  request: DataQueryRequest<Query>
+  request: DataQueryRequest<Query>,
+  bars = LOGS_VOLUME_BARS
 ): DataFrame {
   const aggregatedDataFrame = new MutableDataFrame();
   if (!dataFrames.length) {
     return aggregatedDataFrame;
   }
 
-  const totalSeconds = request.range.to.diff(request.range.from, 'second');
-  const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || 1;
-  const uniqTimes = Array.from(
-    { length: LOGS_VOLUME_BARS },
-    (_, i) => request.range.from.valueOf() + i * step * 1000
-  );
-  const totalLength = uniqTimes.length;
+  const stepMs = calculateVolumeStep(request.range, bars) * 1000;
+  const from = request.range.from.valueOf();
 
-  if (!totalLength) {
-    return aggregatedDataFrame;
+  aggregatedDataFrame.addField({ name: 'Time', type: FieldType.time }, bars);
+  aggregatedDataFrame.addField({ name: 'Value', type: FieldType.number, config }, bars);
+
+  // Sum-preserving re-bucketing: every source bucket lands in exactly one grid cell, so the
+  // chart (and its legend totals) always adds up to the raw hits. The previous nearest-match
+  // lookup dropped edge buckets — VictoriaLogs aligns its buckets to an absolute step grid,
+  // the display grid starts at range.from, and with bars+1 source buckets on bars grid points
+  // at least one bucket found no grid point within half a step and silently vanished.
+  const sums = new Array<number>(bars).fill(0);
+  for (const frame of dataFrames) {
+    const [frameTimes, frameValues] = frame.fields;
+    frameTimes.values.forEach((t: number, i: number) => {
+      // clamp: the first/last VL buckets are aligned outside [from, to) but still hold
+      // in-range hits — fold them into the edge cells instead of dropping them
+      const cell = Math.min(bars - 1, Math.max(0, Math.floor((t - from) / stepMs)));
+      sums[cell] += frameValues.values[i] ?? 0;
+    });
   }
 
-  aggregatedDataFrame.addField({ name: 'Time', type: FieldType.time }, totalLength);
-  aggregatedDataFrame.addField({ name: 'Value', type: FieldType.number, config }, totalLength);
-
-  for (let pointIndex = 0; pointIndex < totalLength; pointIndex++) {
-    const time = uniqTimes[pointIndex];
-    const value = dataFrames.reduce((acc, frame) => {
-      const [frameTimes, frameValues] = frame.fields;
-      const targetIndex = frameTimes.values.findIndex(t => Math.abs(t - time) < step * 1000 / 2);
-      return acc + (targetIndex !== -1 ? frameValues.values[targetIndex] : 0);
-    }, 0);
-    aggregatedDataFrame.set(pointIndex, { Value: value, Time: time });
+  for (let pointIndex = 0; pointIndex < bars; pointIndex++) {
+    aggregatedDataFrame.set(pointIndex, { Value: sums[pointIndex], Time: from + pointIndex * stepMs });
   }
 
   return aggregatedDataFrame;
@@ -180,7 +191,8 @@ function getLogVolumeFieldConfig(level: LogLevel) {
   };
 }
 
-const extractLevel = (frame: DataFrame, rules: LogLevelRule[]): LogLevel => {
+/** Resolves the log level of a volume frame from its value-field labels */
+export const extractLevel = (frame: DataFrame, rules: LogLevelRule[]): LogLevel => {
   const valueField = frame.fields.find(f => f.name === 'Value');
 
   if (!valueField?.labels) {

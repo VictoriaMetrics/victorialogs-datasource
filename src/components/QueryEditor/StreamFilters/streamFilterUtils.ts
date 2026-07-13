@@ -52,3 +52,19 @@ export function buildStreamExtraFilters(filters: StreamFilterState[]): string {
 
   return parts.join(' AND ');
 }
+
+/**
+ * Merges a serialized stream-filter expression into lookup request params as
+ * `extra_stream_filters`; returns the base params untouched when there is nothing to add
+ */
+export function withExtraStreamFilters(
+  base: URLSearchParams | undefined,
+  extra: string | undefined
+): URLSearchParams | undefined {
+  if (!extra) {
+    return base;
+  }
+  const params = new URLSearchParams(base);
+  params.set('extra_stream_filters', extra);
+  return params;
+}

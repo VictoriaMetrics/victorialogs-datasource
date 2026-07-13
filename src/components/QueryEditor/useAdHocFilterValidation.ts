@@ -7,7 +7,7 @@ import { FilterFieldType, Query } from '../../types';
 import { LRUCache } from '../../utils/LRUCache';
 import { bucketTimeRange } from '../../utils/timeUtils';
 
-import { buildStreamExtraFilters } from './StreamFilters/streamFilterUtils';
+import { buildStreamExtraFilters, withExtraStreamFilters } from './StreamFilters/streamFilterUtils';
 
 const FIELD_NAMES_BATCH_LIMIT = 10_000;
 const BUCKET_CACHE_SIZE = 16;
@@ -25,18 +25,6 @@ type KnownFields = Set<string> | 'errored' | undefined;
 
 const streamFiltersKey = (filters: Query['streamFilters']): string =>
   (filters ?? []).map((f) => `${f.label}|${f.operator}|${f.values.join(',')}`).join(';');
-
-const withExtraStreamFilters = (
-  base: URLSearchParams | undefined,
-  extra: string | undefined,
-): URLSearchParams | undefined => {
-  if (!extra) {
-    return base;
-  }
-  const params = new URLSearchParams(base);
-  params.set('extra_stream_filters', extra);
-  return params;
-};
 
 export const useAdHocFilterValidation = ({
   datasource,

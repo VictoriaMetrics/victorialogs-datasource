@@ -17,6 +17,7 @@ type FieldsQuery struct {
 	ExtraStreamFilters string `json:"extra_stream_filters"`
 	Filter             string `json:"filter"`
 	IgnorePipes        string `json:"ignore_pipes"`
+	KeepConstFields    string `json:"keep_const_fields"`
 }
 
 // getFieldsQueryFromRaw parses the field values query json from the raw message.
@@ -57,6 +58,9 @@ func (fv *FieldsQuery) queryParams() url.Values {
 	}
 	if fv.IgnorePipes != "" {
 		params.Set("ignore_pipes", fv.IgnorePipes)
+	}
+	if fv.KeepConstFields != "" {
+		params.Set("keep_const_fields", fv.KeepConstFields)
 	}
 	return params
 }

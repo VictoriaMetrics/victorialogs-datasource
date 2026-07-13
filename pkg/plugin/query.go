@@ -54,6 +54,7 @@ type Query struct {
 	MaxLines           int       `json:"maxLines"`
 	Step               string    `json:"step"`
 	Fields             []string  `json:"fields"`
+	FieldsLimit        int       `json:"fieldsLimit"`
 	QueryType          QueryType `json:"queryType"`
 	ExtraFilters       string    `json:"extraFilters"`
 	ExtraStreamFilters string    `json:"extraStreamFilters"`
@@ -275,6 +276,9 @@ func (q *Query) hitsQueryURL(queryParams url.Values, minInterval time.Duration) 
 	}
 	for _, f := range q.Fields {
 		values.Add("field", f)
+	}
+	if q.FieldsLimit > 0 {
+		values.Set("fields_limit", strconv.Itoa(q.FieldsLimit))
 	}
 
 	q.url.RawQuery = values.Encode()

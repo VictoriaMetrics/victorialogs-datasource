@@ -146,7 +146,7 @@ export class VictoriaLogsDatasource
         return {
           ...q,
           // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
-          expr: addSortPipeToQuery(q, request.app, request.liveStreaming),
+          expr: q.expr || addSortPipeToQuery(q, request.app, request.liveStreaming),
           maxLines: Math.min(q.maxLines ?? this.maxLines, LOGS_LIMIT_HARD_CAP),
           timezoneOffset,
           format: getQueryFormat(q.expr),

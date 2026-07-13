@@ -1,0 +1,590 @@
+// TODO(drilldown-tests): recovered from session transcripts after the 2026-07-08 drawer redesign
+// (Grafana-style service breakdown). Tests target the pre-redesign drawer/tabs and cannot compile
+// against the new structure — re-enable by rewriting during the planned drilldown test pass.
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import React from 'react';
+
+import { dateTime, TimeRange } from '@grafana/data';
+
+import { VictoriaLogsDatasource } from '../../../datasource';
+import { AdHocFilter, Query } from '../../../types';
+
+import DrilldownDrawer from './DrilldownDrawer';
+import { useFieldValuesHits, useLogsVolume, usePatternsHits } from './useDrilldownQueries';
+
+jest.mock('./useDrilldownQueries', () => ({
+  useFieldNames: jest.fn().mockReturnValue({ fieldNames: ['level'], loading: false }),
+  useLogsVolume: jest.fn().mockReturnValue({ series: [], state: 'Done', timeRange: undefined }),
+  useFieldValuesHits: jest.fn().mockReturnValue({ top: [], totalValues: 0, loading: false }),
+  usePatternsHits: jest.fn().mockReturnValue({ top: [], totalPatterns: 0, loading: false }),
+}));
+
+jest.mock('./VolumePanel', () => ({
+  VolumePanel: (props: { onChangeTimeRange?: (range: { from: number; to: number }) => void }) => (
+    <button onClick={() => props.onChangeTimeRange?.({ from: Date.UTC(2026, 6, 6, 0, 15), to: Date.UTC(2026, 6, 6, 0, 30) })}>
+      fake-zoom
+    </button>
+  ),
+}));
+
+// AdHocFiltersControl itself is exercised separately in DrilldownFiltersRow.test.tsx — here the
+// row is mocked out to a bare apply button + zoomToolbar slot, matching how the other heavy
+// children (tabs, breakdowns) are mocked below
+jest.mock('./DrilldownFiltersRow', () => ({
+  DrilldownFiltersRow: (props: {
+    onApply: () => void;
+    zoomToolbar?: React.ReactNode;
+    onAdd: (filter: AdHocFilter) => void;
+  }) => (
+    <div>
+      {props.zoomToolbar}
+      <button onClick={props.onApply}>fake-apply</button>
+      {/* stands in for AddFilterControl's onAdd — exercises the same addFilter dedup path as onFilterClick */}
+      <button onClick={() => props.onAdd({ key: 'level', value: 'error', operator: '=' })}>
+        fake-add-filter-picker
+      </button>
+    </div>
+  ),
+}));
+
+jest.mock('./DrilldownTabs', () => ({
+  PATTERNS_TAB: '$patterns',
+  DrilldownTabs: (props: {
+    active: string;
+    onSelect: (tab: string) => void;
+    onAddField: (field: string) => void;
+    onCloseField: (field: string) => void;
+  }) => (
+    <div>
+      <span data-testid='active-tab'>{props.active}</span>
+      <button onClick={() => props.onAddField('level')}>fake-add-level</button>
+      <button onClick={() => props.onCloseField(props.active)}>fake-close-active</button>
+      <button onClick={() => props.onSelect('$patterns')}>fake-select-patterns</button>
+    </div>
+  ),
+}));
+
+jest.mock('./PatternsBreakdown', () => ({
+  PatternsBreakdown: () => <div>fake-patterns</div>,
+}));
+
+jest.mock('./FieldValuesBreakdown', () => ({
+  FieldValuesBreakdown: (props: { field: string; onFilterClick: (value: string, operator: string) => void }) => (
+    <div>
+      <span data-testid='breakdown-field'>{props.field}</span>
+      <button onClick={() => props.onFilterClick('error', '=')}>fake-value-card</button>
+      <button onClick={() => props.onFilterClick('warn', '=')}>fake-value-card-2</button>
+    </div>
+  ),
+}));
+
+const mockedUseLogsVolume = useLogsVolume as jest.Mock;
+const mockedUseFieldValuesHits = useFieldValuesHits as jest.Mock;
+const mockedUsePatternsHits = usePatternsHits as jest.Mock;
+
+const range: TimeRange = {
+  from: dateTime('2026-07-06T00:00:00Z'),
+  to: dateTime('2026-07-06T01:00:00Z'),
+  raw: { from: 'now-1h', to: 'now' },
+};
+
+const query: Query = { refId: 'A', expr: '*' };
+const datasource = {} as VictoriaLogsDatasource;
+
+const originalGetComputedStyle = window.getComputedStyle;
+
+beforeAll(() => {
+  // jsdom has no ResizeObserver/IntersectionObserver — the Drawer's title truncation and
+  // focus scope rely on them
+  global.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+  global.IntersectionObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof IntersectionObserver;
+  // jsdom doesn't implement pseudo-element computed styles, which the Drawer's scroll
+  // locker (measuring the scrollbar via `::-webkit-scrollbar`) queries on mount
+  window.getComputedStyle = ((elt: Element, pseudoElt?: string | null) =>
+    pseudoElt ? ({} as CSSStyleDeclaration) : originalGetComputedStyle(elt)) as typeof window.getComputedStyle;
+});
+
+afterAll(() => {
+  window.getComputedStyle = originalGetComputedStyle;
+});
+
+beforeEach(() => {
+  mockedUseLogsVolume.mockClear();
+  mockedUseFieldValuesHits.mockClear();
+  mockedUsePatternsHits.mockClear();
+});
+
+describe('DrilldownDrawer', () => {
+  it('a filter click adds a local filter chip fed to the hits hooks without touching the editor query', async () => {
+    const onChange = jest.fn();
+    const onRunQuery = jest.fn();
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={onChange}
+        onRunQuery={onRunQuery}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByText('fake-add-level'));
+    await userEvent.click(screen.getByText('fake-value-card'));
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(onRunQuery).not.toHaveBeenCalled();
+
+    const expectedFilters: AdHocFilter[] = [{ key: 'level', value: 'error', operator: '=' }];
+    const lastValuesCall = mockedUseFieldValuesHits.mock.calls.at(-1)!;
+    expect(lastValuesCall[1].adHocFilters).toEqual(expectedFilters);
+  });
+
+  it('clicking the same filter twice adds it to the local list only once', async () => {
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByText('fake-add-level'));
+    await userEvent.click(screen.getByText('fake-value-card'));
+    await userEvent.click(screen.getByText('fake-value-card'));
+
+    const expectedFilters: AdHocFilter[] = [{ key: 'level', value: 'error', operator: '=' }];
+    const lastValuesCall = mockedUseFieldValuesHits.mock.calls.at(-1)!;
+    expect(lastValuesCall[1].adHocFilters).toEqual(expectedFilters);
+  });
+
+  it('skips a filter click that duplicates one already applied on the editor query', async () => {
+    const queryWithFilter: Query = {
+      ...query,
+      adHocFilters: [{ key: 'level', value: 'error', operator: '=' }],
+    };
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={queryWithFilter}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByText('fake-add-level'));
+    await userEvent.click(screen.getByText('fake-value-card'));
+
+    // no local filter was added — the drawer query carries only the editor's pre-existing one
+    const expectedFilters: AdHocFilter[] = [{ key: 'level', value: 'error', operator: '=' }];
+    const lastValuesCall = mockedUseFieldValuesHits.mock.calls.at(-1)!;
+    expect(lastValuesCall[1].adHocFilters).toEqual(expectedFilters);
+  });
+
+  it('"Apply to editor" pushes the merged adHocFilters to the editor exactly once', async () => {
+    const onChange = jest.fn();
+    const onRunQuery = jest.fn();
+    const queryWithFilter: Query = {
+      ...query,
+      adHocFilters: [{ key: 'app', value: 'web', operator: '=' }],
+    };
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={queryWithFilter}
+        range={range}
+        onChange={onChange}
+        onRunQuery={onRunQuery}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByText('fake-add-level'));
+    await userEvent.click(screen.getByText('fake-value-card'));
+    await userEvent.click(screen.getByText('fake-apply'));
+
+    const expectedFilters: AdHocFilter[] = [
+      { key: 'app', value: 'web', operator: '=' },
+      { key: 'level', value: 'error', operator: '=' },
+    ];
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ adHocFilters: expectedFilters }));
+    expect(onRunQuery).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the local filters after Apply so the applied filter is not fed to the hooks twice', async () => {
+    const onChange = jest.fn();
+    const commonProps = { datasource, range, onChange, onRunQuery: jest.fn(), onClose: jest.fn() };
+    const { rerender } = render(<DrilldownDrawer {...commonProps} query={query} />);
+
+    await userEvent.click(screen.getByText('fake-add-level'));
+    await userEvent.click(screen.getByText('fake-value-card'));
+    await userEvent.click(screen.getByText('fake-apply'));
+
+    // mirror the real flow: the parent editor stores the applied query and feeds it back as a prop
+    const appliedQuery: Query = onChange.mock.calls[0][0];
+    rerender(<DrilldownDrawer {...commonProps} query={appliedQuery} />);
+
+    // the filter must reach the hooks exactly once — via query.adHocFilters, not also as a stale local chip
+    const expectedFilters: AdHocFilter[] = [{ key: 'level', value: 'error', operator: '=' }];
+    const lastValuesCall = mockedUseFieldValuesHits.mock.calls.at(-1)!;
+    expect(lastValuesCall[1].adHocFilters).toEqual(expectedFilters);
+  });
+
+  it('a second Apply after the parent echoes the query back sends no duplicates', async () => {
+    const onChange = jest.fn();
+    const onRunQuery = jest.fn();
+    const commonProps = { datasource, range, onChange, onRunQuery, onClose: jest.fn() };
+    const { rerender } = render(<DrilldownDrawer {...commonProps} query={query} />);
+
+    await userEvent.click(screen.getByText('fake-add-level'));
+    await userEvent.click(screen.getByText('fake-value-card'));
+    await userEvent.click(screen.getByText('fake-apply'));
+
+    // mirror the real flow: the parent editor stores the applied query and feeds it back as a prop
+    const appliedQuery: Query = onChange.mock.calls[0][0];
+    rerender(<DrilldownDrawer {...commonProps} query={appliedQuery} />);
+
+    await userEvent.click(screen.getByText('fake-apply'));
+
+    const expectedFilters: AdHocFilter[] = [{ key: 'level', value: 'error', operator: '=' }];
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(onChange.mock.calls[1][0].adHocFilters).toEqual(expectedFilters);
+  });
+
+  it('two filter clicks landing in the same render both persist instead of one clobbering the other', async () => {
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByText('fake-add-level'));
+
+    // fireEvent (unlike awaited userEvent.click calls) dispatches both clicks before React
+    // flushes a re-render between them, so both onFilterClick invocations read the same
+    // pre-update `filters` closure — the functional setFilters form must still preserve both appends
+    act(() => {
+      fireEvent.click(screen.getByText('fake-value-card'));
+      fireEvent.click(screen.getByText('fake-value-card-2'));
+    });
+
+    const expectedFilters: AdHocFilter[] = [
+      { key: 'level', value: 'error', operator: '=' },
+      { key: 'level', value: 'warn', operator: '=' },
+    ];
+    const lastValuesCall = mockedUseFieldValuesHits.mock.calls.at(-1)!;
+    expect(lastValuesCall[1].adHocFilters).toEqual(expectedFilters);
+  });
+
+  it('adding the same filter twice via the "+ Filter" picker (AddFilterControl) is deduped just like a value-card click', async () => {
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByText('fake-add-filter-picker'));
+    await userEvent.click(screen.getByText('fake-add-filter-picker'));
+
+    const expectedFilters: AdHocFilter[] = [{ key: 'level', value: 'error', operator: '=' }];
+    const lastValuesCall = mockedUseFieldValuesHits.mock.calls.at(-1)!;
+    expect(lastValuesCall[1].adHocFilters).toEqual(expectedFilters);
+  });
+
+  it('adding a field tab activates it and feeds the field to useFieldValuesHits; closing the active tab returns to Patterns', async () => {
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByText('fake-add-level'));
+
+    expect(screen.getByTestId('active-tab').textContent).toBe('level');
+    expect(screen.getByTestId('breakdown-field').textContent).toBe('level');
+    expect(mockedUseFieldValuesHits.mock.calls.at(-1)![2]).toBe('level');
+
+    await userEvent.click(screen.getByText('fake-close-active'));
+
+    expect(screen.getByTestId('active-tab').textContent).toBe('$patterns');
+    expect(screen.getByText('fake-patterns')).toBeInTheDocument();
+    expect(screen.queryByTestId('breakdown-field')).not.toBeInTheDocument();
+  });
+
+  it('enables usePatternsHits only while the Patterns tab is active', async () => {
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    expect(mockedUsePatternsHits.mock.calls.at(-1)![3]).toBe(true);
+
+    await userEvent.click(screen.getByText('fake-add-level'));
+
+    expect(mockedUsePatternsHits.mock.calls.at(-1)![3]).toBe(false);
+
+    await userEvent.click(screen.getByText('fake-select-patterns'));
+
+    expect(mockedUsePatternsHits.mock.calls.at(-1)![3]).toBe(true);
+  });
+
+  it('zooms all sections to the range selected on a chart', async () => {
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByText('fake-zoom'));
+
+    const zoomedRange = mockedUseLogsVolume.mock.calls.at(-1)![2];
+    expect(zoomedRange.from.valueOf()).toBe(dateTime('2026-07-06T00:15:00Z').valueOf());
+    expect(zoomedRange.to.valueOf()).toBe(dateTime('2026-07-06T00:30:00Z').valueOf());
+    // the zoom toolbar is rendered inside the DrilldownFiltersRow's zoomToolbar slot once a zoom is active
+    expect(screen.getByRole('button', { name: /zoom out/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reset/i })).toBeInTheDocument();
+  });
+
+  it('zoom out doubles the interval around its center', async () => {
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByText('fake-zoom'));
+    await userEvent.click(screen.getByRole('button', { name: /zoom out/i }));
+
+    // zoomed interval was 00:15-00:30 (15m); doubling around the center gives 00:07:30-00:37:30
+    const zoomedRange = mockedUseLogsVolume.mock.calls.at(-1)![2];
+    expect(zoomedRange.from.valueOf()).toBe(dateTime('2026-07-06T00:07:30Z').valueOf());
+    expect(zoomedRange.to.valueOf()).toBe(dateTime('2026-07-06T00:37:30Z').valueOf());
+  });
+
+  it('clamps zoom out to "now" instead of drifting the range into the future', async () => {
+    // "now" falls inside the doubled interval (00:07:30-00:37:30) computed by the previous test
+    const fixedNow = dateTime('2026-07-06T00:20:00Z').valueOf();
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(fixedNow);
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByText('fake-zoom'));
+    await userEvent.click(screen.getByRole('button', { name: /zoom out/i }));
+
+    const zoomedRange = mockedUseLogsVolume.mock.calls.at(-1)![2];
+    expect(zoomedRange.to.valueOf()).toBe(fixedNow);
+
+    nowSpy.mockRestore();
+  });
+
+  it('reset returns all sections to the editor range', async () => {
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByText('fake-zoom'));
+    await userEvent.click(screen.getByRole('button', { name: /reset/i }));
+
+    const restoredRange = mockedUseLogsVolume.mock.calls.at(-1)![2];
+    expect(restoredRange.from.valueOf()).toBe(range.from.valueOf());
+    expect(restoredRange.to.valueOf()).toBe(range.to.valueOf());
+    // the Reset button (ours) is gone once the zoom is cleared — the picker's own "Zoom out" button
+    // stays in the DOM regardless of zoom state, it's part of TimeRangePicker itself
+    expect(screen.queryByRole('button', { name: /reset/i })).not.toBeInTheDocument();
+  });
+
+  it('shifts the window backward by half its span', async () => {
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    // zoomed interval is 00:15-00:30 (15m); shifting backward by half (7m30s) gives 00:07:30-00:22:30
+    await userEvent.click(screen.getByText('fake-zoom'));
+    await userEvent.click(screen.getByRole('button', { name: /move time range backwards/i }));
+
+    const shiftedRange = mockedUseLogsVolume.mock.calls.at(-1)![2];
+    expect(shiftedRange.from.valueOf()).toBe(dateTime('2026-07-06T00:07:30Z').valueOf());
+    expect(shiftedRange.to.valueOf()).toBe(dateTime('2026-07-06T00:22:30Z').valueOf());
+  });
+
+  it('shifts the window forward by half its span', async () => {
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    // zoomed interval is 00:15-00:30 (15m); shifting forward by half (7m30s) gives 00:22:30-00:37:30
+    await userEvent.click(screen.getByText('fake-zoom'));
+    await userEvent.click(screen.getByRole('button', { name: /move time range forwards/i }));
+
+    const shiftedRange = mockedUseLogsVolume.mock.calls.at(-1)![2];
+    expect(shiftedRange.from.valueOf()).toBe(dateTime('2026-07-06T00:22:30Z').valueOf());
+    expect(shiftedRange.to.valueOf()).toBe(dateTime('2026-07-06T00:37:30Z').valueOf());
+  });
+
+  it('clamps moving forward to "now" instead of drifting the range into the future', async () => {
+    // "now" falls inside the forward-shifted interval (00:22:30-00:37:30) computed by the previous test
+    const fixedNow = dateTime('2026-07-06T00:30:00Z').valueOf();
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(fixedNow);
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByText('fake-zoom'));
+    await userEvent.click(screen.getByRole('button', { name: /move time range forwards/i }));
+
+    const shiftedRange = mockedUseLogsVolume.mock.calls.at(-1)![2];
+    expect(shiftedRange.to.valueOf()).toBe(fixedNow);
+
+    nowSpy.mockRestore();
+  });
+
+  it('picking a quick range from the time picker overrides the drawer without touching the editor range', async () => {
+    render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        range={range}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('data-testid TimePicker Open Button'));
+    await userEvent.click(screen.getByText('Last 5 minutes'));
+
+    const pickedRange = mockedUseLogsVolume.mock.calls.at(-1)![2];
+    expect(pickedRange.raw).toEqual({ from: 'now-5m', to: 'now' });
+    // the editor's own range prop is untouched by picking a range in the drawer
+    expect(range.from.valueOf()).toBe(dateTime('2026-07-06T00:00:00Z').valueOf());
+  });
+
+  it('drops the local zoom when the editor range changes', async () => {
+    const commonProps = { datasource, query, onChange: jest.fn(), onRunQuery: jest.fn(), onClose: jest.fn() };
+    const { rerender } = render(<DrilldownDrawer {...commonProps} range={range} />);
+
+    await userEvent.click(screen.getByText('fake-zoom'));
+
+    const newEditorRange: TimeRange = {
+      from: dateTime('2026-07-05T00:00:00Z'),
+      to: dateTime('2026-07-05T06:00:00Z'),
+      raw: { from: 'now-6h', to: 'now' },
+    };
+    rerender(<DrilldownDrawer {...commonProps} range={newEditorRange} />);
+
+    const currentRange = mockedUseLogsVolume.mock.calls.at(-1)![2];
+    expect(currentRange.from.valueOf()).toBe(newEditorRange.from.valueOf());
+    expect(currentRange.to.valueOf()).toBe(newEditorRange.to.valueOf());
+  });
+
+  it('memoizes the default time range so it does not change across renders when no range prop is given', () => {
+    const { rerender } = render(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+    rerender(
+      <DrilldownDrawer
+        datasource={datasource}
+        query={query}
+        onChange={jest.fn()}
+        onRunQuery={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    expect(mockedUseLogsVolume.mock.calls.length).toBeGreaterThanOrEqual(2);
+    const firstRange = mockedUseLogsVolume.mock.calls[0][2];
+    const secondRange = mockedUseLogsVolume.mock.calls[1][2];
+    // a fresh `getDefaultTimeRange()` on every render would produce a new object here,
+    // re-triggering the effects in useLogsVolume/useFieldValuesHits and looping requests
+    expect(secondRange).toBe(firstRange);
+  });
+});
+

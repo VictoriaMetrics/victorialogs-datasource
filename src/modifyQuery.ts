@@ -14,6 +14,9 @@ const operators = ['=', '!=', '=~', '!~', '<', '>'];
 const multiValueOperators = ['=|', '!=|'];
 const streamKeys = ['_stream', '_stream_id'];
 
+/** True for the special stream fields whose filter values are inserted raw (`_stream:{...}`), never quoted or escaped */
+export const isStreamKey = (key: string): boolean => streamKeys.includes(key);
+
 export function queryHasFilter(query: string, key: string, value: string, operator?: string): boolean {
   const applicableOperators = operator ? [operator] : operators;
   return applicableOperators.some(op => query.includes(getFilterInsertValue(key, value, op)));

@@ -48,4 +48,5 @@ describe('AdHocFiltersControl', () => {
     // normal chip: move + delete (2) + level chip: delete only (1) = 3
     expect(screen.getAllByRole('button')).toHaveLength(3);
   });
+
 });

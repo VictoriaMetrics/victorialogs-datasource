@@ -16,6 +16,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 		QueryType      QueryType
 		ExtraFilters   string
 		TimezoneOffset string
+		FieldsLimit    int
 		rawURL         string
 		queryParams    string
 		want           string
@@ -34,6 +35,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 			QueryType:      opts.QueryType,
 			ExtraFilters:   opts.ExtraFilters,
 			TimezoneOffset: opts.TimezoneOffset,
+			FieldsLimit:    opts.FieldsLimit,
 		}
 		got, err := q.getQueryURL(opts.rawURL, opts.queryParams)
 		if (err != nil) != opts.wantErr {
@@ -463,6 +465,38 @@ func TestQuery_getQueryURL(t *testing.T) {
 		TimezoneOffset: "",
 		rawURL:         "http://127.0.0.1:9429",
 		want:           "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=_time%3A1s&start=1609459200&step=15s",
+	}
+	f(o)
+
+	// hits with fields_limit
+	o = opts{
+		RefID:    "1",
+		Expr:     "_time:1s",
+		MaxLines: 10,
+		TimeRange: backend.TimeRange{
+			From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		QueryType:   QueryTypeHits,
+		FieldsLimit: 101,
+		rawURL:      "http://127.0.0.1:9429",
+		want:        "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&fields_limit=101&query=_time%3A1s&start=1609459200&step=15s",
+	}
+	f(o)
+
+	// hits without fields_limit (zero value) - should not include fields_limit param
+	o = opts{
+		RefID:    "1",
+		Expr:     "_time:1s",
+		MaxLines: 10,
+		TimeRange: backend.TimeRange{
+			From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		QueryType:   QueryTypeHits,
+		FieldsLimit: 0,
+		rawURL:      "http://127.0.0.1:9429",
+		want:        "http://127.0.0.1:9429/select/logsql/hits?end=1609462800&query=_time%3A1s&start=1609459200&step=15s",
 	}
 	f(o)
 }

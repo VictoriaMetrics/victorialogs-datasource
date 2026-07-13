@@ -1,13 +1,14 @@
 import { css } from '@emotion/css';
 import React from 'react';
 
-import { CoreApp, DataQuery, GrafanaTheme2, LoadingState, PanelData } from '@grafana/data';
+import { CoreApp, DataQuery, GrafanaTheme2, LoadingState, PanelData, TimeRange } from '@grafana/data';
 import { Button, Stack, useStyles2 } from '@grafana/ui';
 
 import { LOGS_LIMIT_HARD_CAP } from '../../constants';
 import { VictoriaLogsDatasource } from '../../datasource';
 import { Query, QueryEditorMode } from '../../types';
 
+import { DrilldownButton } from './Drilldown/DrilldownButton';
 import { LevelQueryFilter } from './LevelQueryFilter/LeveQueryFilter';
 import { LogsQLSyntaxHelp } from './LogsQLSyntaxHelp';
 import { QueryEditorHelp } from './QueryEditorHelp';
@@ -27,6 +28,7 @@ interface EditorHeaderProps {
   onRunQuery: () => void;
   onQueryExprChange: (expr: string, newQuery?: boolean) => void;
   onChange: (query: Query) => void;
+  timeRange?: TimeRange;
 }
 
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -41,6 +43,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onRunQuery,
   onQueryExprChange,
   onChange,
+  timeRange,
 }) => {
   const styles = useStyles2(getStyles);
   const isMaxLinesOverCap = query.maxLines !== undefined && query.maxLines > LOGS_LIMIT_HARD_CAP;
@@ -54,6 +57,15 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
       <Stack direction={'row'} justifyContent={'flex-end'} alignItems={'center'}>
         <LogsQLSyntaxHelp />
         <QueryEditorHelp />
+        {editorMode === QueryEditorMode.Code && (
+          <DrilldownButton
+            datasource={datasource}
+            query={query}
+            range={timeRange}
+            onChange={onChange}
+            onRunQuery={onRunQuery}
+          />
+        )}
         <VmuiLink query={query} panelData={data} datasource={datasource} />
         <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange} />
         {app !== CoreApp.Explore && app !== CoreApp.Correlations && (
