@@ -89,4 +89,5 @@ describe('AdHocFiltersControl', () => {
     expect(updated.templateBuilder.pipes[0].templateType).toBe('exact');
     expect(updated.adHocFilters).toBeUndefined();
   });
+
 });

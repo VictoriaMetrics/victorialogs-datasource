@@ -6,6 +6,7 @@ import { addLabelToQuery } from '../../modifyQuery';
 import { returnVariables } from '../../parsingUtils';
 import { AdHocFilter, AdHocFilterOperator, AdHocFiltersMode, Query } from '../../types';
 
+import { isLevelChip } from './levelChips';
 import { buildExactLevelExprMap } from './levelExpansion';
 
 export const serializeAdHocFilters = (filters: AdHocFilter[] | undefined): string | undefined => {
@@ -60,11 +61,6 @@ export function resolveAdHocFiltersMode(query: Query): AdHocFiltersMode {
   return query.isApplyExtraFiltersToRootQuery ? AdHocFiltersMode.RootQuery : AdHocFiltersMode.ExtraFilters;
 }
 
-const LEVEL_KEY = 'level';
-
-const isExpandableLevelChip = (f: AdHocFilter): boolean =>
-  f.fromLevelFilter === true && f.key === LEVEL_KEY && f.operator === '=';
-
 export interface ExpandedLevelChips {
   levelExpr?: string;
   rest: AdHocFilter[];
@@ -75,8 +71,8 @@ export interface ExpandedLevelChips {
 // Other chips — including unmarked `level` chips from a dashboard adhoc variable or
 // Explore — are returned untouched in `rest`.
 export function expandLevelChips(chips: AdHocFilter[], rules: LogLevelRule[]): ExpandedLevelChips {
-  const levelChips = chips.filter(isExpandableLevelChip);
-  const rest = chips.filter((c) => !isExpandableLevelChip(c));
+  const levelChips = chips.filter(isLevelChip);
+  const rest = chips.filter((c) => !isLevelChip(c));
   if (!levelChips.length) {
     return { rest };
   }

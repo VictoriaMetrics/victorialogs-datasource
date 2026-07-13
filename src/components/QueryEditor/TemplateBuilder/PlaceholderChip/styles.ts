@@ -34,6 +34,32 @@ export const getStyles = (theme: GrafanaTheme2) => ({
     outline: `2px solid ${theme.colors.primary.main}`,
     outlineOffset: 1,
   }),
+  // seamless variant — a divider-separated segment of SegmentedChip: no own frame,
+  // the active state is a background highlight instead of an outline
+  seamlessEmpty: css({
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: theme.spacing(0, 1),
+    color: theme.colors.text.disabled,
+    fontStyle: 'italic',
+    cursor: 'pointer',
+    '&:hover': {
+      backgroundColor: theme.colors.action.hover,
+    },
+  }),
+  seamlessFilled: css({
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: theme.spacing(0, 1),
+    color: theme.colors.text.primary,
+    cursor: 'pointer',
+    '&:hover': {
+      backgroundColor: theme.colors.action.hover,
+    },
+  }),
+  seamlessActive: css({
+    backgroundColor: theme.colors.action.selected,
+  }),
   chipInput: css({
     background: 'none',
     border: 'none',

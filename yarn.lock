@@ -3127,6 +3127,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@testing-library/user-event@npm:^14.6.1":
+  version: 14.6.1
+  resolution: "@testing-library/user-event@npm:14.6.1"
+  peerDependencies:
+    "@testing-library/dom": ">=7.21.4"
+  checksum: 10c0/75fea130a52bf320d35d46ed54f3eec77e71a56911b8b69a3fe29497b0b9947b2dc80d30f04054ad4ce7f577856ae3e5397ea7dff0ef14944d3909784c7a93fe
+  languageName: node
+  linkType: hard
+
 "@tsconfig/node10@npm:^1.0.7":
   version: 1.0.13
   resolution: "@tsconfig/node10@npm:1.0.13"
@@ -9046,10 +9055,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nwsapi@npm:^2.2.16":
-  version: 2.2.27
-  resolution: "nwsapi@npm:2.2.27"
-  checksum: 10c0/14c1f6055dbe97b7564605ec7f39954f65ca47910345cf1e2aef7e6366276b9b12a0bad2d6090b418f78f9791a4f8d9ac098f94d85fd3acd7e3f491d75677476
+"nwsapi@npm:^2.2.28":
+  version: 2.2.28
+  resolution: "nwsapi@npm:2.2.28"
+  checksum: 10c0/8fb5ce37f352d48d64f631e5fe10346ba24010de3671dc4174783504c07912b5d44d0d507fe13ba461a7c8b8173e35f902605228b9a71be18bd3d62ba9e951ed
   languageName: node
   linkType: hard
 
@@ -12165,6 +12174,7 @@ __metadata:
     "@testing-library/dom": "npm:10.4.1"
     "@testing-library/jest-dom": "npm:^6.9.1"
     "@testing-library/react": "npm:16.3.2"
+    "@testing-library/user-event": "npm:^14.6.1"
     "@types/jest": "npm:^30.0.0"
     "@types/lodash": "npm:^4.17.24"
     "@types/node": "npm:^25.9.1"

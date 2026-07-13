@@ -78,7 +78,7 @@ import {
   resolveAdHocFilters,
   serializeChipsForBackend,
 } from './utils/query/adHocFilters';
-import { buildLevelFormatPipes, DERIVED_LEVEL_FIELD } from './utils/query/levelFormatPipes';
+import { buildLevelGrouping } from './utils/query/levelFormatPipes';
 import { streamFiltersHaveValue, toggleStreamFilterValue } from './utils/query/streamFilterToggle';
 import { formatOffsetDuration, getMillisecondsFromDuration } from './utils/timeUtils';
 import { VariableSupport } from './variableSupport/VariableSupport';
@@ -151,7 +151,7 @@ export class VictoriaLogsDatasource
         return {
           ...q,
           // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
-          expr: addSortPipeToQuery(q, request.app, request.liveStreaming),
+          expr: q.expr || addSortPipeToQuery(q, request.app, request.liveStreaming),
           maxLines: Math.min(q.maxLines ?? this.maxLines, LOGS_LIMIT_HARD_CAP),
           timezoneOffset,
           format: getQueryFormat(q.expr),
@@ -565,19 +565,20 @@ export class VictoriaLogsDatasource
         }
 
         // With active level rules the level is derived server-side via `format` pipes,
-        // grouping hits by the single derived field instead of every rule field
-        // (a `_msg` rule would otherwise explode cardinality — issue #700).
+        // grouping hits by the single derived field (see buildLevelGrouping — issue #700).
         // The pipes are inserted before the first sort-class pipe (see
         // insertPipesBeforeSortClassPipe): hits ignores those pipes and loses fields
         // created after them, while rules may reference fields created by earlier pipes.
         // An empty expression gets no pipes — a `| format ...` query without a filter
         // part is unparsable, and the empty-expr target is dropped later in query() anyway
-        const levelPipes = query.expr ? buildLevelFormatPipes(this.getActiveLevelRules()) : '';
+        const grouping = query.expr
+          ? buildLevelGrouping(this.getActiveLevelRules())
+          : { pipes: '', fields: ['level'] };
 
         return {
           ...volumeQuery,
-          expr: levelPipes ? insertPipesBeforeSortClassPipe(query.expr, levelPipes) : query.expr,
-          fields: levelPipes ? [DERIVED_LEVEL_FIELD] : ['level'],
+          expr: grouping.pipes ? insertPipesBeforeSortClassPipe(query.expr, grouping.pipes) : query.expr,
+          fields: grouping.fields,
         };
       }
       case SupplementaryQueryType.LogsSample:
