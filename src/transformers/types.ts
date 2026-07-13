@@ -1,5 +1,12 @@
 export const ANNOTATIONS_REF_ID = 'Anno';
 
+/**
+ * Resolves template variables in a query expression. The transformers receive
+ * raw target expressions (with `$variables`), so consumers that need the
+ * executed query text (e.g. `searchWords` highlighting) must interpolate first.
+ */
+export type InterpolateExpr = (expr: string) => string;
+
 export enum FrameField {
   Labels = 'labels',
   Line = 'Line',

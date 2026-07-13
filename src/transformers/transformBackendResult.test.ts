@@ -5,6 +5,8 @@ import { DerivedFieldConfig, Query, QueryType } from '../types';
 
 import { transformBackendResult } from './transformBackendResult';
 
+const identityInterpolate = (expr: string) => expr;
+
 describe('transformBackendResult', () => {
   const labels = [
     {
@@ -174,7 +176,7 @@ describe('transformBackendResult', () => {
     } as unknown as DataQueryRequest<Query>;
     const derivedFieldConfigs: DerivedFieldConfig[] = [];
     const logLevelRules: LogLevelRule[] = [];
-    const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
+    const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules, identityInterpolate);
     expect(result.data[0].fields[2].values).toStrictEqual(labels);
     expect(result.data[0].fields[3].name).toStrictEqual('detected_level');
     expect(result.data[0].fields[3].values).toStrictEqual([
@@ -326,7 +328,7 @@ describe('transformBackendResult', () => {
       value: 'dev',
       level: LogLevel.critical
     }];
-    const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
+    const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules, identityInterpolate);
     expect(result.data[0].fields[2].values).toStrictEqual(extendedLabels);
     expect(result.data[0].fields[3].values).toStrictEqual([
       LogLevel.info,
@@ -474,7 +476,7 @@ describe('transformBackendResult', () => {
       value: 'critical',
       level: LogLevel.critical
     }];
-    const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
+    const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules, identityInterpolate);
     expect(result.data[0].fields[2].values).toStrictEqual(extendedLabels);
     expect(result.data[0].fields[3].values).toStrictEqual([
       LogLevel.critical,
@@ -484,6 +486,76 @@ describe('transformBackendResult', () => {
       LogLevel.unknown,
       LogLevel.unknown,
     ]);
+  });
+
+  it('builds meta.searchWords from the interpolated query expression', () => {
+    const response = {
+      'data': [
+        {
+          'refId': 'A',
+          'meta': {},
+          'fields': [
+            {
+              'name': 'Time',
+              'type': 'time',
+              'typeInfo': { 'frame': 'time.Time' },
+              'config': {},
+              'values': [1760598702731],
+              'entities': {}
+            },
+            {
+              'name': 'Line',
+              'type': 'string',
+              'typeInfo': { 'frame': 'string' },
+              'config': {},
+              'values': ['connection error'],
+              'entities': {}
+            },
+            {
+              'name': 'labels',
+              'type': 'other',
+              'typeInfo': { 'frame': 'json.RawMessage' },
+              'config': {},
+              'values': [labels[0]],
+              'entities': {}
+            }
+          ],
+          'length': 1
+        }
+      ],
+      'state': 'Done'
+    } as DataQueryResponse;
+    const request = {
+      'app': 'dashboard',
+      'requestId': 'SQR100',
+      'timezone': 'browser',
+      'range': {
+        'to': '2025-10-16T07:28:02.475Z',
+        'from': '2025-10-16T01:28:02.475Z',
+        'raw': { 'from': 'now-6h', 'to': 'now' }
+      },
+      'interval': '20s',
+      'intervalMs': 20000,
+      'targets': [
+        {
+          'datasource': {
+            'type': 'victoriametrics-logs-datasource',
+            'uid': 'bexw8wod6s4jke'
+          },
+          'editorMode': 'code',
+          'expr': '_msg:$search',
+          'queryType': 'instant',
+          'refId': 'A',
+          'maxLines': 1000
+        }
+      ],
+      'maxDataPoints': 913,
+      'scopedVars': {},
+      'panelPluginId': 'logs',
+    } as unknown as DataQueryRequest<Query>;
+    const interpolateExpr = (expr: string) => expr.replace('$search', 'error');
+    const result = transformBackendResult(response, request, [], [], interpolateExpr);
+    expect(result.data[0].meta?.searchWords).toEqual(['error']);
   });
 
   describe('processMetricRangeFrames', () => {
@@ -606,7 +678,7 @@ describe('transformBackendResult', () => {
       const request = { ...baseRequest };
       const derivedFieldConfigs: DerivedFieldConfig[] = [];
       const logLevelRules: LogLevelRule[] = [];
-      const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
+      const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules, identityInterpolate);
       expect(result.data[0].fields.length).toStrictEqual(0);
     });
 
@@ -615,7 +687,7 @@ describe('transformBackendResult', () => {
       const request = { ...baseRequest };
       const derivedFieldConfigs: DerivedFieldConfig[] = [];
       const logLevelRules: LogLevelRule[] = [];
-      const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules);
+      const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules, identityInterpolate);
       expect(result.data[0].fields[0].values).toStrictEqual([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
       expect(result.data[0].fields[1].values).toStrictEqual([1, 2, null, 3, 4, null, null, null, 5, null]);
     });

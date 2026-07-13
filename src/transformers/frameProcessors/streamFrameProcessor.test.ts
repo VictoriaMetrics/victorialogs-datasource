@@ -55,4 +55,14 @@ describe('processStreamsFrames', () => {
     expect(processed.meta?.custom?.streams).toBeUndefined();
     expect(processed.meta?.custom?.streamIds).toBeUndefined();
   });
+
+  it('extracts searchWords from the interpolated query, not the raw one', () => {
+    const rawQueryMap = new Map<string, Query>([['A', { refId: 'A', expr: '_msg:$search' }]]);
+    const interpolateExpr = (expr: string) => expr.replace('$search', 'error');
+    const frame = buildFrame([{ app: 'nginx' }]);
+
+    const [processed] = processStreamsFrames([frame], rawQueryMap, [], [], interpolateExpr);
+
+    expect(processed.meta?.searchWords).toEqual(['error']);
+  });
 });

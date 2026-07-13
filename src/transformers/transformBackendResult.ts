@@ -9,6 +9,7 @@ import {
   processMetricRangeFrames,
   processStreamsFrames
 } from './frameProcessors';
+import { InterpolateExpr } from './types';
 import { improveError } from './utils/errorUtils';
 import { getQueryMap, groupFrames } from './utils/frame/frameUtils';
 
@@ -17,6 +18,7 @@ export function transformBackendResult(
   request: DataQueryRequest<Query>,
   derivedFieldConfigs: DerivedFieldConfig[],
   logLevelRules: LogLevelRule[],
+  interpolateExpr: InterpolateExpr,
 ): DataQueryResponse {
   const { data, errors, ...rest } = response;
   const queries = request.targets;
@@ -44,7 +46,7 @@ export function transformBackendResult(
     data: [
       ...processMetricRangeFrames(metricRangeFrames, request.targets, request.range.from.valueOf(), request.range.to.valueOf()),
       ...processMetricInstantFrames(metricInstantFrames),
-      ...processStreamsFrames(streamsFrames, queryMap, derivedFieldConfigs, logLevelRules),
+      ...processStreamsFrames(streamsFrames, queryMap, derivedFieldConfigs, logLevelRules, interpolateExpr),
       ...processHistogramFrames(histogramFrames, request.panelPluginId),
     ],
   };
