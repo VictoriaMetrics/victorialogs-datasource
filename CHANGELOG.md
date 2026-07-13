@@ -7,6 +7,7 @@
 
 * BUGFIX: restore the `_stream` label in log query results. Previously, it was hidden from the log line labels. See [pr #685](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/685).
 * BUGFIX: live tailing now picks up query changes immediately. Previously, editing the query expression while live logs were streaming kept showing results for the previous query until the page was reloaded.
+* BUGFIX: pad missing `_time` values in instant log query responses so mixed rows with and without `_time` still produce valid Grafana log frames. Thanks to @immanuwell for their contribution.
 
 ## v0.29.0
 
@@ -16,8 +17,6 @@
 * FEATURE: in the "Show context" modal, each stream label of the selected log is shown as a toggleable chip. Turn labels off to widen the surrounding-logs search beyond the exact stream. See [#665](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/665).
 
 * BUGFIX: lower the default datasource `Maximum lines` limit from 1000 to 50 to reduce browser rendering load and prevent the page from freezing on heavy log results. You can change this value in the datasource configuration. See [Line limits](https://docs.victoriametrics.com/victorialogs/integrations/grafana/#line-limits) docs and [#669](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/669).
-
-* BUGFIX: pad missing `_time` values in instant log query responses so mixed rows with and without `_time` still produce valid Grafana log frames.
 
 ## v0.28.0
 

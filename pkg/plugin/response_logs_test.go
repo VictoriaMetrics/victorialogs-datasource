@@ -385,7 +385,7 @@ func Test_parseInstantResponse(t *testing.T) {
 
 			tsRaw := "2024-02-20T14:04:27Z"
 			timeFd.Append(getTimeType(tsRaw))
-			timeFd.Append(now)
+			timeFd.Append(time.Time{})
 			lineField.Append("123")
 			lineField.Append("456")
 			labelsField.Append(json.RawMessage(`{"_stream":"{app=\"test\"}"}`))
@@ -399,6 +399,11 @@ func Test_parseInstantResponse(t *testing.T) {
 					row{"", "456", ""},
 				),
 				labelsField,
+				[]string{"", ""},
+				[]map[string]string{
+					{"app": "test"},
+					{"app": "test"},
+				},
 			)
 		},
 	}
