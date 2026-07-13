@@ -1,7 +1,7 @@
 import { debounce } from 'lodash';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
-import { formattedValueToString, getValueFormat, TimeRange } from '@grafana/data';
+import { TimeRange } from '@grafana/data';
 import { ComboboxOption } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../datasource';
@@ -10,14 +10,12 @@ import { FieldHits, FilterFieldType } from '../../../types';
 import { LRUCache } from '../../../utils/LRUCache';
 
 import { usePipelineContext } from './PipelineContext';
+import { formatHits } from './formatHits';
 
 const DEBOUNCE_MS = 300;
 const MAX_VISIBLE_OPTIONS = 1000;
 
 const fieldNamesCache = new LRUCache<ComboboxOption[]>(50);
-
-const shortFormat = getValueFormat('short');
-const formatHits = (hits: number): string => formattedValueToString(shortFormat(hits));
 
 const toOptionsWithHits = (list: FieldHits[]): ComboboxOption[] => {
   const sorted = [...list].sort((a, b) => b.hits - a.hits);

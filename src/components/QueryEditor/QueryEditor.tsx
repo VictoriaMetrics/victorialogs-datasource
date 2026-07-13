@@ -89,7 +89,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   }, [onAddQuery, onChange, query]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setDataIsStale(false);
   }, [data]);
 
@@ -141,6 +141,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
             onRunQuery={onRunQuery}
             onQueryExprChange={onQueryExprChange}
             onChange={onChange}
+            timeRange={timeRange}
           />
           {showStreamFilters && (
             <StreamFiltersBar

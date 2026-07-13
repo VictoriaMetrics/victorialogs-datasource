@@ -1,7 +1,7 @@
 import { debounce } from 'lodash';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
-import { formattedValueToString, getValueFormat, TimeRange } from '@grafana/data';
+import { TimeRange } from '@grafana/data';
 import { ComboboxOption } from '@grafana/ui';
 
 import { splitByPipes } from '../../../LogsQL/splitByPipes';
@@ -10,13 +10,13 @@ import { useTemplateVariables } from '../../../hooks/useTemplateVariables';
 import { FilterFieldType } from '../../../types';
 import { LRUCache } from '../../../utils/LRUCache';
 
+import { formatHits } from './formatHits';
+
 const DEBOUNCE_MS = 300;
 const MAX_VISIBLE_OPTIONS = 1000;
 
 const streamFieldNamesCache = new LRUCache<ComboboxOption[]>(50);
 
-const shortFormat = getValueFormat('short');
-const formatHits = (hits: number): string => formattedValueToString(shortFormat(hits));
 const formatHitPercentage = (hits: number, totalHits: number): string => {
   if (totalHits <= 0) {
     return '';
