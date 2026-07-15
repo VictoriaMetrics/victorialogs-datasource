@@ -17,3 +17,25 @@ datasources:
       multitenancyHeaders:
       #AccountID: 0
       #ProjectID: 0
+
+      # OpenTelemetry preset generates a Derived Field for the trace ID and
+      # Log Level Rules for the OTel severity field.
+      # NOTE: auto-detection runs only in the datasource settings UI. When
+      # provisioning, specify the `detection` block explicitly — without it
+      # the preset has no effect.
+      # The playground dataset contains OTel logs with `trace_id` and
+      # `severity_text` fields, so the values below work as-is.
+      otelPreset:
+        enabled: true
+        # <string> `uid` of a Jaeger datasource the generated trace ID derived
+        # field links to (currently only Jaeger is supported).
+        # Omit to skip trace linking.
+        #tracesDatasourceUid: jaeger
+        detection:
+          traceIdField: trace_id
+          severity:
+            field: severity_text
+            # `string` for text severities (info, WARN, ...) or
+            # `number` for numeric OTel severities (1-24).
+            valueCase: string
+            source: manual

@@ -41,3 +41,30 @@ datasources:
       #    url: '${__value.raw}'
       #    urlDisplayLabel: View trace
       #    datasourceUid: tempo
+
+      # OpenTelemetry preset generates a Derived Field for the trace ID and
+      # Log Level Rules for the OTel severity field.
+      # NOTE: auto-detection runs only in the datasource settings UI. When
+      # provisioning, specify the `detection` block explicitly — without it
+      # the preset has no effect.
+      #otelPreset:
+      #  enabled: true
+      #  # <string> `uid` of a Jaeger datasource the generated trace ID derived
+      #  # field links to (currently only Jaeger is supported).
+      #  # Omit to skip trace linking.
+      #  tracesDatasourceUid: jaeger
+      #  detection:
+      #    # <string> Log field holding the trace ID,
+      #    # e.g. trace_id, traceId or TraceId.
+      #    traceIdField: trace_id
+      #    # Omit `severity` to skip generating log level rules.
+      #    severity:
+      #      # <string> Log field holding the severity,
+      #      # e.g. severity_text or severity_number.
+      #      field: severity_text
+      #      # <string> `string` for text severities (info, WARN, ...) or
+      #      # `number` for numeric OTel severities (1-24).
+      #      valueCase: string
+      #      # <string> `manual` because the field is set explicitly here
+      #      # (`auto` is reserved for UI auto-detection).
+      #      source: manual
