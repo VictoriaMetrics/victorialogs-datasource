@@ -354,11 +354,48 @@ The detected configuration is shown in the UI. Your manually created derived fie
 
 ### Traces datasource
 
-Select an optional **Traces datasource** (Tempo, Jaeger, Zipkin) to make the generated `trace_id` derived field link directly to the matching trace.
+Select an optional **Traces datasource** to make the generated `trace_id` derived field link directly to the matching trace. Currently only Jaeger is supported.
 
 ### Changing the severity field
 
 If the auto-detected severity field is wrong, click **Change** next to the severity row to pick a different field from the dropdown. The preset will re-run detection using the selected field.
+
+### Provisioning
+
+The preset can be enabled via [Grafana provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/#data-sources).
+Auto-detection runs only in the datasource settings UI, so a provisioned datasource must specify the `detection` block
+explicitly — `enabled: true` alone has no effect:
+
+```yaml
+apiVersion: 1
+datasources:
+  - name: VictoriaLogs
+    type: victoriametrics-logs-datasource
+    access: proxy
+    url: http://victorialogs:9428
+    jsonData:
+      otelPreset:
+        enabled: true
+        # `uid` of a Jaeger datasource the generated trace ID derived field
+        # links to (currently only Jaeger is supported).
+        # Omit to skip trace linking.
+        tracesDatasourceUid: jaeger
+        detection:
+          # Log field holding the trace ID, e.g. trace_id, traceId or TraceId.
+          traceIdField: trace_id
+          # Omit `severity` to skip generating log level rules.
+          severity:
+            # Log field holding the severity, e.g. severity_text or severity_number.
+            field: severity_text
+            # `string` for text severities (info, WARN, ...) or
+            # `number` for numeric OTel severities (1-24).
+            valueCase: string
+            # `manual` because the field is set explicitly here
+            # (`auto` is reserved for UI auto-detection).
+            source: manual
+```
+
+Manually configured derived fields and log level rules are merged with the generated ones, user-defined entries win on conflict.
 
 ## Derived Fields
 
