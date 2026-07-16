@@ -6,19 +6,20 @@ import { DerivedFieldConfig, Query } from '../../types';
 import { getDerivedFields } from '../fields/derivedField';
 import { getStreamFields } from '../fields/labelField';
 import { addLevelField } from '../fields/levelField';
-import { ANNOTATIONS_REF_ID } from '../types';
+import { ANNOTATIONS_REF_ID, InterpolateExpr } from '../types';
 import { dataFrameHasError, setFrameMeta } from '../utils/frame/frameUtils';
 
 export function processStreamsFrames(
   frames: DataFrame[],
   queryMap: Map<string, Query>,
   derivedFieldConfigs: DerivedFieldConfig[],
-  logLevelRules: LogLevelRule[]
+  logLevelRules: LogLevelRule[],
+  interpolateExpr: InterpolateExpr = (expr) => expr
 ): DataFrame[] {
   return frames.map((frame) => {
     const query = frame.refId !== undefined ? queryMap.get(frame.refId) : undefined;
     const isAnnotations = query?.refId === ANNOTATIONS_REF_ID;
-    return processStreamFrame(frame, query, derivedFieldConfigs, logLevelRules, isAnnotations);
+    return processStreamFrame(frame, query, derivedFieldConfigs, logLevelRules, interpolateExpr, isAnnotations);
   });
 }
 
@@ -27,6 +28,7 @@ function processStreamFrame(
   query: Query | undefined,
   derivedFieldConfigs: DerivedFieldConfig[],
   logLevelRules: LogLevelRule[],
+  interpolateExpr: InterpolateExpr,
   transformLabels = false
 ): DataFrame {
   const custom: Record<string, unknown> = {
@@ -40,7 +42,9 @@ function processStreamFrame(
   const meta: QueryResultMeta = {
     preferredVisualisationType: 'logs',
     limit: query?.maxLines,
-    searchWords: query !== undefined ? getHighlighterExpressionsFromQuery(query.expr) : undefined,
+    // Highlighting must match the executed query, so resolve template
+    // variables before extracting search words
+    searchWords: query !== undefined ? getHighlighterExpressionsFromQuery(interpolateExpr(query.expr)) : undefined,
     custom,
   };
 

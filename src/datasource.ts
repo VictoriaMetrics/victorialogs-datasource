@@ -174,7 +174,8 @@ export class VictoriaLogsDatasource
             response,
             fixedRequest,
             this.derivedFields ?? [],
-            this.getActiveLevelRules()
+            this.getActiveLevelRules(),
+            (expr) => this.interpolateString(expr, fixedRequest.scopedVars)
           )
         )
       );

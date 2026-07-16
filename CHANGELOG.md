@@ -8,6 +8,7 @@
 * BUGFIX: restore the `_stream` label in log query results. Previously, it was hidden from the log line labels. See [pr #685](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/685).
 * BUGFIX: live tailing now picks up query changes immediately. Previously, editing the query expression while live logs were streaming kept showing results for the previous query until the page was reloaded.
 * BUGFIX: pad missing `_time` values in instant log query responses so mixed rows with and without `_time` still produce valid Grafana log frames. Thanks to @immanuwell for their contribution.
+* BUGFIX: highlight search terms in log lines when the query uses template variables (e.g. `_msg:$search`). Previously, highlighting looked for the literal variable name instead of its value, so nothing was highlighted. See [#684](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/684).
 
 ## v0.29.0
 
