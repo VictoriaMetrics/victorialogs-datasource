@@ -53,7 +53,7 @@ import {
 } from './modifyQuery';
 import { removeDoubleQuotesAroundVar } from './parsing';
 import { replaceOperatorWithIn, returnVariables } from './parsingUtils';
-import { transformBackendResult } from './transformers';
+import { packLabelsToLine, shouldPackLabelsToLine, transformBackendResult } from './transformers';
 import {
   DerivedFieldConfig,
   FilterActionType,
@@ -446,8 +446,10 @@ export class VictoriaLogsDatasource
         })
         .pipe(
           map((response) => {
+            const frames: DataFrame[] = response.data || [];
             return {
-              data: response.data || [],
+              // live frames skip transformBackendResult, so the packJson option is applied here
+              data: shouldPackLabelsToLine(query) ? frames.map(packLabelsToLine) : frames,
               key: `victoriametrics-logs-datasource-${request.requestId}-${query.refId}`,
               state: LoadingState.Streaming,
             };

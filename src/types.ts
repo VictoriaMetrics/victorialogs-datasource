@@ -80,6 +80,8 @@ export interface Query extends DataQuery {
   legendFormat?: string;
   maxLines?: number;
   step?: string;
+  /** When enabled, all log labels are shown as a single JSON object in the Line field */
+  packJson?: boolean;
   /** Editor state — structured ad-hoc filter chips. Source of truth in editor; serialized to `extraFilters` only on the request boundary */
   adHocFilters?: AdHocFilter[];
   /** serialized adHocFilters for extra_filters query param (set during applyTemplateVariables) */
