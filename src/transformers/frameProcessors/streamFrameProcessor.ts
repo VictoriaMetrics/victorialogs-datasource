@@ -6,6 +6,7 @@ import { DerivedFieldConfig, Query } from '../../types';
 import { getDerivedFields } from '../fields/derivedField';
 import { getStreamFields } from '../fields/labelField';
 import { addLevelField } from '../fields/levelField';
+import { packLabelsToLine, shouldPackLabelsToLine } from '../fields/packJsonLineField';
 import { ANNOTATIONS_REF_ID, InterpolateExpr } from '../types';
 import { dataFrameHasError, setFrameMeta } from '../utils/frame/frameUtils';
 
@@ -54,11 +55,14 @@ function processStreamFrame(
   const derivedFields = getDerivedFields(frameWithLevel, derivedFieldConfigs);
   const baseFields = getStreamFields(frameWithLevel.fields, transformLabels);
 
-  return {
+  const processedFrame = {
     ...frameWithLevel,
     fields: [
       ...baseFields,
       ...derivedFields
     ]
   };
+
+  // packing goes last so the log level and derived fields are extracted from the original message
+  return shouldPackLabelsToLine(query) ? packLabelsToLine(processedFrame) : processedFrame;
 }

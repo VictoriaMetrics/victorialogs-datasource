@@ -31,6 +31,8 @@ export type QueryDirection = (typeof QUERY_DIRECTION)[keyof typeof QUERY_DIRECTI
 
 export enum SupportingQueryType {
   DataSample = 'dataSample',
+  // set by Grafana core on the cloned load-more queries of the Explore infinite scroll
+  InfiniteScroll = 'infiniteScroll',
   LogsSample = 'logsSample',
   LogsVolume = 'logsVolume',
 }
@@ -80,6 +82,8 @@ export interface Query extends DataQuery {
   legendFormat?: string;
   maxLines?: number;
   step?: string;
+  /** When enabled, all log labels are shown as a single JSON object in the Line field */
+  packJson?: boolean;
   /** Editor state — structured ad-hoc filter chips. Source of truth in editor; serialized to `extraFilters` only on the request boundary */
   adHocFilters?: AdHocFilter[];
   /** serialized adHocFilters for extra_filters query param (set during applyTemplateVariables) */

@@ -1,12 +1,19 @@
+import { firstValueFrom, of } from 'rxjs';
+
 import {
   AdHocVariableFilter,
+  DataFrame,
   DataQueryRequest,
+  DataQueryResponse,
   DataSourceInstanceSettings,
+  FieldType,
   LogLevel,
   SupplementaryQueryOptions,
   SupplementaryQueryType,
 } from '@grafana/data';
+import * as grafanaRuntime from '@grafana/runtime';
 import { TemplateSrv } from '@grafana/runtime';
+
 
 // eslint-disable-next-line jest/no-mocks-import
 import { createDatasource } from './__mocks__/datasource';
@@ -1043,6 +1050,7 @@ describe('VictoriaLogsDatasource preset merge', () => {
         );
         expect(result).toBeUndefined();
       });
+
     });
 
     describe('LogsSample', () => {
@@ -1146,5 +1154,57 @@ describe('VictoriaLogsDatasource preset merge', () => {
       await dsLocal.getTagKeys({ filters });
       expect(getFieldList.mock.calls[0][0].query).toBe('app:~"api.*"');
     });
+  });
+});
+
+describe('VictoriaLogsDatasource live streaming', () => {
+  const buildStreamFrame = (): DataFrame => ({
+    refId: 'A',
+    length: 1,
+    fields: [
+      { name: 'Time', type: FieldType.time, config: {}, values: [0] },
+      { name: 'Line', type: FieldType.string, config: {}, values: ['msg'] },
+      { name: 'labels', type: FieldType.other, config: {}, values: [{ app: 'nginx' }] },
+    ],
+  });
+
+  const makeLiveRequest = (query: Partial<Query>): DataQueryRequest<Query> => ({
+    app: 'explore',
+    requestId: 'r1',
+    interval: '1s',
+    intervalMs: 1000,
+    liveStreaming: true,
+    range: {
+      from: { utcOffset: () => 0, diff: () => 3600 } as any,
+      to: { utcOffset: () => 0, diff: () => 3600 } as any,
+      raw: { from: 'now-1h', to: 'now' },
+    } as any,
+    scopedVars: {},
+    targets: [{ refId: 'A', expr: '*', queryType: QueryType.Instant, ...query } as Query],
+    timezone: 'UTC',
+    startTime: 0,
+  }) as DataQueryRequest<Query>;
+
+  const runLiveQuery = async (query: Partial<Query>): Promise<DataQueryResponse> => {
+    jest.spyOn(grafanaRuntime, 'getGrafanaLiveSrv').mockReturnValue({
+      getDataStream: jest.fn().mockReturnValue(of({ data: [buildStreamFrame()] })),
+    } as unknown as ReturnType<typeof grafanaRuntime.getGrafanaLiveSrv>);
+
+    const ds = createDatasource();
+    return firstValueFrom(ds.query(makeLiveRequest(query)));
+  };
+
+  it('packs labels into the Line field when packJson is enabled', async () => {
+    const response = await runLiveQuery({ packJson: true });
+
+    const lineField = (response.data[0] as DataFrame).fields.find((f) => f.name === 'Line');
+    expect(lineField?.values[0]).toBe('{"_msg":"msg","app":"nginx"}');
+  });
+
+  it('keeps the Line field untouched when packJson is disabled', async () => {
+    const response = await runLiveQuery({});
+
+    const lineField = (response.data[0] as DataFrame).fields.find((f) => f.name === 'Line');
+    expect(lineField?.values[0]).toBe('msg');
   });
 });

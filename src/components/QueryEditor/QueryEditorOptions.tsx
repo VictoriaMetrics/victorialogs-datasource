@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 
 import { CoreApp, isValidGrafanaDuration, SelectableValue } from '@grafana/data';
-import { AutoSizeInput, Input, RadioButtonGroup, TextLink } from '@grafana/ui';
+import { AutoSizeInput, Input, RadioButtonGroup, Switch, TextLink } from '@grafana/ui';
 
 import { VICTORIA_LOGS_DOCS_HOST } from '../../conf';
 import { LOGS_LIMIT_HARD_CAP, LOGS_LIMIT_WARNING_THRESHOLD } from '../../constants';
@@ -91,6 +91,11 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
     onRunQuery();
   };
 
+  const onPackJsonChange = (e: React.FormEvent<HTMLInputElement>) => {
+    onChange({ ...query, packJson: e.currentTarget.checked });
+    onRunQuery();
+  };
+
   const onLegendFormatChanged = (e: React.FormEvent<HTMLInputElement>) => {
     onChange({ ...query, legendFormat: e.currentTarget.value });
     onRunQuery();
@@ -158,6 +163,17 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
             />
           </EditorField>
         )}
+        {queryType === QueryType.Instant && (
+          <EditorField
+            label='View as JSON'
+            tooltip='Display all fields as a single JSON message. Is useful when logs have no meaningful _msg value'
+          >
+            <Switch
+              value={query.packJson ?? false}
+              onChange={onPackJsonChange}
+            />
+          </EditorField>
+        )}
         {queryType === QueryType.StatsRange && (
           <EditorField
             label='Step'
@@ -216,6 +232,10 @@ function getCollapsedInfo({ app, query, queryType, maxLines, isValidStep }: Coll
 
   if (queryType === QueryType.Instant && maxLines) {
     items.push(`Line limit: ${query.maxLines ?? maxLines}`);
+  }
+
+  if (queryType === QueryType.Instant && query.packJson) {
+    items.push('View as JSON: on');
   }
 
   if (app !== CoreApp.Explore) {

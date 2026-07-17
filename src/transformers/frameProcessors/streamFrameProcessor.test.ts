@@ -1,6 +1,6 @@
 import { DataFrame, FieldType } from '@grafana/data';
 
-import { Query } from '../../types';
+import { Query, QueryType, SupportingQueryType } from '../../types';
 
 import { processStreamsFrames } from './streamFrameProcessor';
 
@@ -64,5 +64,42 @@ describe('processStreamsFrames', () => {
     const [processed] = processStreamsFrames([frame], rawQueryMap, [], [], interpolateExpr);
 
     expect(processed.meta?.searchWords).toEqual(['error']);
+  });
+
+  describe('packJson option', () => {
+    const makeQueryMap = (query: Partial<Query>) =>
+      new Map<string, Query>([['A', { refId: 'A', expr: '*', queryType: QueryType.Instant, ...query } as Query]]);
+
+    it('packs labels and the message into the Line field when packJson is enabled', () => {
+      const frame = buildFrame([{ app: 'nginx' }]);
+
+      const [processed] = processStreamsFrames([frame], makeQueryMap({ packJson: true }), [], []);
+
+      const lineField = processed.fields.find((f) => f.name === 'Line');
+      expect(lineField?.values[0]).toBe('{"_msg":"msg","app":"nginx"}');
+    });
+
+    it('keeps the Line field untouched when packJson is disabled', () => {
+      const frame = buildFrame([{ app: 'nginx' }]);
+
+      const [processed] = processStreamsFrames([frame], makeQueryMap({}), [], []);
+
+      const lineField = processed.fields.find((f) => f.name === 'Line');
+      expect(lineField?.values[0]).toBe('msg');
+    });
+
+    it('keeps the Line field untouched for supporting queries (logs sample)', () => {
+      const frame = buildFrame([{ app: 'nginx' }]);
+
+      const [processed] = processStreamsFrames(
+        [frame],
+        makeQueryMap({ packJson: true, supportingQueryType: SupportingQueryType.LogsSample }),
+        [],
+        []
+      );
+
+      const lineField = processed.fields.find((f) => f.name === 'Line');
+      expect(lineField?.values[0]).toBe('msg');
+    });
   });
 });
