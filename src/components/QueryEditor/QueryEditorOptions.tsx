@@ -235,7 +235,7 @@ function getCollapsedInfo({ app, query, queryType, maxLines, isValidStep }: Coll
   }
 
   if (queryType === QueryType.Instant && query.packJson) {
-    items.push('Pack to JSON: on');
+    items.push('View as JSON: on');
   }
 
   if (app !== CoreApp.Explore) {
