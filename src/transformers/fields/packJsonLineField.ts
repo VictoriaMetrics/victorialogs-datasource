@@ -1,6 +1,6 @@
 import { DataFrame } from '@grafana/data';
 
-import { Query, QueryType } from '../../types';
+import { Query, QueryType, SupportingQueryType } from '../../types';
 import { FrameField } from '../types';
 
 const MSG_KEY = '_msg';
@@ -8,12 +8,16 @@ const MSG_KEY = '_msg';
 /**
  * Tells whether log labels should be packed into the `Line` field for the given query.
  * Applied only to plain raw logs queries with the `Pack to JSON` option enabled —
- * stats, hits (logs volume) and supporting queries (logs sample) are left untouched
+ * stats, hits (logs volume) and supporting queries (logs sample) are left untouched.
+ * The infinite scroll load-more queries feed the same log list as the original raw
+ * logs query, so they are packed too
  */
 export function shouldPackLabelsToLine(query: Query | undefined): boolean {
-  return Boolean(
-    query?.packJson && query.queryType === QueryType.Instant && !query.supportingQueryType
-  );
+  if (!query?.packJson || query.queryType !== QueryType.Instant) {
+    return false;
+  }
+
+  return !query.supportingQueryType || query.supportingQueryType === SupportingQueryType.InfiniteScroll;
 }
 
 /**

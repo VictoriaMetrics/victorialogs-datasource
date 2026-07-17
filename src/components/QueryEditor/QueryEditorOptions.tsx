@@ -165,8 +165,8 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
         )}
         {queryType === QueryType.Instant && (
           <EditorField
-            label='Pack to JSON'
-            tooltip='Show all log labels as a single JSON object in the log line. Useful when logs have no _msg field'
+            label='View as JSON'
+            tooltip='Display all fields as a single JSON message. Is useful when logs have no meaningful _msg value'
           >
             <Switch
               value={query.packJson ?? false}

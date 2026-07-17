@@ -31,6 +31,8 @@ export type QueryDirection = (typeof QUERY_DIRECTION)[keyof typeof QUERY_DIRECTI
 
 export enum SupportingQueryType {
   DataSample = 'dataSample',
+  // set by Grafana core on the cloned load-more queries of the Explore infinite scroll
+  InfiniteScroll = 'infiniteScroll',
   LogsSample = 'logsSample',
   LogsVolume = 'logsVolume',
 }

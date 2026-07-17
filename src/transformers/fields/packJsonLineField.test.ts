@@ -124,6 +124,16 @@ describe('shouldPackLabelsToLine', () => {
     ).toBe(false);
   });
 
+  // Grafana marks the cloned load-more queries of the Explore infinite scroll with
+  // supportingQueryType: 'infiniteScroll' — their results land in the same log list,
+  // so they must be packed exactly like the initial raw logs query
+  it('returns true for the infinite scroll load-more query', () => {
+    // the literal is asserted on purpose: this exact string is what Grafana core sends
+    expect(
+      shouldPackLabelsToLine({ ...baseQuery, supportingQueryType: 'infiniteScroll' as SupportingQueryType })
+    ).toBe(true);
+  });
+
   it('returns false when the query is undefined', () => {
     expect(shouldPackLabelsToLine(undefined)).toBe(false);
   });
