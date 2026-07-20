@@ -15,7 +15,9 @@ import {
 
 import type { VictoriaLogsDatasource } from '../datasource';
 import { escapeLabelValueInExactSelector, escapeLabelValueInSelector } from '../languageUtils';
+import { FrameField } from '../transformers/types';
 import { Query } from '../types';
+import { getFrameStreamsField } from '../utils/dataFrame/streamFields';
 import { formatNanosEpochToISO } from '../utils/timeUtils';
 
 import { LogContextUI } from './components/LogContextUI';
@@ -51,18 +53,14 @@ export class LogContextProvider {
   constructor(private readonly datasource: VictoriaLogsDatasource) {}
 
   getRowStreamId = (row: LogRowModel): string => {
-    const streamIds = row.dataFrame.meta?.custom?.streamIds;
-    if (streamIds && streamIds.length > 0 && streamIds[row.rowIndex]) {
-      return streamIds[row.rowIndex];
-    }
-
-    return '';
+    const streamIdField = row.dataFrame.fields.find((f) => f.name === FrameField.StreamId);
+    return streamIdField?.values[row.rowIndex] ?? '';
   };
 
   getStreamLabels = (row: LogRowModel): Record<string, string> => {
-    const streams = row.dataFrame.meta?.custom?.streams as Array<Record<string, string> | null> | undefined;
+    const streamsField = getFrameStreamsField(row.dataFrame);
     // a missing `_stream` field comes back as null from the backend
-    return streams?.[row.rowIndex] ?? {};
+    return streamsField?.values[row.rowIndex] ?? {};
   };
 
   // whether the row carries enough data to build a context query: either a

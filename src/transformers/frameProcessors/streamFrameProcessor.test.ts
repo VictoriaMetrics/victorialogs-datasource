@@ -4,42 +4,52 @@ import { Query, QueryType, SupportingQueryType } from '../../types';
 
 import { processStreamsFrames } from './streamFrameProcessor';
 
-const buildFrame = (labels: object[], custom?: Record<string, unknown>): DataFrame => ({
+const buildFrame = (labels: Array<Record<string, string>>, streams?: Array<Record<string, string> | null>): DataFrame => ({
   refId: 'A',
   length: labels.length,
-  meta: custom ? { custom } : undefined,
   fields: [
     { name: 'Time', type: FieldType.time, config: {}, values: labels.map((_, i) => i) },
     { name: 'Line', type: FieldType.string, config: {}, values: labels.map(() => 'msg') },
     { name: 'labels', type: FieldType.other, config: {}, values: labels },
+    ...(streams
+      ? [
+        { name: 'streams', type: FieldType.other, config: { custom: { hidden: true } }, values: streams },
+        {
+          name: 'streamId',
+          type: FieldType.string,
+          config: { custom: { hidden: true } },
+          values: labels.map((l) => l._stream_id ?? ''),
+        },
+      ]
+      : []),
   ],
 });
 
 describe('processStreamsFrames', () => {
   const queryMap = new Map<string, Query>([['A', { refId: 'A', expr: '*' }]]);
 
-  it('passes the backend meta.custom streams/streamIds through untouched', () => {
+  it('passes the hidden streams/streamId fields through untouched', () => {
     const streams = [{ app: 'nginx' }, { app: 'apache' }];
-    const streamIds = ['id-1', 'id-2'];
     const frame = buildFrame(
       [
         { _stream_id: 'id-1', app: 'nginx' },
         { _stream_id: 'id-2', app: 'apache' },
       ],
-      { streams, streamIds }
+      streams
     );
 
     const [processed] = processStreamsFrames([frame], queryMap, [], []);
 
-    expect(processed.meta?.custom?.streams).toEqual(streams);
-    expect(processed.meta?.custom?.streamIds).toEqual(streamIds);
+    const streamsField = processed.fields.find((f) => f.name === 'streams');
+    const streamIdField = processed.fields.find((f) => f.name === 'streamId');
+    expect(streamsField?.values).toEqual(streams);
+    expect(streamsField?.config.custom?.hidden).toBe(true);
+    expect(streamIdField?.values).toEqual(['id-1', 'id-2']);
+    expect(streamIdField?.config.custom?.hidden).toBe(true);
   });
 
   it('leaves the labels field untouched (the backend already strips _stream)', () => {
-    const frame = buildFrame([{ _stream_id: 'id-1', app: 'nginx' }], {
-      streams: [{ app: 'nginx' }],
-      streamIds: ['id-1'],
-    });
+    const frame = buildFrame([{ _stream_id: 'id-1', app: 'nginx' }], [{ app: 'nginx' }]);
 
     const [processed] = processStreamsFrames([frame], queryMap, [], []);
 
@@ -47,13 +57,13 @@ describe('processStreamsFrames', () => {
     expect(labelsField?.values[0]).toEqual({ _stream_id: 'id-1', app: 'nginx' });
   });
 
-  it('keeps working when the frame carries no stream meta', () => {
+  it('keeps working when the frame carries no stream fields', () => {
     const frame = buildFrame([{ app: 'nginx' }]);
 
     const [processed] = processStreamsFrames([frame], queryMap, [], []);
 
-    expect(processed.meta?.custom?.streams).toBeUndefined();
-    expect(processed.meta?.custom?.streamIds).toBeUndefined();
+    expect(processed.fields.find((f) => f.name === 'streams')).toBeUndefined();
+    expect(processed.fields.find((f) => f.name === 'streamId')).toBeUndefined();
   });
 
   it('extracts searchWords from the interpolated query, not the raw one', () => {

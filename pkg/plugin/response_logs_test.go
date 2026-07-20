@@ -73,6 +73,26 @@ func Test_buildLogID(t *testing.T) {
 	}
 }
 
+// newHiddenStreamFields builds the hidden per-row `streams`/`streamId` fields
+// the same way production log frames carry them
+func newHiddenStreamFields(streamIds []string, streams []map[string]string) (*data.Field, *data.Field) {
+	streamsField := data.NewFieldFromFieldType(data.FieldTypeNullableJSON, 0)
+	streamsField.Name = gStreamsField
+	streamsField.Config = hiddenFieldConfig()
+	for _, s := range streams {
+		streamsField.Append(streamToJSON(s))
+	}
+
+	streamIdField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+	streamIdField.Name = gStreamIdField
+	streamIdField.Config = hiddenFieldConfig()
+	for _, id := range streamIds {
+		streamIdField.Append(id)
+	}
+
+	return streamsField, streamIdField
+}
+
 func Test_parseInstantResponse(t *testing.T) {
 	// mustTime parses a raw _time string the same way production does.
 	getTimeType := func(s string) time.Time {
@@ -84,15 +104,12 @@ func Test_parseInstantResponse(t *testing.T) {
 	}
 
 	// newFrame assembles an expected logs frame from its four fields plus the
-	// per-row stream data carried in meta.custom for the "Show context" UI.
+	// per-row stream data carried in the hidden `streams`/`streamId` fields.
 	newFrame := func(timeFd, lineField, idField, labelsField *data.Field, streamIds []string, streams []map[string]string) backend.DataResponse {
-		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
+		streamsField, streamIdField := newHiddenStreamFields(streamIds, streams)
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField, streamsField, streamIdField)
 		frame.Meta = &data.FrameMeta{
 			PreferredVisualization: logsVisualisation,
-			Custom: map[string]any{
-				"streamIds": streamIds,
-				"streams":   streams,
-			},
 		}
 		return backend.DataResponse{Frames: data.Frames{frame}}
 	}

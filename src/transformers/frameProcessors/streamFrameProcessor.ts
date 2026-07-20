@@ -33,7 +33,7 @@ function processStreamFrame(
   transformLabels = false
 ): DataFrame {
   const custom: Record<string, unknown> = {
-    ...frame.meta?.custom, // keep the original meta.custom (incl. backend streamIds/streams)
+    ...frame.meta?.custom, // keep the original meta.custom
   };
 
   if (dataFrameHasError(frame)) {
