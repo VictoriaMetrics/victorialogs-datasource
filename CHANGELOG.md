@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.30.0
+
 * FEATURE: add a `:` (word filter) operator to Log Level Rules, matching a field value by whole word like LogsQL (e.g. `error` matches the word `error`, not `terror`). See [#611](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/611).
 * FEATURE: the visual query builder now shows context-aware keyboard hints at the bottom of its dropdowns, so the available shortcuts (select, navigate, confirm, run) are visible while you build a query. See [pr #683](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/683).
 * FEATURE: add a `View as JSON` toggle in the query options for raw logs. When enabled, it shows all log fields as a single JSON message in the log line. It is useful for displaying all fields at once or when logs have no meaningful `_msg` field. See [#677](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/677).
