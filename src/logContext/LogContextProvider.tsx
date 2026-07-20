@@ -16,6 +16,7 @@ import {
 import type { VictoriaLogsDatasource } from '../datasource';
 import { escapeLabelValueInExactSelector, escapeLabelValueInSelector } from '../languageUtils';
 import { Query } from '../types';
+import { formatNanosEpochToISO } from '../utils/timeUtils';
 
 import { LogContextUI } from './components/LogContextUI';
 
@@ -23,6 +24,9 @@ export const REF_ID_STARTER_LOG_CONTEXT_REQUEST = 'log-context-request-';
 export const REF_ID_STARTER_LOG_CONTEXT_QUERY = 'log-context-query-';
 export const LABEL_STREAM_ID = '_stream_id';
 export const LABEL_STREAM = '_stream';
+
+// fallback row cap per direction when the context modal does not pass a limit
+export const LOG_CONTEXT_DEFAULT_LIMIT = 50;
 
 const SIMPLE_SELECTOR_KEY_REGEXP = /^[a-zA-Z_][a-zA-Z0-9_.]*$/;
 
@@ -126,9 +130,23 @@ export class LogContextProvider {
     return this.buildStreamSelector(labels, selected);
   };
 
-  private prepareLogContextQueryExpr = (row: LogRowModel, direction: LogRowContextQueryDirection): string => {
-    const sortDir = direction === LogRowContextQueryDirection.Forward ? 'asc' : 'desc';
-    return `${this.buildContextFilterExpr(row)} | sort by (_time) ${sortDir}`;
+  // returns the anchor row timestamp as RFC3339 with nanoseconds. timeEpochNs
+  // carries real nanosecond precision (the backend serializes sub-ms remainders
+  // into the time field `nanos` array); fall back to milliseconds defensively
+  private getAnchorTimestamp = (row: LogRowModel): string => {
+    return formatNanosEpochToISO(row.timeEpochNs ?? `${row.timeEpochMs}000000`);
+  };
+
+  private prepareLogContextQueryExpr = (
+    row: LogRowModel,
+    direction: LogRowContextQueryDirection,
+    limit: number,
+  ): string => {
+    const forward = direction === LogRowContextQueryDirection.Forward;
+    const timeFilter = `_time:${forward ? '>' : '<='}${this.getAnchorTimestamp(row)}`;
+    const sortDir = forward ? 'asc' : 'desc';
+    const filterExpr = [this.buildContextFilterExpr(row), timeFilter].filter(Boolean).join(' ');
+    return `${filterExpr} | sort by (_time) ${sortDir} limit ${limit}`;
   };
 
   getLogRowContext = async (
@@ -144,8 +162,9 @@ export class LogContextProvider {
     options?: LogRowContextOptions
   ): Promise<Query | null> => {
     const direction = options?.direction || LogRowContextQueryDirection.Backward;
+    const limit = options?.limit ?? LOG_CONTEXT_DEFAULT_LIMIT;
     return {
-      expr: this.prepareLogContextQueryExpr(row, direction),
+      expr: this.prepareLogContextQueryExpr(row, direction, limit),
       refId: `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${direction}`,
     };
   };
@@ -156,9 +175,10 @@ export class LogContextProvider {
 
   private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions): DataQueryRequest<Query> => {
     const direction = options?.direction || LogRowContextQueryDirection.Backward;
+    const limit = options?.limit ?? LOG_CONTEXT_DEFAULT_LIMIT;
 
     const query: Query = {
-      expr: this.prepareLogContextQueryExpr(row, direction),
+      expr: this.prepareLogContextQueryExpr(row, direction, limit),
       refId: `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${direction}`
     };
 
@@ -179,6 +199,11 @@ export class LogContextProvider {
     };
   };
 
+  // coarse scan window around the anchor; the exact boundary at the anchor
+  // timestamp is enforced by the `_time` filter in the query expr. The backward
+  // window still ends 1s after the anchor because the backend truncates the
+  // range start/end params to whole seconds — ending exactly at the anchor
+  // could clip the anchor's own second out of the scan window
   private createContextTimeRange = (rowTimeEpochMs: number, direction?: LogRowContextQueryDirection): TimeRange => {
     const offset = 2 * 60 * 60 * 1000;  // 2h
     const overlap = 1000;
@@ -191,7 +216,7 @@ export class LogContextProvider {
         }
         : {
           from: toUtc(rowTimeEpochMs),
-          to: toUtc(rowTimeEpochMs + offset) // Add 1 second to avoid missing results
+          to: toUtc(rowTimeEpochMs + offset)
         };
 
     return { ...timeRange, raw: timeRange };
