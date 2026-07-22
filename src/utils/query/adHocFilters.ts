@@ -150,6 +150,8 @@ function mergeChips(query: Query, dashboardFilters?: AdHocVariableFilter[]): AdH
     key: f.key,
     operator: f.operator as AdHocFilterOperator,
     value: f.value,
+    // multi-value operators (`=|`, `!=|`) carry the selection in `values`
+    values: f.values,
   }));
   return [...(query.adHocFilters ?? []), ...dashboardChips];
 }

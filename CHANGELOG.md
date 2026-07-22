@@ -12,6 +12,7 @@
 * FEATURE: the visual query builder now shows context-aware keyboard hints at the bottom of its dropdowns, so the available shortcuts (select, navigate, confirm, run) are visible while you build a query. See [pr #683](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/683).
 * FEATURE: add a `View as JSON` toggle in the query options for raw logs. When enabled, it shows all log fields as a single JSON message in the log line. It is useful for displaying all fields at once or when logs have no meaningful `_msg` field. See [#677](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/677).
 
+* BUGFIX: keep the selected values of multi-value ad-hoc filter operators (`one of`, `not one of`) when serializing the query. Previously such dashboard filters produced an empty `in()` filter and the panel showed no results.
 * BUGFIX: restore the `_stream` label in log query results. Previously, it was hidden from the log line labels. See [pr #685](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/685).
 * BUGFIX: live tailing now picks up query changes immediately. Previously, editing the query expression while live logs were streaming kept showing results for the previous query until the page was reloaded.
 * BUGFIX: pad missing `_time` values in instant log query responses so mixed rows with and without `_time` still produce valid Grafana log frames. Thanks to @immanuwell for their contribution.

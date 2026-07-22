@@ -32,6 +32,9 @@ const templateSrvStub = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // clearAllMocks does not reset implementations — restore the identity default
+  // so per-test mockImplementation calls don't leak into the following tests
+  replaceMock.mockImplementation((a: string) => a);
 });
 
 describe('VictoriaLogsDatasource', () => {
@@ -72,6 +75,20 @@ describe('VictoriaLogsDatasource', () => {
   });
 
   describe('applyTemplateVariables', () => {
+    it('serialises a multi-value (one of) dashboard filter with its values', () => {
+      const result = ds.applyTemplateVariables({ expr: '_time:5m', refId: 'A' }, {}, [
+        { key: 'foo', operator: '=|', value: 'bar', values: ['bar', 'baz'] },
+      ]);
+      expect(result.extraFilters).toBe('foo:in("bar","baz")');
+    });
+
+    it('serialises a negated multi-value (not one of) dashboard filter with its values', () => {
+      const result = ds.applyTemplateVariables({ expr: '_time:5m', refId: 'A' }, {}, [
+        { key: 'foo', operator: '!=|', value: 'bar', values: ['bar', 'baz'] },
+      ]);
+      expect(result.extraFilters).toBe('!foo:in("bar","baz")');
+    });
+
     it('should correctly substitute variable in expression using replace function', () => {
       const expr = '_stream:{app!~"$name"}';
       const variables = { name: 'bar' };
