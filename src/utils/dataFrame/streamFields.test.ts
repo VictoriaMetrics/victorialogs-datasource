@@ -24,6 +24,12 @@ describe('frameHasStreamField', () => {
     expect(frameHasStreamField(frame, 'level')).toBe(false);
   });
 
+  it('ignores inherited object properties like toString', () => {
+    const frame = makeFrame([{ app: 'nginx' }]);
+    expect(frameHasStreamField(frame, 'toString')).toBe(false);
+    expect(frameHasStreamField(frame, 'constructor')).toBe(false);
+  });
+
   it('returns false when the streams field is missing', () => {
     expect(frameHasStreamField(makeFrame(undefined), 'app')).toBe(false);
   });

@@ -21,5 +21,7 @@ export function frameHasStreamField(frame: DataFrame | undefined, key: string): 
   if (!streamsField) {
     return false;
   }
-  return streamsField.values.some((labels: StreamMap) => labels != null && key in labels);
+  return streamsField.values.some(
+    (labels: StreamMap) => labels != null && Object.prototype.hasOwnProperty.call(labels, key)
+  );
 }

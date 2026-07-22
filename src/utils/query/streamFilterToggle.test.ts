@@ -33,6 +33,12 @@ describe('toggleStreamFilterValue', () => {
       expect(next).toEqual([inGroup('app', ['nginx'])]);
     });
 
+    it('clears the value from both groups when toggling off a value present in both', () => {
+      const contradictory = [inGroup('app', ['nginx']), notInGroup('app', ['nginx'])];
+      const next = toggleStreamFilterValue(contradictory, FilterActionType.FILTER_FOR, 'app', 'nginx');
+      expect(next).toEqual([]);
+    });
+
     it('does not touch groups of other labels', () => {
       const next = toggleStreamFilterValue([inGroup('env', ['dev'])], FilterActionType.FILTER_FOR, 'app', 'nginx');
       expect(next).toEqual([inGroup('env', ['dev']), inGroup('app', ['nginx'])]);

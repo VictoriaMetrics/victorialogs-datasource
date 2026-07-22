@@ -12,7 +12,7 @@ export const StreamBadge: React.FC = () => {
   const styles = useStyles2(getStyles);
   return (
     <Tooltip content={STREAM_BADGE_TOOLTIP} placement='top'>
-      <span className={styles.streamBadge} aria-label='Stream filter'>
+      <span className={styles.streamBadge} aria-label='Stream filter' tabIndex={0}>
         {'{}'}
       </span>
     </Tooltip>
@@ -29,7 +29,7 @@ const getStyles = (theme: GrafanaTheme2) => ({
     backgroundColor: theme.colors.primary.transparent,
     fontWeight: theme.typography.fontWeightBold,
     cursor: 'default',
-    '&:hover': {
+    '&:hover, &:focus-visible': {
       color: theme.colors.primary.contrastText,
       backgroundColor: theme.colors.primary.main,
     },

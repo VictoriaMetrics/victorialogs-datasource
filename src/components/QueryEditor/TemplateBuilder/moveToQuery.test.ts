@@ -47,6 +47,11 @@ describe('buildPipeForAdHocFilter', () => {
     expect(serializeSingle(build({ key: 'foo', operator: '!~', value: 'ba.*' })!.pipe)).toBe('foo:!~"ba.*"');
   });
 
+  it('keeps the escaped regex pattern verbatim so quotes and backslashes survive', () => {
+    expect(serializeSingle(build({ key: 'foo', operator: '=~', value: 'a\\"b.*' })!.pipe)).toBe('foo:~"a\\"b.*"');
+    expect(serializeSingle(build({ key: 'foo', operator: '=~', value: '\\\\d+' })!.pipe)).toBe('foo:~"\\\\d+"');
+  });
+
   it('maps < and > to a Range pipe', () => {
     expect(serializeSingle(build({ key: 'lat', operator: '<', value: '5' })!.pipe)).toBe('lat:<5');
     expect(serializeSingle(build({ key: 'lat', operator: '>', value: '5' })!.pipe)).toBe('lat:>5');

@@ -76,7 +76,6 @@ export function buildPipeForAdHocFilter(filter: AdHocFilter, appendAsPostFilter:
 
 function buildNativeAdHocPipe(filter: AdHocFilter): Pipe | null {
   const { key, operator } = filter;
-  const value = unescapeChipValue(filter.value);
 
   switch (operator) {
     case '=':
@@ -105,13 +104,14 @@ function buildNativeAdHocPipe(filter: AdHocFilter): Pipe | null {
           if (s.role === 'operator') {
             return operator === '=~' ? '~' : '!~';
           }
-          return s.role === 'pattern' ? value : undefined;
+          return s.role === 'pattern' ? filter.value : undefined;
         })
       );
     }
     case '<':
     case '>': {
       const pipe = createPipeFromTemplate('range');
+      const value = unescapeChipValue(filter.value);
       return (
         pipe &&
         fillPlaceholders(pipe, (s) => {

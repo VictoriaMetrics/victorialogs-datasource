@@ -50,9 +50,9 @@ function addValue(
  * Applies a Filter for / Filter out click on a stream field to the stream filters.
  *
  * FILTER_FOR toggles the value in the label's `in` group (second click removes it)
- * and clears it from the `not_in` group so the groups never contradict each other.
- * FILTER_OUT adds the value to the `not_in` group (idempotent) and removes it from
- * the `in` group. Empty groups are dropped.
+ * and always clears it from the `not_in` group so the groups never contradict each
+ * other. FILTER_OUT adds the value to the `not_in` group (idempotent) and removes
+ * it from the `in` group. Empty groups are dropped.
  */
 export function toggleStreamFilterValue(
   filters: StreamFilterState[],
@@ -62,7 +62,7 @@ export function toggleStreamFilterValue(
 ): StreamFilterState[] {
   if (type === FilterActionType.FILTER_FOR) {
     if (streamFiltersHaveValue(filters, label, value)) {
-      return removeValue(filters, label, value, 'in');
+      return removeValue(removeValue(filters, label, value, 'in'), label, value, 'not_in');
     }
     return addValue(removeValue(filters, label, value, 'not_in'), label, value, 'in');
   }
