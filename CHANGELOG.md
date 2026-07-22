@@ -2,6 +2,8 @@
 
 ## tip
 
+* VULNERABILITY: update Go and npm dependencies to fix known vulnerabilities, including [GHSA-hrxh-6v49-42gf](https://github.com/advisories/GHSA-hrxh-6v49-42gf) in `grpc` and [GHSA-23hp-3jrh-7fpw](https://github.com/advisories/GHSA-23hp-3jrh-7fpw) in `tar`.
+
 ## v0.30.0
 
 * FEATURE: add a `:` (word filter) operator to Log Level Rules, matching a field value by whole word like LogsQL (e.g. `error` matches the word `error`, not `terror`). See [#611](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/611).
