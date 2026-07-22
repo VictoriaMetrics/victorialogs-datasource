@@ -10,6 +10,10 @@ export type InterpolateExpr = (expr: string) => string;
 export enum FrameField {
   Labels = 'labels',
   Line = 'Line',
+  /** Hidden per-row map of stream labels parsed from `_stream` by the backend; null for rows without `_stream` */
+  Streams = 'streams',
+  /** Hidden per-row `_stream_id` value attached by the backend; empty string for rows without it */
+  StreamId = 'streamId',
   /**
    * The name of the label that is added to the log line to indicate the calculated log level according to the log level rules
    * Grafana supports only `detected_level` and `level` label names. Apps often use 'level' for the log level,

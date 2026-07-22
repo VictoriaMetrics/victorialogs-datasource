@@ -22,6 +22,11 @@ const (
 	gValueField  = "Value"
 	gIDField     = "id"
 
+	// hidden per-row stream fields (parsed `_stream` label map and `_stream_id`),
+	// consumed by the "Show context" UI and the stream-field filter detection
+	gStreamsField  = "streams"
+	gStreamIdField = "streamId"
+
 	logsVisualisation = "logs"
 )
 

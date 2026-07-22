@@ -35,7 +35,8 @@ func buildLogID(ts, msg, streamId []byte) string {
 }
 
 // streamFieldsToMap turns the parsed `_stream` fields into a label->value map
-// for meta.custom.streams, consumed by the "Show context" stream label selector
+// for the hidden `streams` field, consumed by the "Show context" stream label
+// selector and the stream-field filter detection
 func streamFieldsToMap(stf []utils.StreamField) map[string]string {
 	m := make(map[string]string, len(stf))
 	for _, f := range stf {
@@ -55,16 +56,28 @@ type logRow struct {
 
 type logFrame struct {
 	dataFrame *data.Frame
-	streamIds []string
-	streams   []map[string]string
 }
 
 // append adds a row to the frame
 func (b *logFrame) append(r logRow) {
 	// order of fields must match the order of fields in the frame
-	b.dataFrame.AppendRow(r.Time, r.Line, r.ID, r.Labels)
-	b.streamIds = append(b.streamIds, r.StreamID)
-	b.streams = append(b.streams, r.Stream)
+	b.dataFrame.AppendRow(r.Time, r.Line, r.ID, r.Labels, streamToJSON(r.Stream), r.StreamID)
+}
+
+// streamToJSON encodes the per-row stream label map for the hidden `streams`
+// field; a row without a `_stream` field is kept as null
+func streamToJSON(stream map[string]string) *json.RawMessage {
+	if stream == nil {
+		return nil
+	}
+	b, _ := json.Marshal(stream)
+	return new(json.RawMessage(b))
+}
+
+// hiddenFieldConfig hides a technical field from the log details, table and
+// other Grafana visualizations
+func hiddenFieldConfig() *data.FieldConfig {
+	return &data.FieldConfig{Custom: map[string]any{"hidden": true}}
 }
 
 // newLogFrame creates a new frame with the necessary fields
@@ -81,10 +94,16 @@ func newLogFrame() *logFrame {
 	idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 	idField.Name = gIDField
 
+	streamsField := data.NewFieldFromFieldType(data.FieldTypeNullableJSON, 0)
+	streamsField.Name = gStreamsField
+	streamsField.Config = hiddenFieldConfig()
+
+	streamIdField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
+	streamIdField.Name = gStreamIdField
+	streamIdField.Config = hiddenFieldConfig()
+
 	return &logFrame{
-		dataFrame: data.NewFrame("", timeFd, lineField, idField, labelsField),
-		streams:   make([]map[string]string, 0),
-		streamIds: make([]string, 0),
+		dataFrame: data.NewFrame("", timeFd, lineField, idField, labelsField, streamsField, streamIdField),
 	}
 }
 
@@ -198,10 +217,6 @@ func parseInstantResponse(reader io.Reader) backend.DataResponse {
 	rsp := backend.DataResponse{}
 	frame.dataFrame.Meta = &data.FrameMeta{
 		PreferredVisualization: logsVisualisation,
-		Custom: map[string]any{
-			"streamIds": frame.streamIds,
-			"streams":   frame.streams,
-		},
 	}
 	rsp.Frames = append(rsp.Frames, frame.dataFrame)
 
@@ -251,10 +266,6 @@ func parseStreamResponse(reader io.Reader, ch chan *data.Frame) error {
 		// this is necessary information because the logs visualization is preferred
 		frame.dataFrame.Meta = &data.FrameMeta{
 			PreferredVisualization: logsVisualisation,
-			Custom: map[string]any{
-				"streamIds": frame.streamIds,
-				"streams":   frame.streams,
-			},
 		}
 
 		ch <- frame.dataFrame

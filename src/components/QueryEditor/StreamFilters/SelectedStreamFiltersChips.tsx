@@ -2,12 +2,14 @@ import React from 'react';
 
 import { Stack } from '@grafana/ui';
 
+import { streamFilterOperator } from '../../../utils/query/streamFilterToggle';
 import { GroupedChip } from '../../shared/Chip/GroupedChip';
+import { StreamBadge } from '../../shared/Chip/StreamBadge';
 
 import { useStreamFiltersContext } from './StreamFiltersContext';
 
 export const SelectedStreamFiltersChips: React.FC = () => {
-  const { streamFilters, handleRemoveValue, handleRemoveFilter } = useStreamFiltersContext();
+  const { streamFilters, handleRemoveValue, handleRemoveFilter, moveFilterToQuery } = useStreamFiltersContext();
 
   const groups = streamFilters
     .map((filter, filterIndex) => ({ filterIndex, filter }))
@@ -19,15 +21,27 @@ export const SelectedStreamFiltersChips: React.FC = () => {
 
   return (
     <Stack wrap='wrap' gap={0.5}>
-      {groups.map(({ filterIndex, filter }) => (
-        <GroupedChip
-          key={filter.label}
-          label={filter.label}
-          values={filter.values}
-          onRemoveValue={(value) => handleRemoveValue(filterIndex, value)}
-          onRemoveAll={() => handleRemoveFilter(filterIndex)}
-        />
-      ))}
+      {groups.map(({ filterIndex, filter }) => {
+        const operator = streamFilterOperator(filter);
+        return (
+          <GroupedChip
+            key={`${filter.label}|${operator}`}
+            leading={<StreamBadge />}
+            label={operator === 'not_in' ? `${filter.label} :!` : `${filter.label} :`}
+            values={filter.values}
+            onRemoveValue={(value) => handleRemoveValue(filterIndex, value)}
+            onRemoveAll={() => handleRemoveFilter(filterIndex)}
+            actions={[
+              {
+                icon: 'arrow-down',
+                onClick: () => moveFilterToQuery(filterIndex),
+                ariaLabel: 'Move to query',
+                tooltip: 'Move to query',
+              },
+            ]}
+          />
+        );
+      })}
     </Stack>
   );
 };

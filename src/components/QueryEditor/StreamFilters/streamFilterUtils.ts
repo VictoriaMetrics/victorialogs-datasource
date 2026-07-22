@@ -1,5 +1,6 @@
 import { StreamFilterState } from '../../../types';
 import { isVariable } from '../../../utils/isVariable';
+import { streamFilterOperator } from '../../../utils/query/streamFilterToggle';
 
 /**
  * Escapes double quotes in a stream filter value.
@@ -32,7 +33,7 @@ export function streamFilterToString(filter: StreamFilterState): string {
     return '';
   }
 
-  const op = filter.operator || 'in';
+  const op = streamFilterOperator(filter);
 
   const valuesList = filter.values.map(formatStreamValue).join(', ');
   return `_stream:{${filter.label} ${op} (${valuesList})}`;

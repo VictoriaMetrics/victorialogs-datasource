@@ -19,9 +19,11 @@ const buildLogRow = (streams: Array<Record<string, string>> = [{ app: 'nginx', h
     rowIndex: 0,
     dataFrame: {
       refId: 'A',
-      fields: [],
+      fields: [
+        { name: 'streams', values: streams },
+        { name: 'streamId', values: ['stream-id-1'] },
+      ],
       length: 1,
-      meta: { custom: { streamIds: ['stream-id-1'], streams } },
     },
     labels: {},
     timeEpochMs: 1700000000000,
@@ -85,9 +87,11 @@ describe('LogContextUi', () => {
       rowIndex: 0,
       dataFrame: {
         refId: 'A',
-        fields: [],
+        fields: [
+          { name: 'streams', values: [null] },
+          { name: 'streamId', values: [''] },
+        ],
         length: 1,
-        meta: { custom: { streamIds: [''], streams: [null] } },
       },
       labels: {},
       timeEpochMs: 1700000000000,
