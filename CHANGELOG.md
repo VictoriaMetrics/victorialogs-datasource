@@ -2,6 +2,11 @@
 
 ## tip
 
+* FEATURE: `Filter for value` / `Filter out value` in log details now adds the value to the `Stream filters` when the clicked field is a stream field. Stream filters are resolved via the stream index, so such filters run noticeably faster on large volumes. See [#691](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/691).
+
+* BUGFIX: keep the selected values of multi-value ad-hoc filter operators (`one of`, `not one of`) when serializing the query. Previously, such dashboard filters produced an empty `in()` filter, and the panel showed no results.
+* BUGFIX: interpolate dashboard variables into the query builder state and stream filter values when jumping from a dashboard panel to Explore. Previously, the raw variable names (e.g., `$app`) leaked back into the query on the first editor interaction, and the query returned no results.
+
 ## v0.30.1
 
 * VULNERABILITY: update Go and npm dependencies to fix known vulnerabilities, including [GHSA-hrxh-6v49-42gf](https://github.com/advisories/GHSA-hrxh-6v49-42gf) in `grpc` and [GHSA-23hp-3jrh-7fpw](https://github.com/advisories/GHSA-23hp-3jrh-7fpw) in `tar`.
@@ -11,11 +16,7 @@
 * FEATURE: add a `:` (word filter) operator to Log Level Rules, matching a field value by whole word like LogsQL (e.g. `error` matches the word `error`, not `terror`). See [#611](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/611).
 * FEATURE: the visual query builder now shows context-aware keyboard hints at the bottom of its dropdowns, so the available shortcuts (select, navigate, confirm, run) are visible while you build a query. See [pr #683](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/683).
 * FEATURE: add a `View as JSON` toggle in the query options for raw logs. When enabled, it shows all log fields as a single JSON message in the log line. It is useful for displaying all fields at once or when logs have no meaningful `_msg` field. See [#677](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/677).
-* FEATURE: `Filter for value` / `Filter out value` in log details now add the value to the `Stream filters` when the clicked field is a stream field. Stream filters are resolved via the stream index, so such filters run noticeably faster on large volumes. Repeated `Filter for` clicks collect values of the same field into one `in (...)` list, and `Filter out` builds a `not_in (...)` list — for regular fields as well (`key:in(...)` / `!key:in(...)` filters), not only stream fields. Stream filter chips are marked with a `{}` badge, and all filter chips share one look: `key :` for include filters and `key :!` for exclude ones (regex and range filters from dashboards keep their native operator). See [#691](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/691).
-* FEATURE: add a `Move to query` button to stream filter chips, matching the ad-hoc filter chips. In the visual query builder, moving a filter now inserts it as an editable step at the beginning of the query (previously the moved filter was silently lost on the next builder edit).
 
-* BUGFIX: keep the selected values of multi-value ad-hoc filter operators (`one of`, `not one of`) when serializing the query. Previously such dashboard filters produced an empty `in()` filter and the panel showed no results.
-* BUGFIX: interpolate dashboard variables into the query builder state and stream filter values when jumping from a dashboard panel to Explore. Previously the raw variable names (e.g. `$app`) leaked back into the query on the first editor interaction and the query returned no results.
 * BUGFIX: restore the `_stream` label in log query results. Previously, it was hidden from the log line labels. See [pr #685](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/685).
 * BUGFIX: live tailing now picks up query changes immediately. Previously, editing the query expression while live logs were streaming kept showing results for the previous query until the page was reloaded.
 * BUGFIX: pad missing `_time` values in instant log query responses so mixed rows with and without `_time` still produce valid Grafana log frames. Thanks to @immanuwell for their contribution.
