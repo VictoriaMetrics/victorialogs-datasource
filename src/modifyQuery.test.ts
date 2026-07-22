@@ -78,6 +78,7 @@ describe('modifyQuery', () => {
       const result = addLabelToQuery(query, { key: '"span:attr_id"', value: 'abc', operator: '!=|' });
       expect(result).toBe('foo: bar AND !\"span:attr_id\":in()');
     });
+
   });
 
   describe('removeLabelFromQuery', () => {

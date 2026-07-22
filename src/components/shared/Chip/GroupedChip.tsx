@@ -1,11 +1,18 @@
-import { css } from '@emotion/css';
-import React from 'react';
+import { css, cx } from '@emotion/css';
+import React, { ReactNode } from 'react';
 
-import { GrafanaTheme2 } from '@grafana/data';
-import { Icon, IconButton, useStyles2 } from '@grafana/ui';
+import { GrafanaTheme2, IconName } from '@grafana/data';
+import { Icon, IconButton, PopoverContent, Tooltip, useStyles2 } from '@grafana/ui';
+
+export interface ChipAction {
+  icon: IconName;
+  onClick: () => void;
+  ariaLabel: string;
+  tooltip?: PopoverContent;
+}
 
 interface Props {
-  /** Prefix rendered in secondary color (e.g. field name) */
+  /** Prefix rendered in secondary color, including its separator (e.g. `app:` or `foo :=`) */
   label: string;
   /** Inner value pills, each with its own remove button */
   values: string[];
@@ -21,6 +28,12 @@ interface Props {
   buildRemoveValueAriaLabel?: (label: string, value: string) => string;
   /** aria-label for the outer remove-all button */
   removeAllAriaLabel?: string;
+  /** Rendered before the label (e.g. a stream badge or a warning icon) */
+  leading?: ReactNode;
+  /** Extra action buttons rendered before the remove-all cross in the same segment style */
+  actions?: ChipAction[];
+  /** Extra class for the chip container (e.g. an invalid-state variant) */
+  className?: string;
 }
 
 export const GroupedChip: React.FC<Props> = ({
@@ -32,9 +45,12 @@ export const GroupedChip: React.FC<Props> = ({
   removeAllTooltip,
   buildRemoveValueAriaLabel,
   removeAllAriaLabel,
+  leading,
+  actions,
+  className,
 }) => {
   const styles = useStyles2(getStyles);
-  const tooltip = title ?? `${label}: ${values.join(', ')}`;
+  const tooltip = title ?? `${label} ${values.join(', ')}`;
   const resolvedRemoveAllAriaLabel = removeAllAriaLabel ?? `Remove all values of ${label}`;
   const resolvedRemoveAllTooltip = removeAllTooltip ?? resolvedRemoveAllAriaLabel;
   const resolveRemoveValueAriaLabel = (value: string): string =>
@@ -44,8 +60,9 @@ export const GroupedChip: React.FC<Props> = ({
   const showPerValueRemove = values.length > 1;
 
   return (
-    <div className={styles.chip} title={tooltip}>
-      <span className={styles.label}>{label}:</span>
+    <div className={cx(styles.chip, className)} title={tooltip}>
+      {leading}
+      <span className={styles.label}>{label}</span>
       <span className={styles.values}>
         {values.map((value) => (
           <span key={value} className={styles.valuePill} title={value}>
@@ -63,15 +80,36 @@ export const GroupedChip: React.FC<Props> = ({
           </span>
         ))}
       </span>
-      <button
-        type='button'
-        className={styles.removeAll}
-        onClick={onRemoveAll}
-        aria-label={resolvedRemoveAllAriaLabel}
-        title={resolvedRemoveAllTooltip}
-      >
-        <Icon name='times' size='md' />
-      </button>
+      <div className={styles.trailingActions}>
+        {actions?.map((action) => {
+          const button = (
+            <button
+              type='button'
+              className={styles.actionButton}
+              onClick={action.onClick}
+              aria-label={action.ariaLabel}
+            >
+              <Icon name={action.icon} size='md' />
+            </button>
+          );
+          return action.tooltip ? (
+            <Tooltip key={action.ariaLabel} content={action.tooltip} placement='top'>
+              {button}
+            </Tooltip>
+          ) : (
+            <React.Fragment key={action.ariaLabel}>{button}</React.Fragment>
+          );
+        })}
+        <button
+          type='button'
+          className={styles.actionButton}
+          onClick={onRemoveAll}
+          aria-label={resolvedRemoveAllAriaLabel}
+          title={resolvedRemoveAllTooltip}
+        >
+          <Icon name='times' size='md' />
+        </button>
+      </div>
     </div>
   );
 };
@@ -92,29 +130,34 @@ const getStyles = (theme: GrafanaTheme2) => ({
       border-color: ${theme.colors.border.medium};
     }
   `,
-  removeAll: css`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    align-self: stretch;
-    margin: ${theme.spacing(-0.25, 0, -0.25, 'auto')};
-    padding: ${theme.spacing(0, 0.75)};
-    border: none;
-    border-left: 1px solid ${theme.colors.border.weak};
-    border-radius: 0 ${theme.shape.radius.default} ${theme.shape.radius.default} 0;
-    background: transparent;
-    color: ${theme.colors.text.secondary};
-    cursor: pointer;
+  trailingActions: css({
+    display: 'flex',
+    alignSelf: 'stretch',
+    margin: theme.spacing(-0.25, 0, -0.25, 'auto'),
+  }),
+  actionButton: css({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing(0, 0.75),
+    border: 'none',
+    borderLeft: `1px solid ${theme.colors.border.weak}`,
+    background: 'transparent',
+    color: theme.colors.text.secondary,
+    cursor: 'pointer',
 
-    &:hover {
-      background: ${theme.colors.action.hover};
-      color: ${theme.colors.text.primary};
-    }
-    &:focus-visible {
-      outline: 2px solid ${theme.colors.primary.border};
-      outline-offset: -2px;
-    }
-  `,
+    '&:last-child': {
+      borderRadius: `0 ${theme.shape.radius.default} ${theme.shape.radius.default} 0`,
+    },
+    '&:hover': {
+      background: theme.colors.action.hover,
+      color: theme.colors.text.primary,
+    },
+    '&:focus-visible': {
+      outline: `2px solid ${theme.colors.primary.border}`,
+      outlineOffset: '-2px',
+    },
+  }),
   label: css`
     color: ${theme.colors.text.secondary};
     white-space: nowrap;

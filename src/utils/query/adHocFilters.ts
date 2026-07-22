@@ -21,6 +21,30 @@ export const formatAdHocFilterLabel = (f: AdHocFilter): string => addLabelToQuer
 export const adHocFilterMatches = (f: AdHocFilter, key: string, value: string): boolean =>
   f.key === key && f.value === value;
 
+/** Values a chip carries: the multi-value list when present, the single value otherwise */
+export const adHocFilterValues = (f: AdHocFilter): string[] => (f.values?.length ? f.values : [f.value]);
+
+/** Exact-match chip with `in` semantics (`=`, `=|`) */
+export const isExactInFilter = (f: AdHocFilter): boolean => f.operator === '=' || f.operator === '=|';
+
+/** Exact-match chip with `not_in` semantics (`!=`, `!=|`) */
+export const isExactOutFilter = (f: AdHocFilter): boolean => f.operator === '!=' || f.operator === '!=|';
+
+/**
+ * Chip label with the unified operator display: `:` for in-semantics chips,
+ * `:!` for not_in ones. Regex/range chips keep their native operator — their
+ * semantics cannot be expressed as an in/not_in value list.
+ */
+export const formatChipOperatorLabel = (f: AdHocFilter): string => {
+  if (isExactInFilter(f)) {
+    return `${f.key} :`;
+  }
+  if (isExactOutFilter(f)) {
+    return `${f.key} :!`;
+  }
+  return `${f.key} :${f.operator}`;
+};
+
 export const queryHasPipes = (expr: string): boolean => {
   const trimmed = expr.trim();
   if (!trimmed || trimmed === '*') {

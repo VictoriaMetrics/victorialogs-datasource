@@ -546,6 +546,63 @@ describe('VictoriaLogsDatasource', () => {
       { key: 'level', operator: '=', value: 'error' },
     ];
 
+    it('interpolates placeholder values inside templateBuilder', () => {
+      replaceMock.mockImplementation((s: string) => s?.replace(/\$app/g, 'smokestream'));
+      const result = ds.interpolateVariablesInQueries(
+        [
+          {
+            expr: 'app:"$app"',
+            refId: 'A',
+            templateBuilder: {
+              pipes: [
+                {
+                  id: 'p1',
+                  templateType: 'phrase',
+                  segments: [
+                    { type: 'text', value: 'app:' },
+                    {
+                      type: 'placeholder',
+                      id: 'v1',
+                      role: 'fieldValue',
+                      value: '$app',
+                      displayHint: 'value',
+                      optionSource: 'freeText',
+                    },
+                  ],
+                  tabOrder: ['v1'],
+                },
+              ],
+            },
+          },
+        ],
+        {}
+      );
+      expect(result[0].expr).toBe('app:"smokestream"');
+      const segment = result[0].templateBuilder?.pipes[0].segments[1];
+      expect(segment && 'value' in segment ? segment.value : undefined).toBe('smokestream');
+    });
+
+    it('interpolates streamFilters values', () => {
+      replaceMock.mockImplementation((s: string) => s?.replace(/\$app/g, 'smokestream'));
+      const result = ds.interpolateVariablesInQueries(
+        [
+          {
+            expr: '*',
+            refId: 'A',
+            streamFilters: [{ label: 'app', operator: 'in', values: ['$app', 'static'] }],
+          },
+        ],
+        {}
+      );
+      expect(result[0].streamFilters).toEqual([{ label: 'app', operator: 'in', values: ['smokestream', 'static'] }]);
+    });
+
+    it('leaves queries without builder or stream filters untouched by the new interpolation', () => {
+      const result = ds.interpolateVariablesInQueries([{ expr: '_time:5m', refId: 'A' }], {});
+      expect(result[0].templateBuilder).toBeUndefined();
+      expect(result[0].streamFilters).toBeUndefined();
+    });
+
     it('materialises dashboard ad-hoc filters as chips when mode is extraFilters', () => {
       const result = ds.interpolateVariablesInQueries(
         [{ expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.ExtraFilters }],
@@ -818,21 +875,21 @@ describe('VictoriaLogsDatasource', () => {
       value = 'error',
     ): ToggleFilterAction => ({ type, options: { key, value } });
 
-    it('adds FILTER_FOR into adHocFilters when adHocFilters is empty', () => {
+    it('adds FILTER_FOR into adHocFilters as an in-group chip when adHocFilters is empty', () => {
       const query: Query = { refId: 'A', expr: '_time:5m' };
       const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_FOR));
-      expect(result.adHocFilters).toEqual([{ key: 'level', operator: '=', value: 'error' }]);
+      expect(result.adHocFilters).toEqual([{ key: 'level', operator: '=|', value: 'error', values: ['error'] }]);
       expect(result.expr).toBe('_time:5m');
     });
 
-    it('adds FILTER_OUT with != operator', () => {
+    it('adds FILTER_OUT as a not_in-group chip', () => {
       const query: Query = { refId: 'A', expr: '' };
       const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_OUT));
-      expect(result.adHocFilters).toEqual([{ key: 'level', operator: '!=', value: 'error' }]);
+      expect(result.adHocFilters).toEqual([{ key: 'level', operator: '!=|', value: 'error', values: ['error'] }]);
       expect(result.expr).toBe('*');
     });
 
-    it('appends to existing adHocFilters', () => {
+    it('appends to existing adHocFilters of other keys', () => {
       const query: Query = {
         refId: 'A',
         expr: '*',
@@ -841,9 +898,21 @@ describe('VictoriaLogsDatasource', () => {
       const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_FOR));
       expect(result.adHocFilters).toEqual([
         { key: 'app', operator: '=', value: 'api' },
-        { key: 'level', operator: '=', value: 'error' },
+        { key: 'level', operator: '=|', value: 'error', values: ['error'] },
       ]);
       expect(result.expr).toBe('*');
+    });
+
+    it('merges a second value of the same key into one in-group chip', () => {
+      const query: Query = {
+        refId: 'A',
+        expr: '*',
+        adHocFilters: [{ key: 'level', operator: '=|', value: 'warn', values: ['warn'] }],
+      };
+      const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_FOR));
+      expect(result.adHocFilters).toEqual([
+        { key: 'level', operator: '=|', value: 'warn', values: ['warn', 'error'] },
+      ]);
     });
 
     it('toggles off existing FILTER_FOR (second click removes it)', () => {
@@ -861,7 +930,7 @@ describe('VictoriaLogsDatasource', () => {
       const query: Query = { refId: 'A', expr: 'level:="error"' };
       const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_FOR));
       expect(result.expr).toBe('level:="error"');
-      expect(result.adHocFilters).toEqual([{ key: 'level', operator: '=', value: 'error' }]);
+      expect(result.adHocFilters).toEqual([{ key: 'level', operator: '=|', value: 'error', values: ['error'] }]);
     });
 
     it('returns query unchanged when key or value is missing', () => {
@@ -880,8 +949,123 @@ describe('VictoriaLogsDatasource', () => {
         makeFilter(FilterActionType.FILTER_FOR, 'span:attr_id', '123'),
       );
       expect(result.adHocFilters).toEqual([
-        { key: 'span:attr_id', operator: '=', value: '123' },
+        { key: 'span:attr_id', operator: '=|', value: '123', values: ['123'] },
       ]);
+    });
+
+    const makeStreamsFrame = (streams: Array<Record<string, string> | null>): DataFrame =>
+      ({
+        fields: [{ name: 'streams', values: streams }],
+        length: streams.length,
+      }) as unknown as DataFrame;
+
+    describe('stream fields routing', () => {
+      it('routes FILTER_FOR on a stream field into streamFilters instead of adHocFilters', () => {
+        const query: Query = { refId: 'A', expr: '*' };
+        const frame = makeStreamsFrame([{ level: 'error', app: 'api' }]);
+        const result = ds.toggleQueryFilter(query, { ...makeFilter(FilterActionType.FILTER_FOR), frame });
+        expect(result.streamFilters).toEqual([{ label: 'level', operator: 'in', values: ['error'] }]);
+        expect(result.adHocFilters).toBeUndefined();
+      });
+
+      it('routes FILTER_OUT on a stream field into a not_in group', () => {
+        const query: Query = { refId: 'A', expr: '*' };
+        const frame = makeStreamsFrame([{ level: 'error' }]);
+        const result = ds.toggleQueryFilter(query, { ...makeFilter(FilterActionType.FILTER_OUT), frame });
+        expect(result.streamFilters).toEqual([{ label: 'level', operator: 'not_in', values: ['error'] }]);
+        expect(result.adHocFilters).toBeUndefined();
+      });
+
+      it('merges a second value of the same label into the in group', () => {
+        const query: Query = {
+          refId: 'A',
+          expr: '*',
+          streamFilters: [{ label: 'level', operator: 'in', values: ['warn'] }],
+        };
+        const frame = makeStreamsFrame([{ level: 'error' }]);
+        const result = ds.toggleQueryFilter(query, { ...makeFilter(FilterActionType.FILTER_FOR), frame });
+        expect(result.streamFilters).toEqual([{ label: 'level', operator: 'in', values: ['warn', 'error'] }]);
+      });
+
+      it('toggles the value off on the second FILTER_FOR click', () => {
+        const query: Query = {
+          refId: 'A',
+          expr: '*',
+          streamFilters: [{ label: 'level', operator: 'in', values: ['error'] }],
+        };
+        const frame = makeStreamsFrame([{ level: 'error' }]);
+        const result = ds.toggleQueryFilter(query, { ...makeFilter(FilterActionType.FILTER_FOR), frame });
+        expect(result.streamFilters).toBeUndefined();
+      });
+
+      it('stores the raw (unescaped) value in streamFilters', () => {
+        const query: Query = { refId: 'A', expr: '*' };
+        const frame = makeStreamsFrame([{ app: 'a"b' }]);
+        const result = ds.toggleQueryFilter(query, {
+          type: FilterActionType.FILTER_FOR,
+          options: { key: 'app', value: 'a"b' },
+          frame,
+        });
+        expect(result.streamFilters).toEqual([{ label: 'app', operator: 'in', values: ['a"b'] }]);
+      });
+
+      it('adds a regular adhoc chip when the key is not a stream field', () => {
+        const query: Query = { refId: 'A', expr: '*' };
+        const frame = makeStreamsFrame([{ app: 'api' }]);
+        const result = ds.toggleQueryFilter(query, { ...makeFilter(FilterActionType.FILTER_FOR), frame });
+        expect(result.adHocFilters).toEqual([{ key: 'level', operator: '=|', value: 'error', values: ['error'] }]);
+        expect(result.streamFilters).toBeUndefined();
+      });
+
+      it('adds a regular adhoc chip when no frame is provided', () => {
+        const query: Query = { refId: 'A', expr: '*' };
+        const result = ds.toggleQueryFilter(query, makeFilter(FilterActionType.FILTER_OUT));
+        expect(result.adHocFilters).toEqual([{ key: 'level', operator: '!=|', value: 'error', values: ['error'] }]);
+      });
+    });
+  });
+
+  describe('queryHasFilter', () => {
+    it('finds a value in the adHocFilters chips', () => {
+      const query: Query = {
+        refId: 'A',
+        expr: '*',
+        adHocFilters: [{ key: 'level', operator: '=', value: 'error' }],
+      };
+      expect(ds.queryHasFilter(query, { key: 'level', value: 'error' })).toBe(true);
+    });
+
+    it('finds any value of a multi-value (one of) chip', () => {
+      const query: Query = {
+        refId: 'A',
+        expr: '*',
+        adHocFilters: [{ key: 'foo', operator: '=|', value: 'bar', values: ['bar', 'baz'] }],
+      };
+      expect(ds.queryHasFilter(query, { key: 'foo', value: 'baz' })).toBe(true);
+      expect(ds.queryHasFilter(query, { key: 'foo', value: 'qux' })).toBe(false);
+    });
+
+    it('finds a value in the streamFilters in groups', () => {
+      const query: Query = {
+        refId: 'A',
+        expr: '*',
+        streamFilters: [{ label: 'app', operator: 'in', values: ['nginx'] }],
+      };
+      expect(ds.queryHasFilter(query, { key: 'app', value: 'nginx' })).toBe(true);
+    });
+
+    it('ignores not_in stream groups', () => {
+      const query: Query = {
+        refId: 'A',
+        expr: '*',
+        streamFilters: [{ label: 'app', operator: 'not_in', values: ['nginx'] }],
+      };
+      expect(ds.queryHasFilter(query, { key: 'app', value: 'nginx' })).toBe(false);
+    });
+
+    it('returns false when the value is in neither store', () => {
+      const query: Query = { refId: 'A', expr: '*' };
+      expect(ds.queryHasFilter(query, { key: 'app', value: 'nginx' })).toBe(false);
     });
   });
 });
