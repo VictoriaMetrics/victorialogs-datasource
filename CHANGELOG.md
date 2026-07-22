@@ -18,6 +18,8 @@
 * BUGFIX: highlight search terms in log lines when the query uses template variables (e.g. `_msg:$search`). Previously, highlighting looked for the literal variable name instead of its value, so nothing was highlighted. See [#684](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/684).
 * BUGFIX: stop showing log lines twice in the "Show context" modal. Previously, the two context queries overlapped by one second around the selected row, so every line within that window was displayed twice; the queries now split at the selected row's timestamp with nanosecond precision. See [#692](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/692).
 
+* BUGFIX: pass the panel time range to the `Instant` (stats) query type via the `start`/`end` query parameters instead of prepending a `_time:[...]` filter to the query text. The prepended filter was not parenthesized, so a top-level `OR` (e.g. `level:error OR level:warn | stats count()`) left part of the query outside the time range, making VictoriaLogs scan the full retention and the panel time out.
+
 ## v0.29.0
 
 * FEATURE: keep log fields in the order returned by VictoriaLogs (for example the order from `| fields a, b, c`) instead of sorting them alphabetically. See [#563](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/563).
