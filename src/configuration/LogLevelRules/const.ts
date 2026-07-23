@@ -1,6 +1,8 @@
 import { LogLevel } from '@grafana/data';
 import { colors, ComboboxOption } from '@grafana/ui';
 
+import { quoteLogsQLValue } from '../../utils/query/logsqlEscape';
+
 import { LogLevelRule, LogLevelRuleType } from './types';
 
 export interface LogOperatorOption {
@@ -29,13 +31,13 @@ export const OperatorLabels: Record<LogLevelRuleType, string> = {
 };
 
 export const OperatorLabelsQueryBuilder: Record<LogLevelRuleType, (rule: LogLevelRule) => string> = {
-  [LogLevelRuleType.Equals]: (rule) => `${rule.field}:"${rule.value}"`,
-  [LogLevelRuleType.CaseInsensitiveEquals]: (rule) => `${rule.field}:contains_common_case("${rule.value}")`,
-  [LogLevelRuleType.NotEquals]: (rule) => `${rule.field}:!"${rule.value}"`,
-  [LogLevelRuleType.Regex]: (rule) => `${rule.field}:~"${rule.value}"`,
-  [LogLevelRuleType.LessThan]: (rule) => `${rule.field}:<"${rule.value}"`,
-  [LogLevelRuleType.GreaterThan]: (rule) => `${rule.field}:>"${rule.value}"`,
-  [LogLevelRuleType.WordFilter]: (rule) => `${rule.field}:"${rule.value}"`,
+  [LogLevelRuleType.Equals]: (rule) => `${rule.field}:${quoteLogsQLValue(rule.value)}`,
+  [LogLevelRuleType.CaseInsensitiveEquals]: (rule) => `${rule.field}:contains_common_case(${quoteLogsQLValue(rule.value)})`,
+  [LogLevelRuleType.NotEquals]: (rule) => `${rule.field}:!${quoteLogsQLValue(rule.value)}`,
+  [LogLevelRuleType.Regex]: (rule) => `${rule.field}:~${quoteLogsQLValue(rule.value)}`,
+  [LogLevelRuleType.LessThan]: (rule) => `${rule.field}:<${quoteLogsQLValue(rule.value)}`,
+  [LogLevelRuleType.GreaterThan]: (rule) => `${rule.field}:>${quoteLogsQLValue(rule.value)}`,
+  [LogLevelRuleType.WordFilter]: (rule) => `${rule.field}:${quoteLogsQLValue(rule.value)}`,
 };
 
 export const LOG_LEVEL_OPTIONS: Array<ComboboxOption<LogLevel>> = Array.from(

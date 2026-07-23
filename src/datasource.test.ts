@@ -22,6 +22,8 @@ import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
 import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { VictoriaLogsDatasource } from './datasource';
 import { AdHocFilter, AdHocFiltersMode, FilterActionType, Query, QueryType, SupportingQueryType, ToggleFilterAction } from './types';
+import { buildExactLevelExprMap } from './utils/query/levelExpansion';
+import { DERIVED_LEVEL_FIELD } from './utils/query/levelFormatPipes';
 
 const replaceMock = jest.fn().mockImplementation((a: string) => a);
 
@@ -433,7 +435,7 @@ describe('VictoriaLogsDatasource', () => {
         {},
       );
       expect(replacedQuery.expr).toBe('_time:5m');
-      expect(replacedQuery.extraFilters).toMatch(/^\(level:contains_common_case\(.+\)\)$/);
+      expect(replacedQuery.extraFilters).toBe(`(${buildExactLevelExprMap([])['error']})`);
     });
 
     it('expands a marked level chip into the root query in rootQuery mode', () => {
@@ -449,7 +451,7 @@ describe('VictoriaLogsDatasource', () => {
         { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.RootQuery, adHocFilters },
         {},
       );
-      expect(replacedQuery.expr).toMatch(/^\(level:contains_common_case\(.+\)\) \| _time:5m$/);
+      expect(replacedQuery.expr).toBe(`(${buildExactLevelExprMap([])['error']}) | _time:5m`);
       expect(replacedQuery.extraFilters).toBeUndefined();
     });
 
@@ -467,7 +469,7 @@ describe('VictoriaLogsDatasource', () => {
         {},
       );
       expect(replacedQuery.expr).toBe('_time:5m');
-      expect(replacedQuery.extraFilters).toMatch(/^\(level:contains_common_case\(.+\)\)$/);
+      expect(replacedQuery.extraFilters).toBe(`(${buildExactLevelExprMap([])['error']})`);
     });
 
     it('OR-combines two marked level chips into one parenthesised group', () => {
@@ -484,9 +486,8 @@ describe('VictoriaLogsDatasource', () => {
         { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.ExtraFilters, adHocFilters },
         {},
       );
-      expect(replacedQuery.extraFilters).toMatch(
-        /^\(level:contains_common_case\(.+\) OR level:contains_common_case\(.+\)\)$/,
-      );
+      const map = buildExactLevelExprMap([]);
+      expect(replacedQuery.extraFilters).toBe(`(${map['error']} OR ${map['warning']})`);
     });
 
     it('expands a marked unknown-level chip into a negation', () => {
@@ -502,8 +503,9 @@ describe('VictoriaLogsDatasource', () => {
         { expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.ExtraFilters, adHocFilters },
         {},
       );
-      // unknown = !(<all known levels OR'd>), wrapped by expandLevelChips in parens
-      expect(replacedQuery.extraFilters).toMatch(/^\(!\(.+\)\)$/);
+      // unknown = exact per-level expression (guard against earlier-level aliases, plus the
+      // no-rule-matched negation), wrapped by expandLevelChips in parens.
+      expect(replacedQuery.extraFilters).toBe(`(${buildExactLevelExprMap([])['unknown']})`);
     });
 
   });
@@ -1051,6 +1053,70 @@ describe('VictoriaLogsDatasource preset merge', () => {
         expect(result).toBeUndefined();
       });
 
+      it('keeps the lightweight level grouping when no level rules are active', () => {
+        const result = ds.getSupplementaryQuery(opts, makeQuery(QueryType.Instant), makeRequest());
+        expect(result?.fields).toEqual(['level']);
+        expect(result?.expr).toBe('*');
+      });
+
+      it('derives the level server-side via format pipes when level rules are active', () => {
+        const dsWithRules = createDatasource(templateSrvStub, {
+          id: 1,
+          uid: 'u',
+          jsonData: {
+            logLevelRules: [
+              { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'error', level: LogLevel.error, enabled: true },
+            ],
+          },
+        });
+        const result = dsWithRules.getSupplementaryQuery(opts, makeQuery(QueryType.Instant), makeRequest());
+        expect(result?.fields).toEqual([DERIVED_LEVEL_FIELD]);
+        expect(result?.expr).toContain(`* | format "" as ${DERIVED_LEVEL_FIELD}`);
+        expect(result?.expr).toContain('_msg:"error"');
+      });
+
+      it('ignores disabled rules when deciding to add format pipes', () => {
+        const dsDisabled = createDatasource(templateSrvStub, {
+          id: 1,
+          uid: 'u',
+          jsonData: {
+            logLevelRules: [
+              { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'error', level: LogLevel.error, enabled: false },
+            ],
+          },
+        });
+        const result = dsDisabled.getSupplementaryQuery(opts, makeQuery(QueryType.Instant), makeRequest());
+        expect(result?.fields).toEqual(['level']);
+        expect(result?.expr).toBe('*');
+      });
+
+      it('strips the plugin-appended trailing sort pipe before adding format pipes', () => {
+        const dsWithRules = createDatasource(templateSrvStub, {
+          id: 1,
+          uid: 'u',
+          jsonData: {
+            logLevelRules: [
+              { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'error', level: LogLevel.error, enabled: true },
+            ],
+          },
+        });
+        const result = dsWithRules.getSupplementaryQuery(
+          opts,
+          makeQuery(QueryType.Instant, { expr: 'app:x | sort by (_time) desc' }),
+          makeRequest(),
+        );
+        expect(result?.expr).toContain(`app:x | format "" as ${DERIVED_LEVEL_FIELD}`);
+        expect(result?.expr).not.toContain('sort by');
+      });
+
+      it('keeps the trailing sort pipe untouched when no level rules are active', () => {
+        const result = ds.getSupplementaryQuery(
+          opts,
+          makeQuery(QueryType.Instant, { expr: 'app:x | sort by (_time) desc' }),
+          makeRequest(),
+        );
+        expect(result?.expr).toBe('app:x | sort by (_time) desc');
+      });
     });
 
     describe('LogsSample', () => {

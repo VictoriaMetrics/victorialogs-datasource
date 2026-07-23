@@ -50,6 +50,7 @@ import {
   addLabelToQuery,
   addSortPipeToQuery,
   getQueryFormat,
+  removeTrailingSortPipe,
 } from './modifyQuery';
 import { removeDoubleQuotesAroundVar } from './parsing';
 import { replaceOperatorWithIn, returnVariables } from './parsingUtils';
@@ -75,6 +76,7 @@ import {
   resolveAdHocFilters,
   serializeChipsForBackend,
 } from './utils/query/adHocFilters';
+import { buildLevelFormatPipes, DERIVED_LEVEL_FIELD } from './utils/query/levelFormatPipes';
 import { formatOffsetDuration, getMillisecondsFromDuration } from './utils/timeUtils';
 import { VariableSupport } from './variableSupport/VariableSupport';
 
@@ -502,13 +504,18 @@ export class VictoriaLogsDatasource
         const totalSeconds = request.range.to.diff(request.range.from, 'second');
         const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || '';
 
-        const fields = this.getActiveLevelRules().map(r => r.field).filter(Boolean);
-        const uniqFields = Array.from(new Set([...fields, 'level']));
+        // With active level rules the level is derived server-side via `format` pipes,
+        // grouping hits by the single derived field instead of every rule field
+        // (a `_msg` rule would otherwise explode cardinality — issue #700).
+        // The plugin-appended trailing sort pipe is stripped: hits ignores ordering, and
+        // VictoriaLogs returns empty values for format-derived fields placed after a sort pipe
+        const levelPipes = buildLevelFormatPipes(this.getActiveLevelRules());
 
         return {
           ...query,
+          expr: levelPipes ? `${removeTrailingSortPipe(query.expr)}${levelPipes}` : query.expr,
           step: `${step}s`,
-          fields: uniqFields,
+          fields: levelPipes ? [DERIVED_LEVEL_FIELD] : ['level'],
           queryType: QueryType.Hits,
           refId: `${REF_ID_STARTER_LOG_VOLUME}${query.refId}`,
           supportingQueryType: SupportingQueryType.LogsVolume,
