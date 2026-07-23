@@ -3,6 +3,7 @@
 ## tip
 
 * FEATURE: `Filter for value` / `Filter out value` in log details now adds the value to the `Stream filters` when the clicked field is a stream field. Stream filters are resolved via the stream index, so such filters run noticeably faster on large volumes. See [#691](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/691).
+* FEATURE: speed up the logs volume histogram when log level rules reference high-cardinality fields like `_msg`. See [#700](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/700).
 
 * BUGFIX: keep the selected values of multi-value ad-hoc filter operators (`one of`, `not one of`) when serializing the query. Previously, such dashboard filters produced an empty `in()` filter, and the panel showed no results.
 * BUGFIX: interpolate dashboard variables into the query builder state and stream filter values when jumping from a dashboard panel to Explore. Previously, the raw variable names (e.g., `$app`) leaked back into the query on the first editor interaction, and the query returned no results.
