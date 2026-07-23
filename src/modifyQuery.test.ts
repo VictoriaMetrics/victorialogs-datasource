@@ -1,6 +1,6 @@
 import { CoreApp } from '@grafana/data';
 
-import { addLabelToQuery, addSortPipeToQuery, removeLabelFromQuery } from './modifyQuery';
+import { addLabelToQuery, addSortPipeToQuery, removeLabelFromQuery, removeTrailingSortPipe } from './modifyQuery';
 import store from './store/store';
 import { Query, QueryType } from './types';
 
@@ -325,6 +325,41 @@ describe('modifyQuery', () => {
         const result = addSortPipeToQuery(query, CoreApp.Dashboard);
         expect(result).toBe('foo: bar | sort by (level) asc');
       });
+    });
+  });
+
+  describe('removeTrailingSortPipe', () => {
+    it('removes the trailing desc sort pipe', () => {
+      expect(removeTrailingSortPipe('app:x | sort by (_time) desc')).toBe('app:x');
+    });
+
+    it('removes the trailing asc sort pipe', () => {
+      expect(removeTrailingSortPipe('app:x | sort by (_time) asc')).toBe('app:x');
+    });
+
+    it('returns the expression unchanged when there is no trailing sort pipe', () => {
+      expect(removeTrailingSortPipe('app:x')).toBe('app:x');
+    });
+
+    it('keeps a sort pipe that is not the trailing pipe', () => {
+      expect(removeTrailingSortPipe('app:x | sort by (_time) desc | fields _msg')).toBe(
+        'app:x | sort by (_time) desc | fields _msg'
+      );
+    });
+
+    it('removes user-written trailing sorts with other fields, limit or offset', () => {
+      expect(removeTrailingSortPipe('app:x | sort by (level) desc')).toBe('app:x');
+      expect(removeTrailingSortPipe('app:x | sort by (_time) desc limit 10')).toBe('app:x');
+      expect(removeTrailingSortPipe('app:x | sort by (_time) desc offset 5')).toBe('app:x');
+    });
+
+    it('removes a trailing order by pipe regardless of keyword case', () => {
+      expect(removeTrailingSortPipe('app:x | order by (_time) desc')).toBe('app:x');
+      expect(removeTrailingSortPipe('app:x | SORT BY (_time) DESC')).toBe('app:x');
+    });
+
+    it('does not strip pipes whose name merely starts with sort', () => {
+      expect(removeTrailingSortPipe('app:x | sort_values')).toBe('app:x | sort_values');
     });
   });
 });

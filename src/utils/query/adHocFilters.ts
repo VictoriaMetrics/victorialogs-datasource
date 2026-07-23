@@ -6,7 +6,7 @@ import { addLabelToQuery } from '../../modifyQuery';
 import { returnVariables } from '../../parsingUtils';
 import { AdHocFilter, AdHocFilterOperator, AdHocFiltersMode, Query } from '../../types';
 
-import { buildLevelExprMap } from './levelExpansion';
+import { buildExactLevelExprMap } from './levelExpansion';
 
 export const serializeAdHocFilters = (filters: AdHocFilter[] | undefined): string | undefined => {
   if (!filters || filters.length === 0) {
@@ -47,15 +47,16 @@ export interface ExpandedLevelChips {
 }
 
 // Expands marked level chips (set by the level buttons) into a single parenthesised,
-// OR-combined LogsQL group. Other chips — including unmarked `level` chips from a
-// dashboard adhoc variable or Explore — are returned untouched in `rest`.
+// OR-combined group of EXACT per-level expressions (see buildExactLevelExprMap).
+// Other chips — including unmarked `level` chips from a dashboard adhoc variable or
+// Explore — are returned untouched in `rest`.
 export function expandLevelChips(chips: AdHocFilter[], rules: LogLevelRule[]): ExpandedLevelChips {
   const levelChips = chips.filter(isExpandableLevelChip);
   const rest = chips.filter((c) => !isExpandableLevelChip(c));
   if (!levelChips.length) {
     return { rest };
   }
-  const exprMap = buildLevelExprMap(rules);
+  const exprMap = buildExactLevelExprMap(rules);
   const exprs: string[] = [];
   levelChips.forEach((chip) => {
     const expr = exprMap[chip.value];

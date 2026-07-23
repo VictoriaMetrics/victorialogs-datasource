@@ -19,6 +19,7 @@ import { LogLevelRule } from './configuration/LogLevelRules/types';
 import { extractLevelFromLabels } from './configuration/LogLevelRules/utils';
 import { VictoriaLogsDatasource } from './datasource';
 import { Query } from './types';
+import { DERIVED_LEVEL_FIELD, parseDerivedLevel } from './utils/query/levelFormatPipes';
 
 export const LOGS_VOLUME_BARS = 100;
 
@@ -180,11 +181,19 @@ function getLogVolumeFieldConfig(level: LogLevel) {
   };
 }
 
-const extractLevel = (frame: DataFrame, rules: LogLevelRule[]): LogLevel => {
+export const extractLevel = (frame: DataFrame, rules: LogLevelRule[]): LogLevel => {
   const valueField = frame.fields.find(f => f.name === 'Value');
 
   if (!valueField?.labels) {
     return LogLevel.unknown;
+  }
+
+  // The derived label is written by our own `format` pipes (see levelFormatPipes.ts),
+  // so its value is authoritative: empty means "no pipe matched" → unknown,
+  // and client-side rule matching must not run again
+  const derivedLevel = valueField.labels[DERIVED_LEVEL_FIELD];
+  if (derivedLevel !== undefined) {
+    return parseDerivedLevel(derivedLevel);
   }
 
   return extractLevelFromLabels(valueField.labels, rules);

@@ -145,6 +145,19 @@ export const addSortPipeToQuery = ({ expr, queryType, direction }: Query, app: C
   return `${expr} | ${sortPipe}`;
 };
 
+// Matches any trailing `| sort ...` / `| order ...` pipe with all its options
+// (field list, asc/desc, limit/offset, ...). Only the LAST pipe is matched —
+// a sort feeding a later pipe is left intact.
+const TRAILING_SORT_PIPE_RE = /\s*\|\s*(?:sort|order)\b[^|]*$/i;
+
+/**
+ * Removes the trailing sort pipe — plugin-appended by addSortPipeToQuery or user-written.
+ * The logs volume hits query appends `format` pipes to the expression, and VictoriaLogs
+ * `/select/logsql/hits` returns empty values for fields created by pipes placed after
+ * a `sort` pipe — sorting is meaningless for hits aggregation anyway.
+ */
+export const removeTrailingSortPipe = (expr: string): string => expr.replace(TRAILING_SORT_PIPE_RE, '');
+
 
 export const getQueryFormat = (expr: string): Format | undefined => {
   if (isExprHasStatsPipeFunc(expr, 'histogram')) {
