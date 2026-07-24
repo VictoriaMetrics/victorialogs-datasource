@@ -72,7 +72,8 @@ import {
   VariableQuery,
 } from './types';
 import { frameHasStreamField } from './utils/dataFrame/streamFields';
-import { adHocFiltersHaveValue, toggleAdHocFilterValue } from './utils/query/adHocFilterToggle';
+import { isVariable } from './utils/isVariable';
+import { adHocFiltersHaveValue, removeAdHocFilterValue, toggleAdHocFilterValue } from './utils/query/adHocFilterToggle';
 import {
   resolveAdHocFilters,
   serializeChipsForBackend,
@@ -196,8 +197,21 @@ export class VictoriaLogsDatasource
     // stored raw: the stream filter serializer escapes it itself
     if (frameHasStreamField(filter.frame, key)) {
       const next = toggleStreamFilterValue(query.streamFilters ?? [], filter.type, key, filter.options.value);
-      const expr = query.expr || (next.length ? '*' : '');
-      return { ...query, expr, streamFilters: next.length ? next : undefined };
+      // A leftover exact chip of the same key/value would contradict the new
+      // stream filter (e.g. app="api" AND _stream:{app not_in ("api")}), so it
+      // is removed; chips store values escaped, hence the escaped lookup
+      const nextChips = removeAdHocFilterValue(
+        query.adHocFilters ?? [],
+        key,
+        escapeLabelValueInSelector(filter.options.value)
+      );
+      const expr = query.expr || (next.length || nextChips.length ? '*' : '');
+      return {
+        ...query,
+        expr,
+        streamFilters: next.length ? next : undefined,
+        adHocFilters: nextChips.length ? nextChips : undefined,
+      };
     }
 
     const value = escapeLabelValueInSelector(filter.options.value);
@@ -308,9 +322,32 @@ export class VictoriaLogsDatasource
         templateBuilder: query.templateBuilder
           ? interpolateTemplateBuilder(query.templateBuilder, interpolate)
           : query.templateBuilder,
-        streamFilters: query.streamFilters?.map((f) => ({ ...f, values: f.values.map(interpolate) })),
+        streamFilters: query.streamFilters?.map((f) => ({
+          ...f,
+          values: Array.from(new Set(f.values.flatMap((v) => this.interpolateStreamFilterValue(v, scopedVars)))),
+        })),
       };
     });
+  }
+
+  /**
+   * Interpolates a single stream filter value. A value that is a lone variable
+   * is expanded into one entry per selected value, so a multi-select variable
+   * serializes as `in ("a", "b")` rather than a single joined string
+   */
+  private interpolateStreamFilterValue(value: string, scopedVars: ScopedVars): string[] {
+    if (!isVariable(value)) {
+      return [this.interpolateString(value, scopedVars)];
+    }
+    let expanded: string[] | undefined;
+    const replaced = this.templateSrv.replace(value, scopedVars, (v: unknown) => {
+      if (Array.isArray(v)) {
+        expanded = v.map(String);
+        return '';
+      }
+      return String(v);
+    });
+    return expanded ?? [replaced];
   }
 
   async metricFindQuery(

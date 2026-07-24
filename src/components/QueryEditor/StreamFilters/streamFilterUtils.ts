@@ -18,6 +18,23 @@ function formatStreamValue(value: string): string {
   return isVariable(value) ? value : `"${escapeDoubleQuotes(value)}"`;
 }
 
+// Label names the LogsQL parser accepts without quotes; anything else
+// (spaces, quotes, unicode, …) would be misparsed, e.g. `{foo bar in (...)}`
+// reads `bar` as an unsupported operation
+const UNQUOTED_LABEL_PATTERN = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
+
+/**
+ * Formats a stream filter label for use in a LogsQL stream filter.
+ * Template variables are passed through as-is; labels outside the safe
+ * charset are wrapped in double quotes.
+ */
+function formatStreamLabel(label: string): string {
+  if (isVariable(label) || UNQUOTED_LABEL_PATTERN.test(label)) {
+    return label;
+  }
+  return `"${escapeDoubleQuotes(label)}"`;
+}
+
 /**
  * Serializes a single StreamFilterState into a LogsQL stream filter string.
  *
@@ -36,7 +53,7 @@ export function streamFilterToString(filter: StreamFilterState): string {
   const op = streamFilterOperator(filter);
 
   const valuesList = filter.values.map(formatStreamValue).join(', ');
-  return `_stream:{${filter.label} ${op} (${valuesList})}`;
+  return `_stream:{${formatStreamLabel(filter.label)} ${op} (${valuesList})}`;
 }
 
 /**

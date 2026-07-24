@@ -69,3 +69,24 @@ export function toggleAdHocFilterValue(
 export function adHocFiltersHaveValue(filters: AdHocFilter[], key: string, value: string): boolean {
   return filters.some((f) => f.key === key && isExactInFilter(f) && adHocFilterValues(f).includes(value));
 }
+
+/**
+ * Removes the value from every exact-match chip of the key (`=`, `=|`, `!=`,
+ * `!=|`, incl. level chips). Used when a Filter for / Filter out click routes
+ * into the stream filters so a stale chip can't contradict the new stream
+ * filter. Chips left with no values are dropped; regex/range chips are
+ * untouched.
+ */
+export function removeAdHocFilterValue(filters: AdHocFilter[], key: string, value: string): AdHocFilter[] {
+  return filters.flatMap((f) => {
+    const isExact = isExactInFilter(f) || isExactOutFilter(f);
+    if (f.key !== key || !isExact || !adHocFilterValues(f).includes(value)) {
+      return [f];
+    }
+    const values = adHocFilterValues(f).filter((v) => v !== value);
+    if (!values.length) {
+      return [];
+    }
+    return [{ ...f, value: values[0], values: f.values ? values : undefined }];
+  });
+}

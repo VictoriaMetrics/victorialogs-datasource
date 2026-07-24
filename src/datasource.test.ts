@@ -597,6 +597,46 @@ describe('VictoriaLogsDatasource', () => {
       expect(result[0].streamFilters).toEqual([{ label: 'app', operator: 'in', values: ['smokestream', 'static'] }]);
     });
 
+    it('expands a multi-value variable in streamFilters into separate values', () => {
+      // Emulate the real templateSrv.replace: a multi-value variable hands the
+      // array of selected values to the provided format function
+      replaceMock.mockImplementation(
+        (s: string, _vars: unknown, format?: (value: unknown, variable: unknown) => string) =>
+          s?.replace(/\$app/g, () => (typeof format === 'function' ? format(['api', 'worker'], { name: 'app' }) : 'api'))
+      );
+      const result = ds.interpolateVariablesInQueries(
+        [
+          {
+            expr: '*',
+            refId: 'A',
+            streamFilters: [{ label: 'app', operator: 'in', values: ['$app', 'static'] }],
+          },
+        ],
+        {}
+      );
+      expect(result[0].streamFilters).toEqual([
+        { label: 'app', operator: 'in', values: ['api', 'worker', 'static'] },
+      ]);
+    });
+
+    it('deduplicates stream filter values after variable expansion', () => {
+      replaceMock.mockImplementation(
+        (s: string, _vars: unknown, format?: (value: unknown, variable: unknown) => string) =>
+          s?.replace(/\$app/g, () => (typeof format === 'function' ? format(['api', 'worker'], { name: 'app' }) : 'api'))
+      );
+      const result = ds.interpolateVariablesInQueries(
+        [
+          {
+            expr: '*',
+            refId: 'A',
+            streamFilters: [{ label: 'app', operator: 'in', values: ['$app', 'api'] }],
+          },
+        ],
+        {}
+      );
+      expect(result[0].streamFilters).toEqual([{ label: 'app', operator: 'in', values: ['api', 'worker'] }]);
+    });
+
     it('leaves queries without builder or stream filters untouched by the new interpolation', () => {
       const result = ds.interpolateVariablesInQueries([{ expr: '_time:5m', refId: 'A' }], {});
       expect(result[0].templateBuilder).toBeUndefined();
@@ -1007,6 +1047,72 @@ describe('VictoriaLogsDatasource', () => {
           frame,
         });
         expect(result.streamFilters).toEqual([{ label: 'app', operator: 'in', values: ['a"b'] }]);
+      });
+
+      it('removes a matching exact chip when routing FILTER_OUT into streamFilters', () => {
+        const query: Query = {
+          refId: 'A',
+          expr: '*',
+          adHocFilters: [{ key: 'app', operator: '=', value: 'api' }],
+        };
+        const frame = makeStreamsFrame([{ app: 'api' }]);
+        const result = ds.toggleQueryFilter(query, { ...makeFilter(FilterActionType.FILTER_OUT, 'app', 'api'), frame });
+        expect(result.streamFilters).toEqual([{ label: 'app', operator: 'not_in', values: ['api'] }]);
+        expect(result.adHocFilters).toBeUndefined();
+      });
+
+      it('removes only the matching value from a multi-value chip when routing into streamFilters', () => {
+        const query: Query = {
+          refId: 'A',
+          expr: '*',
+          adHocFilters: [{ key: 'app', operator: '=|', value: 'api', values: ['api', 'worker'] }],
+        };
+        const frame = makeStreamsFrame([{ app: 'api' }]);
+        const result = ds.toggleQueryFilter(query, { ...makeFilter(FilterActionType.FILTER_FOR, 'app', 'api'), frame });
+        expect(result.streamFilters).toEqual([{ label: 'app', operator: 'in', values: ['api'] }]);
+        expect(result.adHocFilters).toEqual([{ key: 'app', operator: '=|', value: 'worker', values: ['worker'] }]);
+      });
+
+      it('removes a matching not-equals chip when routing FILTER_FOR into streamFilters', () => {
+        const query: Query = {
+          refId: 'A',
+          expr: '*',
+          adHocFilters: [{ key: 'app', operator: '!=', value: 'api' }],
+        };
+        const frame = makeStreamsFrame([{ app: 'api' }]);
+        const result = ds.toggleQueryFilter(query, { ...makeFilter(FilterActionType.FILTER_FOR, 'app', 'api'), frame });
+        expect(result.streamFilters).toEqual([{ label: 'app', operator: 'in', values: ['api'] }]);
+        expect(result.adHocFilters).toBeUndefined();
+      });
+
+      it('keeps non-matching and non-exact chips when routing into streamFilters', () => {
+        const query: Query = {
+          refId: 'A',
+          expr: '*',
+          adHocFilters: [
+            { key: 'app', operator: '=~', value: 'api.*' },
+            { key: 'host', operator: '=', value: 'h1' },
+          ],
+        };
+        const frame = makeStreamsFrame([{ app: 'api' }]);
+        const result = ds.toggleQueryFilter(query, { ...makeFilter(FilterActionType.FILTER_FOR, 'app', 'api'), frame });
+        expect(result.adHocFilters).toEqual(query.adHocFilters);
+      });
+
+      it('matches chips by their escaped value when routing into streamFilters', () => {
+        const query: Query = {
+          refId: 'A',
+          expr: '*',
+          // chips store values escaped with escapeLabelValueInSelector
+          adHocFilters: [{ key: 'app', operator: '=', value: 'a\\"b' }],
+        };
+        const frame = makeStreamsFrame([{ app: 'a"b' }]);
+        const result = ds.toggleQueryFilter(query, {
+          type: FilterActionType.FILTER_OUT,
+          options: { key: 'app', value: 'a"b' },
+          frame,
+        });
+        expect(result.adHocFilters).toBeUndefined();
       });
 
       it('adds a regular adhoc chip when the key is not a stream field', () => {
