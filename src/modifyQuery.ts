@@ -1,5 +1,6 @@
 import { AdHocVariableFilter, CoreApp, LogsSortOrder } from '@grafana/data';
 
+import { splitByPipes } from './LogsQL/splitByPipes';
 import { isExprHasStatsPipeFunc } from './LogsQL/statsPipeFunctions';
 import { escapeLabelValueInExactSelector } from './languageUtils';
 import { storeKeys } from './store/constants';
@@ -148,18 +149,27 @@ export const addSortPipeToQuery = ({ expr, queryType, direction }: Query, app: C
   return `${expr} | ${sortPipe}`;
 };
 
-// Matches any trailing `| sort ...` / `| order ...` pipe with all its options
-// (field list, asc/desc, limit/offset, ...). Only the LAST pipe is matched —
-// a sort feeding a later pipe is left intact.
-const TRAILING_SORT_PIPE_RE = /\s*\|\s*(?:sort|order)\b[^|]*$/i;
+// Matches a pipe segment that is a `sort ...` / `order ...` pipe with any of
+// its options (field list, asc/desc, limit/offset, ...).
+const SORT_PIPE_RE = /^(?:sort|order)\b/i;
 
 /**
  * Removes the trailing sort pipe — plugin-appended by addSortPipeToQuery or user-written.
+ * Only the LAST top-level pipe is removed — a sort feeding a later pipe is left intact,
+ * and `|` characters inside quoted values, parentheses or `{}` are ignored.
  * The logs volume hits query appends `format` pipes to the expression, and VictoriaLogs
  * `/select/logsql/hits` returns empty values for fields created by pipes placed after
  * a `sort` pipe — sorting is meaningless for hits aggregation anyway.
  */
-export const removeTrailingSortPipe = (expr: string): string => expr.replace(TRAILING_SORT_PIPE_RE, '');
+export const removeTrailingSortPipe = (expr: string): string => {
+  const segments = splitByPipes(expr);
+  const lastPipe = segments[segments.length - 1];
+  // segments[0] is the filter part, so a single segment means there are no pipes
+  if (segments.length < 2 || !SORT_PIPE_RE.test(lastPipe)) {
+    return expr;
+  }
+  return segments.slice(0, -1).join(' | ');
+};
 
 
 export const getQueryFormat = (expr: string): Format | undefined => {

@@ -377,5 +377,14 @@ describe('modifyQuery', () => {
     it('does not strip pipes whose name merely starts with sort', () => {
       expect(removeTrailingSortPipe('app:x | sort_values')).toBe('app:x | sort_values');
     });
+
+    it('does not corrupt quoted values containing a pipe with sort', () => {
+      expect(removeTrailingSortPipe('_msg:"error | sort by (x)"')).toBe('_msg:"error | sort by (x)"');
+      expect(removeTrailingSortPipe('app:x | filter _msg:"a | order by"')).toBe('app:x | filter _msg:"a | order by"');
+    });
+
+    it('removes a trailing sort pipe after a quoted value containing a pipe', () => {
+      expect(removeTrailingSortPipe('_msg:"a|b" | sort by (_time) desc')).toBe('_msg:"a|b"');
+    });
   });
 });

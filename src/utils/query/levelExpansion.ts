@@ -76,6 +76,51 @@ export function buildLevelExprMap(rules: LogLevelRule[]): Record<string, string>
 const LEVEL_ORDER = Object.values(UNIQ_LOG_LEVEL);
 
 /**
+ * Builds the expression claiming rows for `level` via its rules, guarded by the
+ * first-match-wins semantics: a rule claims a row only when no EARLIER rule of a
+ * different level matches it. Instead of inlining the full guard per rule (which
+ * grows quadratically with the rule count), guards are factored into a nested
+ * chain — `own1 OR (own2 and !(earlier others))` — built back-to-front, so every
+ * rule expression appears exactly once and the result stays linear in size.
+ * Returns null when the level has no rules.
+ */
+const buildGuardedRuleChain = (rules: LogLevelRule[], level: UniqLogLevelKeys): string | null => {
+  let chain: string | null = null;
+  // `and` binds tighter than `OR` in LogsQL — an OR chain must be parenthesized before guarding
+  let chainHasTopLevelOr = false;
+  // Other-level rules seen between the current position and the next own rule
+  let pendingGuards: string[] = [];
+
+  const guardChain = () => {
+    if (chain !== null && pendingGuards.length) {
+      const guarded = chainHasTopLevelOr ? `(${chain})` : chain;
+      chain = `(${guarded} and !(${pendingGuards.join(' OR ')}))`;
+      chainHasTopLevelOr = false;
+    }
+  };
+
+  for (let i = rules.length - 1; i >= 0; i--) {
+    const rule = rules[i];
+    if (rule.level !== level) {
+      pendingGuards.unshift(buildRuleExpr(rule));
+      continue;
+    }
+    guardChain();
+    // Rules after the LAST own rule guard nothing for this level — drop them
+    pendingGuards = [];
+    if (chain === null) {
+      chain = buildRuleExpr(rule);
+    } else {
+      chain = `${buildRuleExpr(rule)} OR ${chain}`;
+      chainHasTopLevelOr = true;
+    }
+  }
+
+  guardChain();
+  return chain;
+};
+
+/**
  * Builds an EXACT per-level LogsQL expression reproducing the classifier's
  * first-match-wins semantics (extractLevelFromLabels / buildLevelFormatPipes):
  * a valid `level` field value claims the row first (in canonical level order),
@@ -99,17 +144,8 @@ export function buildExactLevelExprMap(rules: LogLevelRule[]): Record<string, st
         : buildLevelAliasClause(level)
     );
 
-    const ruleParts = usable
-      .map((rule, index) => ({ rule, index }))
-      .filter(({ rule }) => rule.level === level)
-      .map(({ rule, index }) => {
-        const earlierOtherLevel = usable
-          .slice(0, index)
-          .filter((earlier) => earlier.level !== level)
-          .map(buildRuleExpr);
-        const own = buildRuleExpr(rule);
-        return earlierOtherLevel.length ? `(${own} and !(${earlierOtherLevel.join(' OR ')}))` : own;
-      });
+    const ruleChain = buildGuardedRuleChain(usable, level);
+    const ruleParts = ruleChain === null ? [] : [ruleChain];
 
     if (level === LogLevel.unknown && usable.length) {
       // Rows matching no rule at all also classify as unknown

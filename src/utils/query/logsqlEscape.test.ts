@@ -8,6 +8,10 @@ describe('escapeLogsQLQuotedValue', () => {
   it('returns plain values unchanged', () => {
     expect(escapeLogsQLQuotedValue('nginx')).toBe('nginx');
   });
+
+  it('escapes newlines so the literal stays valid Go-style syntax', () => {
+    expect(escapeLogsQLQuotedValue('a\nb')).toBe('a\\nb');
+  });
 });
 
 describe('quoteLogsQLValue', () => {

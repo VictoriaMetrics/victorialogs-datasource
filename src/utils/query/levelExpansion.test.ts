@@ -129,4 +129,30 @@ describe('buildExactLevelExprMap', () => {
     const map = buildExactLevelExprMap([draft]);
     expect(map[LogLevel.error]).not.toContain(':"x"');
   });
+
+  it('shares one guard between same-level rules instead of inlining it per rule', () => {
+    const infoX = { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'X', level: LogLevel.info, enabled: true };
+    const warnA = { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'A', level: LogLevel.warning, enabled: true };
+    const warnB = { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'B', level: LogLevel.warning, enabled: true };
+    const map = buildExactLevelExprMap([infoX, warnA, warnB]);
+    expect(map[LogLevel.warning]).toContain('((_msg:"A" OR _msg:"B") and !(_msg:"X"))');
+    // The guard is factored out once — the expression stays linear in the rule count
+    expect((map[LogLevel.warning].match(/_msg:"X"/g) ?? []).length).toBe(1);
+  });
+
+  it('nests guards when other-level rules interleave own rules', () => {
+    const warnA = { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'A', level: LogLevel.warning, enabled: true };
+    const infoX = { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'X', level: LogLevel.info, enabled: true };
+    const warnB = { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'B', level: LogLevel.warning, enabled: true };
+    const map = buildExactLevelExprMap([warnA, infoX, warnB]);
+    expect(map[LogLevel.warning]).toContain('_msg:"A" OR (_msg:"B" and !(_msg:"X"))');
+  });
+
+  it('ignores other-level rules placed after the last own rule', () => {
+    const warnA = { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'A', level: LogLevel.warning, enabled: true };
+    const infoX = { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'X', level: LogLevel.info, enabled: true };
+    const map = buildExactLevelExprMap([warnA, infoX]);
+    expect(map[LogLevel.warning]).toContain('_msg:"A"');
+    expect(map[LogLevel.warning]).not.toContain('_msg:"A" and');
+  });
 });
