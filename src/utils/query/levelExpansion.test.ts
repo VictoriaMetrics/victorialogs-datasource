@@ -153,6 +153,6 @@ describe('buildExactLevelExprMap', () => {
     const infoX = { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'X', level: LogLevel.info, enabled: true };
     const map = buildExactLevelExprMap([warnA, infoX]);
     expect(map[LogLevel.warning]).toContain('_msg:"A"');
-    expect(map[LogLevel.warning]).not.toContain('_msg:"A" and');
+    expect(map[LogLevel.warning]).not.toContain('_msg:"X"');
   });
 });
