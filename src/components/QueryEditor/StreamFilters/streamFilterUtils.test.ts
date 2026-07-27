@@ -31,6 +31,18 @@ describe('streamFilterToString', () => {
     );
   });
 
+  it('escapes newlines in values', () => {
+    expect(streamFilterToString({ label: 'app', operator: 'in', values: ['a\nb'] })).toBe(
+      '_stream:{app in ("a\\nb")}'
+    );
+  });
+
+  it('escapes newlines in quoted labels', () => {
+    expect(streamFilterToString({ label: 'foo\nbar', operator: 'in', values: ['x'] })).toBe(
+      '_stream:{"foo\\nbar" in ("x")}'
+    );
+  });
+
   it('passes a variable label through unquoted', () => {
     expect(streamFilterToString({ label: '$field', operator: 'in', values: ['x'] })).toBe(
       '_stream:{$field in ("x")}'

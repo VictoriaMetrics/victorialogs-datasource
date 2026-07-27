@@ -32,6 +32,13 @@ describe('serializePipe', () => {
     expect(serializePipe(pipe)).toBe('app:in("nginx", "apache")');
   });
 
+  it('escapes newlines in quoted placeholder values', () => {
+    const field = { ...placeholder('f', { role: 'fieldName' as const, displayHint: '', optionSource: 'fieldNames' as const }), value: 'msg' };
+    const val = { ...placeholder('v', { role: 'fieldValue' as const, displayHint: '', optionSource: 'fieldValues' as const }), value: 'a\nb' };
+    const pipe = makePipe('phrase', [field, text(':'), val]);
+    expect(serializePipe(pipe)).toBe('msg:"a\\nb"');
+  });
+
   it('skips unfilled placeholders', () => {
     const field = placeholder('f', { role: 'fieldName' as const, displayHint: '', optionSource: 'fieldNames' as const });
     const pipe = makePipe('phrase', [field, text(':'), text('value')]);

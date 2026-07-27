@@ -1,3 +1,5 @@
+import { quoteLogsQLValue } from '../../../utils/query/logsqlEscape';
+
 import { getTemplate } from './templates/registry';
 import { Pipe, PlaceholderSegment, Segment, TemplateQueryModel } from './types';
 
@@ -10,18 +12,15 @@ const isFieldNameRole = (role: string): boolean =>
 const needsFieldNameQuotes = (value: string): boolean =>
   !/^[a-zA-Z0-9_.]+$/.test(value);
 
-const escapeValue = (value: string): string =>
-  value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-
 const formatValue = (value: string, segment: PlaceholderSegment): string => {
   if (value === '*') {
     return '*';
   }
   if (needsQuotes(segment.role)) {
-    return `"${escapeValue(value)}"`;
+    return quoteLogsQLValue(value);
   }
   if (isFieldNameRole(segment.role) && needsFieldNameQuotes(value)) {
-    return `"${escapeValue(value)}"`;
+    return quoteLogsQLValue(value);
   }
   return value;
 };

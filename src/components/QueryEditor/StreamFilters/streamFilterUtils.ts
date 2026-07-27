@@ -1,13 +1,7 @@
 import { StreamFilterState } from '../../../types';
 import { isVariable } from '../../../utils/isVariable';
+import { quoteLogsQLValue } from '../../../utils/query/logsqlEscape';
 import { streamFilterOperator } from '../../../utils/query/streamFilterToggle';
-
-/**
- * Escapes double quotes in a stream filter value.
- */
-function escapeDoubleQuotes(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-}
 
 /**
  * Formats a single stream filter value for use in a LogsQL stream filter.
@@ -15,7 +9,7 @@ function escapeDoubleQuotes(value: string): string {
  * be interpolated later; regular values are wrapped in double quotes.
  */
 function formatStreamValue(value: string): string {
-  return isVariable(value) ? value : `"${escapeDoubleQuotes(value)}"`;
+  return isVariable(value) ? value : quoteLogsQLValue(value);
 }
 
 // Label names the LogsQL parser accepts without quotes; anything else
@@ -32,7 +26,7 @@ function formatStreamLabel(label: string): string {
   if (isVariable(label) || UNQUOTED_LABEL_PATTERN.test(label)) {
     return label;
   }
-  return `"${escapeDoubleQuotes(label)}"`;
+  return quoteLogsQLValue(label);
 }
 
 /**
