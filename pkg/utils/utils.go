@@ -18,8 +18,6 @@ const (
 	varIntervalMs = "$__interval_ms"
 	varRange      = "$__range"
 
-	timeField = "_time"
-
 	nsecsPerHour   = 3600 * 1e9
 	nsecsPerMinute = 60 * 1e9
 )
@@ -613,43 +611,6 @@ func roundInterval(interval time.Duration) time.Duration {
 	}
 }
 
-// Regex to find options(...) and insert time field after the closing parenthesis
-var (
-	optionRe = regexp.MustCompile(`(options\s*\(.*?\))(\s*|$)`)
-)
-
-// AddTimeFieldWithRange adds time field with range to the query
-func AddTimeFieldWithRange(expr string, timeRange backend.TimeRange) string {
-	if expr == "" {
-		return expr
-	}
-
-	if hasTimeField(expr) {
-		return expr
-	}
-
-	timeRangeStr := timeRangeToString(timeRange)
-	timeFieldWithRange := fmt.Sprintf("%s:%s", timeField, timeRangeStr)
-
-	expr = strings.TrimSpace(expr)
-
-	if optionRe.MatchString(expr) {
-		return optionRe.ReplaceAllString(expr, fmt.Sprintf("$1 %s$2", timeFieldWithRange))
-	}
-
-	// No options block, add time field at the beginning
-	return fmt.Sprintf("%s %s", timeFieldWithRange, expr)
-}
-
 func timeRangeToString(timeRange backend.TimeRange) string {
 	return fmt.Sprintf("[%s, %s]", strconv.FormatInt(timeRange.From.Unix(), 10), strconv.FormatInt(timeRange.To.Unix(), 10))
-}
-
-func hasTimeField(expr string) bool {
-	parts := strings.Split(expr, "|")
-	if len(parts) > 1 {
-		expr = parts[0]
-	}
-
-	return strings.Contains(expr, timeField+":")
 }
