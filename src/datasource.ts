@@ -42,7 +42,6 @@ import {
   mergePresetLogLevelRules,
 } from './configuration/OpenTelemetryPreset/preset-builder';
 import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
-import { escapeLabelValueInSelector } from './languageUtils';
 import LogsQlLanguageProvider from './language_provider';
 import { LiveChannelPathProvider } from './live/LiveChannelPathProvider';
 import { LogContextProvider } from './logContext/LogContextProvider';
@@ -199,12 +198,8 @@ export class VictoriaLogsDatasource
       const next = toggleStreamFilterValue(query.streamFilters ?? [], filter.type, key, filter.options.value);
       // A leftover exact chip of the same key/value would contradict the new
       // stream filter (e.g. app="api" AND _stream:{app not_in ("api")}), so it
-      // is removed; chips store values escaped, hence the escaped lookup
-      const nextChips = removeAdHocFilterValue(
-        query.adHocFilters ?? [],
-        key,
-        escapeLabelValueInSelector(filter.options.value)
-      );
+      // is removed
+      const nextChips = removeAdHocFilterValue(query.adHocFilters ?? [], key, filter.options.value);
       const expr = query.expr || (next.length || nextChips.length ? '*' : '');
       return {
         ...query,
@@ -214,8 +209,8 @@ export class VictoriaLogsDatasource
       };
     }
 
-    const value = escapeLabelValueInSelector(filter.options.value);
-    const next = toggleAdHocFilterValue(query.adHocFilters ?? [], filter.type, key, value);
+    // Chip values are stored raw; escaping happens at serialization
+    const next = toggleAdHocFilterValue(query.adHocFilters ?? [], filter.type, key, filter.options.value);
 
     const expr = query.expr || (next.length ? '*' : '');
     return { ...query, expr, adHocFilters: next.length ? next : undefined };
@@ -229,8 +224,7 @@ export class VictoriaLogsDatasource
     if (streamFiltersHaveValue(query.streamFilters ?? [], filter.key, filter.value)) {
       return true;
     }
-    const value = escapeLabelValueInSelector(filter.value);
-    return adHocFiltersHaveValue(query.adHocFilters ?? [], filter.key, value);
+    return adHocFiltersHaveValue(query.adHocFilters ?? [], filter.key, filter.value);
   }
 
   filterQuery(query: Query): boolean {

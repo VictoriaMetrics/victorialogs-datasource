@@ -75,6 +75,14 @@ describe('VictoriaLogsDatasource', () => {
   });
 
   describe('applyTemplateVariables', () => {
+    it('escapes raw chip values when serialising extraFilters', () => {
+      const result = ds.applyTemplateVariables(
+        { expr: '_time:5m', refId: 'A', adHocFilters: [{ key: 'foo', operator: '=', value: 'a"b' }] },
+        {}
+      );
+      expect(result.extraFilters).toBe('foo:="a\\"b"');
+    });
+
     it('serialises a multi-value (one of) dashboard filter with its values', () => {
       const result = ds.applyTemplateVariables({ expr: '_time:5m', refId: 'A' }, {}, [
         { key: 'foo', operator: '=|', value: 'bar', values: ['bar', 'baz'] },
@@ -982,6 +990,15 @@ describe('VictoriaLogsDatasource', () => {
       expect(result).toEqual(query);
     });
 
+    it('stores the raw value in adhoc chips and leaves escaping to serialization', () => {
+      const query: Query = { refId: 'A', expr: '*' };
+      const result = ds.toggleQueryFilter(query, {
+        type: FilterActionType.FILTER_FOR,
+        options: { key: 'app', value: 'a"b' },
+      });
+      expect(result.adHocFilters).toEqual([{ key: 'app', operator: '=|', value: 'a"b', values: ['a"b'] }]);
+    });
+
     it('preserves keys with colons in adHocFilters as-is', () => {
       const query: Query = { refId: 'A', expr: '' };
       const result = ds.toggleQueryFilter(
@@ -1099,12 +1116,12 @@ describe('VictoriaLogsDatasource', () => {
         expect(result.adHocFilters).toEqual(query.adHocFilters);
       });
 
-      it('matches chips by their escaped value when routing into streamFilters', () => {
+      it('removes a chip whose raw value contains a quote when routing into streamFilters', () => {
         const query: Query = {
           refId: 'A',
           expr: '*',
-          // chips store values escaped with escapeLabelValueInSelector
-          adHocFilters: [{ key: 'app', operator: '=', value: 'a\\"b' }],
+          // chips store values raw; escaping happens only at serialization
+          adHocFilters: [{ key: 'app', operator: '=', value: 'a"b' }],
         };
         const frame = makeStreamsFrame([{ app: 'a"b' }]);
         const result = ds.toggleQueryFilter(query, {
@@ -1149,6 +1166,15 @@ describe('VictoriaLogsDatasource', () => {
       };
       expect(ds.queryHasFilter(query, { key: 'foo', value: 'baz' })).toBe(true);
       expect(ds.queryHasFilter(query, { key: 'foo', value: 'qux' })).toBe(false);
+    });
+
+    it('finds a raw value containing quotes in the chips', () => {
+      const query: Query = {
+        refId: 'A',
+        expr: '*',
+        adHocFilters: [{ key: 'app', operator: '=', value: 'a"b' }],
+      };
+      expect(ds.queryHasFilter(query, { key: 'app', value: 'a"b' })).toBe(true);
     });
 
     it('finds a value in the streamFilters in groups', () => {

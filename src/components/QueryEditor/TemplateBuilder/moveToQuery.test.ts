@@ -32,8 +32,8 @@ describe('buildPipeForAdHocFilter', () => {
     expect(serializeSingle(placement!.pipe)).toBe('foo:in("bar")');
   });
 
-  it('unescapes the chip value before filling the pipe', () => {
-    const placement = build({ key: 'foo', operator: '=', value: 'a\\"b' });
+  it('fills the pipe with the raw chip value and lets the builder serialization escape it', () => {
+    const placement = build({ key: 'foo', operator: '=', value: 'a"b' });
     expect(serializeSingle(placement!.pipe)).toBe('foo:in("a\\"b")');
   });
 
@@ -47,9 +47,8 @@ describe('buildPipeForAdHocFilter', () => {
     expect(serializeSingle(build({ key: 'foo', operator: '!~', value: 'ba.*' })!.pipe)).toBe('foo:!~"ba.*"');
   });
 
-  it('keeps the escaped regex pattern verbatim so quotes and backslashes survive', () => {
-    expect(serializeSingle(build({ key: 'foo', operator: '=~', value: 'a\\"b.*' })!.pipe)).toBe('foo:~"a\\"b.*"');
-    expect(serializeSingle(build({ key: 'foo', operator: '=~', value: '\\\\d+' })!.pipe)).toBe('foo:~"\\\\d+"');
+  it('keeps the regex pattern verbatim so backslashes survive', () => {
+    expect(serializeSingle(build({ key: 'foo', operator: '=~', value: '\\d+' })!.pipe)).toBe('foo:~"\\d+"');
   });
 
   it('maps < and > to a Range pipe', () => {

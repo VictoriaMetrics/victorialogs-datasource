@@ -24,10 +24,6 @@ const fillPlaceholders = (pipe: Pipe, fill: Fill): Pipe => ({
   }),
 });
 
-// Ad-hoc chips store values escaped for the LogsQL selector; the builder
-// serialization escapes placeholder values itself, so undo it first
-const unescapeChipValue = (value: string): string => value.replace(/\\(["\\])/g, '$1');
-
 function buildCustomPipe(expr: string): Pipe | null {
   const pipe = createPipeFromTemplate('custom');
   return pipe && fillPlaceholders(pipe, (s) => (s.role === 'expression' ? expr : undefined));
@@ -81,7 +77,8 @@ function buildNativeAdHocPipe(filter: AdHocFilter): Pipe | null {
     case '=':
     case '=|': {
       const pipe = createPipeFromTemplate('exact');
-      const values = adHocFilterValues(filter).map(unescapeChipValue);
+      // Chip values are raw; the builder serialization escapes placeholder values itself
+      const values = adHocFilterValues(filter);
       return (
         pipe &&
         fillPlaceholders(pipe, (s) => {
@@ -111,7 +108,7 @@ function buildNativeAdHocPipe(filter: AdHocFilter): Pipe | null {
     case '<':
     case '>': {
       const pipe = createPipeFromTemplate('range');
-      const value = unescapeChipValue(filter.value);
+      const value = filter.value;
       return (
         pipe &&
         fillPlaceholders(pipe, (s) => {
