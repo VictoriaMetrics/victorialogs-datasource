@@ -1,3 +1,5 @@
+import { escapeLogsQLQuotedValue } from './utils/query/logsqlEscape';
+
 const REG_METACHARACTERS = /[*+?()|\\.\[\]{}^$]/g;
 
 export function unescapeLabelValue(labelValue: string): string {
@@ -13,7 +15,7 @@ function escapeMetaRegexp(value: string): string {
 }
 
 export function escapeLabelValueInExactSelector(labelValue: string): string {
-  return labelValue.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/"/g, '\\"');
+  return escapeLogsQLQuotedValue(labelValue);
 }
 
 export function escapeLabelValueInRegexSelector(labelValue: string): string {

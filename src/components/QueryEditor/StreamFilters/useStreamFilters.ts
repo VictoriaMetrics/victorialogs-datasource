@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 
-import { Query, StreamFilterState } from '../../../types';
+import { Query, QueryEditorMode, StreamFilterState } from '../../../types';
+import { isInGroup } from '../../../utils/query/streamFilterToggle';
+import { buildPipeForStreamFilter, withPipeInserted } from '../TemplateBuilder/moveToQuery';
 
-import { buildStreamExtraFilters } from './streamFilterUtils';
+import { buildStreamExtraFilters, streamFilterToString } from './streamFilterUtils';
 
 interface Props {
   query: Query;
@@ -10,18 +12,20 @@ interface Props {
   onRunQuery: () => void;
 }
 
+// The popover edits only `in` groups; `not_in` groups (added by the Filter out
+// log-details action) are managed through their chips.
 const getValuesByLabel = (filters: StreamFilterState[], label: string | null): string[] => {
   if (!label) {
     return [];
   }
-  return filters.find((f) => f.label === label)?.values ?? [];
+  return filters.find((f) => f.label === label && isInGroup(f))?.values ?? [];
 };
 
 const toggleValueInList = (values: string[], value: string): string[] =>
   values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
 
 /**
- * Returns a new filters array with `values` upserted under `label`:
+ * Returns a new filters array with `values` upserted under the `in` group of `label`:
  * — empty values + missing label  → returns the original ref (no-op).
  * — empty values + existing label → drops that filter.
  * — non-empty + missing label     → appends a new filter.
@@ -32,7 +36,7 @@ const withUpsertedValues = (
   label: string,
   values: string[]
 ): StreamFilterState[] => {
-  const idx = filters.findIndex((f) => f.label === label);
+  const idx = filters.findIndex((f) => f.label === label && isInGroup(f));
   if (values.length === 0) {
     return idx === -1 ? filters : filters.filter((_, i) => i !== idx);
   }
@@ -52,7 +56,7 @@ const serializeFiltersExceptLabel = (
   if (excludedLabel === null) {
     return undefined;
   }
-  return serializeFilters(filters.filter((f) => f.label !== excludedLabel));
+  return serializeFilters(filters.filter((f) => !(f.label === excludedLabel && isInGroup(f))));
 };
 
 export function useStreamFilters({ query, onChange, onRunQuery }: Props) {
@@ -108,26 +112,31 @@ export function useStreamFilters({ query, onChange, onRunQuery }: Props) {
     [popoverLabel, streamFilters, setFilterValues]
   );
 
+  // Chip removals go by index (not through withUpsertedValues) so they work
+  // for both `in` and `not_in` groups
   const handleRemoveValue = useCallback(
     (filterIndex: number, value: string) => {
       const filter = streamFilters[filterIndex];
       if (!filter) {
         return;
       }
-      setFilterValues(filter.label, filter.values.filter((v) => v !== value));
+      const values = filter.values.filter((v) => v !== value);
+      const next = values.length
+        ? streamFilters.map((f, i) => (i === filterIndex ? { ...f, values } : f))
+        : streamFilters.filter((_, i) => i !== filterIndex);
+      commitFilters(next);
     },
-    [streamFilters, setFilterValues]
+    [streamFilters, commitFilters]
   );
 
   const handleRemoveFilter = useCallback(
     (filterIndex: number) => {
-      const filter = streamFilters[filterIndex];
-      if (!filter) {
+      if (!streamFilters[filterIndex]) {
         return;
       }
-      setFilterValues(filter.label, []);
+      commitFilters(streamFilters.filter((_, i) => i !== filterIndex));
     },
-    [streamFilters, setFilterValues]
+    [streamFilters, commitFilters]
   );
 
   const clearAll = useCallback(() => {
@@ -136,6 +145,34 @@ export function useStreamFilters({ query, onChange, onRunQuery }: Props) {
     }
     commitFilters([]);
   }, [streamFilters.length, commitFilters]);
+
+  // Moves a stream filter group into the query itself: in builder mode as a
+  // pipe prepended to the model, in code mode as a `_stream:{...}` prefix
+  const moveFilterToQuery = useCallback(
+    (filterIndex: number) => {
+      const filter = streamFilters[filterIndex];
+      if (!filter) {
+        return;
+      }
+      const rest = streamFilters.filter((_, i) => i !== filterIndex);
+      const nextStreamFilters = rest.length ? rest : undefined;
+
+      if (query.editorMode === QueryEditorMode.Builder) {
+        const pipe = buildPipeForStreamFilter(filter);
+        if (!pipe) {
+          return;
+        }
+        onChange({ ...query, ...withPipeInserted(query, pipe, 'start'), streamFilters: nextStreamFilters });
+      } else {
+        const filterStr = streamFilterToString(filter);
+        const trimmed = (query.expr ?? '').trim();
+        const expr = !trimmed || trimmed === '*' ? filterStr : `${filterStr} AND ${trimmed}`;
+        onChange({ ...query, expr, streamFilters: nextStreamFilters });
+      }
+      onRunQuery();
+    },
+    [streamFilters, query, onChange, onRunQuery]
+  );
 
   const selectedValuesForPopover = useMemo(
     () => getValuesByLabel(streamFilters, popoverLabel),
@@ -164,6 +201,7 @@ export function useStreamFilters({ query, onChange, onRunQuery }: Props) {
     handleToggleValue,
     handleRemoveValue,
     handleRemoveFilter,
+    moveFilterToQuery,
     clearAll,
     selectedValuesForPopover,
     selectedExtraStreamFilters,

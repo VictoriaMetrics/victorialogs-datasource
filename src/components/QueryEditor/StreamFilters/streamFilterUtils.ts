@@ -1,12 +1,7 @@
 import { StreamFilterState } from '../../../types';
 import { isVariable } from '../../../utils/isVariable';
-
-/**
- * Escapes double quotes in a stream filter value.
- */
-function escapeDoubleQuotes(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-}
+import { quoteLogsQLValue } from '../../../utils/query/logsqlEscape';
+import { streamFilterOperator } from '../../../utils/query/streamFilterToggle';
 
 /**
  * Formats a single stream filter value for use in a LogsQL stream filter.
@@ -14,7 +9,24 @@ function escapeDoubleQuotes(value: string): string {
  * be interpolated later; regular values are wrapped in double quotes.
  */
 function formatStreamValue(value: string): string {
-  return isVariable(value) ? value : `"${escapeDoubleQuotes(value)}"`;
+  return isVariable(value) ? value : quoteLogsQLValue(value);
+}
+
+// Label names the LogsQL parser accepts without quotes; anything else
+// (spaces, quotes, unicode, …) would be misparsed, e.g. `{foo bar in (...)}`
+// reads `bar` as an unsupported operation
+const UNQUOTED_LABEL_PATTERN = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
+
+/**
+ * Formats a stream filter label for use in a LogsQL stream filter.
+ * Template variables are passed through as-is; labels outside the safe
+ * charset are wrapped in double quotes.
+ */
+function formatStreamLabel(label: string): string {
+  if (isVariable(label) || UNQUOTED_LABEL_PATTERN.test(label)) {
+    return label;
+  }
+  return quoteLogsQLValue(label);
 }
 
 /**
@@ -32,10 +44,10 @@ export function streamFilterToString(filter: StreamFilterState): string {
     return '';
   }
 
-  const op = filter.operator || 'in';
+  const op = streamFilterOperator(filter);
 
   const valuesList = filter.values.map(formatStreamValue).join(', ');
-  return `_stream:{${filter.label} ${op} (${valuesList})}`;
+  return `_stream:{${formatStreamLabel(filter.label)} ${op} (${valuesList})}`;
 }
 
 /**

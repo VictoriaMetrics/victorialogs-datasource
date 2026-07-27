@@ -1,6 +1,7 @@
 import { AdHocVariableFilter, CoreApp, LogsSortOrder } from '@grafana/data';
 
 import { isExprHasStatsPipeFunc } from './LogsQL/statsPipeFunctions';
+import { escapeLabelValueInExactSelector } from './languageUtils';
 import { storeKeys } from './store/constants';
 import store from './store/store';
 import { FilterVisualQuery, Format, Query, QueryDirection, QueryType } from './types';
@@ -27,12 +28,14 @@ const getFilterInsertValue = (key: string, value: string, operator: string): str
     return getFilterInsertValueForStream(key, value, operator);
   }
 
+  // Filter values are stored raw and escaped only here, at serialization.
+  const escaped = escapeLabelValueInExactSelector(value);
   const normalizedKey = normalizeKey(key);
   switch (operator) {
     case '=~':
-      return `${normalizedKey}:~"${value}"`;
+      return `${normalizedKey}:~"${escaped}"`;
     default:
-      return `${normalizedKey}:${operator}"${value}"`;
+      return `${normalizedKey}:${operator}"${escaped}"`;
   }
 };
 
@@ -54,7 +57,7 @@ const getMultiValueInsert = (key: string, values: string[], operator: string): s
   }
 
   const normalizedKey = normalizeKey(key);
-  const valuesStr = values.map(v => `"${v}"`).join(',');
+  const valuesStr = values.map(v => `"${escapeLabelValueInExactSelector(v)}"`).join(',');
   const expr = `${normalizedKey}:in(${valuesStr})`;
   return isExclude ? `!${expr}` : expr;
 };

@@ -68,6 +68,21 @@ describe('modifyQuery', () => {
       expect(result).toBe('foo: bar AND !baz:in("qux","quux")');
     });
 
+    it('escapes quotes and backslashes in exact filter values', () => {
+      expect(addLabelToQuery('', { key: 'foo', operator: '=', value: 'a"b\\c' })).toBe('foo:="a\\"b\\\\c"');
+    });
+
+    it('escapes regex filter values so VictoriaLogs unquoting restores the pattern', () => {
+      expect(addLabelToQuery('', { key: 'foo', operator: '=~', value: 'a"b.*' })).toBe('foo:~"a\\"b.*"');
+      expect(addLabelToQuery('', { key: 'foo', operator: '=~', value: '\\d+' })).toBe('foo:~"\\\\d+"');
+    });
+
+    it('escapes values of multi-value groups', () => {
+      expect(addLabelToQuery('', { key: 'foo', operator: '=|', value: 'a"b', values: ['a"b', 'x'] })).toBe(
+        'foo:in("a\\"b","x")'
+      );
+    });
+
     it('should quote label name containing colons(:) with double quotes', () => {
       const query = 'foo: bar';
       const result = addLabelToQuery(query, { key: 'span:attr_id', value: 'abc', operator: '!=|' });
@@ -78,6 +93,7 @@ describe('modifyQuery', () => {
       const result = addLabelToQuery(query, { key: '"span:attr_id"', value: 'abc', operator: '!=|' });
       expect(result).toBe('foo: bar AND !\"span:attr_id\":in()');
     });
+
   });
 
   describe('removeLabelFromQuery', () => {

@@ -33,6 +33,7 @@ import QueryEditor from './components/QueryEditor/QueryEditor';
 import {
   buildStreamExtraFilters
 } from './components/QueryEditor/StreamFilters/streamFilterUtils';
+import { interpolateTemplateBuilder } from './components/QueryEditor/TemplateBuilder/interpolate';
 import { LogLevelRule } from './configuration/LogLevelRules/types';
 import {
   buildPresetDerivedFields,
@@ -41,7 +42,6 @@ import {
   mergePresetLogLevelRules,
 } from './configuration/OpenTelemetryPreset/preset-builder';
 import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
-import { escapeLabelValueInSelector } from './languageUtils';
 import LogsQlLanguageProvider from './language_provider';
 import { LiveChannelPathProvider } from './live/LiveChannelPathProvider';
 import { LogContextProvider } from './logContext/LogContextProvider';
@@ -56,7 +56,6 @@ import { replaceOperatorWithIn, returnVariables } from './parsingUtils';
 import { packLabelsToLine, shouldPackLabelsToLine, transformBackendResult } from './transformers';
 import {
   DerivedFieldConfig,
-  FilterActionType,
   FilterFieldType,
   MultitenancyHeaders,
   Options,
@@ -71,10 +70,14 @@ import {
   ToggleFilterAction,
   VariableQuery,
 } from './types';
+import { frameHasStreamField } from './utils/dataFrame/streamFields';
+import { isVariable } from './utils/isVariable';
+import { adHocFiltersHaveValue, removeAdHocFilterValue, toggleAdHocFilterValue } from './utils/query/adHocFilterToggle';
 import {
   resolveAdHocFilters,
   serializeChipsForBackend,
 } from './utils/query/adHocFilters';
+import { streamFiltersHaveValue, toggleStreamFilterValue } from './utils/query/streamFilterToggle';
 import { formatOffsetDuration, getMillisecondsFromDuration } from './utils/timeUtils';
 import { VariableSupport } from './variableSupport/VariableSupport';
 
@@ -187,18 +190,27 @@ export class VictoriaLogsDatasource
     }
 
     const { key } = filter.options;
-    const value = escapeLabelValueInSelector(filter.options.value);
-    const current = query.adHocFilters ?? [];
-    const exists = current.some((f) => f.key === key && f.value === value);
 
-    let next = exists ? current.filter((f) => !(f.key === key && f.value === value)) : current;
-
-    const isFilterFor = filter.type === FilterActionType.FILTER_FOR;
-    const isFilterOut = filter.type === FilterActionType.FILTER_OUT;
-
-    if ((isFilterFor && !exists) || isFilterOut) {
-      next = [...next, { key, value, operator: isFilterFor ? '=' : '!=' }];
+    // Stream fields go to the stream filters (extra_stream_filters), resolved
+    // via the stream index — the fastest filter type in LogsQL. The value is
+    // stored raw: the stream filter serializer escapes it itself
+    if (frameHasStreamField(filter.frame, key)) {
+      const next = toggleStreamFilterValue(query.streamFilters ?? [], filter.type, key, filter.options.value);
+      // A leftover exact chip of the same key/value would contradict the new
+      // stream filter (e.g. app="api" AND _stream:{app not_in ("api")}), so it
+      // is removed
+      const nextChips = removeAdHocFilterValue(query.adHocFilters ?? [], key, filter.options.value);
+      const expr = query.expr || (next.length || nextChips.length ? '*' : '');
+      return {
+        ...query,
+        expr,
+        streamFilters: next.length ? next : undefined,
+        adHocFilters: nextChips.length ? nextChips : undefined,
+      };
     }
+
+    // Chip values are stored raw; escaping happens at serialization
+    const next = toggleAdHocFilterValue(query.adHocFilters ?? [], filter.type, key, filter.options.value);
 
     const expr = query.expr || (next.length ? '*' : '');
     return { ...query, expr, adHocFilters: next.length ? next : undefined };
@@ -209,8 +221,10 @@ export class VictoriaLogsDatasource
   // method the Logs viewer hides the "Filter for / Filter out" icons next to
   // log field values
   queryHasFilter(query: Query, filter: QueryFilterOptions): boolean {
-    const value = escapeLabelValueInSelector(filter.value);
-    return (query.adHocFilters ?? []).some((f) => f.key === filter.key && f.value === value);
+    if (streamFiltersHaveValue(query.streamFilters ?? [], filter.key, filter.value)) {
+      return true;
+    }
+    return adHocFiltersHaveValue(query.adHocFilters ?? [], filter.key, filter.value);
   }
 
   filterQuery(query: Query): boolean {
@@ -285,6 +299,7 @@ export class VictoriaLogsDatasource
     return queries.map((query) => {
       const interpolated = this.interpolateString(query.expr, scopedVars);
       const { expr, chips } = resolveAdHocFilters(query, interpolated, filters, rules);
+      const interpolate = (value: string) => this.interpolateString(value, scopedVars);
 
       return {
         ...query,
@@ -294,9 +309,39 @@ export class VictoriaLogsDatasource
         // Keep chips on the target so Explore can render them; applyTemplateVariables
         // will serialise them into `extraFilters` at query-run time.
         adHocFilters: chips,
-        extraStreamFilters: this.getExtraStreamFilters(query.streamFilters, scopedVars),
+        // The dashboard variables don't exist in Explore, so the editor state that
+        // regenerates the expression (builder model, stream filter values) must be
+        // interpolated too — otherwise raw `$var` placeholders leak back into the
+        // query on the first editor interaction
+        templateBuilder: query.templateBuilder
+          ? interpolateTemplateBuilder(query.templateBuilder, interpolate)
+          : query.templateBuilder,
+        streamFilters: query.streamFilters?.map((f) => ({
+          ...f,
+          values: Array.from(new Set(f.values.flatMap((v) => this.interpolateStreamFilterValue(v, scopedVars)))),
+        })),
       };
     });
+  }
+
+  /**
+   * Interpolates a single stream filter value. A value that is a lone variable
+   * is expanded into one entry per selected value, so a multi-select variable
+   * serializes as `in ("a", "b")` rather than a single joined string
+   */
+  private interpolateStreamFilterValue(value: string, scopedVars: ScopedVars): string[] {
+    if (!isVariable(value)) {
+      return [this.interpolateString(value, scopedVars)];
+    }
+    let expanded: string[] | undefined;
+    const replaced = this.templateSrv.replace(value, scopedVars, (v: unknown) => {
+      if (Array.isArray(v)) {
+        expanded = v.map(String);
+        return '';
+      }
+      return String(v);
+    });
+    return expanded ?? [replaced];
   }
 
   async metricFindQuery(

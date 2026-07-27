@@ -19,20 +19,20 @@ describe('LogContextProvider', () => {
     provider = createDatasource(templateSrvStub).logContextProvider;
   });
 
+  // builds a logs frame carrying the hidden per-row `streams`/`streamId` fields
+  const buildFrame = (streamIds: string[], streams: Array<Record<string, string> | null>) => ({
+    refId: 'A',
+    fields: [
+      { name: 'streams', values: streams },
+      { name: 'streamId', values: streamIds },
+    ],
+    length: streams.length,
+  });
+
   const buildLogRow = (overrides?: object): LogRowModel =>
     ({
       rowIndex: 0,
-      dataFrame: {
-        refId: 'A',
-        fields: [],
-        length: 1,
-        meta: {
-          custom: {
-            streamIds: ['stream-id-1'],
-            streams: [{ app: 'nginx', host: 'h-1' }],
-          },
-        },
-      },
+      dataFrame: buildFrame(['stream-id-1'], [{ app: 'nginx', host: 'h-1' }]),
       labels: {},
       timeEpochMs: 1700000000000,
       timeEpochNs: '1700000000000123456',
@@ -59,12 +59,7 @@ describe('LogContextProvider', () => {
 
   it('escapes quotes and backslashes in stream label values', async () => {
     const row = buildLogRow({
-      dataFrame: {
-        refId: 'A',
-        fields: [],
-        length: 1,
-        meta: { custom: { streamIds: ['stream-id-1'], streams: [{ app: 'a"b', host: 'h-1' }] } },
-      },
+      dataFrame: buildFrame(['stream-id-1'], [{ app: 'a"b', host: 'h-1' }]),
     });
     provider.toggleStreamLabel('stream-id-1', 'host');
     const query = await provider.getLogRowContextQuery(row);
@@ -73,14 +68,7 @@ describe('LogContextProvider', () => {
 
   it('quotes stream label keys that are not simple identifiers', async () => {
     const row = buildLogRow({
-      dataFrame: {
-        refId: 'A',
-        fields: [],
-        length: 1,
-        meta: {
-          custom: { streamIds: ['stream-id-1'], streams: [{ 'Dino Species': 'Stegosaurus', host: 'h-1' }] },
-        },
-      },
+      dataFrame: buildFrame(['stream-id-1'], [{ 'Dino Species': 'Stegosaurus', host: 'h-1' }]),
     });
     provider.toggleStreamLabel('stream-id-1', 'host');
     const query = await provider.getLogRowContextQuery(row);
@@ -103,12 +91,7 @@ describe('LogContextProvider', () => {
 
   it('treats a null _stream (field absent) as no stream labels', () => {
     const row = buildLogRow({
-      dataFrame: {
-        refId: 'A',
-        fields: [],
-        length: 1,
-        meta: { custom: { streamIds: ['stream-id-1'], streams: [null] } },
-      },
+      dataFrame: buildFrame(['stream-id-1'], [null]),
     });
     expect(provider.getStreamLabels(row)).toEqual({});
     // still has a _stream_id, so context can be shown
@@ -117,12 +100,7 @@ describe('LogContextProvider', () => {
 
   it('builds context by _stream labels when _stream_id is missing', async () => {
     const row = buildLogRow({
-      dataFrame: {
-        refId: 'A',
-        fields: [],
-        length: 1,
-        meta: { custom: { streamIds: [''], streams: [{ app: 'nginx', host: 'h-1' }] } },
-      },
+      dataFrame: buildFrame([''], [{ app: 'nginx', host: 'h-1' }]),
     });
     const query = await provider.getLogRowContextQuery(row);
     expect(query?.expr).toBe('_stream:{app="nginx",host="h-1"} _time:<=2023-11-14T22:13:20.000123456Z | sort by (_time) desc limit 50');
@@ -130,12 +108,7 @@ describe('LogContextProvider', () => {
 
   it('narrows the _stream selector by enabled labels when _stream_id is missing', async () => {
     const row = buildLogRow({
-      dataFrame: {
-        refId: 'A',
-        fields: [],
-        length: 1,
-        meta: { custom: { streamIds: [''], streams: [{ app: 'nginx', host: 'h-1' }] } },
-      },
+      dataFrame: buildFrame([''], [{ app: 'nginx', host: 'h-1' }]),
     });
     // with no _stream_id the toggle state is keyed by an empty stream id
     provider.toggleStreamLabel('', 'host');
@@ -145,12 +118,14 @@ describe('LogContextProvider', () => {
 
   it('reports no context data when both _stream and _stream_id are missing', () => {
     const row = buildLogRow({
-      dataFrame: {
-        refId: 'A',
-        fields: [],
-        length: 1,
-        meta: { custom: { streamIds: [''], streams: [null] } },
-      },
+      dataFrame: buildFrame([''], [null]),
+    });
+    expect(provider.hasContextData(row)).toBe(false);
+  });
+
+  it('reports no context data when the frame carries no stream fields at all', () => {
+    const row = buildLogRow({
+      dataFrame: { refId: 'A', fields: [], length: 1 },
     });
     expect(provider.hasContextData(row)).toBe(false);
   });
@@ -209,12 +184,7 @@ describe('LogContextProvider', () => {
 
   it('keeps toggle state isolated between different streams', async () => {
     const otherStreamRow = buildLogRow({
-      dataFrame: {
-        refId: 'A',
-        fields: [],
-        length: 1,
-        meta: { custom: { streamIds: ['stream-id-2'], streams: [{ app: 'nginx', host: 'h-2' }] } },
-      },
+      dataFrame: buildFrame(['stream-id-2'], [{ app: 'nginx', host: 'h-2' }]),
     });
     provider.toggleStreamLabel('stream-id-1', 'host');
 

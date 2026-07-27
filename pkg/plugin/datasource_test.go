@@ -202,15 +202,15 @@ func TestDatasourceQueryRequest(t *testing.T) {
 			[]byte(lineRaw),
 			nil,
 		))
-		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
+		streamsField, streamIdField := newHiddenStreamFields(
+			[]string{""},
+			[]map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
+		)
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField, streamsField, streamIdField)
 
 		rsp := backend.DataResponse{}
 		frame.Meta = &data.FrameMeta{
 			PreferredVisualization: logsVisualisation,
-			Custom: map[string]any{
-				"streamIds": []string{""},
-				"streams":   []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
-			},
 		}
 		rsp.Frames = append(rsp.Frames, frame)
 
@@ -292,15 +292,15 @@ func TestDatasourceQueryRequest(t *testing.T) {
 			[]byte(lineRaw),
 			nil,
 		))
-		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
+		streamsField, streamIdField := newHiddenStreamFields(
+			[]string{""},
+			[]map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
+		)
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField, streamsField, streamIdField)
 
 		rsp := backend.DataResponse{}
 		frame.Meta = &data.FrameMeta{
 			PreferredVisualization: logsVisualisation,
-			Custom: map[string]any{
-				"streamIds": []string{""},
-				"streams":   []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
-			},
 		}
 		rsp.Frames = append(rsp.Frames, frame)
 
@@ -435,8 +435,8 @@ func TestDatasourceQueryRequestWithRetry(t *testing.T) {
 			t.Fatalf("expected 1 frame got %d", len(response.Frames))
 		}
 		for _, frame := range response.Frames {
-			if len(frame.Fields) != 4 {
-				t.Fatalf("expected 4 fields got %d", len(frame.Fields))
+			if len(frame.Fields) != 6 {
+				t.Fatalf("expected 6 fields got %d", len(frame.Fields))
 			}
 			if frame.Fields[1].At(0) != v {
 				t.Fatalf("unexpected value %v", frame.Fields[1].At(0))
@@ -597,13 +597,13 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 			[]byte(lineRaw),
 			nil,
 		))
-		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
+		streamsField, streamIdField := newHiddenStreamFields(
+			[]string{""},
+			[]map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
+		)
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField, streamsField, streamIdField)
 		frame.Meta = &data.FrameMeta{
 			PreferredVisualization: logsVisualisation,
-			Custom: map[string]any{
-				"streamIds": []string{""},
-				"streams":   []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
-			},
 		}
 
 		return frame
@@ -660,13 +660,13 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 			[]byte(lineRaw),
 			nil,
 		))
-		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
+		streamsField, streamIdField := newHiddenStreamFields(
+			[]string{""},
+			[]map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
+		)
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField, streamsField, streamIdField)
 		frame.Meta = &data.FrameMeta{
 			PreferredVisualization: logsVisualisation,
-			Custom: map[string]any{
-				"streamIds": []string{""},
-				"streams":   []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
-			},
 		}
 		return frame
 	}
@@ -998,13 +998,13 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 			[]byte(lineRaw),
 			nil,
 		))
-		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
+		streamsField, streamIdField := newHiddenStreamFields(
+			[]string{""},
+			[]map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
+		)
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField, streamsField, streamIdField)
 		frame.Meta = &data.FrameMeta{
 			PreferredVisualization: logsVisualisation,
-			Custom: map[string]any{
-				"streamIds": []string{""},
-				"streams":   []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
-			},
 		}
 
 		return frame
@@ -1061,13 +1061,13 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 			[]byte(lineRaw),
 			nil,
 		))
-		frame := data.NewFrame("", timeFd, lineField, idField, labelsField)
+		streamsField, streamIdField := newHiddenStreamFields(
+			[]string{""},
+			[]map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
+		)
+		frame := data.NewFrame("", timeFd, lineField, idField, labelsField, streamsField, streamIdField)
 		frame.Meta = &data.FrameMeta{
 			PreferredVisualization: logsVisualisation,
-			Custom: map[string]any{
-				"streamIds": []string{""},
-				"streams":   []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}},
-			},
 		}
 		return frame
 	}

@@ -1,18 +1,22 @@
-import { css, cx } from '@emotion/css';
+import { css } from '@emotion/css';
 import React, { useMemo } from 'react';
 
 import { CoreApp, GrafanaTheme2, TimeRange } from '@grafana/data';
-import { Button, Icon, Tooltip, useStyles2 } from '@grafana/ui';
+import { Icon, Stack, Tooltip, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../datasource';
 import { addLabelToQuery } from '../../modifyQuery';
-import { Query } from '../../types';
+import { AdHocFilter, Query, QueryEditorMode } from '../../types';
 import {
+  adHocFilterValues,
   appendFilterPipeToQuery,
   formatAdHocFilterLabel,
+  formatChipOperatorLabel,
   queryHasPipes,
 } from '../../utils/query/adHocFilters';
+import { GroupedChip } from '../shared/Chip/GroupedChip';
 
+import { buildPipeForAdHocFilter, withPipeInserted } from './TemplateBuilder/moveToQuery';
 import { useAdHocFilterValidation } from './useAdHocFilterValidation';
 
 interface AdHocFiltersControlProps {
@@ -47,10 +51,28 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
   const fieldNames = useMemo(() => Array.from(new Set(filters.map((f) => f.key))), [filters]);
   const validation = useAdHocFilterValidation({ datasource, query, timeRange, fieldNames });
 
-  const handleDeleteFilter = (index: number) => {
-    const next = filters.filter((_, i) => i !== index);
+  const commitFilters = (next: AdHocFilter[]) => {
     onChange({ ...query, adHocFilters: next.length ? next : undefined });
     onRunQuery();
+  };
+
+  const handleDeleteFilter = (index: number) => {
+    commitFilters(filters.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveValue = (index: number, value: string) => {
+    const filter = filters[index];
+    if (!filter) {
+      return;
+    }
+    const values = adHocFilterValues(filter).filter((v) => v !== value);
+    if (values.length === 0) {
+      handleDeleteFilter(index);
+      return;
+    }
+    // Keep `value` in sync with the remaining list — consumers like
+    // queryHasFilter fall back to it for single-value chips
+    commitFilters(filters.map((f, i) => (i === index ? { ...f, value: values[0], values } : f)));
   };
 
   const handleMoveToQuery = (index: number) => {
@@ -58,19 +80,34 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
     if (!filter) {
       return;
     }
-    const currentExpr = query.expr?.trim() || '*';
     const isInvalid = validation[filter.key] === 'invalid';
+    const next = filters.filter((_, i) => i !== index);
+    const nextAdHocFilters = next.length ? next : undefined;
+
+    // In builder mode the expression is regenerated from the builder model, so
+    // the filter must become a pipe of the model — editing expr alone would be
+    // silently lost on the next builder interaction
+    if (query.editorMode === QueryEditorMode.Builder) {
+      const placement = buildPipeForAdHocFilter(filter, isInvalid);
+      if (!placement) {
+        return;
+      }
+      onChange({ ...query, ...withPipeInserted(query, placement.pipe, placement.position), adHocFilters: nextAdHocFilters });
+      onRunQuery();
+      return;
+    }
+
+    const currentExpr = query.expr?.trim() || '*';
     const filterStr = formatAdHocFilterLabel(filter);
     const newExpr = isInvalid
       ? appendFilterPipeToQuery(currentExpr, filter)
       : currentExpr === '*'
         ? filterStr
         : addLabelToQuery(currentExpr, filter);
-    const next = filters.filter((_, i) => i !== index);
     onChange({
       ...query,
       expr: newExpr,
-      adHocFilters: next.length ? next : undefined,
+      adHocFilters: nextAdHocFilters,
     });
     onRunQuery();
   };
@@ -80,11 +117,7 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
   }
 
   return (
-    <div className={styles.adHocFiltersContainer}>
-      <div className={styles.adHocFiltersLabel}>
-        <Icon name='filter' size='sm' />
-        <span>Ad-hoc filters:</span>
-      </div>
+    <Stack wrap='wrap' gap={0.5}>
       {filters.map((filter, index) => {
         const isInvalid = validation[filter.key] === 'invalid';
         const willAppendAsPipe = isInvalid && queryHasPipes(query.expr ?? '');
@@ -98,116 +131,59 @@ export const AdHocFiltersControl: React.FC<AdHocFiltersControlProps> = ({
           'Move to query'
         );
         const chip = (
-          <div className={cx(styles.adHocFilterItem, isInvalid && styles.adHocFilterItemInvalid)}>
-            {isInvalid && (
-              <Icon name='exclamation-triangle' className={styles.warningIcon} size='sm' />
-            )}
-            <span className={styles.filterText}>{formatAdHocFilterLabel(filter)}</span>
-            <div className={styles.filterActions}>
-              {!filter.fromLevelFilter && (
-                <Button
-                  size='sm'
-                  variant='secondary'
-                  onClick={() => handleMoveToQuery(index)}
-                  tooltip={moveTooltip}
-                  fill='text'
-                >
-                  <Icon name='arrow-up' />
-                </Button>
-              )}
-              <Button
-                size='sm'
-                variant='secondary'
-                onClick={() => handleDeleteFilter(index)}
-                tooltip='Delete filter'
-                fill='text'
-              >
-                <Icon name='times' />
-              </Button>
-            </div>
-          </div>
+          <GroupedChip
+            label={formatChipOperatorLabel(filter)}
+            values={adHocFilterValues(filter)}
+            onRemoveValue={(value) => handleRemoveValue(index, value)}
+            onRemoveAll={() => handleDeleteFilter(index)}
+            title={formatAdHocFilterLabel(filter)}
+            removeAllTooltip='Delete filter'
+            removeAllAriaLabel={`Delete filter ${filter.key}`}
+            className={isInvalid ? styles.invalidChip : undefined}
+            leading={
+              isInvalid ? (
+                <Icon name='exclamation-triangle' className={styles.warningIcon} size='sm' />
+              ) : undefined
+            }
+            actions={
+              !filter.fromLevelFilter
+                ? [
+                  {
+                    icon: 'arrow-down',
+                    onClick: () => handleMoveToQuery(index),
+                    ariaLabel: 'Move to query',
+                    tooltip: moveTooltip,
+                  },
+                ]
+                : undefined
+            }
+          />
         );
 
         return isInvalid ? (
           <Tooltip key={index} content={buildInvalidFieldTooltip(filter.key)} placement='top'>
-            {chip}
+            <div>{chip}</div>
           </Tooltip>
         ) : (
           <React.Fragment key={index}>{chip}</React.Fragment>
         );
       })}
-    </div>
+    </Stack>
   );
 };
 
 const getStyles = (theme: GrafanaTheme2) => {
   return {
-    adHocFiltersContainer: css`
-      display: inline-flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: ${theme.spacing(1)};
-      width: fit-content;
-      margin-top: ${theme.spacing(1)};
-      padding: ${theme.spacing(1)};
-      background-color: ${theme.colors.background.secondary};
-      border: 1px solid ${theme.colors.border.medium};
-      border-radius: ${theme.shape.radius.default};
-    `,
-    adHocFiltersLabel: css`
-      display: flex;
-      align-items: center;
-      gap: ${theme.spacing(0.5)};
-      font-size: ${theme.typography.bodySmall.fontSize};
-      font-weight: ${theme.typography.fontWeightMedium};
-      color: ${theme.colors.text.secondary};
-      white-space: nowrap;
-    `,
-    adHocFilterItem: css`
-      display: flex;
-      align-items: center;
-      gap: ${theme.spacing(0.5)};
-      padding: ${theme.spacing(0.25, 0.25, 0.25, 1)};
-      background-color: ${theme.colors.background.primary};
-      border: 1px solid ${theme.colors.border.weak};
-      border-radius: ${theme.shape.radius.default};
-      font-family: ${theme.typography.fontFamilyMonospace};
-      font-size: ${theme.typography.bodySmall.fontSize};
+    invalidChip: css({
+      borderColor: theme.colors.warning.border,
+      background: theme.colors.warning.transparent,
 
-      &:hover {
-        border-color: ${theme.colors.border.medium};
-      }
-    `,
-    adHocFilterItemInvalid: css`
-      border-color: ${theme.colors.warning.border};
-      background-color: ${theme.colors.warning.transparent};
-
-      &:hover {
-        border-color: ${theme.colors.warning.text};
-      }
-    `,
-    warningIcon: css`
-      color: ${theme.colors.warning.text};
-    `,
-    filterText: css`
-      color: ${theme.colors.text.primary};
-      white-space: nowrap;
-      margin-right: ${theme.spacing(0.5)};
-    `,
-    filterActions: css`
-      display: flex;
-      align-items: center;
-      padding-left: ${theme.spacing(0.25)};
-      border-left: 1px solid ${theme.colors.border.weak};
-
-      button {
-        padding: 0 ${theme.spacing(0.25)};
-        color: ${theme.colors.text.secondary};
-
-        &:hover {
-          color: ${theme.colors.text.primary};
-        }
-      }
-    `,
+      '&:hover': {
+        borderColor: theme.colors.warning.text,
+      },
+    }),
+    warningIcon: css({
+      color: theme.colors.warning.text,
+    }),
   };
 };

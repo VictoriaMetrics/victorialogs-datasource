@@ -57,7 +57,7 @@ export enum AdHocFiltersMode {
 
 export type Format = 'histogram';
 
-export type StreamFilterOperator = 'in';
+export type StreamFilterOperator = 'in' | 'not_in';
 
 export interface StreamFilterState {
   label: string;
