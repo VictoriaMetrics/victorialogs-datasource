@@ -165,8 +165,8 @@ func (q *Query) queryInstantURL(queryParams url.Values) string {
 	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, q.TimeRange)
 	values.Set("query", q.Expr)
 	values.Set("limit", strconv.Itoa(q.MaxLines))
-	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
-	values.Set("end", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
+	values.Set("start", strconv.FormatInt(q.TimeRange.From.UnixNano(), 10))
+	values.Set("end", strconv.FormatInt(q.TimeRange.To.UnixNano(), 10))
 
 	q.url.RawQuery = values.Encode()
 	return q.url.String()
@@ -194,9 +194,9 @@ func (q *Query) statsQueryURL(queryParams url.Values) string {
 	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, q.TimeRange)
 
 	values.Set("query", q.Expr)
-	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
-	values.Set("end", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
-	values.Set("time", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
+	values.Set("start", strconv.FormatInt(q.TimeRange.From.UnixNano(), 10))
+	values.Set("end", strconv.FormatInt(q.TimeRange.To.UnixNano(), 10))
+	values.Set("time", strconv.FormatInt(q.TimeRange.To.UnixNano(), 10))
 
 	q.url.RawQuery = values.Encode()
 	return q.url.String()
@@ -233,8 +233,8 @@ func (q *Query) statsQueryRangeURL(queryParams url.Values, minInterval time.Dura
 	}
 
 	values.Set("query", q.Expr)
-	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
-	values.Set("end", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
+	values.Set("start", strconv.FormatInt(q.TimeRange.From.UnixNano(), 10))
+	values.Set("end", strconv.FormatInt(q.TimeRange.To.UnixNano(), 10))
 	values.Set("step", step)
 	if q.TimezoneOffset != "" {
 		values.Set("offset", q.TimezoneOffset)
@@ -271,8 +271,8 @@ func (q *Query) hitsQueryURL(queryParams url.Values, minInterval time.Duration) 
 	}
 
 	values.Set("query", q.Expr)
-	values.Set("start", strconv.FormatInt(q.TimeRange.From.Unix(), 10))
-	values.Set("end", strconv.FormatInt(q.TimeRange.To.Unix(), 10))
+	values.Set("start", strconv.FormatInt(q.TimeRange.From.UnixNano(), 10))
+	values.Set("end", strconv.FormatInt(q.TimeRange.To.UnixNano(), 10))
 	values.Set("step", step)
 	if q.TimezoneOffset != "" {
 		values.Set("offset", q.TimezoneOffset)

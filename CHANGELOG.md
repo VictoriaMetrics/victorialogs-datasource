@@ -6,6 +6,7 @@
 
 * BUGFIX: keep the selected values of multi-value ad-hoc filter operators (`one of`, `not one of`) when serializing the query. Previously, such dashboard filters produced an empty `in()` filter, and the panel showed no results.
 * BUGFIX: interpolate dashboard variables into the query builder state and stream filter values when jumping from a dashboard panel to Explore. Previously, the raw variable names (e.g., `$app`) leaked back into the query on the first editor interaction, and the query returned no results.
+* BUGFIX: pass the panel time range to the `Instant` (stats) query type via the `start`/`end` query parameters instead of prepending a `_time:[...]` filter to the query text. The prepended filter was not parenthesized, so a top-level `OR` (e.g. `level:error OR level:warn | stats count()`) left part of the query outside the time range, making VictoriaLogs scan the full retention and the panel time out. Thanks to @github-vincent-miszczak for contributing.
 
 ## v0.30.1
 
@@ -22,8 +23,6 @@
 * BUGFIX: pad missing `_time` values in instant log query responses so mixed rows with and without `_time` still produce valid Grafana log frames. Thanks to @immanuwell for their contribution.
 * BUGFIX: highlight search terms in log lines when the query uses template variables (e.g. `_msg:$search`). Previously, highlighting looked for the literal variable name instead of its value, so nothing was highlighted. See [#684](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/684).
 * BUGFIX: stop showing log lines twice in the "Show context" modal. Previously, the two context queries overlapped by one second around the selected row, so every line within that window was displayed twice; the queries now split at the selected row's timestamp with nanosecond precision. See [#692](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/692).
-
-* BUGFIX: pass the panel time range to the `Instant` (stats) query type via the `start`/`end` query parameters instead of prepending a `_time:[...]` filter to the query text. The prepended filter was not parenthesized, so a top-level `OR` (e.g. `level:error OR level:warn | stats count()`) left part of the query outside the time range, making VictoriaLogs scan the full retention and the panel time out.
 
 ## v0.29.0
 
