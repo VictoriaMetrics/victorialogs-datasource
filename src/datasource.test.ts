@@ -1423,7 +1423,7 @@ describe('VictoriaLogsDatasource preset merge', () => {
         expect(result?.expr).toBe('*');
       });
 
-      it('strips the plugin-appended trailing sort pipe before adding format pipes', () => {
+      it('inserts the format pipes before the trailing sort pipe', () => {
         const dsWithRules = createDatasource(templateSrvStub, {
           id: 1,
           uid: 'u',
@@ -1439,7 +1439,28 @@ describe('VictoriaLogsDatasource preset merge', () => {
           makeRequest(),
         );
         expect(result?.expr).toContain(`app:x | format "" as ${DERIVED_LEVEL_FIELD}`);
-        expect(result?.expr).not.toContain('sort by');
+        expect(result?.expr?.endsWith(' | sort by (_time) desc')).toBe(true);
+      });
+
+      it('inserts the format pipes before the first sort-class pipe, keeping later pipes intact', () => {
+        const dsWithRules = createDatasource(templateSrvStub, {
+          id: 1,
+          uid: 'u',
+          jsonData: {
+            logLevelRules: [
+              { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'error', level: LogLevel.error, enabled: true },
+            ],
+          },
+        });
+        // hits ignores sort-class pipes and loses fields created after them — the format
+        // pipes must land before `sort`, otherwise every bar collapses into `unknown`
+        const result = dsWithRules.getSupplementaryQuery(
+          opts,
+          makeQuery(QueryType.Instant, { expr: '* | sort by (_time) desc | limit 10 | pack_json' }),
+          makeRequest(),
+        );
+        expect(result?.expr).toContain(`* | format "" as ${DERIVED_LEVEL_FIELD}`);
+        expect(result?.expr?.endsWith(' | sort by (_time) desc | limit 10 | pack_json')).toBe(true);
       });
 
       it('keeps the trailing sort pipe untouched when no level rules are active', () => {

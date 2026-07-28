@@ -1,6 +1,6 @@
 import { CoreApp } from '@grafana/data';
 
-import { addLabelToQuery, addSortPipeToQuery, removeLabelFromQuery, removeTrailingSortPipe } from './modifyQuery';
+import { addLabelToQuery, addSortPipeToQuery, insertPipesBeforeSortClassPipe, removeLabelFromQuery } from './modifyQuery';
 import store from './store/store';
 import { Query, QueryType } from './types';
 
@@ -344,47 +344,69 @@ describe('modifyQuery', () => {
     });
   });
 
-  describe('removeTrailingSortPipe', () => {
-    it('removes the trailing desc sort pipe', () => {
-      expect(removeTrailingSortPipe('app:x | sort by (_time) desc')).toBe('app:x');
+  describe('insertPipesBeforeSortClassPipe', () => {
+    const PIPES = ' | format "" as lvl';
+
+    it('appends at the end when the expression has no pipes', () => {
+      expect(insertPipesBeforeSortClassPipe('app:x', PIPES)).toBe('app:x | format "" as lvl');
     });
 
-    it('removes the trailing asc sort pipe', () => {
-      expect(removeTrailingSortPipe('app:x | sort by (_time) asc')).toBe('app:x');
-    });
-
-    it('returns the expression unchanged when there is no trailing sort pipe', () => {
-      expect(removeTrailingSortPipe('app:x')).toBe('app:x');
-    });
-
-    it('keeps a sort pipe that is not the trailing pipe', () => {
-      expect(removeTrailingSortPipe('app:x | sort by (_time) desc | fields _msg')).toBe(
-        'app:x | sort by (_time) desc | fields _msg'
+    it('appends at the end when there are no sort-class pipes', () => {
+      expect(insertPipesBeforeSortClassPipe('app:x | unpack_json | fields _msg', PIPES)).toBe(
+        'app:x | unpack_json | fields _msg | format "" as lvl'
       );
     });
 
-    it('removes user-written trailing sorts with other fields, limit or offset', () => {
-      expect(removeTrailingSortPipe('app:x | sort by (level) desc')).toBe('app:x');
-      expect(removeTrailingSortPipe('app:x | sort by (_time) desc limit 10')).toBe('app:x');
-      expect(removeTrailingSortPipe('app:x | sort by (_time) desc offset 5')).toBe('app:x');
+    it('inserts before a trailing sort pipe', () => {
+      expect(insertPipesBeforeSortClassPipe('app:x | sort by (_time) desc', PIPES)).toBe(
+        'app:x | format "" as lvl | sort by (_time) desc'
+      );
     });
 
-    it('removes a trailing order by pipe regardless of keyword case', () => {
-      expect(removeTrailingSortPipe('app:x | order by (_time) desc')).toBe('app:x');
-      expect(removeTrailingSortPipe('app:x | SORT BY (_time) DESC')).toBe('app:x');
+    it('inserts before the first sort-class pipe, keeping the tail intact', () => {
+      expect(insertPipesBeforeSortClassPipe('app:x | sort by (_time) desc | limit 10 | pack_json', PIPES)).toBe(
+        'app:x | format "" as lvl | sort by (_time) desc | limit 10 | pack_json'
+      );
     });
 
-    it('does not strip pipes whose name merely starts with sort', () => {
-      expect(removeTrailingSortPipe('app:x | sort_values')).toBe('app:x | sort_values');
+    it('inserts after field-transforming pipes the level rules may reference', () => {
+      expect(insertPipesBeforeSortClassPipe('app:x | unpack_json | sort by (_time) desc', PIPES)).toBe(
+        'app:x | unpack_json | format "" as lvl | sort by (_time) desc'
+      );
     });
 
-    it('does not corrupt quoted values containing a pipe with sort', () => {
-      expect(removeTrailingSortPipe('_msg:"error | sort by (x)"')).toBe('_msg:"error | sort by (x)"');
-      expect(removeTrailingSortPipe('app:x | filter _msg:"a | order by"')).toBe('app:x | filter _msg:"a | order by"');
+    it.each(['limit 10', 'head 10', 'offset 5', 'skip 5', 'first 10 by (_time)', 'last 10 by (_time)', 'order by (_time) desc'])(
+      'treats `%s` as a sort-class pipe',
+      (pipe) => {
+        expect(insertPipesBeforeSortClassPipe(`app:x | ${pipe}`, PIPES)).toBe(`app:x | format "" as lvl | ${pipe}`);
+      }
+    );
+
+    it('matches sort-class pipe keywords case-insensitively', () => {
+      expect(insertPipesBeforeSortClassPipe('app:x | SORT BY (_time) DESC', PIPES)).toBe(
+        'app:x | format "" as lvl | SORT BY (_time) DESC'
+      );
     });
 
-    it('removes a trailing sort pipe after a quoted value containing a pipe', () => {
-      expect(removeTrailingSortPipe('_msg:"a|b" | sort by (_time) desc')).toBe('_msg:"a|b"');
+    it('does not treat pipes whose name merely starts with a keyword as sort-class', () => {
+      expect(insertPipesBeforeSortClassPipe('app:x | sort_values', PIPES)).toBe(
+        'app:x | sort_values | format "" as lvl'
+      );
+    });
+
+    it('ignores sort keywords inside quoted values', () => {
+      expect(insertPipesBeforeSortClassPipe('_msg:"error | sort by (x)"', PIPES)).toBe(
+        '_msg:"error | sort by (x)" | format "" as lvl'
+      );
+      expect(insertPipesBeforeSortClassPipe('app:x | filter _msg:"a | order by"', PIPES)).toBe(
+        'app:x | filter _msg:"a | order by" | format "" as lvl'
+      );
+    });
+
+    it('inserts before a sort pipe following a quoted value containing a pipe', () => {
+      expect(insertPipesBeforeSortClassPipe('_msg:"a|b" | sort by (_time) desc', PIPES)).toBe(
+        '_msg:"a|b" | format "" as lvl | sort by (_time) desc'
+      );
     });
   });
 });

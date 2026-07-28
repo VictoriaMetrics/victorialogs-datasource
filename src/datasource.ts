@@ -50,7 +50,7 @@ import {
   addLabelToQuery,
   addSortPipeToQuery,
   getQueryFormat,
-  removeTrailingSortPipe,
+  insertPipesBeforeSortClassPipe,
 } from './modifyQuery';
 import { removeDoubleQuotesAroundVar } from './parsing';
 import { replaceOperatorWithIn, returnVariables } from './parsingUtils';
@@ -552,16 +552,16 @@ export class VictoriaLogsDatasource
         // With active level rules the level is derived server-side via `format` pipes,
         // grouping hits by the single derived field instead of every rule field
         // (a `_msg` rule would otherwise explode cardinality — issue #700).
-        // The plugin-appended trailing sort pipe is stripped: hits ignores ordering, and
-        // VictoriaLogs returns empty values for format-derived fields placed after a sort pipe.
-        // An empty base expression gets no pipes — a `| format ...` query without a filter
+        // The pipes are inserted before the first sort-class pipe (see
+        // insertPipesBeforeSortClassPipe): hits ignores those pipes and loses fields
+        // created after them, while rules may reference fields created by earlier pipes.
+        // An empty expression gets no pipes — a `| format ...` query without a filter
         // part is unparsable, and the empty-expr target is dropped later in query() anyway
-        const baseExpr = removeTrailingSortPipe(query.expr);
-        const levelPipes = baseExpr ? buildLevelFormatPipes(this.getActiveLevelRules()) : '';
+        const levelPipes = query.expr ? buildLevelFormatPipes(this.getActiveLevelRules()) : '';
 
         return {
           ...query,
-          expr: levelPipes ? `${baseExpr}${levelPipes}` : query.expr,
+          expr: levelPipes ? insertPipesBeforeSortClassPipe(query.expr, levelPipes) : query.expr,
           step: `${step}s`,
           fields: levelPipes ? [DERIVED_LEVEL_FIELD] : ['level'],
           queryType: QueryType.Hits,

@@ -149,26 +149,29 @@ export const addSortPipeToQuery = ({ expr, queryType, direction }: Query, app: C
   return `${expr} | ${sortPipe}`;
 };
 
-// Matches a pipe segment that is a `sort ...` / `order ...` pipe with any of
-// its options (field list, asc/desc, limit/offset, ...).
-const SORT_PIPE_RE = /^(?:sort|order)\b/i;
+// Matches a pipe segment that reorders or slices rows: `sort`/`order by`,
+// `limit`/`head`, `offset`/`skip` and the `first`/`last` sort+limit shorthands
+const SORT_CLASS_PIPE_RE = /^(?:sort|order|limit|head|offset|skip|first|last)\b/i;
 
 /**
- * Removes the trailing sort pipe — plugin-appended by addSortPipeToQuery or user-written.
- * Only the LAST top-level pipe is removed — a sort feeding a later pipe is left intact,
- * and `|` characters inside quoted values, parentheses or `{}` are ignored.
- * The logs volume hits query appends `format` pipes to the expression, and VictoriaLogs
- * `/select/logsql/hits` returns empty values for fields created by pipes placed after
- * a `sort` pipe — sorting is meaningless for hits aggregation anyway.
+ * Inserts a pipe suffix (starting with ` | `) before the first sort-class pipe,
+ * or appends it at the end when the expression has none. `|` characters inside
+ * quoted values, parentheses or `{}` are ignored when locating pipes.
+ * VictoriaLogs `/select/logsql/hits` ignores sort-class pipes and returns empty
+ * values for fields created by pipes placed after them, so the logs volume
+ * format pipes must land after the field-transforming pipes (whose fields the
+ * level rules may reference) but before the first sort-class pipe.
  */
-export const removeTrailingSortPipe = (expr: string): string => {
+export const insertPipesBeforeSortClassPipe = (expr: string, pipesSuffix: string): string => {
   const segments = splitByPipes(expr);
-  const lastPipe = segments[segments.length - 1];
-  // segments[0] is the filter part, so a single segment means there are no pipes
-  if (segments.length < 2 || !SORT_PIPE_RE.test(lastPipe)) {
-    return expr;
+  // segments[0] is the filter part, so only later segments are pipes
+  const sortClassIdx = segments.findIndex((segment, i) => i > 0 && SORT_CLASS_PIPE_RE.test(segment));
+  if (sortClassIdx === -1) {
+    return `${expr}${pipesSuffix}`;
   }
-  return segments.slice(0, -1).join(' | ');
+  const head = segments.slice(0, sortClassIdx).join(' | ');
+  const tail = segments.slice(sortClassIdx).join(' | ');
+  return `${head}${pipesSuffix} | ${tail}`;
 };
 
 
