@@ -12,6 +12,10 @@ describe('escapeLogsQLQuotedValue', () => {
   it('escapes newlines so the literal stays valid Go-style syntax', () => {
     expect(escapeLogsQLQuotedValue('a\nb')).toBe('a\\nb');
   });
+
+  it('converts numbers to strings', () => {
+    expect(escapeLogsQLQuotedValue(42)).toBe('42');
+  });
 });
 
 describe('quoteLogsQLValue', () => {

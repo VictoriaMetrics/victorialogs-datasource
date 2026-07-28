@@ -1450,6 +1450,27 @@ describe('VictoriaLogsDatasource preset merge', () => {
         );
         expect(result?.expr).toBe('app:x | sort by (_time) desc');
       });
+
+      it('does not append format pipes to an empty expression', () => {
+        const dsWithRules = createDatasource(templateSrvStub, {
+          id: 1,
+          uid: 'u',
+          jsonData: {
+            logLevelRules: [
+              { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'error', level: LogLevel.error, enabled: true },
+            ],
+          },
+        });
+        // A `| format ...` query without a filter part is unparsable; the empty-expr
+        // target must stay empty so query() drops it, as it did before format pipes
+        const result = dsWithRules.getSupplementaryQuery(
+          opts,
+          makeQuery(QueryType.Instant, { expr: '' }),
+          makeRequest(),
+        );
+        expect(result?.expr).toBe('');
+        expect(result?.fields).toEqual(['level']);
+      });
     });
 
     describe('LogsSample', () => {

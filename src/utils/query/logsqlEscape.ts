@@ -4,11 +4,11 @@
  * string literal cannot contain a raw line break, and VictoriaLogs rejects
  * the whole query on one
  */
-export function escapeLogsQLQuotedValue(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/"/g, '\\"');
+export function escapeLogsQLQuotedValue(value: string | number): string {
+  return String(value).replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/"/g, '\\"');
 }
 
 /** Wraps a raw value in double quotes, escaping it for LogsQL */
-export function quoteLogsQLValue(value: string): string {
+export function quoteLogsQLValue(value: string | number): string {
   return `"${escapeLogsQLQuotedValue(value)}"`;
 }

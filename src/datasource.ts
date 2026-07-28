@@ -553,12 +553,15 @@ export class VictoriaLogsDatasource
         // grouping hits by the single derived field instead of every rule field
         // (a `_msg` rule would otherwise explode cardinality — issue #700).
         // The plugin-appended trailing sort pipe is stripped: hits ignores ordering, and
-        // VictoriaLogs returns empty values for format-derived fields placed after a sort pipe
-        const levelPipes = buildLevelFormatPipes(this.getActiveLevelRules());
+        // VictoriaLogs returns empty values for format-derived fields placed after a sort pipe.
+        // An empty base expression gets no pipes — a `| format ...` query without a filter
+        // part is unparsable, and the empty-expr target is dropped later in query() anyway
+        const baseExpr = removeTrailingSortPipe(query.expr);
+        const levelPipes = baseExpr ? buildLevelFormatPipes(this.getActiveLevelRules()) : '';
 
         return {
           ...query,
-          expr: levelPipes ? `${removeTrailingSortPipe(query.expr)}${levelPipes}` : query.expr,
+          expr: levelPipes ? `${baseExpr}${levelPipes}` : query.expr,
           step: `${step}s`,
           fields: levelPipes ? [DERIVED_LEVEL_FIELD] : ['level'],
           queryType: QueryType.Hits,
