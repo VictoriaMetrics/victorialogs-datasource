@@ -9,6 +9,7 @@ import {
   UniqLogLevelKeys,
 } from '../../configuration/LogLevelRules/const';
 import { LogLevelRule } from '../../configuration/LogLevelRules/types';
+import { capitalize } from '../string';
 
 export interface LevelExpr {
   level: UniqLogLevelKeys;
@@ -17,10 +18,13 @@ export interface LevelExpr {
 
 /**
  * Builds the `level:contains_common_case(...)` clause matching the canonical
- * alias values of the given level (shared by filter expansion and format pipes)
+ * alias values of the given level (shared by filter expansion and format pipes).
+ * Arguments are Title-Cased so lowercase, UPPERCASE and Title-Case field values
+ * all match — the client-side matcher lowercases the field value and would
+ * otherwise disagree with the server on values like `Error`
  */
 export function buildLevelAliasClause(level: UniqLogLevelKeys): string {
-  const values = possibleLogValueByLevelType[level].map((value) => `"${value}"`).join(',');
+  const values = possibleLogValueByLevelType[level].map((value) => `"${capitalize(value)}"`).join(',');
   return `level:contains_common_case(${values})`;
 }
 

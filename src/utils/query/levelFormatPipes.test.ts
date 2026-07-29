@@ -45,7 +45,7 @@ describe('buildLevelFormatPipes', () => {
 
   it('escapes quotes and backslashes in rule values', () => {
     const trickyRule = { field: '_msg', operator: LogLevelRuleType.Equals, value: 'a"b\\c', level: LogLevel.error, enabled: true };
-    expect(buildLevelFormatPipes([trickyRule])).toContain('_msg:"a\\"b\\\\c"');
+    expect(buildLevelFormatPipes([trickyRule])).toContain('_msg:="a\\"b\\\\c"');
   });
 
   it('skips rules with an empty field (draft rows from the rule editor)', () => {

@@ -26,14 +26,14 @@ describe('buildLevelExprs', () => {
     const rules = [
       { field: 'log.level', operator: LogLevelRuleType.Equals, value: 'err', level: LogLevel.error, enabled: true },
     ];
-    expect(buildLevelExprMap(rules)[LogLevel.error]).toContain(' OR log.level:"err"');
+    expect(buildLevelExprMap(rules)[LogLevel.error]).toContain(' OR log.level:="err"');
   });
 
   it('does not filter by enabled (caller pre-filters)', () => {
     const rules = [
       { field: 'log.level', operator: LogLevelRuleType.Equals, value: 'err', level: LogLevel.error, enabled: false },
     ];
-    expect(buildLevelExprMap(rules)[LogLevel.error]).toContain(' OR log.level:"err"');
+    expect(buildLevelExprMap(rules)[LogLevel.error]).toContain(' OR log.level:="err"');
   });
 
   it('emits field:"" for an empty WordFilter (matches empty/missing fields, mirrors LogsQL)', () => {
@@ -54,7 +54,7 @@ describe('buildLevelExprs', () => {
     const rules = [
       { field: 'msg', operator: LogLevelRuleType.Equals, value: 'a"b', level: LogLevel.error, enabled: true },
     ];
-    expect(buildLevelExprMap(rules)[LogLevel.error]).toContain('msg:"a\\"b"');
+    expect(buildLevelExprMap(rules)[LogLevel.error]).toContain('msg:="a\\"b"');
   });
 
   it('skips draft rules with an empty field', () => {
@@ -66,14 +66,23 @@ describe('buildLevelExprs', () => {
 });
 
 describe('shared level primitives', () => {
-  it('buildLevelAliasClause builds the contains_common_case clause for a level', () => {
-    expect(buildLevelAliasClause(LogLevel.error)).toMatch(/^level:contains_common_case\("err","eror","error"\)$/);
+  it('buildLevelAliasClause builds the contains_common_case clause with Title-Case aliases', () => {
+    // Title-Case arguments make contains_common_case match lowercase, UPPERCASE
+    // and Title-Case field values (e.g. `error`, `ERROR`, `Error`)
+    expect(buildLevelAliasClause(LogLevel.error)).toMatch(/^level:contains_common_case\("Err","Eror","Error"\)$/);
   });
 
   it('usableLevelRules drops draft rules with an empty field', () => {
     const draft = { field: '', operator: LogLevelRuleType.Equals, value: 'x', level: LogLevel.error, enabled: true };
     const real = { field: '_msg', operator: LogLevelRuleType.Equals, value: 'x', level: LogLevel.error, enabled: true };
     expect(usableLevelRules([draft, real])).toEqual([real]);
+  });
+
+  it('builds case-insensitive rules as equals_common_case with a Title-Case value', () => {
+    const rules = [
+      { field: 'severity_text', operator: LogLevelRuleType.CaseInsensitiveEquals, value: 'info', level: LogLevel.info, enabled: true },
+    ];
+    expect(buildLevelExprMap(rules)[LogLevel.info]).toContain('severity_text:equals_common_case("Info")');
   });
 });
 
@@ -97,7 +106,7 @@ describe('buildExactLevelExprMap', () => {
   it('guards the alias clause with the negation of earlier levels in canonical order', () => {
     const map = buildExactLevelExprMap([loadedError]);
     expect(map[LogLevel.critical].startsWith('level:contains_common_case(')).toBe(true);
-    expect(map[LogLevel.error]).toContain('(level:contains_common_case("err","eror","error") and !(level:contains_common_case(');
+    expect(map[LogLevel.error]).toContain('(level:contains_common_case("Err","Eror","Error") and !(level:contains_common_case(');
   });
 
   it('guards the rules section with the negation of every alias clause', () => {
@@ -112,14 +121,14 @@ describe('buildExactLevelExprMap', () => {
   it('unknown covers the unknown alias, unknown-level rules, and rows matching no rule', () => {
     const noiseUnknown = { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'noise', level: LogLevel.unknown, enabled: true };
     const map = buildExactLevelExprMap([loadedError, noiseUnknown]);
-    expect(map[LogLevel.unknown]).toContain('level:contains_common_case("unknown")');
+    expect(map[LogLevel.unknown]).toContain('level:contains_common_case("Unknown")');
     expect(map[LogLevel.unknown]).toContain('(_msg:"noise" and !(_msg:"Loaded"))');
     expect(map[LogLevel.unknown]).toContain('!(_msg:"Loaded" OR _msg:"noise")');
   });
 
   it('with no rules a known level is its guarded alias clause and unknown catches everything else', () => {
     const map = buildExactLevelExprMap([]);
-    expect(map[LogLevel.critical]).toBe('level:contains_common_case("emerg","fatal","alert","crit","critical")');
+    expect(map[LogLevel.critical]).toBe('level:contains_common_case("Emerg","Fatal","Alert","Crit","Critical")');
     expect(map[LogLevel.info]).not.toContain(' and (');
     expect(map[LogLevel.unknown]).toMatch(/ OR !\(level:contains_common_case\(/);
   });

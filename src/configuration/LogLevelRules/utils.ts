@@ -39,7 +39,7 @@ const ruleMatchers: Record<LogLevelRuleType, RuleMatcher> = {
   [LogLevelRuleType.LessThan]: (fieldValue, rule) => compareNumeric(fieldValue, rule.value, (a, b) => a < b),
   [LogLevelRuleType.Regex]: (fieldValue, rule) => matchesRegex(fieldValue, rule.value),
   [LogLevelRuleType.CaseInsensitiveEquals]: (fieldValue, rule) =>
-    typeof fieldValue === 'string' && fieldValue.toLowerCase() === rule.value,
+    typeof fieldValue === 'string' && fieldValue.toLowerCase() === String(rule.value).toLowerCase(),
   [LogLevelRuleType.WordFilter]: (fieldValue, rule) => matchesWordFilter(fieldValue, rule.value),
 };
 

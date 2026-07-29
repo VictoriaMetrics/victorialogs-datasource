@@ -137,4 +137,12 @@ describe('resolveLogLevel — existing operators (regression)', () => {
     expect(resolve({ lvl: 'ERROR' }, rules)).toBe(LogLevel.error);
     expect(resolve({ lvl: 'warn' }, rules)).toBe(LogLevel.unknown);
   });
+
+  it('CaseInsensitiveEquals lowercases the rule value too (provisioned values like "INFO")', () => {
+    const rules = [
+      rule({ operator: LogLevelRuleType.CaseInsensitiveEquals, field: 'lvl', value: 'INFO', level: LogLevel.info }),
+    ];
+    expect(resolve({ lvl: 'info' }, rules)).toBe(LogLevel.info);
+    expect(resolve({ lvl: 'Info' }, rules)).toBe(LogLevel.info);
+  });
 });
