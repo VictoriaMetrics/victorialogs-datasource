@@ -78,11 +78,11 @@ describe('shared level primitives', () => {
     expect(usableLevelRules([draft, real])).toEqual([real]);
   });
 
-  it('builds case-insensitive rules as equals_common_case with a Title-Case value', () => {
+  it('builds case-insensitive rules as contains_common_case with a Title-Case value', () => {
     const rules = [
       { field: 'severity_text', operator: LogLevelRuleType.CaseInsensitiveEquals, value: 'info', level: LogLevel.info, enabled: true },
     ];
-    expect(buildLevelExprMap(rules)[LogLevel.info]).toContain('severity_text:equals_common_case("Info")');
+    expect(buildLevelExprMap(rules)[LogLevel.info]).toContain('severity_text:contains_common_case("Info")');
   });
 });
 

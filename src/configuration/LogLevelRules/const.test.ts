@@ -24,10 +24,10 @@ describe('OperatorLabelsQueryBuilder', () => {
     );
   });
 
-  it('builds CaseInsensitiveEquals as equals_common_case with a Title-Case value', () => {
+  it('builds CaseInsensitiveEquals as contains_common_case with a Title-Case value', () => {
     const rule = makeRule(LogLevelRuleType.CaseInsensitiveEquals, 'info');
     expect(OperatorLabelsQueryBuilder[LogLevelRuleType.CaseInsensitiveEquals](rule)).toBe(
-      'severity:equals_common_case("Info")'
+      'severity:contains_common_case("Info")'
     );
   });
 
