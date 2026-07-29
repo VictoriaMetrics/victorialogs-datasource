@@ -2,7 +2,6 @@ import { LogLevel } from '@grafana/data';
 import { colors, ComboboxOption } from '@grafana/ui';
 
 import { quoteLogsQLFieldName, quoteLogsQLValue } from '../../utils/query/logsqlEscape';
-import { capitalize } from '../../utils/string';
 
 import { LogLevelRule, LogLevelRuleType } from './types';
 
@@ -33,7 +32,7 @@ export const OperatorLabels: Record<LogLevelRuleType, string> = {
 
 export const OperatorLabelsQueryBuilder: Record<LogLevelRuleType, (rule: LogLevelRule) => string> = {
   [LogLevelRuleType.Equals]: (rule) => `${quoteLogsQLFieldName(rule.field)}:=${quoteLogsQLValue(rule.value)}`,
-  [LogLevelRuleType.CaseInsensitiveEquals]: (rule) => `${quoteLogsQLFieldName(rule.field)}:equals_common_case(${quoteLogsQLValue(capitalize(String(rule.value)))})`,
+  [LogLevelRuleType.CaseInsensitiveEquals]: (rule) => `${quoteLogsQLFieldName(rule.field)}:i(${quoteLogsQLValue(rule.value)})`,
   [LogLevelRuleType.NotEquals]: (rule) => `${quoteLogsQLFieldName(rule.field)}:!=${quoteLogsQLValue(rule.value)}`,
   [LogLevelRuleType.Regex]: (rule) => `${quoteLogsQLFieldName(rule.field)}:~${quoteLogsQLValue(rule.value)}`,
   [LogLevelRuleType.LessThan]: (rule) => `${quoteLogsQLFieldName(rule.field)}:<${quoteLogsQLValue(rule.value)}`,
