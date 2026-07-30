@@ -1,5 +1,6 @@
 import { AdHocVariableFilter, CoreApp, LogsSortOrder } from '@grafana/data';
 
+import { splitByPipes } from './LogsQL/splitByPipes';
 import { isExprHasStatsPipeFunc } from './LogsQL/statsPipeFunctions';
 import { escapeLabelValueInExactSelector } from './languageUtils';
 import { storeKeys } from './store/constants';
@@ -146,6 +147,31 @@ export const addSortPipeToQuery = ({ expr, queryType, direction }: Query, app: C
   }
   const sortPipe = `sort by (_time) ${sortDirection}`;
   return `${expr} | ${sortPipe}`;
+};
+
+// Matches a pipe segment that reorders or slices rows: `sort`/`order by`,
+// `limit`/`head`, `offset`/`skip` and the `first`/`last` sort+limit shorthands
+const SORT_CLASS_PIPE_RE = /^(?:sort|order|limit|head|offset|skip|first|last)\b/i;
+
+/**
+ * Inserts a pipe suffix (starting with ` | `) before the first sort-class pipe,
+ * or appends it at the end when the expression has none. `|` characters inside
+ * quoted values, parentheses or `{}` are ignored when locating pipes.
+ * VictoriaLogs `/select/logsql/hits` ignores sort-class pipes and returns empty
+ * values for fields created by pipes placed after them, so the logs volume
+ * format pipes must land after the field-transforming pipes (whose fields the
+ * level rules may reference) but before the first sort-class pipe.
+ */
+export const insertPipesBeforeSortClassPipe = (expr: string, pipesSuffix: string): string => {
+  const segments = splitByPipes(expr);
+  // segments[0] is the filter part, so only later segments are pipes
+  const sortClassIdx = segments.findIndex((segment, i) => i > 0 && SORT_CLASS_PIPE_RE.test(segment));
+  if (sortClassIdx === -1) {
+    return `${expr}${pipesSuffix}`;
+  }
+  const head = segments.slice(0, sortClassIdx).join(' | ');
+  const tail = segments.slice(sortClassIdx).join(' | ');
+  return `${head}${pipesSuffix} | ${tail}`;
 };
 
 

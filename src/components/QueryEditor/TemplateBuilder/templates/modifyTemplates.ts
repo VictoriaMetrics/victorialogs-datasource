@@ -1,3 +1,4 @@
+import { capitalize } from '../../../../utils/string';
 import { getTabOrder, placeholder, text, uniqueId } from '../segmentHelpers';
 
 import { limitExtension, packExtensions, unpackExtensions } from './extensions';
@@ -5,7 +6,7 @@ import { TemplateConfig } from './types';
 
 const fieldPairTemplate = (keyword: string): TemplateConfig => ({
   type: keyword,
-  label: keyword.charAt(0).toUpperCase() + keyword.slice(1),
+  label: capitalize(keyword),
   stepCategory: 'modify',
   group: 'Fields',
   createSegments: () => [

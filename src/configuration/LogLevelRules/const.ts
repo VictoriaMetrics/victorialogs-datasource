@@ -1,6 +1,9 @@
 import { LogLevel } from '@grafana/data';
 import { colors, ComboboxOption } from '@grafana/ui';
 
+import { quoteLogsQLFieldName, quoteLogsQLValue } from '../../utils/query/logsqlEscape';
+import { capitalize } from '../../utils/string';
+
 import { LogLevelRule, LogLevelRuleType } from './types';
 
 export interface LogOperatorOption {
@@ -29,13 +32,13 @@ export const OperatorLabels: Record<LogLevelRuleType, string> = {
 };
 
 export const OperatorLabelsQueryBuilder: Record<LogLevelRuleType, (rule: LogLevelRule) => string> = {
-  [LogLevelRuleType.Equals]: (rule) => `${rule.field}:"${rule.value}"`,
-  [LogLevelRuleType.CaseInsensitiveEquals]: (rule) => `${rule.field}:contains_common_case("${rule.value}")`,
-  [LogLevelRuleType.NotEquals]: (rule) => `${rule.field}:!"${rule.value}"`,
-  [LogLevelRuleType.Regex]: (rule) => `${rule.field}:~"${rule.value}"`,
-  [LogLevelRuleType.LessThan]: (rule) => `${rule.field}:<"${rule.value}"`,
-  [LogLevelRuleType.GreaterThan]: (rule) => `${rule.field}:>"${rule.value}"`,
-  [LogLevelRuleType.WordFilter]: (rule) => `${rule.field}:"${rule.value}"`,
+  [LogLevelRuleType.Equals]: (rule) => `${quoteLogsQLFieldName(rule.field)}:=${quoteLogsQLValue(rule.value)}`,
+  [LogLevelRuleType.CaseInsensitiveEquals]: (rule) => `${quoteLogsQLFieldName(rule.field)}:contains_common_case(${quoteLogsQLValue(capitalize(String(rule.value)))})`,
+  [LogLevelRuleType.NotEquals]: (rule) => `${quoteLogsQLFieldName(rule.field)}:!=${quoteLogsQLValue(rule.value)}`,
+  [LogLevelRuleType.Regex]: (rule) => `${quoteLogsQLFieldName(rule.field)}:~${quoteLogsQLValue(rule.value)}`,
+  [LogLevelRuleType.LessThan]: (rule) => `${quoteLogsQLFieldName(rule.field)}:<${quoteLogsQLValue(rule.value)}`,
+  [LogLevelRuleType.GreaterThan]: (rule) => `${quoteLogsQLFieldName(rule.field)}:>${quoteLogsQLValue(rule.value)}`,
+  [LogLevelRuleType.WordFilter]: (rule) => `${quoteLogsQLFieldName(rule.field)}:${quoteLogsQLValue(rule.value)}`,
 };
 
 export const LOG_LEVEL_OPTIONS: Array<ComboboxOption<LogLevel>> = Array.from(

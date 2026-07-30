@@ -1,5 +1,6 @@
-import { AdHocVariableFilter } from '@grafana/data';
+import { AdHocVariableFilter, LogLevel } from '@grafana/data';
 
+import { LogLevelRuleType } from '../../configuration/LogLevelRules/types';
 import { AdHocFilter, AdHocFiltersMode } from '../../types';
 
 import {
@@ -13,6 +14,7 @@ import {
   serializeAdHocFilters,
   serializeChipsForBackend,
 } from './adHocFilters';
+import { buildExactLevelExprMap } from './levelExpansion';
 
 describe('serializeAdHocFilters', () => {
   it('returns undefined for empty / missing input', () => {
@@ -354,8 +356,9 @@ describe('expandLevelChips', () => {
   it('expands a single marked level chip, wrapped in parens', () => {
     const chips: AdHocFilter[] = [{ key: 'level', operator: '=', value: 'error', fromLevelFilter: true }];
     const { levelExpr, rest } = expandLevelChips(chips, []);
+    const map = buildExactLevelExprMap([]);
     expect(rest).toEqual([]);
-    expect(levelExpr).toMatch(/^\(level:contains_common_case\(.+\)\)$/);
+    expect(levelExpr).toBe(`(${map['error']})`);
   });
 
   it('OR-combines multiple marked level chips inside one paren group', () => {
@@ -364,8 +367,9 @@ describe('expandLevelChips', () => {
       { key: 'level', operator: '=', value: 'warning', fromLevelFilter: true },
     ];
     const { levelExpr, rest } = expandLevelChips(chips, []);
+    const map = buildExactLevelExprMap([]);
     expect(rest).toEqual([]);
-    expect(levelExpr).toMatch(/^\(level:contains_common_case\(.+\) OR level:contains_common_case\(.+\)\)$/);
+    expect(levelExpr).toBe(`(${map['error']} OR ${map['warning']})`);
   });
 
   it('keeps non-level chips in rest', () => {
@@ -374,7 +378,8 @@ describe('expandLevelChips', () => {
       { key: 'service', operator: '=', value: 'api' },
     ];
     const { levelExpr, rest } = expandLevelChips(chips, []);
-    expect(levelExpr).toMatch(/^\(level:contains_common_case\(.+\)\)$/);
+    const map = buildExactLevelExprMap([]);
+    expect(levelExpr).toBe(`(${map['error']})`);
     expect(rest).toEqual([{ key: 'service', operator: '=', value: 'api' }]);
   });
 
@@ -383,6 +388,17 @@ describe('expandLevelChips', () => {
     const { levelExpr, rest } = expandLevelChips(chips, []);
     expect(levelExpr).toBeUndefined();
     expect(rest).toEqual([{ key: 'level', operator: '=', value: 'bogus', fromLevelFilter: true }]);
+  });
+
+  it('expands chips with the exact precedence-aware expressions', () => {
+    const rules = [
+      { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'Creating', level: LogLevel.warning, enabled: true },
+      { field: '_msg', operator: LogLevelRuleType.Regex, value: 'Creating', level: LogLevel.info, enabled: true },
+    ];
+    const chips = [{ key: 'level', value: 'info', operator: '=' as const, fromLevelFilter: true }];
+    const { levelExpr } = expandLevelChips(chips, rules);
+    expect(levelExpr).toBe(`(${buildExactLevelExprMap(rules)['info']})`);
+    expect(levelExpr).toContain('(_msg:~"Creating" and !(_msg:"Creating"))');
   });
 });
 
@@ -393,7 +409,8 @@ describe('serializeChipsForBackend with level rules', () => {
       { key: 'service', operator: '=', value: 'api' },
     ];
     const result = serializeChipsForBackend(chips, []);
-    expect(result).toMatch(/^\(level:contains_common_case\(.+\)\) AND service:="api"$/);
+    const map = buildExactLevelExprMap([]);
+    expect(result).toBe(`(${map['error']}) AND service:="api"`);
   });
 
   it('leaves unmarked level chips literal even when rules are passed', () => {
