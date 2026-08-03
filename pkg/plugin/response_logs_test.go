@@ -22,6 +22,7 @@ type row = struct {
 	ts       string
 	msg      string
 	streamID string
+	labels   string
 }
 
 // newIDField creates an id field pre-populated for the provided rows.
@@ -29,48 +30,9 @@ func newIDField(rows ...row) *data.Field {
 	f := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 	f.Name = gIDField
 	for _, r := range rows {
-		f.Append(buildLogID([]byte(r.ts), []byte(r.msg), []byte(r.streamID)))
+		f.Append(buildLogID([]byte(r.ts), []byte(r.msg), []byte(r.streamID), []byte(r.labels)))
 	}
 	return f
-}
-
-func Test_buildLogID(t *testing.T) {
-	ts := []byte("2024-02-20T14:04:27Z")
-
-	// stability: same input produces same id
-	id1 := buildLogID(ts, []byte("hello"), []byte(`{a="1"}`))
-	id2 := buildLogID(ts, []byte("hello"), []byte(`{a="1"}`))
-	if id1 != id2 {
-		t.Errorf("buildLogID is not stable: %s != %s", id1, id2)
-	}
-
-	// uniqueness: differing inputs produce different ids
-	cases := []struct {
-		name string
-		ts   string
-		msg  string
-		stm  string
-	}{
-		{"baseline", "2024-02-20T14:04:27Z", "hello", `{a="1"}`},
-		{"different time", "2024-02-20T14:04:27.000000001Z", "hello", `{a="1"}`},
-		{"different msg", "2024-02-20T14:04:27Z", "hello!", `{a="1"}`},
-		{"different stream", "2024-02-20T14:04:27Z", "hello", `{a="2"}`},
-	}
-	seen := make(map[string]string, len(cases))
-	for _, c := range cases {
-		id := buildLogID([]byte(c.ts), []byte(c.msg), []byte(c.stm))
-		if prev, ok := seen[id]; ok {
-			t.Errorf("buildLogID collision between %q and %q -> %s", prev, c.name, id)
-		}
-		seen[id] = c.name
-	}
-
-	// boundary safety: prefix-shifted msg/stream must not collide
-	a := buildLogID(ts, []byte("ab"), []byte("cd"))
-	b := buildLogID(ts, []byte("a"), []byte("bcd"))
-	if a == b {
-		t.Errorf("buildLogID collides across msg/stream boundary: %s", a)
-	}
 }
 
 // newHiddenStreamFields builds the hidden per-row `streams`/`streamId` fields
@@ -127,7 +89,7 @@ func Test_parseInstantResponse(t *testing.T) {
 
 		r := io.NopCloser(bytes.NewBuffer(file))
 		w := opts.want()
-		resp := parseInstantResponse(r)
+		resp := parseInstantResponse(newLogReader(r))
 
 		if w.Error != nil {
 			if !reflect.DeepEqual(w, resp) {
@@ -219,9 +181,10 @@ func Test_parseInstantResponse(t *testing.T) {
 
 			msgRaw := ""
 			lineField.Append(msgRaw)
-			labelsField.Append(json.RawMessage(`{"_stream":"{}"}`))
+			lblRaw := `{"_stream":"{}"}`
+			labelsField.Append(json.RawMessage(lblRaw))
 
-			return newFrame(timeFd, lineField, newIDField(row{tsRaw, msgRaw, ""}), labelsField, []string{""}, []map[string]string{{}})
+			return newFrame(timeFd, lineField, newIDField(row{tsRaw, msgRaw, "", lblRaw}), labelsField, []string{""}, []map[string]string{{}})
 		},
 	}
 	f(o)
@@ -239,9 +202,10 @@ func Test_parseInstantResponse(t *testing.T) {
 
 			msgRaw := "123"
 			lineField.Append(msgRaw)
-			labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`))
+			lblRaw := `{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`
+			labelsField.Append(json.RawMessage(lblRaw))
 
-			return newFrame(timeFd, lineField, newIDField(row{tsRaw, msgRaw, ""}), labelsField, []string{""}, []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}})
+			return newFrame(timeFd, lineField, newIDField(row{tsRaw, msgRaw, "", lblRaw}), labelsField, []string{""}, []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}})
 		},
 	}
 	f(o)
@@ -259,9 +223,10 @@ func Test_parseInstantResponse(t *testing.T) {
 
 			msgRaw := "123"
 			lineField.Append(msgRaw)
-			labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`))
+			lblRaw := `{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`
+			labelsField.Append(json.RawMessage(lblRaw))
 
-			return newFrame(timeFd, lineField, newIDField(row{tsRaw, msgRaw, ""}), labelsField, []string{""}, []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}})
+			return newFrame(timeFd, lineField, newIDField(row{tsRaw, msgRaw, "", lblRaw}), labelsField, []string{""}, []map[string]string{{"application": "logs-benchmark-Apache.log-1708437847", "hostname": "e28a622d7792"}})
 		},
 	}
 	f(o)
@@ -278,11 +243,13 @@ func Test_parseInstantResponse(t *testing.T) {
 			timeFd.Append(time.Time{})
 			lineField.Append("")
 			lineField.Append("")
-			labelsField.Append(json.RawMessage(`{"stream":"stderr","count(*)":"394"}`))
-			labelsField.Append(json.RawMessage(`{"stream":"stdout","count(*)":"21"}`))
+			lbl1 := `{"stream":"stderr","count(*)":"394"}`
+			lbl2 := `{"stream":"stdout","count(*)":"21"}`
+			labelsField.Append(json.RawMessage(lbl1))
+			labelsField.Append(json.RawMessage(lbl2))
 			idField := newIDField(
-				row{"", "", ""},
-				row{"", "", ""},
+				row{"", "", "", lbl1},
+				row{"", "", "", lbl2},
 			)
 
 			return newFrame(timeFd, lineField, idField, labelsField, []string{"", ""}, []map[string]string{nil, nil})
@@ -300,9 +267,10 @@ func Test_parseInstantResponse(t *testing.T) {
 
 			timeFd.Append(time.Time{})
 			lineField.Append("")
-			labelsField.Append(json.RawMessage(`{"level":""}`))
+			lblRaw := `{"level":""}`
+			labelsField.Append(json.RawMessage(lblRaw))
 
-			return newFrame(timeFd, lineField, newIDField(row{"", "", ""}), labelsField, []string{""}, []map[string]string{nil})
+			return newFrame(timeFd, lineField, newIDField(row{"", "", "", lblRaw}), labelsField, []string{""}, []map[string]string{nil})
 		},
 	}
 	f(o)
@@ -321,10 +289,12 @@ func Test_parseInstantResponse(t *testing.T) {
 			timeFd.Append(getTimeType(ts2))
 			lineField.Append("")
 			lineField.Append("")
-			labelsField.Append(json.RawMessage(`{"logs":"1400"}`))
-			labelsField.Append(json.RawMessage(`{"logs":"374"}`))
+			lbl1 := `{"logs":"1400"}`
+			lbl2 := `{"logs":"374"}`
+			labelsField.Append(json.RawMessage(lbl1))
+			labelsField.Append(json.RawMessage(lbl2))
 
-			return newFrame(timeFd, lineField, newIDField(row{ts1, "", ""}, row{ts2, "", ""}), labelsField, []string{"", ""}, []map[string]string{nil, nil})
+			return newFrame(timeFd, lineField, newIDField(row{ts1, "", "", lbl1}, row{ts2, "", "", lbl2}), labelsField, []string{"", ""}, []map[string]string{nil, nil})
 		},
 	}
 	f(o)
@@ -343,9 +313,10 @@ func Test_parseInstantResponse(t *testing.T) {
 
 			timeFd.Append(getTimeType(tsRaw))
 			lineField.Append(msg)
-			labelsField.Append(json.RawMessage(`{"_stream_id":"00000000000000009eaf29866f70976a098adc735393deb1","_stream":"{compose_project=\"app\",compose_service=\"gateway\"}","compose_project":"app","compose_service":"gateway"}`))
+			lblRaw := `{"_stream_id":"00000000000000009eaf29866f70976a098adc735393deb1","_stream":"{compose_project=\"app\",compose_service=\"gateway\"}","compose_project":"app","compose_service":"gateway"}`
+			labelsField.Append(json.RawMessage(lblRaw))
 
-			return newFrame(timeFd, lineField, newIDField(row{tsRaw, msg, streamID}), labelsField, []string{streamID}, []map[string]string{{"compose_project": "app", "compose_service": "gateway"}})
+			return newFrame(timeFd, lineField, newIDField(row{tsRaw, msg, streamID, lblRaw}), labelsField, []string{streamID}, []map[string]string{{"compose_project": "app", "compose_service": "gateway"}})
 		},
 	}
 	f(o)
@@ -368,9 +339,10 @@ func Test_parseInstantResponse(t *testing.T) {
 
 			timeFd.Append(getTimeType(tsRaw))
 			lineField.Append(msg)
-			labelsField.Append(json.RawMessage(`{"_stream":"{compose_project=\"app\",compose_service=\"gateway\"}","compose_project":"app","compose_service":"gateway"}`))
+			lblRaw := `{"_stream":"{compose_project=\"app\",compose_service=\"gateway\"}","compose_project":"app","compose_service":"gateway"}`
+			labelsField.Append(json.RawMessage(lblRaw))
 
-			return newFrame(timeFd, lineField, newIDField(row{tsRaw, msg, ""}), labelsField, []string{""}, []map[string]string{{"compose_project": "app", "compose_service": "gateway"}})
+			return newFrame(timeFd, lineField, newIDField(row{tsRaw, msg, "", lblRaw}), labelsField, []string{""}, []map[string]string{{"compose_project": "app", "compose_service": "gateway"}})
 		},
 	}
 	f(o)
@@ -385,9 +357,10 @@ func Test_parseInstantResponse(t *testing.T) {
 
 			timeFd.Append(time.Time{})
 			lineField.Append("507")
-			labelsField.Append(json.RawMessage(`{"count":"507"}`))
+			lblRaw := `{"count":"507"}`
+			labelsField.Append(json.RawMessage(lblRaw))
 
-			return newFrame(timeFd, lineField, newIDField(row{"", "507", ""}), labelsField, []string{""}, []map[string]string{nil})
+			return newFrame(timeFd, lineField, newIDField(row{"", "507", "", lblRaw}), labelsField, []string{""}, []map[string]string{nil})
 		},
 	}
 	f(o)
@@ -405,15 +378,16 @@ func Test_parseInstantResponse(t *testing.T) {
 			timeFd.Append(time.Time{})
 			lineField.Append("123")
 			lineField.Append("456")
-			labelsField.Append(json.RawMessage(`{"_stream":"{app=\"test\"}"}`))
-			labelsField.Append(json.RawMessage(`{"_stream":"{app=\"test\"}"}`))
+			lblRaw := `{"_stream":"{app=\"test\"}"}`
+			labelsField.Append(json.RawMessage(lblRaw))
+			labelsField.Append(json.RawMessage(lblRaw))
 
 			return newFrame(
 				timeFd,
 				lineField,
 				newIDField(
-					row{tsRaw, "123", ""},
-					row{"", "456", ""},
+					row{tsRaw, "123", "", lblRaw},
+					row{"", "456", "", lblRaw},
 				),
 				labelsField,
 				[]string{"", ""},
@@ -446,15 +420,18 @@ func Test_parseInstantResponse(t *testing.T) {
 			lineField.Append("1")
 			lineField.Append("2")
 			lineField.Append("3")
-			labelsField.Append(json.RawMessage(`{"_stream_id":"00000000000000002e3bd2bdc376279a6418761ca20c417c","_stream":"{path=\"/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log\",stream=\"stderr\"}","path":"/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log","stream":"stderr","time":"2024-09-10T12:24:38.124811792Z"}`))
-			labelsField.Append(json.RawMessage(`{"_stream_id":"0000000000000000356bfe9e3c71128c750d94c15df6b908","_stream":"{stream=\"stream1\"}","date":"0","stream":"stream1","log.level":"info"}`))
-			labelsField.Append(json.RawMessage(`{"_stream_id":"00000000000000002e3bd2bdc376279a6418761ca20c417c","_stream":"{path=\"/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log\",stream=\"stderr\"}","path":"/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log","stream":"stderr","time":"2024-09-10T13:06:56.451470093Z"}`))
+			lbl1 := `{"_stream_id":"00000000000000002e3bd2bdc376279a6418761ca20c417c","_stream":"{path=\"/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log\",stream=\"stderr\"}","path":"/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log","stream":"stderr","time":"2024-09-10T12:24:38.124811792Z"}`
+			lbl2 := `{"_stream_id":"0000000000000000356bfe9e3c71128c750d94c15df6b908","_stream":"{stream=\"stream1\"}","date":"0","stream":"stream1","log.level":"info"}`
+			lbl3 := `{"_stream_id":"00000000000000002e3bd2bdc376279a6418761ca20c417c","_stream":"{path=\"/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log\",stream=\"stderr\"}","path":"/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log","stream":"stderr","time":"2024-09-10T13:06:56.451470093Z"}`
+			labelsField.Append(json.RawMessage(lbl1))
+			labelsField.Append(json.RawMessage(lbl2))
+			labelsField.Append(json.RawMessage(lbl3))
 
 			pathValue := "/var/lib/docker/containers/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89/c01cbe414773fa6b3e4e0976fb27c3583b1a5cd4b7007662477df66987f97f89-json.log"
 			return newFrame(timeFd, lineField, newIDField(
-				row{ts1, "1", sid13},
-				row{ts2, "2", sid2},
-				row{ts3, "3", sid13},
+				row{ts1, "1", sid13, lbl1},
+				row{ts2, "2", sid2, lbl2},
+				row{ts3, "3", sid13, lbl3},
 			), labelsField, []string{sid13, sid2, sid13}, []map[string]string{
 				{"path": pathValue, "stream": "stderr"},
 				{"stream": "stream1"},
@@ -479,9 +456,10 @@ func Test_parseInstantResponse(t *testing.T) {
 
 			timeFd.Append(getTimeType(tsRaw))
 			lineField.Append(str)
-			labelsField.Append(json.RawMessage(`{"_stream_id":"0000000000000000356bfe9e3c71128c750d94c15df6b908","_stream":"{stream=\"stream1\"}","date":"0","stream":"stream1","log.level":"info"}`))
+			lblRaw := `{"_stream_id":"0000000000000000356bfe9e3c71128c750d94c15df6b908","_stream":"{stream=\"stream1\"}","date":"0","stream":"stream1","log.level":"info"}`
+			labelsField.Append(json.RawMessage(lblRaw))
 
-			return newFrame(timeFd, lineField, newIDField(row{tsRaw, str, streamID}), labelsField, []string{streamID}, []map[string]string{{"stream": "stream1"}})
+			return newFrame(timeFd, lineField, newIDField(row{tsRaw, str, streamID, lblRaw}), labelsField, []string{streamID}, []map[string]string{{"stream": "stream1"}})
 		},
 	}
 	f(o)
@@ -497,9 +475,10 @@ func Test_parseInstantResponse(t *testing.T) {
 			tsRaw := "2024-02-20T14:04:27Z"
 			timeFd.Append(getTimeType(tsRaw))
 			lineField.Append("123")
-			labelsField.Append(json.RawMessage(`{"_stream":"{Dino Species=\"Stegosaurus\",kubernetes.labels.app.kubernetes.io/instance=\"123\",kubernetes.labels.app.kubernetes.io/name=\"vmagent\",kubernetes.namespace_name=\"monitoring\"}"}`))
+			lblRaw := `{"_stream":"{Dino Species=\"Stegosaurus\",kubernetes.labels.app.kubernetes.io/instance=\"123\",kubernetes.labels.app.kubernetes.io/name=\"vmagent\",kubernetes.namespace_name=\"monitoring\"}"}`
+			labelsField.Append(json.RawMessage(lblRaw))
 
-			return newFrame(timeFd, lineField, newIDField(row{tsRaw, "123", ""}), labelsField, []string{""}, []map[string]string{{
+			return newFrame(timeFd, lineField, newIDField(row{tsRaw, "123", "", lblRaw}), labelsField, []string{""}, []map[string]string{{
 				"Dino Species": "Stegosaurus",
 				"kubernetes.labels.app.kubernetes.io/instance": "123",
 				"kubernetes.labels.app.kubernetes.io/name":     "vmagent",
@@ -520,9 +499,10 @@ func Test_parseInstantResponse(t *testing.T) {
 			tsRaw := "2024-02-20T14:04:27Z"
 			timeFd.Append(getTimeType(tsRaw))
 			lineField.Append("123")
-			labelsField.Append(json.RawMessage(`{"_stream":"{kubernetes.host=\"host1\",kubernetes.labels.app.kubernetes.io/instance=\"123\",kubernetes.labels.app.kubernetes.io/name=\"vmagent\",kubernetes.namespace_name=\"monitoring\"}"}`))
+			lblRaw := `{"_stream":"{kubernetes.host=\"host1\",kubernetes.labels.app.kubernetes.io/instance=\"123\",kubernetes.labels.app.kubernetes.io/name=\"vmagent\",kubernetes.namespace_name=\"monitoring\"}"}`
+			labelsField.Append(json.RawMessage(lblRaw))
 
-			return newFrame(timeFd, lineField, newIDField(row{tsRaw, "123", ""}), labelsField, []string{""}, []map[string]string{{
+			return newFrame(timeFd, lineField, newIDField(row{tsRaw, "123", "", lblRaw}), labelsField, []string{""}, []map[string]string{{
 				"kubernetes.host": "host1",
 				"kubernetes.labels.app.kubernetes.io/instance": "123",
 				"kubernetes.labels.app.kubernetes.io/name":     "vmagent",
@@ -546,12 +526,14 @@ func Test_parseInstantResponse(t *testing.T) {
 			timeFd.Append(getTimeType(ts2))
 			lineField.Append("some new message")
 			lineField.Append("")
-			labelsField.Append(json.RawMessage(`{"_stream_id":"1","_stream":"{container.id=\"1\",container.name=\"1\"}","container.id":"1","container.name":"1","fluent.tag":"2fa06040a011","severity":"Unspecified","source":"stdout"}`))
-			labelsField.Append(json.RawMessage(`{"_stream_id":"2","_stream":"{container.id=\"2\",container.name=\"2\"}","container.id":"2","container.name":"2","fluent.tag":"2fa06040a011","severity":"Unspecified","source":"stdout"}`))
+			lbl1 := `{"_stream_id":"1","_stream":"{container.id=\"1\",container.name=\"1\"}","container.id":"1","container.name":"1","fluent.tag":"2fa06040a011","severity":"Unspecified","source":"stdout"}`
+			lbl2 := `{"_stream_id":"2","_stream":"{container.id=\"2\",container.name=\"2\"}","container.id":"2","container.name":"2","fluent.tag":"2fa06040a011","severity":"Unspecified","source":"stdout"}`
+			labelsField.Append(json.RawMessage(lbl1))
+			labelsField.Append(json.RawMessage(lbl2))
 
 			return newFrame(timeFd, lineField, newIDField(
-				row{ts1, "some new message", "1"},
-				row{ts2, "", "2"},
+				row{ts1, "some new message", "1", lbl1},
+				row{ts2, "", "2", lbl2},
 			), labelsField, []string{"1", "2"}, []map[string]string{
 				{"container.id": "1", "container.name": "1"},
 				{"container.id": "2", "container.name": "2"},
@@ -573,14 +555,17 @@ func Test_parseInstantResponse(t *testing.T) {
 			lineField.Append("")
 			lineField.Append("")
 			lineField.Append("")
-			labelsField.Append(json.RawMessage(`{"logs":"69275","_stream":"{az_id=\"use1-az2\",source=\"vector\",vpc_id=\"vpc\"}"}`))
-			labelsField.Append(json.RawMessage(`{"logs":"5022","_stream":"{namespace=\"ops-monitoring-ns\"}"}`))
-			labelsField.Append(json.RawMessage(`{"logs":"194","_stream":"{}"}`))
+			lbl1 := `{"logs":"69275","_stream":"{az_id=\"use1-az2\",source=\"vector\",vpc_id=\"vpc\"}"}`
+			lbl2 := `{"logs":"5022","_stream":"{namespace=\"ops-monitoring-ns\"}"}`
+			lbl3 := `{"logs":"194","_stream":"{}"}`
+			labelsField.Append(json.RawMessage(lbl1))
+			labelsField.Append(json.RawMessage(lbl2))
+			labelsField.Append(json.RawMessage(lbl3))
 
 			return newFrame(timeFd, lineField, newIDField(
-				row{"", "", ""},
-				row{"", "", ""},
-				row{"", "", ""},
+				row{"", "", "", lbl1},
+				row{"", "", "", lbl2},
+				row{"", "", "", lbl3},
 			), labelsField, []string{"", "", ""}, []map[string]string{
 				{"az_id": "use1-az2", "source": "vector", "vpc_id": "vpc"},
 				{"namespace": "ops-monitoring-ns"},
@@ -606,12 +591,14 @@ func Test_parseInstantResponse(t *testing.T) {
 			timeFd.Append(getTimeType(ts))
 			lineField.Append("hello")
 			lineField.Append("world")
-			labelsField.Append(json.RawMessage(`{"_stream_id":"00000000000000009eaf29866f70976a098adc735393deb1"}`))
-			labelsField.Append(json.RawMessage(`{"foo":"bar"}`))
+			lbl1 := `{"_stream_id":"00000000000000009eaf29866f70976a098adc735393deb1"}`
+			lbl2 := `{"foo":"bar"}`
+			labelsField.Append(json.RawMessage(lbl1))
+			labelsField.Append(json.RawMessage(lbl2))
 
 			return newFrame(timeFd, lineField, newIDField(
-				row{ts, "hello", streamID},
-				row{ts, "world", ""},
+				row{ts, "hello", streamID, lbl1},
+				row{ts, "world", "", lbl2},
 			), labelsField, []string{streamID, ""}, []map[string]string{nil, nil})
 		},
 	}
@@ -631,12 +618,14 @@ func Test_parseInstantResponse(t *testing.T) {
 			timeFd.Append(getTimeType(ts2))
 			lineField.Append(msg)
 			lineField.Append("")
-			labelsField.Append(json.RawMessage(`{"_stream_id":"00000000000000000899b9a9578ea0f11a8a45c1b4cc8e34","_stream":"{kubernetes.container_name=\"frigate\",stream=\"stdout\"}","stream":"stdout"}`))
-			labelsField.Append(json.RawMessage(`{"_stream_id":"0000000000000000e934a84adb05276890d7f7bfcadabe92","_stream":"{}"}`))
+			lbl1 := `{"_stream_id":"00000000000000000899b9a9578ea0f11a8a45c1b4cc8e34","_stream":"{kubernetes.container_name=\"frigate\",stream=\"stdout\"}","stream":"stdout"}`
+			lbl2 := `{"_stream_id":"0000000000000000e934a84adb05276890d7f7bfcadabe92","_stream":"{}"}`
+			labelsField.Append(json.RawMessage(lbl1))
+			labelsField.Append(json.RawMessage(lbl2))
 
 			return newFrame(timeFd, lineField, newIDField(
-				row{ts1, msg, "00000000000000000899b9a9578ea0f11a8a45c1b4cc8e34"},
-				row{ts2, "", "0000000000000000e934a84adb05276890d7f7bfcadabe92"},
+				row{ts1, msg, "00000000000000000899b9a9578ea0f11a8a45c1b4cc8e34", lbl1},
+				row{ts2, "", "0000000000000000e934a84adb05276890d7f7bfcadabe92", lbl2},
 			), labelsField, []string{"00000000000000000899b9a9578ea0f11a8a45c1b4cc8e34", "0000000000000000e934a84adb05276890d7f7bfcadabe92"}, []map[string]string{
 				{"kubernetes.container_name": "frigate", "stream": "stdout"},
 				{},
