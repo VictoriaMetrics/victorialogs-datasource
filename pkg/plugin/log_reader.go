@@ -31,7 +31,7 @@ func newLogReader(reader io.Reader) *logReader {
 	}
 }
 
-func (lr *logReader) ReadRow() (logRow, error) {
+func (lr *logReader) readRow() (logRow, error) {
 	for {
 		b, err := lr.readLine()
 		if errors.Is(err, errLineTooLong) {

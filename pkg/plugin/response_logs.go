@@ -94,7 +94,7 @@ func streamToJSON(stream map[string]string) *json.RawMessage {
 func parseInstantResponse(lr *logReader) backend.DataResponse {
 	frame := newLogFrame()
 	for {
-		row, err := lr.ReadRow()
+		row, err := lr.readRow()
 		if errors.Is(err, io.EOF) {
 			break
 		}
@@ -114,7 +114,7 @@ func parseInstantResponse(lr *logReader) backend.DataResponse {
 // parse the lines from the reader and we need to collect only one data.Frame
 func parseStreamResponse(lr *logReader, ch chan *data.Frame) error {
 	for {
-		row, err := lr.ReadRow()
+		row, err := lr.readRow()
 		if errors.Is(err, io.EOF) {
 			return nil
 		}
