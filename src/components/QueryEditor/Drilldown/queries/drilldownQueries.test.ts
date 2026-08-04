@@ -1,9 +1,11 @@
-import { dateTime, toDataFrame, TimeRange } from '@grafana/data';
+import { dateTime, LogLevel, toDataFrame, TimeRange } from '@grafana/data';
 
+import { LogLevelRuleType } from '../../../../configuration/LogLevelRules/types';
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { escapeLabelValueInSelector } from '../../../../languageUtils';
 import { addLabelToQuery } from '../../../../modifyQuery';
 import { AdHocFilter, Query, QueryType } from '../../../../types';
+import { buildLevelGrouping, DERIVED_LEVEL_FIELD, LevelGrouping } from '../../../../utils/query/levelFormatPipes';
 
 import {
   buildFieldHitsQuery,
@@ -27,6 +29,10 @@ const range: TimeRange = {
 };
 
 const baseQuery: Query = { refId: 'A', expr: 'error' };
+
+/** No active rules: the lightweight raw `level` split, no format pipes */
+const rawLevelGrouping: LevelGrouping = { pipes: '', fields: ['level'] };
+const rules = [{ field: 'severity', operator: LogLevelRuleType.Equals, value: 'err', level: LogLevel.error, enabled: true }];
 
 describe('buildLookupQuery', () => {
   const lookupDatasource = {
@@ -121,8 +127,8 @@ describe('buildPatternLogsQuery', () => {
 });
 
 describe('buildFieldPresenceVolumeQuery', () => {
-  it('builds a hits query narrowed to the logs carrying the field, grouped by the level fields', () => {
-    const result = buildFieldPresenceVolumeQuery(baseQuery, 'namespace', ['level'], range, 4);
+  it('builds a hits query narrowed to the logs carrying the field, split by the raw level without rules', () => {
+    const result = buildFieldPresenceVolumeQuery(baseQuery, 'namespace', rawLevelGrouping, range, 4);
     expect(result.expr).toBe('error AND namespace:*');
     expect(result.queryType).toBe(QueryType.Hits);
     expect(result.fields).toEqual(['level']);
@@ -134,13 +140,21 @@ describe('buildFieldPresenceVolumeQuery', () => {
 
   it('inserts the presence filter before the pipes', () => {
     const query: Query = { refId: 'A', expr: 'error | collapse_nums' };
-    const result = buildFieldPresenceVolumeQuery(query, 'pod', [], range, 0);
+    const result = buildFieldPresenceVolumeQuery(query, 'pod', rawLevelGrouping, range, 0);
     expect(result.expr).toBe('error AND pod:* | collapse_nums');
   });
 
   it('quotes field names containing special characters', () => {
-    const result = buildFieldPresenceVolumeQuery(baseQuery, 'kubernetes:pod', [], range, 0);
+    const result = buildFieldPresenceVolumeQuery(baseQuery, 'kubernetes:pod', rawLevelGrouping, range, 0);
     expect(result.expr).toBe('error AND "kubernetes:pod":*');
+  });
+
+  it('derives the level server-side with active rules: format pipes in the expr, hits grouped by the derived field', () => {
+    const grouping = buildLevelGrouping(rules);
+    const result = buildFieldPresenceVolumeQuery(baseQuery, 'namespace', grouping, range, 0);
+    expect(result.fields).toEqual([DERIVED_LEVEL_FIELD]);
+    expect(result.expr).toContain('error AND namespace:*');
+    expect(result.expr).toContain(`format "" as ${DERIVED_LEVEL_FIELD}`);
   });
 });
 

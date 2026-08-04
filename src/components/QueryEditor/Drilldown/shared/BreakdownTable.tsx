@@ -80,6 +80,16 @@ interface LoadedRowVolume {
   total?: number;
 }
 
+/**
+ * Per-row volumes precomputed by the parent from ONE grouped hits query. While the
+ * grouped query is loading, rows show their loading state without querying; once it
+ * settles, a row missing from the map falls back to its own per-row query
+ */
+export interface ProvidedRowVolumes {
+  byLabel: Map<string, { frames: DataFrame[]; total: number }>;
+  state: LoadingState;
+}
+
 interface BreakdownTableProps {
   items: BreakdownTableItem[];
   loading: boolean;
@@ -97,6 +107,8 @@ interface BreakdownTableProps {
   range: TimeRange;
   /** Builds the hits query behind a row's sparkline; the refId must carry the suffix */
   buildVolumeQuery: (label: string, refIdSuffix: number) => Query;
+  /** When set, rows take their volume from this shared result instead of querying per row */
+  rowVolumes?: ProvidedRowVolumes;
   /** Derives the sparkline and the top-chart series from a row's raw frames; identity by default */
   transformVolume?: (frames: DataFrame[], range: TimeRange) => TransformedVolume;
   /** Base field config of the top chart; plain lines by default */
@@ -138,6 +150,7 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
   datasource,
   range,
   buildVolumeQuery,
+  rowVolumes,
   transformVolume,
   chartFieldConfig = TOP_CHART_FIELD_CONFIG,
   renderActions,
@@ -220,6 +233,7 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
             label={props.cell.row.original.label}
             range={range}
             target={buildVolumeQuery(props.cell.row.original.label, props.cell.row.original.index)}
+            rowVolumes={rowVolumes}
             transformVolume={transformVolume}
             onLoaded={onVolumeLoaded}
           />
@@ -276,8 +290,8 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
       },
     ],
     // `volumes` deliberately excluded — cells read it through volumesRef (see above)
-     
-    [styles, range, datasource, totalHits, buildVolumeQuery, transformVolume, renderActions, onVolumeLoaded, labelHeader, onLabelClick]
+
+    [styles, range, datasource, totalHits, buildVolumeQuery, rowVolumes, transformVolume, renderActions, onVolumeLoaded, labelHeader, onLabelClick]
   );
 
   // no previous rows to keep showing — either the first load, or the list identity changed
@@ -351,28 +365,51 @@ interface RowVolumeCellProps {
   label: string;
   range: TimeRange;
   target: Query;
+  rowVolumes?: ProvidedRowVolumes;
   transformVolume?: (frames: DataFrame[], range: TimeRange) => TransformedVolume;
   onLoaded: (label: string, raw: PanelData, topSeries: DataFrame[], total?: number) => void;
 }
 
 /**
- * Sparkline cell that owns the row's volume query. InteractiveTable renders only the
- * current page, so mounting this cell is what makes a row's volume load lazily.
- * The completed result is reported up for the top chart and the exact count
+ * Sparkline cell behind a row's volume. With `rowVolumes` the cell renders from the
+ * shared grouped result and only falls back to its own query for a row the grouped
+ * result doesn't cover (deep page, tuple truncation, grouped-query error). Without
+ * it the cell owns the query — InteractiveTable renders only the current page, so
+ * mounting the cell is what makes a row's volume load lazily. The completed result
+ * is reported up for the top chart and the exact count
  */
 const RowVolumeCell: React.FC<RowVolumeCellProps> = ({
   datasource,
   label,
   range,
   target,
+  rowVolumes,
   transformVolume,
   onLoaded,
 }) => {
   const styles = useStyles2(getStyles);
-  const { data, total } = useTargetVolume(datasource, target, range);
+  const provided = rowVolumes?.byLabel.get(label);
+  const groupedSettled = rowVolumes?.state === LoadingState.Done || rowVolumes?.state === LoadingState.Error;
+  // the own query fires only when there is no shared source, or when the shared source
+  // finished without covering this row
+  const needsOwnQuery = !rowVolumes || (groupedSettled && !provided);
+  const { data: ownData, total: ownTotal } = useTargetVolume(datasource, target, range, needsOwnQuery);
 
   // a stable key: `range` is often a fresh object with identical timestamps
   const rangeKey = `${range.from.valueOf()}-${range.to.valueOf()}`;
+  // memoized so the downstream onLoaded effect (guarded by `raw` identity upstream) doesn't
+  // re-report a fresh object every render when the volume comes from the shared source
+  const data = useMemo<PanelData>(
+    () =>
+      provided
+        ? { series: provided.frames, state: LoadingState.Done, timeRange: range }
+        : needsOwnQuery
+          ? ownData
+          : { series: [], state: LoadingState.Loading, timeRange: range },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [provided, needsOwnQuery, ownData, rangeKey]
+  );
+  const total = provided ? provided.total : ownTotal;
   // identity transform by default: raw frames feed both the sparkline and the top chart
   const transformed = useMemo<TransformedVolume>(
     () =>

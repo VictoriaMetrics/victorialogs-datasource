@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
-import { from, isObservable, Unsubscribable } from 'rxjs';
+import { Unsubscribable } from 'rxjs';
 
 import { DataFrame, DataQueryRequest, LoadingState, PanelData, TimeRange, toDataFrame } from '@grafana/data';
 
@@ -14,6 +14,7 @@ import {
   buildValueLogsQuery,
 } from './drilldownQueries';
 import { errorMessage } from './errorMessage';
+import { scheduleDrilldownQuery } from './queryScheduler';
 
 /** Runs a single-target drilldown request and applies the shared next/error/complete state machine used by all logs-sample hooks */
 function subscribeLogsSample(
@@ -22,8 +23,7 @@ function subscribeLogsSample(
   range: TimeRange,
   setData: Dispatch<SetStateAction<PanelData>>
 ): Unsubscribable {
-  const response = datasource.query(request);
-  const observable = isObservable(response) ? response : from(Promise.resolve(response));
+  const observable = scheduleDrilldownQuery(datasource, request);
   let frames: DataFrame[] = [];
   return observable.subscribe({
     next: (resp) => {

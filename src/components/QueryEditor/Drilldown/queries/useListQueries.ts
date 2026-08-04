@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { from, isObservable } from 'rxjs';
 
 import { DataFrame, TimeRange, toDataFrame } from '@grafana/data';
 
@@ -15,6 +14,7 @@ import {
   PATTERNS_SAMPLE_FACTOR,
 } from './drilldownQueries';
 import { errorMessage } from './errorMessage';
+import { scheduleDrilldownQuery } from './queryScheduler';
 
 /** One row of the field-values table; counts from field_values are exact */
 export interface FieldValueListItem {
@@ -78,8 +78,7 @@ export function useFieldValuesList(
     setError(undefined);
     const target = buildFieldValuesListQuery(query, field);
     const request = buildDrilldownRequest([target], range, target.refId);
-    const response = datasource.query(request);
-    const observable = isObservable(response) ? response : from(Promise.resolve(response));
+    const observable = scheduleDrilldownQuery(datasource, request);
     let frames: DataFrame[] = [];
     let hadError = false;
     const subscription = observable.subscribe({
@@ -171,8 +170,7 @@ export function usePatternsList(
     // (range/filters/expr changed) keeps the previous rows visible until `complete` replaces them
     const target = buildPatternsListQuery(query);
     const request = buildDrilldownRequest([target], range, 'drilldown-patterns-list');
-    const response = datasource.query(request);
-    const observable = isObservable(response) ? response : from(Promise.resolve(response));
+    const observable = scheduleDrilldownQuery(datasource, request);
     let frames: DataFrame[] = [];
     let hadError = false;
     const subscription = observable.subscribe({

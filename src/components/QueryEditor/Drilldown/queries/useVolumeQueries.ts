@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { from, isObservable } from 'rxjs';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   CoreApp,
@@ -12,19 +11,27 @@ import {
   toDataFrame,
 } from '@grafana/data';
 
+import { UNIQ_LOG_LEVEL } from '../../../../configuration/LogLevelRules/const';
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { aggregateRawLogsVolume, extractLevel, queryLogsVolume } from '../../../../logsVolumeLegacy';
 import { Query, QueryType } from '../../../../types';
+import { buildLevelGrouping } from '../../../../utils/query/levelFormatPipes';
 
 import {
   buildDrilldownRequest,
   buildFieldHitsQuery,
   DRILLDOWN_ROW_BARS,
   FIELD_HITS_LIMIT,
+  FieldValueFrames,
   groupHitsByFieldValue,
+  withLevelPipes,
 } from './drilldownQueries';
 import { errorMessage } from './errorMessage';
 import { FACETS_VALUES_LIMIT } from './facets';
+import { drilldownQueryScheduler, scheduleDrilldownQuery } from './queryScheduler';
+
+/** A value splits into at most one hits bucket per known level */
+const LEVEL_BUCKETS = Object.values(UNIQ_LOG_LEVEL).length;
 
 /** Runs the level-grouped hits volume for the current query via the supplementary-query path */
 export function useLogsVolume(datasource: VictoriaLogsDatasource, query: Query, range: TimeRange): PanelData {
@@ -46,7 +53,9 @@ export function useLogsVolume(datasource: VictoriaLogsDatasource, query: Query, 
     if (!observable) {
       return;
     }
-    const subscription = observable.subscribe({
+    // queryLogsVolume's observable is cold — scheduling defers its subscription
+    // (and thus the underlying request) until the shared limiter grants a slot
+    const subscription = drilldownQueryScheduler.schedule(() => observable).subscribe({
       next: (response) => {
         // queryLogsVolume always emits an initial {state: Loading, data: []} before the real
         // result — on a refetch (context changed, same query) that would otherwise wipe the
@@ -76,14 +85,26 @@ export interface FieldValueVolume {
   volumeData: PanelData;
 }
 
-/** Runs a hits query grouped by the given field plus level fields, and returns the top values */
-export function useFieldValuesHits(
+export interface FieldValueFramesResult {
+  groups: FieldValueFrames[];
+  totalValues: number;
+  loading: boolean;
+  error?: string;
+  serverTruncated: boolean;
+}
+
+/**
+ * Runs ONE hits query grouped by the given field plus level fields and returns the raw
+ * per-value frames — the shared source for every per-value volume of the field, so a
+ * page of breakdown rows costs a single range scan instead of one query per row
+ */
+export function useFieldValueFrames(
   datasource: VictoriaLogsDatasource,
   query: Query,
   field: string | undefined,
   range: TimeRange
-): { top: FieldValueVolume[]; totalValues: number; loading: boolean; error?: string; serverTruncated: boolean } {
-  const [top, setTop] = useState<FieldValueVolume[]>([]);
+): FieldValueFramesResult {
+  const [groups, setGroups] = useState<FieldValueFrames[]>([]);
   const [totalValues, setTotalValues] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
@@ -102,7 +123,7 @@ export function useFieldValuesHits(
     previousFieldRef.current = field;
 
     if (!field) {
-      setTop([]);
+      setGroups([]);
       setTotalValues(0);
       setError(undefined);
       setServerTruncated(false);
@@ -114,23 +135,25 @@ export function useFieldValuesHits(
     if (fieldChanged) {
       // a different field is a content-identity change — clear immediately so the new tab
       // never renders rows still belonging to the field that was active a moment ago
-      setTop([]);
+      setGroups([]);
       setTotalValues(0);
       setServerTruncated(false);
     }
     setLoading(true);
     setError(undefined);
-    // level fields are requested alongside the drilldown field so each value's volume
-    // can be split by level the same way as the main logs-volume panel
-    const levelFields = datasource.getActiveLevelRules().map((r) => r.field).filter(Boolean);
-    const hitsFields = Array.from(new Set([field, ...levelFields, 'level']));
-    // VictoriaLogs' fields_limit bounds unique (field,level,...) tuples, not field values alone —
-    // scale the default per-field bound by the number of grouping fields so the tuple space isn't
-    // truncated far below FIELD_HITS_LIMIT distinct values
-    const target = { ...buildFieldHitsQuery(query, range, hitsFields), fieldsLimit: FIELD_HITS_LIMIT * hitsFields.length };
+    // the level split rides along with the drilldown field so each value's volume can be
+    // level-stacked with the same server-side derivation as the main logs-volume panel
+    const grouping = buildLevelGrouping(datasource.getActiveLevelRules());
+    const hitsFields = Array.from(new Set([field, ...grouping.fields]));
+    // VictoriaLogs' fields_limit bounds unique (value,level) tuples, not field values alone —
+    // each value splits into at most one bucket per known level, so scaling by the level
+    // count keeps FIELD_HITS_LIMIT distinct values fully covered
+    const target = {
+      ...buildFieldHitsQuery({ ...query, expr: withLevelPipes(query.expr, grouping) }, range, hitsFields),
+      fieldsLimit: FIELD_HITS_LIMIT * LEVEL_BUCKETS,
+    };
     const request = buildDrilldownRequest([target], range, `drilldown-hits-${field}`);
-    const response = datasource.query(request);
-    const observable = isObservable(response) ? response : from(Promise.resolve(response));
+    const observable = scheduleDrilldownQuery(datasource, request);
     let frames: DataFrame[] = [];
     let hadError = false;
     const subscription = observable.subscribe({
@@ -156,19 +179,7 @@ export function useFieldValuesHits(
           return;
         }
         const grouped = groupHitsByFieldValue(frames, field);
-        setTop(
-          grouped.top.map(({ value, total, frames: valueFrames }) => ({
-            value,
-            total,
-            volumeData: {
-              // reuses the level-grouping/coloring pipeline of the main logs-volume path, but with
-              // the narrower row-chart bucket count so the grid matches the query's own step
-              series: aggregateRawLogsVolume(valueFrames, extractLevel, request, datasource.logLevelRules, DRILLDOWN_ROW_BARS),
-              state: LoadingState.Done,
-              timeRange: range,
-            },
-          }))
-        );
+        setGroups(grouped.top);
         setTotalValues(grouped.totalValues);
         setServerTruncated(grouped.serverTruncated);
         setLoading(false);
@@ -177,6 +188,36 @@ export function useFieldValuesHits(
     return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datasource, query.expr, filtersKey, field, range.from.valueOf(), range.to.valueOf()]);
+
+  return { groups, totalValues, loading, error, serverTruncated };
+}
+
+/** Runs a hits query grouped by the given field plus level fields, and returns the top values with level-stacked volumes */
+export function useFieldValuesHits(
+  datasource: VictoriaLogsDatasource,
+  query: Query,
+  field: string | undefined,
+  range: TimeRange
+): { top: FieldValueVolume[]; totalValues: number; loading: boolean; error?: string; serverTruncated: boolean } {
+  const { groups, totalValues, loading, error, serverTruncated } = useFieldValueFrames(datasource, query, field, range);
+
+  const rangeKey = `${range.from.valueOf()}-${range.to.valueOf()}`;
+  const top = useMemo<FieldValueVolume[]>(() => {
+    // the aggregation only needs the request's range — an empty-target request carries it
+    const request = buildDrilldownRequest([], range, 'drilldown-field-values-aggregate');
+    return groups.map(({ value, total, frames }) => ({
+      value,
+      total,
+      volumeData: {
+        // reuses the level-grouping/coloring pipeline of the main logs-volume path, but with
+        // the narrower row-chart bucket count so the grid matches the query's own step
+        series: aggregateRawLogsVolume(frames, extractLevel, request, datasource.logLevelRules, DRILLDOWN_ROW_BARS),
+        state: LoadingState.Done,
+        timeRange: range,
+      },
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups, datasource, rangeKey]);
 
   return { top, totalValues, loading, error, serverTruncated };
 }
@@ -204,8 +245,7 @@ export function useFieldVolume(
     // the card chart mirrors the facets summary — the same top-N values, one series each
     const target = { ...buildFieldHitsQuery(query, range, [field]), fieldsLimit: FACETS_VALUES_LIMIT };
     const request = buildDrilldownRequest([target], range, `drilldown-field-volume-${field}`);
-    const response = datasource.query(request);
-    const observable = isObservable(response) ? response : from(Promise.resolve(response));
+    const observable = scheduleDrilldownQuery(datasource, request);
     let frames: DataFrame[] = [];
     const subscription = observable.subscribe({
       next: (resp) => {
@@ -251,11 +291,12 @@ export function useFieldVolume(
   return data;
 }
 
-/** Single-series volume for a visible breakdown-table row (a pattern or a field value): the sum of the series is the row's exact count */
+/** Single-series volume for a visible breakdown-table row (a pattern or a field value): the sum of the series is the row's exact count; idle until enabled */
 export function useTargetVolume(
   datasource: VictoriaLogsDatasource,
   target: Query,
-  range: TimeRange
+  range: TimeRange,
+  enabled = true
 ): { data: PanelData; total?: number } {
   const [data, setData] = useState<PanelData>({ series: [], state: LoadingState.NotStarted, timeRange: range });
   const [total, setTotal] = useState<number>();
@@ -265,12 +306,14 @@ export function useTargetVolume(
   const filtersKey = JSON.stringify(target.adHocFilters ?? []);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setData((prev) => ({ ...prev, state: LoadingState.Loading }));
     // the target's refId doubles as the requestId — it already carries the per-row suffix
     const request = buildDrilldownRequest([target], range, target.refId);
-    const response = datasource.query(request);
-    const observable = isObservable(response) ? response : from(Promise.resolve(response));
+    const observable = scheduleDrilldownQuery(datasource, request);
     let frames: DataFrame[] = [];
     const subscription = observable.subscribe({
       next: (resp) => {
@@ -303,7 +346,7 @@ export function useTargetVolume(
     });
     return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [datasource, target.expr, filtersKey, target.refId, range.from.valueOf(), range.to.valueOf()]);
+  }, [datasource, enabled, target.expr, filtersKey, target.refId, range.from.valueOf(), range.to.valueOf()]);
 
   return { data, total };
 }

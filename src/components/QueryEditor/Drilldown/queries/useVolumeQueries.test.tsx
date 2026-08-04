@@ -1,14 +1,19 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { of, Subject, throwError } from 'rxjs';
 
-import { dateTime, LoadingState, TimeRange } from '@grafana/data';
+import { dateTime, LoadingState, LogLevel, TimeRange } from '@grafana/data';
 
+import { UNIQ_LOG_LEVEL } from '../../../../configuration/LogLevelRules/const';
+import { LogLevelRuleType } from '../../../../configuration/LogLevelRules/types';
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { Query } from '../../../../types';
+import { DERIVED_LEVEL_FIELD } from '../../../../utils/query/levelFormatPipes';
 
-import { FIELD_HITS_LIMIT } from './drilldownQueries';
+import { buildValueVolumeQuery, FIELD_HITS_LIMIT } from './drilldownQueries';
 import { makeDatasource, makeHitsFrame, makeLabeledFrame, query, range } from './hookTestUtils';
-import { useFieldValuesHits, useLogsVolume } from './useVolumeQueries';
+import { useFieldValueFrames, useFieldValuesHits, useLogsVolume, useTargetVolume } from './useVolumeQueries';
+
+const levelRule = { field: 'severity', operator: LogLevelRuleType.Equals, value: 'err', level: LogLevel.error, enabled: true };
 
 describe('useLogsVolume', () => {
   it('produces PanelData from the volume query', async () => {
@@ -72,6 +77,52 @@ describe('useLogsVolume', () => {
   });
 });
 
+describe('useFieldValueFrames', () => {
+  it('returns raw per-value frame groups sorted by hits from ONE grouped query', async () => {
+    const datasource = makeDatasource({
+      query: jest.fn().mockReturnValue(
+        of({
+          data: [
+            makeLabeledFrame({ app: 'web', level: 'error' }, [10, 0]),
+            makeLabeledFrame({ app: 'web', level: 'info' }, [1, 1]),
+            makeLabeledFrame({ app: 'api', level: 'info' }, [3, 0]),
+          ],
+        })
+      ),
+    } as Partial<VictoriaLogsDatasource>);
+    const { result } = renderHook(() => useFieldValueFrames(datasource, query, 'app', range));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(datasource.query).toHaveBeenCalledTimes(1);
+    expect(result.current.groups.map((g) => g.value)).toEqual(['web', 'api']);
+    expect(result.current.groups[0].total).toBe(12);
+    // raw frames pass through ungrouped by level — the consumer picks its own transform
+    expect(result.current.groups[0].frames).toHaveLength(2);
+  });
+});
+
+describe('useTargetVolume', () => {
+  const target = buildValueVolumeQuery(query, 'app', 'web', { pipes: '', fields: ['level'] }, range, 0);
+
+  it('stays idle while disabled and fires once enabled', async () => {
+    const datasource = makeDatasource();
+    const { result, rerender } = renderHook(
+      ({ enabled }: { enabled: boolean }) => useTargetVolume(datasource, target, range, enabled),
+      { initialProps: { enabled: false } }
+    );
+
+    expect(datasource.query).not.toHaveBeenCalled();
+    expect(result.current.data.state).toBe(LoadingState.NotStarted);
+
+    rerender({ enabled: true });
+
+    await waitFor(() => expect(result.current.data.state).toBe(LoadingState.Done));
+    expect(datasource.query).toHaveBeenCalledTimes(1);
+    // the exact count is the sum over the returned series
+    expect(result.current.total).toBe(11);
+  });
+});
+
 describe('useFieldValuesHits', () => {
   const hitsFrames = [
     makeLabeledFrame({ app: 'web', level: 'error' }, [10, 0]),
@@ -96,25 +147,35 @@ describe('useFieldValuesHits', () => {
     expect(result.current.top[0].volumeData.series[0].length).toBe(50);
   });
 
-  it('requests hits grouped by the field plus level fields', async () => {
-    const datasource = makeDatasource({
-      getActiveLevelRules: jest.fn().mockReturnValue([{ field: 'severity', enabled: true }]),
-    } as Partial<VictoriaLogsDatasource>);
+  it('requests hits grouped by the field plus the raw level without rules', async () => {
+    const datasource = makeDatasource();
     renderHook(() => useFieldValuesHits(datasource, query, 'app', range));
     await waitFor(() => expect(datasource.query).toHaveBeenCalled());
     const request = (datasource.query as jest.Mock).mock.calls[0][0];
-    expect(request.targets[0].fields).toEqual(['app', 'severity', 'level']);
+    expect(request.targets[0].fields).toEqual(['app', 'level']);
+    expect(request.targets[0].expr).toBe(query.expr);
   });
 
-  it('scales fieldsLimit by the number of grouping fields — fields_limit bounds tuples, not values', async () => {
+  it('derives the level server-side with active rules — format pipes in the expr, hits grouped by the derived field', async () => {
     const datasource = makeDatasource({
-      getActiveLevelRules: jest.fn().mockReturnValue([{ field: 'severity', enabled: true }]),
+      getActiveLevelRules: jest.fn().mockReturnValue([levelRule]),
     } as Partial<VictoriaLogsDatasource>);
     renderHook(() => useFieldValuesHits(datasource, query, 'app', range));
     await waitFor(() => expect(datasource.query).toHaveBeenCalled());
     const request = (datasource.query as jest.Mock).mock.calls[0][0];
-    // grouping fields here: app, severity, level — 3 fields
-    expect(request.targets[0].fieldsLimit).toBe(FIELD_HITS_LIMIT * 3);
+    expect(request.targets[0].fields).toEqual(['app', DERIVED_LEVEL_FIELD]);
+    expect(request.targets[0].expr).toContain(`format "" as ${DERIVED_LEVEL_FIELD}`);
+  });
+
+  it('scales fieldsLimit by the level-bucket count — fields_limit bounds (value,level) tuples, not values', async () => {
+    const datasource = makeDatasource({
+      getActiveLevelRules: jest.fn().mockReturnValue([levelRule]),
+    } as Partial<VictoriaLogsDatasource>);
+    renderHook(() => useFieldValuesHits(datasource, query, 'app', range));
+    await waitFor(() => expect(datasource.query).toHaveBeenCalled());
+    const request = (datasource.query as jest.Mock).mock.calls[0][0];
+    // each value splits into at most one bucket per known level
+    expect(request.targets[0].fieldsLimit).toBe(FIELD_HITS_LIMIT * Object.values(UNIQ_LOG_LEVEL).length);
   });
 
   it('reports serverTruncated when the response includes a labels-less remainder frame', async () => {

@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 
-import { AbsoluteTimeRange, DataFrame, TimeRange } from '@grafana/data';
+import { AbsoluteTimeRange, DataFrame, LoadingState, TimeRange } from '@grafana/data';
 import { IconButton } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../datasource';
@@ -9,9 +9,10 @@ import { Query } from '../../../types';
 import { buildValueVolumeQuery } from './queries/drilldownQueries';
 import { useFieldValuesList } from './queries/useListQueries';
 import { useValueLogsSample } from './queries/useLogsSampleQueries';
-import { BreakdownTable, BreakdownTableItem, TransformedVolume } from './shared/BreakdownTable';
+import { useFieldValueFrames } from './queries/useVolumeQueries';
+import { BreakdownTable, BreakdownTableItem, ProvidedRowVolumes, TransformedVolume } from './shared/BreakdownTable';
 import { ExpandedLogsPanel } from './shared/ExpandedLogsPanel';
-import { STACKED_BARS_CHART_FIELD_CONFIG, getLevelFields, transformLevelVolume } from './shared/levelVolume';
+import { STACKED_BARS_CHART_FIELD_CONFIG, getLevelGrouping, transformLevelVolume } from './shared/levelVolume';
 
 interface FieldValuesTableProps {
   datasource: VictoriaLogsDatasource;
@@ -36,16 +37,27 @@ export const FieldValuesTable: React.FC<FieldValuesTableProps> = ({
   onChangeTimeRange,
 }) => {
   const { values, loading, error, serverTruncated } = useFieldValuesList(datasource, query, field, range);
+  // ONE grouped hits query supplies the volumes of every visible row; rows beyond its
+  // coverage (deep pages, tuple truncation) fall back to per-row queries inside the table
+  const grouped = useFieldValueFrames(datasource, query, field, range);
 
   const items = useMemo<BreakdownTableItem[]>(
     () => values.map((v) => ({ label: v.value, total: v.total })),
     [values]
   );
 
+  const rowVolumes = useMemo<ProvidedRowVolumes>(
+    () => ({
+      byLabel: new Map(grouped.groups.map((g) => [g.value, { frames: g.frames, total: g.total }])),
+      state: grouped.loading ? LoadingState.Loading : grouped.error ? LoadingState.Error : LoadingState.Done,
+    }),
+    [grouped.groups, grouped.loading, grouped.error]
+  );
+
   const buildVolumeQuery = useCallback(
-    // level fields are requested alongside so each value's sparkline can be split by level
+    // the level split rides along so each value's sparkline can be level-stacked
     (label: string, refIdSuffix: number) =>
-      buildValueVolumeQuery(query, field, label, getLevelFields(datasource), range, refIdSuffix),
+      buildValueVolumeQuery(query, field, label, getLevelGrouping(datasource), range, refIdSuffix),
     [datasource, query, field, range]
   );
 
@@ -94,6 +106,7 @@ export const FieldValuesTable: React.FC<FieldValuesTableProps> = ({
       datasource={datasource}
       range={range}
       buildVolumeQuery={buildVolumeQuery}
+      rowVolumes={rowVolumes}
       transformVolume={transformVolume}
       chartFieldConfig={STACKED_BARS_CHART_FIELD_CONFIG}
       renderActions={renderActions}

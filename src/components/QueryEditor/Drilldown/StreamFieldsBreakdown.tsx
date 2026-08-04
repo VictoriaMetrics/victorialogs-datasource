@@ -11,7 +11,7 @@ import { buildFieldPresenceVolumeQuery } from './queries/drilldownQueries';
 import { useFieldLogsSample } from './queries/useLogsSampleQueries';
 import { BreakdownTable, BreakdownTableItem, TransformedVolume } from './shared/BreakdownTable';
 import { ExpandedLogsPanel } from './shared/ExpandedLogsPanel';
-import { STACKED_BARS_CHART_FIELD_CONFIG, getLevelFields, transformLevelVolume } from './shared/levelVolume';
+import { STACKED_BARS_CHART_FIELD_CONFIG, getLevelGrouping, transformLevelVolume } from './shared/levelVolume';
 
 interface StreamFieldsBreakdownProps {
   datasource: VictoriaLogsDatasource;
@@ -54,7 +54,7 @@ export const StreamFieldsBreakdown: React.FC<StreamFieldsBreakdownProps> = ({
   const buildVolumeQuery = useCallback(
     // level fields are requested alongside so each field's sparkline can be split by level
     (label: string, refIdSuffix: number) =>
-      buildFieldPresenceVolumeQuery(query, label, getLevelFields(datasource), range, refIdSuffix),
+      buildFieldPresenceVolumeQuery(query, label, getLevelGrouping(datasource), range, refIdSuffix),
     [datasource, query, range]
   );
 

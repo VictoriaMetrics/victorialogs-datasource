@@ -2,6 +2,7 @@ import { DataFrame, FieldConfigSource, LoadingState, LogLevel, TimeRange } from 
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { aggregateRawLogsVolume, extractLevel } from '../../../../logsVolumeLegacy';
+import { buildLevelGrouping, LevelGrouping } from '../../../../utils/query/levelFormatPipes';
 import { buildDrilldownRequest, DRILLDOWN_ROW_BARS } from '../queries/drilldownQueries';
 
 import { TransformedVolume } from './BreakdownTable';
@@ -15,11 +16,9 @@ export const STACKED_BARS_CHART_FIELD_CONFIG: FieldConfigSource = {
   overrides: [],
 };
 
-/** Level fields requested alongside a row's volume so its sparkline can be split by level */
-export function getLevelFields(datasource: VictoriaLogsDatasource): string[] {
-  return Array.from(
-    new Set([...datasource.getActiveLevelRules().map((r) => r.field).filter(Boolean), 'level'])
-  );
+/** Level-splitting recipe of a row's volume query — same server-side derivation as the main logs-volume panel */
+export function getLevelGrouping(datasource: VictoriaLogsDatasource): LevelGrouping {
+  return buildLevelGrouping(datasource.getActiveLevelRules());
 }
 
 /**

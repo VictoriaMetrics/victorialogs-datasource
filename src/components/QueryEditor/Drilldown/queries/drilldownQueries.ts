@@ -3,9 +3,10 @@ import { CoreApp, DataFrame, DataQueryRequest, FieldType, TimeRange, rangeUtil }
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { escapeLabelValueInSelector } from '../../../../languageUtils';
 import { calculateVolumeStep } from '../../../../logsVolumeLegacy';
-import { addLabelToQuery, isStreamKey, normalizeKey } from '../../../../modifyQuery';
+import { addLabelToQuery, insertPipesBeforeSortClassPipe, isStreamKey, normalizeKey } from '../../../../modifyQuery';
 import { AdHocFilter, Query, QueryType } from '../../../../types';
 import { serializeChipsForBackend } from '../../../../utils/query/adHocFilters';
+import { LevelGrouping } from '../../../../utils/query/levelFormatPipes';
 import { splitExpression } from '../../../../utils/query/parseFromString';
 import { applyPatternFilters, PatternFilter } from '../patterns/patternFilters';
 
@@ -118,6 +119,14 @@ export function buildFieldValuesListQuery(query: Query, field: string): Query {
   };
 }
 
+/**
+ * Appends the level-derivation pipes to a volume expression, same as the main
+ * logs-volume path: before the first sort-class pipe, so hits keeps the derived
+ * field while the pipes still see fields created by earlier (pattern) pipes
+ */
+export const withLevelPipes = (expr: string, grouping: LevelGrouping): string =>
+  grouping.pipes ? insertPipesBeforeSortClassPipe(expr, grouping.pipes) : expr;
+
 /** Inserts a `field:*` presence filter into the expression's filter part, preserving any pipes */
 function addFieldPresenceToExpr(expr: string, field: string): string {
   const [filters, ...pipes] = splitExpression(expr);
@@ -126,19 +135,19 @@ function addFieldPresenceToExpr(expr: string, field: string): string {
   return filters.length ? `${filters} AND ${presence} ${pipesPart}`.trim() : `${presence} ${pipesPart}`.trim();
 }
 
-/** Builds the per-field volume query behind a stream-fields table row — hits for the logs carrying the field, grouped by the level fields so the sparkline can be level-stacked */
+/** Builds the per-field volume query behind a stream-fields table row — hits for the logs carrying the field, level-split the same way as the main logs-volume panel so the sparkline can be level-stacked */
 export function buildFieldPresenceVolumeQuery(
   query: Query,
   field: string,
-  levelFields: string[],
+  grouping: LevelGrouping,
   range: TimeRange,
   refIdSuffix: number
 ): Query {
   return {
     ...query,
-    expr: addFieldPresenceToExpr(query.expr, field),
+    expr: withLevelPipes(addFieldPresenceToExpr(query.expr, field), grouping),
     queryType: QueryType.Hits,
-    fields: levelFields,
+    fields: grouping.fields,
     fieldsLimit: FIELD_HITS_LIMIT,
     step: `${calculateVolumeStep(range, DRILLDOWN_ROW_BARS)}s`,
     hide: false,
@@ -161,12 +170,12 @@ export function buildFieldPresenceLogsQuery(query: Query, field: string, refIdSu
   };
 }
 
-/** Builds the per-value volume query behind a field-values table row — hits for `field = value`, grouped by the level fields so the sparkline can be level-stacked */
+/** Builds the per-value volume query behind a field-values table row — hits for `field = value`, level-split the same way as the main logs-volume panel so the sparkline can be level-stacked */
 export function buildValueVolumeQuery(
   query: Query,
   field: string,
   value: string,
-  levelFields: string[],
+  grouping: LevelGrouping,
   range: TimeRange,
   refIdSuffix: number
 ): Query {
@@ -175,9 +184,9 @@ export function buildValueVolumeQuery(
   const escapedValue = isStreamKey(field) ? value : escapeLabelValueInSelector(value);
   return {
     ...query,
-    expr: addLabelToQuery(query.expr, { key: field, value: escapedValue, operator: '=' }),
+    expr: withLevelPipes(addLabelToQuery(query.expr, { key: field, value: escapedValue, operator: '=' }), grouping),
     queryType: QueryType.Hits,
-    fields: levelFields,
+    fields: grouping.fields,
     fieldsLimit: FIELD_HITS_LIMIT,
     step: `${calculateVolumeStep(range, DRILLDOWN_ROW_BARS)}s`,
     hide: false,

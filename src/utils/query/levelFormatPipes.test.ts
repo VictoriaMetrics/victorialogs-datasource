@@ -2,7 +2,7 @@ import { LogLevel } from '@grafana/data';
 
 import { LogLevelRuleType } from '../../configuration/LogLevelRules/types';
 
-import { buildLevelFormatPipes, DERIVED_LEVEL_FIELD, parseDerivedLevel } from './levelFormatPipes';
+import { buildLevelFormatPipes, buildLevelGrouping, DERIVED_LEVEL_FIELD, parseDerivedLevel } from './levelFormatPipes';
 
 const errorRule = { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'error', level: LogLevel.error, enabled: true };
 const warnRule = { field: '_msg', operator: LogLevelRuleType.WordFilter, value: 'warn', level: LogLevel.warning, enabled: true };
@@ -58,6 +58,18 @@ describe('buildLevelFormatPipes', () => {
   it('returns an empty string when all rules have an empty field', () => {
     const draftRule = { field: '', operator: LogLevelRuleType.Equals, value: 'x', level: LogLevel.error, enabled: true };
     expect(buildLevelFormatPipes([draftRule])).toBe('');
+  });
+});
+
+describe('buildLevelGrouping', () => {
+  it('falls back to the raw level field without usable rules', () => {
+    expect(buildLevelGrouping([])).toEqual({ pipes: '', fields: ['level'] });
+  });
+
+  it('derives the level server-side with usable rules: format pipes plus the single derived field', () => {
+    const grouping = buildLevelGrouping([errorRule]);
+    expect(grouping.fields).toEqual([DERIVED_LEVEL_FIELD]);
+    expect(grouping.pipes).toBe(buildLevelFormatPipes([errorRule]));
   });
 });
 
