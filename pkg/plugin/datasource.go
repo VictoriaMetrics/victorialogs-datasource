@@ -363,7 +363,7 @@ func (di *DatasourceInstance) streamQuery(ctx context.Context, request *backend.
 		}
 	}()
 
-	return parseStreamResponse(r, livestream)
+	return parseStreamResponse(newLogReader(r), livestream)
 }
 
 // getQueryFromRaw parses the query json from the raw message.
@@ -471,7 +471,7 @@ func (di *DatasourceInstance) query(ctx context.Context, q *Query) backend.DataR
 	case QueryTypeHits:
 		return parseHitsResponse(r)
 	default:
-		return parseInstantResponse(r)
+		return parseInstantResponse(newLogReader(r))
 	}
 }
 

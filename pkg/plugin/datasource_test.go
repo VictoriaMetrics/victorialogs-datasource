@@ -194,13 +194,15 @@ func TestDatasourceQueryRequest(t *testing.T) {
 		}
 		timeFd.Append(ts)
 
-		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`))
+		lblRaw := `{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`
+		labelsField.Append(json.RawMessage(lblRaw))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
 			[]byte(tsRaw),
 			[]byte(lineRaw),
 			nil,
+			[]byte(lblRaw),
 		))
 		streamsField, streamIdField := newHiddenStreamFields(
 			[]string{""},
@@ -284,13 +286,15 @@ func TestDatasourceQueryRequest(t *testing.T) {
 		lineRaw := "123"
 		lineField.Append(lineRaw)
 
-		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`))
+		lblRaw := `{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`
+		labelsField.Append(json.RawMessage(lblRaw))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
 			[]byte(tsRaw),
 			[]byte(lineRaw),
 			nil,
+			[]byte(lblRaw),
 		))
 		streamsField, streamIdField := newHiddenStreamFields(
 			[]string{""},
@@ -589,13 +593,15 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 		lineRaw := "123"
 		lineField.Append(lineRaw)
 
-		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`))
+		lblRaw := `{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`
+		labelsField.Append(json.RawMessage(lblRaw))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
 			[]byte(tsRaw),
 			[]byte(lineRaw),
 			nil,
+			[]byte(lblRaw),
 		))
 		streamsField, streamIdField := newHiddenStreamFields(
 			[]string{""},
@@ -652,13 +658,15 @@ func TestDatasourceStreamQueryRequest(t *testing.T) {
 		lineRaw := "123"
 		lineField.Append(lineRaw)
 
-		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`))
+		lblRaw := `{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`
+		labelsField.Append(json.RawMessage(lblRaw))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
 			[]byte(tsRaw),
 			[]byte(lineRaw),
 			nil,
+			[]byte(lblRaw),
 		))
 		streamsField, streamIdField := newHiddenStreamFields(
 			[]string{""},
@@ -990,13 +998,15 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 		lineRaw := "123"
 		lineField.Append(lineRaw)
 
-		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`))
+		lblRaw := `{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}"}`
+		labelsField.Append(json.RawMessage(lblRaw))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
 			[]byte(tsRaw),
 			[]byte(lineRaw),
 			nil,
+			[]byte(lblRaw),
 		))
 		streamsField, streamIdField := newHiddenStreamFields(
 			[]string{""},
@@ -1053,13 +1063,15 @@ func TestDatasourceStreamRequestWithRetry(t *testing.T) {
 		lineRaw := "123"
 		lineField.Append(lineRaw)
 
-		labelsField.Append(json.RawMessage(`{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`))
+		lblRaw := `{"_stream":"{application=\"logs-benchmark-Apache.log-1708437847\",hostname=\"e28a622d7792\"}","job":"vlogs"}`
+		labelsField.Append(json.RawMessage(lblRaw))
 		idField := data.NewFieldFromFieldType(data.FieldTypeString, 0)
 		idField.Name = gIDField
 		idField.Append(buildLogID(
 			[]byte(tsRaw),
 			[]byte(lineRaw),
 			nil,
+			[]byte(lblRaw),
 		))
 		streamsField, streamIdField := newHiddenStreamFields(
 			[]string{""},
