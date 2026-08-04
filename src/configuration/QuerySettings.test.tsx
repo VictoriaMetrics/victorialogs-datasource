@@ -2,7 +2,9 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import '@testing-library/jest-dom';
 import React from 'react';
 
+import { LOGS_LIMIT_DEFAULT } from '../constants';
 import store from '../store/store';
+
 
 import { QuerySettings } from './QuerySettings';
 
@@ -27,7 +29,7 @@ describe('QuerySettings — Maximum lines protection', () => {
 
     render(<QuerySettings maxLines='' onMaxLinedChange={onMaxLinedChange} />);
 
-    fireEvent.change(screen.getByPlaceholderText('50'), { target: { value: '500' } });
+    fireEvent.change(screen.getByPlaceholderText(String(LOGS_LIMIT_DEFAULT)), { target: { value: '500' } });
 
     expect(onMaxLinedChange).toHaveBeenCalledWith('500');
     expect(screen.queryByText('Large line limit')).not.toBeInTheDocument();
@@ -36,7 +38,7 @@ describe('QuerySettings — Maximum lines protection', () => {
   it('does not open the modal on blur when the stored value is within the safe range', () => {
     render(<QuerySettings maxLines='500' onMaxLinedChange={jest.fn()} />);
 
-    fireEvent.blur(screen.getByPlaceholderText('50'));
+    fireEvent.blur(screen.getByPlaceholderText(String(LOGS_LIMIT_DEFAULT)));
 
     expect(screen.queryByText('Large line limit')).not.toBeInTheDocument();
   });
@@ -46,7 +48,7 @@ describe('QuerySettings — Maximum lines protection', () => {
 
     render(<QuerySettings maxLines='5000' onMaxLinedChange={onMaxLinedChange} />);
 
-    fireEvent.blur(screen.getByPlaceholderText('50'));
+    fireEvent.blur(screen.getByPlaceholderText(String(LOGS_LIMIT_DEFAULT)));
 
     const modal = screen.getByText('Large line limit').closest('[role="dialog"]') as HTMLElement;
     expect(modal).toBeInTheDocument();
@@ -63,7 +65,7 @@ describe('QuerySettings — Maximum lines protection', () => {
 
     render(<QuerySettings maxLines='' onMaxLinedChange={onMaxLinedChange} />);
 
-    fireEvent.change(screen.getByPlaceholderText('50'), { target: { value: '50000' } });
+    fireEvent.change(screen.getByPlaceholderText(String(LOGS_LIMIT_DEFAULT)), { target: { value: '50000' } });
 
     expect(onMaxLinedChange).toHaveBeenCalledWith('10000');
   });
@@ -73,7 +75,7 @@ describe('QuerySettings — Maximum lines protection', () => {
 
     render(<QuerySettings maxLines='500' onMaxLinedChange={onMaxLinedChange} />);
 
-    fireEvent.change(screen.getByPlaceholderText('50'), { target: { value: '-5' } });
+    fireEvent.change(screen.getByPlaceholderText(String(LOGS_LIMIT_DEFAULT)), { target: { value: '-5' } });
 
     expect(onMaxLinedChange).toHaveBeenCalledWith('');
   });
@@ -89,7 +91,7 @@ describe('QuerySettings — Maximum lines protection', () => {
 
     render(<QuerySettings maxLines='500' onMaxLinedChange={onMaxLinedChange} />);
 
-    fireEvent.change(screen.getByPlaceholderText('50'), { target: { value: '' } });
+    fireEvent.change(screen.getByPlaceholderText(String(LOGS_LIMIT_DEFAULT)), { target: { value: '' } });
     expect(onMaxLinedChange).toHaveBeenCalledWith('');
   });
 });

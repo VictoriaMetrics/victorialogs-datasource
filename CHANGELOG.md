@@ -8,6 +8,7 @@
 * BUGFIX: keep the selected values of multi-value ad-hoc filter operators (`one of`, `not one of`) when serializing the query. Previously, such dashboard filters produced an empty `in()` filter, and the panel showed no results.
 * BUGFIX: interpolate dashboard variables into the query builder state and stream filter values when jumping from a dashboard panel to Explore. Previously, the raw variable names (e.g., `$app`) leaked back into the query on the first editor interaction, and the query returned no results.
 * BUGFIX: pass the panel time range to the `Instant` (stats) query type via the `start`/`end` query parameters instead of prepending a `_time:[...]` filter to the query text. The prepended filter was not parenthesized, so a top-level `OR` (e.g. `level:error OR level:warn | stats count()`) left part of the query outside the time range, making VictoriaLogs scan the full retention and the panel time out. Thanks to @github-vincent-miszczak for contributing.
+* BUGFIX: increase the default line limit for log queries from 50 to 1000. If your logs are large or expensive to render, set a lower limit in the datasource settings or via provisioning - see [Line limits](https://docs.victoriametrics.com/victorialogs/integrations/grafana/#line-limits).
 
 ## v0.30.1
 

@@ -275,7 +275,7 @@ reduces the rendering load on the browser and prevents the page from freezing wh
 There are two levels of control:
 
 - **Maximum lines** — the datasource-wide default, configured in the datasource settings. It applies to every query
-  that does not set its own limit. The default value is `50` and the maximum allowed value is `10000`.
+  that does not set its own limit. The default value is `1000` and the maximum allowed value is `10000`.
 - **Line limit** — a per-query override available in the query editor options. When set, it takes precedence over the
   datasource-wide **Maximum lines** for that query. It is also capped at `10000`.
 
@@ -297,8 +297,8 @@ datasources:
     url: http://victorialogs:9428
     jsonData:
       # Default maximum number of log lines returned per query.
-      # Defaults to 50, maximum allowed value is 10000.
-      maxLines: 50
+      # Defaults to 1000, maximum allowed value is 10000.
+      maxLines: 1000
 ```
 
 ## Correlations
