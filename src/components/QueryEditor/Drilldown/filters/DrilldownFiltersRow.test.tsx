@@ -110,6 +110,46 @@ describe('DrilldownFiltersRow', () => {
     expect(onFiltersChange).toHaveBeenCalledWith([{ key: 'app', value: 'web', operator: '=' }]);
   });
 
+  it('hides level-button chips — their state lives on the LevelFilterRow buttons', () => {
+    const filters: AdHocFilter[] = [
+      { key: 'level', value: 'error', operator: '=', fromLevelFilter: true },
+      { key: 'app', value: 'web', operator: '=' },
+    ];
+    render(
+      <DrilldownFiltersRow
+        datasource={datasource}
+        filters={filters}
+        onFiltersChange={jest.fn()}
+        onApply={jest.fn()}
+        timeRange={timeRange}
+        {...addFilterDefaults}
+      />
+    );
+
+    expect(screen.queryByTitle('level:="error"')).not.toBeInTheDocument();
+    expect(screen.getByTitle('app:="web"')).toBeInTheDocument();
+  });
+
+  it('removing a chip keeps hidden level-button chips in the reported list', async () => {
+    const onFiltersChange = jest.fn();
+    const levelChip: AdHocFilter = { key: 'level', value: 'error', operator: '=', fromLevelFilter: true };
+    const filters: AdHocFilter[] = [levelChip, { key: 'app', value: 'web', operator: '=' }];
+    render(
+      <DrilldownFiltersRow
+        datasource={datasource}
+        filters={filters}
+        onFiltersChange={onFiltersChange}
+        onApply={jest.fn()}
+        timeRange={timeRange}
+        {...addFilterDefaults}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove filter app:="web"' }));
+
+    expect(onFiltersChange).toHaveBeenCalledWith([levelChip]);
+  });
+
   it('renders the zoom toolbar slot and fires onApply once', async () => {
     const onApply = jest.fn();
     render(

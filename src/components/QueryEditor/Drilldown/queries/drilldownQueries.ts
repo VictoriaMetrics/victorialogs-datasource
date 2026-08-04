@@ -5,6 +5,7 @@ import { escapeLabelValueInSelector } from '../../../../languageUtils';
 import { calculateVolumeStep } from '../../../../logsVolumeLegacy';
 import { addLabelToQuery, isStreamKey, normalizeKey } from '../../../../modifyQuery';
 import { AdHocFilter, Query, QueryType } from '../../../../types';
+import { serializeChipsForBackend } from '../../../../utils/query/adHocFilters';
 import { splitExpression } from '../../../../utils/query/parseFromString';
 import { applyPatternFilters, PatternFilter } from '../patterns/patternFilters';
 
@@ -43,9 +44,11 @@ export function buildLookupQuery(
   excludeKey?: string
 ): string {
   const applicable = excludeKey ? filters.filter((f) => f.key !== excludeKey) : filters;
-  // same recipe as the datasource's private buildNarrowingQuery: fold filters into a
-  // query expression and resolve template variables before hitting the VL endpoint
-  const base = datasource.interpolateString(datasource.getExtraFilters(applicable) ?? '').trim() || '*';
+  // same serialization as the data queries' extra_filters: level-button chips expand into
+  // the exact per-level expression, the rest fold in literally; template variables are
+  // resolved before hitting the VL endpoint
+  const serialized = serializeChipsForBackend(applicable, datasource.getActiveLevelRules());
+  const base = datasource.interpolateString(serialized ?? '').trim() || '*';
   return applyPatternFilters(base, patternFilters);
 }
 

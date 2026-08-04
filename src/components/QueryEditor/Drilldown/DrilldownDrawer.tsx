@@ -5,6 +5,7 @@ import { Button, Drawer, EmptyState, LoadingPlaceholder, Stack, TimeRangePicker 
 
 import { VictoriaLogsDatasource } from '../../../datasource';
 import { AdHocFilter, Query } from '../../../types';
+import { isLevelChip } from '../../../utils/query/levelChips';
 
 import { FieldValuesTable } from './FieldValuesTable';
 import { MainFieldTabs, PATTERNS_TAB } from './MainFieldTabs';
@@ -12,6 +13,7 @@ import { StreamFieldsBreakdown } from './StreamFieldsBreakdown';
 import { ValueDetails } from './ValueDetails/ValueDetails';
 import { detectBreakdownField, STREAM_FIELD } from './breakdownField';
 import { DrilldownFiltersRow } from './filters/DrilldownFiltersRow';
+import { LevelFilterRow } from './filters/LevelFilterRow';
 import { PatternsTable } from './patterns/PatternsTable';
 import { applyPatternFilters, PatternFilter, stripPatternFilterPipes, togglePatternFilter } from './patterns/patternFilters';
 import { buildLookupQuery } from './queries/drilldownQueries';
@@ -161,11 +163,12 @@ const DrilldownDrawer: React.FC<DrilldownDrawerProps> = ({
 
   // navigation state IS the filter: a `detailsField = value` filter means the details
   // view is open for that value; removing the chip in DrilldownFiltersRow goes back.
-  // The Patterns tab is not a field — it never derives a drill-in
+  // The Patterns tab is not a field — it never derives a drill-in. Level-button chips
+  // only narrow the selection — toggling one must not drill into a `level` breakdown tab
   const selectedValue = useMemo(
     () =>
       detailsField && detailsField !== PATTERNS_TAB
-        ? filters.find((f) => f.key === detailsField && f.operator === '=')
+        ? filters.find((f) => !isLevelChip(f) && f.key === detailsField && f.operator === '=')
         : undefined,
     [filters, detailsField]
   );
@@ -185,7 +188,13 @@ const DrilldownDrawer: React.FC<DrilldownDrawerProps> = ({
   // shared by all filter-adding paths (value clicks in breakdowns, or the field/operator/value
   // picked via the "+ Filter" control) so they dedup identically
   const addFilter = useCallback((filter: AdHocFilter) => {
-    const isMatch = (f: AdHocFilter) => f.key === filter.key && f.value === filter.value && f.operator === filter.operator;
+    // a level-button chip and a literal chip on the same key/value are NOT duplicates —
+    // the marked one expands into the derived-level expression, the literal one doesn't
+    const isMatch = (f: AdHocFilter) =>
+      f.key === filter.key &&
+      f.value === filter.value &&
+      f.operator === filter.operator &&
+      isLevelChip(f) === isLevelChip(filter);
     // functional form: two filter adds landing in the same render (e.g. two rapid clicks
     // batched by React) must each see the other's update rather than both reading the
     // same stale `filters` closure and one silently overwriting the other's append
@@ -267,6 +276,7 @@ const DrilldownDrawer: React.FC<DrilldownDrawerProps> = ({
           existingFilters={filters}
           onAdd={addFilter}
         />
+        <LevelFilterRow filters={filters} onFiltersChange={setFilters} />
         {selectedValue ? (
           <ValueDetails
             datasource={datasource}

@@ -1,13 +1,15 @@
 import { dateTime, toDataFrame, TimeRange } from '@grafana/data';
 
+import { VictoriaLogsDatasource } from '../../../../datasource';
 import { escapeLabelValueInSelector } from '../../../../languageUtils';
 import { addLabelToQuery } from '../../../../modifyQuery';
-import { Query, QueryType } from '../../../../types';
+import { AdHocFilter, Query, QueryType } from '../../../../types';
 
 import {
   buildFieldHitsQuery,
   buildFieldPresenceLogsQuery,
   buildFieldPresenceVolumeQuery,
+  buildLookupQuery,
   buildPatternLogsQuery,
   buildPatternsListQuery,
   buildPatternVolumeQuery,
@@ -25,6 +27,38 @@ const range: TimeRange = {
 };
 
 const baseQuery: Query = { refId: 'A', expr: 'error' };
+
+describe('buildLookupQuery', () => {
+  const lookupDatasource = {
+    interpolateString: (s: string) => s,
+    getActiveLevelRules: () => [],
+  } as unknown as VictoriaLogsDatasource;
+
+  it('returns * when there are no filters', () => {
+    expect(buildLookupQuery(lookupDatasource, [], [])).toBe('*');
+  });
+
+  it('serializes plain chips literally', () => {
+    const filters: AdHocFilter[] = [{ key: 'app', operator: '=', value: 'web' }];
+    expect(buildLookupQuery(lookupDatasource, filters, [])).toBe('app:="web"');
+  });
+
+  it('expands level-button chips into the exact per-level expression', () => {
+    const filters: AdHocFilter[] = [{ key: 'level', operator: '=', value: 'error', fromLevelFilter: true }];
+    const result = buildLookupQuery(lookupDatasource, filters, []);
+    // derived-level semantics: alias expansion instead of a literal `level:="error"` match
+    expect(result).toContain('level:contains_common_case(');
+    expect(result).not.toContain('level:="error"');
+  });
+
+  it('drops filters on the excluded key, including level-button chips', () => {
+    const filters: AdHocFilter[] = [
+      { key: 'level', operator: '=', value: 'error', fromLevelFilter: true },
+      { key: 'app', operator: '=', value: 'web' },
+    ];
+    expect(buildLookupQuery(lookupDatasource, filters, [], 'level')).toBe('app:="web"');
+  });
+});
 
 describe('buildFieldHitsQuery', () => {
   it('builds a hits query grouped by the given fields', () => {

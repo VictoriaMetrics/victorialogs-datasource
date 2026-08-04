@@ -7,6 +7,7 @@ import { Button, Stack, useStyles2 } from '@grafana/ui';
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { AdHocFilter } from '../../../../types';
 import { formatAdHocFilterLabel } from '../../../../utils/query/adHocFilters';
+import { isLevelChip } from '../../../../utils/query/levelChips';
 import { SegmentedChip } from '../../../shared/Chip/SegmentedChip';
 import { PatternFilter } from '../patterns/patternFilters';
 
@@ -46,6 +47,10 @@ export const DrilldownFiltersRow: React.FC<DrilldownFiltersRowProps> = ({
       <div className={styles.filters}>
         <Stack direction='row' gap={1} wrap alignItems='center'>
           {filters.map((filter, index) => {
+            // level-button chips carry no chip UI — the LevelFilterRow buttons show that state
+            if (isLevelChip(filter)) {
+              return null;
+            }
             const filterLabel = formatAdHocFilterLabel(filter);
             // multi-value filters keep every value visible; an empty value must not collapse the segment
             const displayValue = filter.values?.length ? filter.values.join(', ') : filter.value || '""';

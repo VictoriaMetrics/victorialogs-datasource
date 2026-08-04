@@ -43,9 +43,7 @@ const makeDatasource = () => {
     customQueryParameters: new URLSearchParams(),
     getQueryBuilderLimits: jest.fn(() => 100),
     // buildLookupQuery composes the narrowing query through these two
-    getExtraFilters: jest.fn((filters?: AdHocFilter[]) =>
-      filters?.length ? filters.map((f) => `${f.key}:="${f.value}"`).join(' ') : undefined
-    ),
+    getActiveLevelRules: jest.fn(() => []),
     interpolateString: jest.fn((s: string) => s),
   } as unknown as VictoriaLogsDatasource;
 };
