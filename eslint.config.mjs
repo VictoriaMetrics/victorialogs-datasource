@@ -1,7 +1,7 @@
  import eslint from '@eslint/js';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
-import grafanaEslintConfig from '@grafana/eslint-config/flat.js';
+import grafanaEslintConfig from '@grafana/eslint-config';
 import jest from 'eslint-plugin-jest';
 import lodash from 'eslint-plugin-lodash';
 import prettier from 'eslint-config-prettier';
@@ -13,9 +13,15 @@ import stylistic from '@stylistic/eslint-plugin';
 
 export default defineConfig([
   eslint.configs.recommended,
-  ...fixupConfigRules(tseslint.configs.recommended),
+  ...tseslint.configs.recommended,
   prettier,
-  ...fixupConfigRules(grafanaEslintConfig),
+  // v10 ships a native flat config — a full compat fixup would clone its plugin
+  // objects and clash with our own `@stylistic` registration below. Only the react
+  // plugin needs the compat shim: eslint-plugin-react has no eslint-10-compatible
+  // release (its rules still call the removed `context.getFilename`)
+  ...grafanaEslintConfig.map((cfg) =>
+    cfg.plugins?.react ? { ...cfg, plugins: { ...cfg.plugins, react: fixupPluginRules(cfg.plugins.react) } } : cfg
+  ),
   {
     ignores: [
       '**/node_modules/**',

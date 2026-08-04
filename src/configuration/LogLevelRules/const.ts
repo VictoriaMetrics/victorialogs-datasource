@@ -61,7 +61,11 @@ export const UNIQ_LOG_LEVEL = {
 export type UniqLogLevelKeys = (typeof UNIQ_LOG_LEVEL)[keyof typeof UNIQ_LOG_LEVEL];
 
 export const possibleLogValueByLevelType = Object.keys(LogLevel).reduce((acc, possibleValue) => {
-  const levelName = LogLevel[possibleValue as LogLevel];
+  const levelName = LogLevel[possibleValue as keyof typeof LogLevel];
+  // Grafana 13's `unspecified` ("") gets no alias bucket — empty levels already classify as unknown
+  if (levelName === LogLevel.unspecified) {
+    return acc;
+  }
   if (!acc[levelName]) {
     acc[levelName] = [];
   }
@@ -78,4 +82,6 @@ export const LOG_LEVEL_COLOR = {
   [LogLevel.debug]: colors[5],
   [LogLevel.trace]: colors[2],
   [LogLevel.unknown]: '#8e8e8e',
+  // Grafana 13's `unspecified` ("") — an empty level renders the same as unknown
+  [LogLevel.unspecified]: '#8e8e8e',
 };
