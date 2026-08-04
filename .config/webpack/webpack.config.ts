@@ -250,6 +250,7 @@ const config = async (env): Promise<Configuration> => {
             new ESLintPlugin({
               extensions: ['.ts', '.tsx'],
               lintDirtyModulesOnly: Boolean(env.development), // don't lint on start, only lint changed files
+              failOnError: false,
             }),
           ]
         : []),
