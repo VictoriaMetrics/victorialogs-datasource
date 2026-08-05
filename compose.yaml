@@ -11,7 +11,7 @@ services:
       args:
         grafana_version: main
         grafana_image: grafana
-        development: true
+        development: false
     ports:
       - 3000:3000/tcp
     environment:

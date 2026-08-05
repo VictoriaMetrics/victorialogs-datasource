@@ -83,6 +83,7 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/refs': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-deprecated': 'warn',
       'unused-imports/no-unused-imports': 'error',
       '@typescript-eslint/no-unused-vars': [
         'warn',

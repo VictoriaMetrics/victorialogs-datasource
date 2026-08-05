@@ -125,11 +125,10 @@ func TestGetTime(t *testing.T) {
 
 	// A full timestamp without a timezone is interpreted as local wall time using
 	// the offset of the CURRENT moment — not the offset at the timestamp's date
-	// (VictoriaLogs parser semantics, see parseTimezoneOffset). The expectation
-	// mirrors that so the test passes on any machine timezone, DST included
 	localWant := func(wallTimeAsUTC time.Time) func() time.Time {
 		return func() time.Time {
-			return wallTimeAsUTC.Add(-time.Duration(GetLocalTimezoneOffsetNsecs()))
+			_, offsetSecs := time.Now().Zone()
+			return wallTimeAsUTC.Add(-time.Duration(offsetSecs) * time.Second)
 		}
 	}
 

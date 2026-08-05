@@ -12,9 +12,10 @@ const config = async (env): Promise<Configuration> => {
   const baseConfig = await grafanaConfig(env);
 
   baseConfig.plugins = baseConfig.plugins?.map((plugin) => {
-    // A lint error must not kill `yarn dev`: with the scaffold's default `failOnError`
-    // webpack-cli turns the processAssets hook error into a fatal exit (code 2).
-    // The dev-only ESLint plugin is re-created with its original options plus the override
+    // A lint error must not kill `yarn dev`. The 7.9.1 scaffold already resolves
+    // `failOnError` to false in development, so today this override is a defensive
+    // pin: pre-7.9.1 scaffolds defaulted to true and webpack-cli turned the lint
+    // error into a fatal exit (code 2), and scaffold updates regenerate .config
     if (plugin instanceof ESLintPlugin) {
       return new ESLintPlugin({ ...plugin.options, failOnError: false });
     }
