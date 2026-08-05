@@ -401,7 +401,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/runtime@npm:^7.0.0, @babel/runtime@npm:^7.1.2, @babel/runtime@npm:^7.11.1, @babel/runtime@npm:^7.12.0, @babel/runtime@npm:^7.12.1, @babel/runtime@npm:^7.12.13, @babel/runtime@npm:^7.12.5, @babel/runtime@npm:^7.18.3, @babel/runtime@npm:^7.18.6, @babel/runtime@npm:^7.23.2, @babel/runtime@npm:^7.24.4, @babel/runtime@npm:^7.25.6, @babel/runtime@npm:^7.26.7, @babel/runtime@npm:^7.27.0, @babel/runtime@npm:^7.27.6, @babel/runtime@npm:^7.28.6, @babel/runtime@npm:^7.29.2, @babel/runtime@npm:^7.5.5, @babel/runtime@npm:^7.7.6, @babel/runtime@npm:^7.8.7, @babel/runtime@npm:^7.9.2":
+"@babel/runtime@npm:^7.0.0, @babel/runtime@npm:^7.1.2, @babel/runtime@npm:^7.11.1, @babel/runtime@npm:^7.12.0, @babel/runtime@npm:^7.12.1, @babel/runtime@npm:^7.12.13, @babel/runtime@npm:^7.12.5, @babel/runtime@npm:^7.18.3, @babel/runtime@npm:^7.18.6, @babel/runtime@npm:^7.23.2, @babel/runtime@npm:^7.24.4, @babel/runtime@npm:^7.25.6, @babel/runtime@npm:^7.26.7, @babel/runtime@npm:^7.27.0, @babel/runtime@npm:^7.28.6, @babel/runtime@npm:^7.29.2, @babel/runtime@npm:^7.5.5, @babel/runtime@npm:^7.7.6, @babel/runtime@npm:^7.8.7, @babel/runtime@npm:^7.9.2":
   version: 7.29.7
   resolution: "@babel/runtime@npm:7.29.7"
   checksum: 10c0/ca11572f7146b21e0bde6a9ed4bb6a89eafbee5f0944c7eb54d0d8a2dac962c33638a1d611e14faa71dfbb92b4b5f9236232208568a6b7d5c6f3f39ddb91771e
@@ -1171,24 +1171,6 @@ __metadata:
   peerDependencies:
     react: ">=18"
   checksum: 10c0/ce67db5065eb9c02d906445378acbe87ce6257fb7ffe6ea27fe48735b11ad0ac645c210a24a6beca225b8d9021b09a96e78fc3b9fd1218910c66976a6acce0ba
-  languageName: node
-  linkType: hard
-
-"@grafana/i18n@npm:^12.2.0":
-  version: 12.4.7
-  resolution: "@grafana/i18n@npm:12.4.7"
-  dependencies:
-    "@formatjs/intl-durationformat": "npm:^0.7.0"
-    "@typescript-eslint/utils": "npm:^8.33.1"
-    fast-deep-equal: "npm:^3.1.3"
-    i18next: "npm:^25.0.0"
-    i18next-browser-languagedetector: "npm:^8.0.0"
-    i18next-pseudo: "npm:^2.2.1"
-    micro-memoize: "npm:^4.1.2"
-    react-i18next: "npm:^15.0.0"
-  peerDependencies:
-    react: ">=18"
-  checksum: 10c0/91869913c245e225b2ab3aec85c738db9c399692aa772e81b0784e05ea9dd02b209564ca5157d858c21f6ac41d5e3b48783ee988d182b73711aa0274c68415ad
   languageName: node
   linkType: hard
 
@@ -7085,7 +7067,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"i18next@npm:^25.0.0, i18next@npm:^25.10.9":
+"i18next@npm:^25.10.9":
   version: 25.10.10
   resolution: "i18next@npm:25.10.10"
   dependencies:
@@ -9874,27 +9856,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-i18next@npm:^15.0.0":
-  version: 15.7.4
-  resolution: "react-i18next@npm:15.7.4"
-  dependencies:
-    "@babel/runtime": "npm:^7.27.6"
-    html-parse-stringify: "npm:^3.0.1"
-  peerDependencies:
-    i18next: ">= 23.4.0"
-    react: ">= 16.8.0"
-    typescript: ^5
-  peerDependenciesMeta:
-    react-dom:
-      optional: true
-    react-native:
-      optional: true
-    typescript:
-      optional: true
-  checksum: 10c0/643c5d3ced4b44084c871a55e876159561c14f378f90bf53286c1291082703e293573da18ad692b43b357b60d2f7251bc417feb0b522de8cec5c414e5ebdf6c1
-  languageName: node
-  linkType: hard
-
 "react-i18next@npm:^16.6.6":
   version: 16.6.6
   resolution: "react-i18next@npm:16.6.6"
@@ -12118,7 +12079,6 @@ __metadata:
     "@grafana/data": "npm:^13.1.2"
     "@grafana/e2e-selectors": "npm:^13.1.2"
     "@grafana/eslint-config": "npm:^10.0.0"
-    "@grafana/i18n": "npm:^12.2.0"
     "@grafana/plugin-ui": "npm:^0.17.3"
     "@grafana/runtime": "npm:^13.1.2"
     "@grafana/schema": "npm:^13.1.2"
