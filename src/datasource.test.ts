@@ -1291,7 +1291,8 @@ describe('VictoriaLogsDatasource preset merge', () => {
         },
       },
     }));
-    expect(ds.logLevelRules).toHaveLength(18);
+    // one rule per LogLevel alias — Grafana 13 added `emergency` and `information`
+    expect(ds.logLevelRules).toHaveLength(20);
     expect(ds.logLevelRules.every(r => r.field === 'severity_text')).toBe(true);
   });
 
@@ -1321,7 +1322,8 @@ describe('VictoriaLogsDatasource preset merge', () => {
         },
       },
     });
-    expect(ds.logLevelRules).toHaveLength(19);
+    // 20 preset alias rules (see above) + 1 user rule overriding one of them
+    expect(ds.logLevelRules).toHaveLength(21);
     const errorRules = ds.logLevelRules.filter(r => r.value === 'ERROR');
     expect(errorRules).toHaveLength(1);
     expect(errorRules[0].level).toBe(LogLevel.critical);

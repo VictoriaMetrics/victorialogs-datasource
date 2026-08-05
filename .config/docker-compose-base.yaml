@@ -7,13 +7,19 @@ services:
       context: .
       args:
         grafana_image: ${GRAFANA_IMAGE:-grafana-enterprise}
-        grafana_version: ${GRAFANA_VERSION:-11.5.2}
+        grafana_version: ${GRAFANA_VERSION:-12.2.0}
         development: ${DEVELOPMENT:-false}
         anonymous_auth_enabled: ${ANONYMOUS_AUTH_ENABLED:-true}
     ports:
       - 3000:3000/tcp
+      - 2345:2345/tcp # delve
+    security_opt:
+      - 'apparmor:unconfined'
+      - 'seccomp:unconfined'
+    cap_add:
+      - SYS_PTRACE
     volumes:
-      - ../plugins/victoriametrics-logs-datasource:/var/lib/grafana/plugins/victoriametrics-logs-datasource
+      - ../dist:/var/lib/grafana/plugins/victoriametrics-logs-datasource
       - ../provisioning:/etc/grafana/provisioning
       - ..:/root/victoriametrics-logs-datasource
 

@@ -1,7 +1,9 @@
-import { FieldType, LogLevel, toDataFrame } from '@grafana/data';
+import { DataQueryRequest, dateTime, FieldType, LogLevel, toDataFrame } from '@grafana/data';
 
+import { LOG_LEVEL_COLOR } from './configuration/LogLevelRules/const';
 import { LogLevelRuleType } from './configuration/LogLevelRules/types';
-import { extractLevel } from './logsVolumeLegacy';
+import { aggregateRawLogsVolume, extractLevel } from './logsVolumeLegacy';
+import { Query } from './types';
 import { DERIVED_LEVEL_FIELD } from './utils/query/levelFormatPipes';
 
 const makeFrame = (labels?: Record<string, string>) =>
@@ -30,5 +32,32 @@ describe('extractLevel', () => {
 
   it('returns unknown when the value field has no labels', () => {
     expect(extractLevel(makeFrame(), [])).toBe(LogLevel.unknown);
+  });
+});
+
+describe('aggregateRawLogsVolume level styling', () => {
+  const request = {
+    range: {
+      from: dateTime('2026-07-06T00:00:00Z'),
+      to: dateTime('2026-07-06T01:00:00Z'),
+      raw: { from: 'now-1h', to: 'now' },
+    },
+  } as DataQueryRequest<Query>;
+
+  const valueConfig = (frames: ReturnType<typeof aggregateRawLogsVolume>) =>
+    frames[0].fields.find((f) => f.name === 'Value')?.config;
+
+  it('canonicalizes an alias level label — `warn` colors the series as warning, not unknown', () => {
+    // extractLevelFromLabels passes the raw label value through, so the alias reaches the styling
+    const frames = aggregateRawLogsVolume([makeFrame({ level: 'warn' })], extractLevel, request, []);
+    expect(frames).toHaveLength(1);
+    expect(valueConfig(frames)?.displayNameFromDS).toBe(LogLevel.warning);
+    expect(valueConfig(frames)?.color?.fixedColor).toBe(LOG_LEVEL_COLOR[LogLevel.warning]);
+  });
+
+  it('renders an unspecified ("") level as unknown', () => {
+    const frames = aggregateRawLogsVolume([makeFrame()], () => LogLevel.unspecified, request, []);
+    expect(valueConfig(frames)?.displayNameFromDS).toBe(LogLevel.unknown);
+    expect(valueConfig(frames)?.color?.fixedColor).toBe(LOG_LEVEL_COLOR[LogLevel.unknown]);
   });
 });

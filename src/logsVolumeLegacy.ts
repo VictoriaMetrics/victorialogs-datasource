@@ -157,7 +157,7 @@ function aggregateFields(
  * Returns field configuration used to render logs volume bars
  */
 function getLogVolumeFieldConfig(level: LogLevel) {
-  const name = LogLevel[level];
+  const name = LogLevel[level as unknown as keyof typeof LogLevel] ?? LogLevel.unknown;
   const color = LOG_LEVEL_COLOR[name] || LOG_LEVEL_COLOR[LogLevel.unknown];
   return {
     displayNameFromDS: name,

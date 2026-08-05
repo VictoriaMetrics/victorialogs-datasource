@@ -123,23 +123,26 @@ func TestGetTime(t *testing.T) {
 	}
 	f(o)
 
-	// time with zero seconds
+	// A full timestamp without a timezone is interpreted as local wall time using
+	// the offset of the CURRENT moment — not the offset at the timestamp's date
+	localWant := func(wallTimeAsUTC time.Time) func() time.Time {
+		return func() time.Time {
+			_, offsetSecs := time.Now().Zone()
+			return wallTimeAsUTC.Add(-time.Duration(offsetSecs) * time.Second)
+		}
+	}
+
+	// time with zero seconds, no timezone — local wall time
 	o = opts{
-		s: "2019-02-02T01:01:00",
-		want: func() time.Time {
-			t := time.Date(2019, 2, 2, 1, 1, 0, 0, time.UTC)
-			return t
-		},
+		s:    "2019-02-02T01:01:00",
+		want: localWant(time.Date(2019, 2, 2, 1, 1, 0, 0, time.UTC)),
 	}
 	f(o)
 
-	// timezone with one second
+	// time with one second, no timezone — local wall time
 	o = opts{
-		s: "2019-02-02T01:01:01",
-		want: func() time.Time {
-			t := time.Date(2019, 2, 2, 1, 1, 1, 0, time.UTC)
-			return t
-		},
+		s:    "2019-02-02T01:01:01",
+		want: localWant(time.Date(2019, 2, 2, 1, 1, 1, 0, time.UTC)),
 	}
 	f(o)
 

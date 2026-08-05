@@ -480,9 +480,8 @@ export class VictoriaLogsDatasource
         .getDataStream({
           addr: {
             scope: LiveChannelScope.DataSource,
-            // @ts-expect-error - for the Grafana with React version < 19,
-            // the interface of the Live feature expects the `stream` field instead of the `namespace`,
-            // so we need to send both for compatibility with older versions
+            // older Grafana's Live interface expects `stream` instead of `namespace` —
+            // both are sent for compatibility with older versions
             namespace: this.uid,
             stream: this.uid,
             path,

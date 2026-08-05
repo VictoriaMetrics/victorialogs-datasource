@@ -43,10 +43,13 @@ export const OperatorLabelsQueryBuilder: Record<LogLevelRuleType, (rule: LogLeve
 
 export const LOG_LEVEL_OPTIONS: Array<ComboboxOption<LogLevel>> = Array.from(
   new Set(Object.values(LogLevel))
-).map((level) => ({
-  label: level,
-  value: level as LogLevel,
-}));
+)
+  // Grafana 13's `unspecified` ("") is not an assignable rule level — the classifier folds it into unknown
+  .filter((level) => level !== LogLevel.unspecified)
+  .map((level) => ({
+    label: level,
+    value: level as LogLevel,
+  }));
 
 export const UNIQ_LOG_LEVEL = {
   [LogLevel.critical]: LogLevel.critical,
@@ -61,7 +64,11 @@ export const UNIQ_LOG_LEVEL = {
 export type UniqLogLevelKeys = (typeof UNIQ_LOG_LEVEL)[keyof typeof UNIQ_LOG_LEVEL];
 
 export const possibleLogValueByLevelType = Object.keys(LogLevel).reduce((acc, possibleValue) => {
-  const levelName = LogLevel[possibleValue as LogLevel];
+  const levelName = LogLevel[possibleValue as keyof typeof LogLevel];
+  // Grafana 13's `unspecified` ("") gets no alias bucket — empty levels already classify as unknown
+  if (levelName === LogLevel.unspecified) {
+    return acc;
+  }
   if (!acc[levelName]) {
     acc[levelName] = [];
   }
@@ -78,4 +85,6 @@ export const LOG_LEVEL_COLOR = {
   [LogLevel.debug]: colors[5],
   [LogLevel.trace]: colors[2],
   [LogLevel.unknown]: '#8e8e8e',
+  // Grafana 13's `unspecified` ("") — an empty level renders the same as unknown
+  [LogLevel.unspecified]: '#8e8e8e',
 };

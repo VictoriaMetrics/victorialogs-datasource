@@ -128,7 +128,7 @@ describe('buildExactLevelExprMap', () => {
 
   it('with no rules a known level is its guarded alias clause and unknown catches everything else', () => {
     const map = buildExactLevelExprMap([]);
-    expect(map[LogLevel.critical]).toBe('level:contains_common_case("Emerg","Fatal","Alert","Crit","Critical")');
+    expect(map[LogLevel.critical]).toBe('level:contains_common_case("Emerg","Emergency","Fatal","Alert","Crit","Critical")');
     expect(map[LogLevel.info]).not.toContain(' and (');
     expect(map[LogLevel.unknown]).toMatch(/ OR !\(level:contains_common_case\(/);
   });

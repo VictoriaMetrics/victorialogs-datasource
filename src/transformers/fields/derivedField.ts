@@ -65,7 +65,7 @@ export function getDerivedFields(dataFrame: DataFrame, derivedFieldConfigs: Deri
   return newFields;
 }
 
-const buildDefaultQuery = (url: string | undefined, type?: string)=> {
+const buildDefaultQuery = (url: string | undefined, type?: string) => {
   return { query: url ?? 'Need to provide url in the datasource settings', queryType: type };
 };
 
