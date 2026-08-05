@@ -43,10 +43,13 @@ export const OperatorLabelsQueryBuilder: Record<LogLevelRuleType, (rule: LogLeve
 
 export const LOG_LEVEL_OPTIONS: Array<ComboboxOption<LogLevel>> = Array.from(
   new Set(Object.values(LogLevel))
-).map((level) => ({
-  label: level,
-  value: level as LogLevel,
-}));
+)
+  // Grafana 13's `unspecified` ("") is not an assignable rule level — the classifier folds it into unknown
+  .filter((level) => level !== LogLevel.unspecified)
+  .map((level) => ({
+    label: level,
+    value: level as LogLevel,
+  }));
 
 export const UNIQ_LOG_LEVEL = {
   [LogLevel.critical]: LogLevel.critical,

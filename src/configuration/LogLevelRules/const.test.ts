@@ -1,6 +1,6 @@
 import { LogLevel } from '@grafana/data';
 
-import { OperatorLabelsQueryBuilder } from './const';
+import { LOG_LEVEL_OPTIONS, OperatorLabelsQueryBuilder } from './const';
 import { LogLevelRule, LogLevelRuleType } from './types';
 
 const makeRule = (operator: LogLevelRuleType, value: string | number, field = 'severity'): LogLevelRule => ({
@@ -62,5 +62,12 @@ describe('OperatorLabelsQueryBuilder', () => {
   it('escapes quotes and backslashes in values for every operator', () => {
     const rule = makeRule(LogLevelRuleType.Equals, 'a"b\\c');
     expect(OperatorLabelsQueryBuilder[LogLevelRuleType.Equals](rule)).toBe('severity:="a\\"b\\\\c"');
+  });
+});
+
+describe('LOG_LEVEL_OPTIONS', () => {
+  it('offers only assignable levels — no blank `unspecified` entry', () => {
+    expect(LOG_LEVEL_OPTIONS.some((opt) => opt.value === LogLevel.unspecified)).toBe(false);
+    expect(LOG_LEVEL_OPTIONS.some((opt) => opt.value === LogLevel.unknown)).toBe(true);
   });
 });
