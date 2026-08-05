@@ -7,13 +7,13 @@
     "dev": "webpack -w -c ./webpack.config.ts --env development",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch --onlyChanged",
-    "test:ci": "jest --maxWorkers 4",
+    "test:ci": "jest --passWithNoTests --maxWorkers 4",
     "test:coverage": "jest --collectCoverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint --cache .",
     "lint:fix": "eslint --cache --fix .",
     "server": "docker compose up",
-    "sign": "[ -z $GRAFANA_ACCESS_POLICY_TOKEN ] && echo 'skip plugin signing' || npx --yes @grafana/sign-plugin@latest"
+    "sign": "[ -z $GRAFANA_ACCESS_POLICY_TOKEN ] && echo 'skip plugin signing' || sign-plugin"
   },
   "author": "VictoriaMetrics",
   "license": "Apache-2.0",
@@ -24,6 +24,7 @@
     "@eslint/js": "^10.0.1",
     "@grafana/e2e-selectors": "^13.1.2",
     "@grafana/eslint-config": "^10.0.0",
+    "@grafana/sign-plugin": "^3.2.2",
     "@grafana/tsconfig": "^2.2.0",
     "@openfeature/web-sdk": "^1.8.0",
     "@stylistic/eslint-plugin": "^5.10.0",
@@ -83,6 +84,7 @@
   "dependencies": {
     "@emotion/css": "11.13.5",
     "@grafana/data": "^13.1.2",
+    "@grafana/i18n": "^12.2.0",
     "@grafana/plugin-ui": "^0.17.3",
     "@grafana/runtime": "^13.1.2",
     "@grafana/schema": "^13.1.2",
