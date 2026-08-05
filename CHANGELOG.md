@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.31.0
+
 * FEATURE: `Filter for value` / `Filter out value` in log details now adds the value to the `Stream filters` when the clicked field is a stream field. Stream filters are resolved via the stream index, so such filters run noticeably faster on large volumes. See [#691](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/691).
 * FEATURE: speed up the logs volume histogram when log level rules reference high-cardinality fields like `_msg`. See [#700](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/700).
 
