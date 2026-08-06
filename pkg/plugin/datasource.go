@@ -840,6 +840,10 @@ func checkHealthWithInstance(ctx context.Context, di *DatasourceInstance) (*back
 	values.Set("query", "*")
 	values.Set("limit", "1")
 	values.Set("start", "-5m")
+	// An explicit upper bound is required: without `end`, VictoriaLogs defaults
+	// it to the maximum int64 nanosecond timestamp (year 2262), so instances
+	// running with -search.maxQueryTimeRange reject the health check with 400.
+	values.Set("end", "now")
 	u.RawQuery = values.Encode()
 
 	method := di.grafanaSettings.HTTPMethod
