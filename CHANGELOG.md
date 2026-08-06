@@ -2,7 +2,7 @@
 
 ## tip
 
-* BUGFIX: send an explicit `end` bound in the datasource health check. Without it, VictoriaLogs defaulted the upper bound to the maximum int64 nanosecond timestamp (year 2262), so instances running with `-search.maxQueryTimeRange` failed "Save & test" with `too big time range selected`. See [#712](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/712).
+* BUGFIX: send an explicit `end` bound in the datasource health check. Without it, VictoriaLogs defaulted the upper bound to the maximum int64 nanosecond timestamp (year 2262), so instances running with `-search.maxQueryTimeRange` failed "Save & test" with `too big time range selected`. See [#712](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/712). Thanks to @dberkerdem for contributing.
 
 ## v0.31.0
 
