@@ -92,6 +92,9 @@ func TestDatasourceQueryRequest(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error write response: %s", err)
 			}
+		case 6:
+			// VictoriaLogs returns an empty body when the query matches no logs
+			w.WriteHeader(http.StatusOK)
 		}
 	})
 
@@ -326,6 +329,43 @@ func TestDatasourceQueryRequest(t *testing.T) {
 
 		if !bytes.Equal(d, exd) {
 			t.Fatalf("unexpected metric %s want %s", d, exd)
+		}
+	}
+
+	// 6: empty response body must produce a single empty logs frame,
+	// not zero frames, so Grafana keeps the logs panel mounted
+	rsp, gotErr = d.QueryData(ctx, &backend.QueryDataRequest{
+		PluginContext: pluginCtx,
+		Queries: []backend.DataQuery{
+			{
+				RefID:     "A",
+				QueryType: instantQueryPath,
+				JSON:      queryJSON,
+			},
+		},
+	})
+	if gotErr != nil {
+		t.Fatalf("unexpected %s", gotErr)
+	}
+
+	response = rsp.Responses["A"]
+	if len(response.Frames) != 1 {
+		t.Fatalf("expected 1 frame got %d in %+v", len(response.Frames), response.Frames)
+	}
+
+	expected = backend.DataResponse{Frames: data.Frames{newLogFrame().dataFrame}}
+	for i, frame := range response.Frames {
+		d, err := frame.MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal response frames %s", err)
+		}
+		exd, err := expected.Frames[i].MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal expected frames %s", err)
+		}
+
+		if !bytes.Equal(d, exd) {
+			t.Fatalf("unexpected frame %s want %s", d, exd)
 		}
 	}
 }

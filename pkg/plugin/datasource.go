@@ -453,8 +453,15 @@ func (di *DatasourceInstance) query(ctx context.Context, q *Query) backend.DataR
 	}
 
 	if r == nil {
-		// VictoriaLogs returned no data
-		return backend.DataResponse{Frames: data.Frames{}}
+		// VictoriaLogs returned an empty response body. For log queries return
+		// an empty logs frame instead of zero frames so Grafana keeps the logs
+		// panel mounted and preserves its state
+		switch q.QueryType {
+		case QueryTypeStats, QueryTypeStatsRange, QueryTypeHits:
+			return backend.DataResponse{Frames: data.Frames{}}
+		default:
+			return parseInstantResponse(newLogReader(strings.NewReader("")))
+		}
 	}
 
 	defer func() {
