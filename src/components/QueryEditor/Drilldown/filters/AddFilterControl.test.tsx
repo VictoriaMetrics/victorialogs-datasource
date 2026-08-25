@@ -117,6 +117,17 @@ describe('AddFilterControl', () => {
     expect(onAdd).toHaveBeenCalledWith({ key: 'level', value: 'warn', operator: '!=' });
   });
 
+  it('picking "=~" and typing a custom pattern adds a regexp filter', async () => {
+    const onAdd = renderControl(makeDatasource());
+
+    await userEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    await userEvent.click(await getOptionsPortal().findByText('level'));
+    await userEvent.click(await getOptionsPortal().findByText('=~'));
+    await userEvent.type(screen.getByPlaceholderText('value'), 'err.*{Enter}');
+
+    expect(onAdd).toHaveBeenCalledWith({ key: 'level', value: 'err.*', operator: '=~' });
+  });
+
   it('Escape before a field is chosen collapses the draft without onAdd and without reaching outer listeners', async () => {
     const onAdd = renderControl(makeDatasource());
 

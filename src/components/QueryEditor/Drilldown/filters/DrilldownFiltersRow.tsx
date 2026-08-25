@@ -1,17 +1,24 @@
 import { css } from '@emotion/css';
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 
-import { GrafanaTheme2, TimeRange } from '@grafana/data';
+import { TimeRange } from '@grafana/data';
 import { Button, Stack, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { AdHocFilter } from '../../../../types';
-import { formatAdHocFilterLabel } from '../../../../utils/query/adHocFilters';
 import { isLevelChip } from '../../../../utils/query/levelChips';
 import { SegmentedChip } from '../../../shared/Chip/SegmentedChip';
 import { PatternFilter } from '../patterns/patternFilters';
 
 import { AddFilterControl } from './AddFilterControl';
+import { FilterChip } from './FilterChip';
+import { FilterChipEditor, FilterSegment } from './FilterChipEditor';
+import { getChipSegmentStyles } from './chipSegmentStyles';
+
+interface EditingState {
+  index: number;
+  segment: FilterSegment;
+}
 
 interface DrilldownFiltersRowProps {
   datasource: VictoriaLogsDatasource;
@@ -22,12 +29,12 @@ interface DrilldownFiltersRowProps {
   onApply: () => void;
   timeRange: TimeRange;
   zoomToolbar?: React.ReactNode;
-  /** Editor filters plus drawer-local ones — narrows the "+ Filter" picker's value lookup */
+  /** Editor filters plus drawer-local ones — narrows the filter pickers' value lookups */
   existingFilters: AdHocFilter[];
   onAdd: (filter: AdHocFilter) => void;
 }
 
-/** Filters row of the drawer: ad-hoc filter chips bound to the drawer's local filter list, plus a zoom toolbar and a go-to-editor action */
+/** Filters row of the drawer: ad-hoc filter chips (editable in place) bound to the drawer's local filter list, plus a zoom toolbar and a go-to-editor action */
 export const DrilldownFiltersRow: React.FC<DrilldownFiltersRowProps> = ({
   datasource,
   filters,
@@ -41,36 +48,65 @@ export const DrilldownFiltersRow: React.FC<DrilldownFiltersRowProps> = ({
   onAdd,
 }) => {
   const styles = useStyles2(getStyles);
+  const segmentStyles = useStyles2(getChipSegmentStyles);
+  const [editing, setEditing] = useState<EditingState | null>(null);
+
+  const handleRemove = useCallback(
+    (index: number) => {
+      onFiltersChange(filters.filter((_, i) => i !== index));
+      setEditing((prev) => {
+        if (!prev || prev.index < index) {
+          return prev;
+        }
+        return prev.index === index ? null : { ...prev, index: prev.index - 1 };
+      });
+    },
+    [filters, onFiltersChange]
+  );
+
+  const handleEditCommit = useCallback(
+    (index: number, updated: AdHocFilter) => {
+      onFiltersChange(filters.map((f, i) => (i === index ? updated : f)));
+      setEditing(null);
+    },
+    [filters, onFiltersChange]
+  );
+
+  const stopEditing = useCallback(() => setEditing(null), []);
 
   return (
     <Stack direction='row' gap={1} alignItems='flex-start'>
       <div className={styles.filters}>
         <Stack direction='row' gap={1} wrap alignItems='center'>
           {filters.map((filter, index) => {
-            // level-button chips carry no chip UI — the LevelFilterRow buttons show that state
             if (isLevelChip(filter)) {
               return null;
             }
-            const filterLabel = formatAdHocFilterLabel(filter);
-            // multi-value filters keep every value visible; an empty value must not collapse the segment
-            const displayValue = filter.values?.length ? filter.values.join(', ') : filter.value || '""';
+            if (editing?.index === index) {
+              return (
+                <FilterChipEditor
+                  key={`edit-${filter.key}-${filter.value}-${index}`}
+                  datasource={datasource}
+                  existingFilters={existingFilters.filter((f) => f !== filter)}
+                  patternFilters={patternFilters}
+                  timeRange={timeRange}
+                  initialFilter={filter}
+                  initialSegment={editing.segment}
+                  onCommit={(updated) => handleEditCommit(index, updated)}
+                  onCancel={stopEditing}
+                />
+              );
+            }
             return (
-              <SegmentedChip
+              <FilterChip
                 key={`${filter.key}-${filter.value}-${index}`}
-                title={filterLabel}
-                onRemove={() => onFiltersChange(filters.filter((_, i) => i !== index))}
-                removeAriaLabel={`Remove filter ${filterLabel}`}
-              >
-                <span className={styles.segmentSecondary}>{filter.key}</span>
-                <span className={styles.segmentSecondary}>{filter.operator}</span>
-                <span className={styles.segmentValue}>
-                  <span className={styles.segmentText}>{displayValue}</span>
-                </span>
-              </SegmentedChip>
+                filter={filter}
+                onRemove={() => handleRemove(index)}
+                onEditSegment={(segment) => setEditing({ index, segment })}
+              />
             );
           })}
           {patternFilters.map((filter) => {
-            // ≈ marks an include-by-pattern, !≈ an exclude — these are pipe filters, not field=value ones
             const filterLabel = `${filter.type === 'include' ? '≈' : '!≈'} ${filter.pattern}`;
             return (
               <SegmentedChip
@@ -79,9 +115,9 @@ export const DrilldownFiltersRow: React.FC<DrilldownFiltersRowProps> = ({
                 onRemove={() => onPatternFiltersChange?.(patternFilters.filter((f) => f.pattern !== filter.pattern))}
                 removeAriaLabel={`Remove pattern filter ${filter.pattern}`}
               >
-                <span className={styles.segmentSecondary}>{filter.type === 'include' ? '≈' : '!≈'}</span>
-                <span className={styles.segmentValue}>
-                  <span className={styles.segmentText}>{filter.pattern}</span>
+                <span className={segmentStyles.segmentSecondary}>{filter.type === 'include' ? '≈' : '!≈'}</span>
+                <span className={segmentStyles.segmentValue}>
+                  <span className={segmentStyles.segmentText}>{filter.pattern}</span>
                 </span>
               </SegmentedChip>
             );
@@ -105,32 +141,9 @@ export const DrilldownFiltersRow: React.FC<DrilldownFiltersRowProps> = ({
   );
 };
 
-const getStyles = (theme: GrafanaTheme2) => ({
+const getStyles = () => ({
   filters: css({
     flex: 1,
     minWidth: 0,
-  }),
-  segmentSecondary: css({
-    display: 'flex',
-    alignItems: 'center',
-    flexShrink: 0,
-    padding: theme.spacing(0, 1),
-    color: theme.colors.text.secondary,
-    whiteSpace: 'nowrap',
-  }),
-  // the only shrinkable segment: shows the full value when it fits the row and
-  // ellipsizes only when the chip runs out of horizontal space
-  segmentValue: css({
-    display: 'flex',
-    alignItems: 'center',
-    minWidth: 0,
-    padding: theme.spacing(0, 1),
-    color: theme.colors.text.primary,
-  }),
-  // ellipsis needs a text-level element — it does not apply to a flex container itself
-  segmentText: css({
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
   }),
 });

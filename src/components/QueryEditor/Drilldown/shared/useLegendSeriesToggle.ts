@@ -51,19 +51,26 @@ export const useLegendSeriesToggle = (allLabels: string[], baseFieldConfig: Fiel
     });
   }, [allLabels]);
 
-  const onToggleSeriesVisibility = useCallback((label: string, mode: SeriesVisibilityChangeMode) => {
+  const onToggleSeriesVisibility = useCallback((label: string | string[] | null, mode: SeriesVisibilityChangeMode) => {
     setSelected((prev) => {
+      if (label === null) {
+        return new Set();
+      }
+      const labels = Array.isArray(label) ? label : [label];
       if (mode === SeriesVisibilityChangeMode.AppendToSelection) {
         const next = new Set(prev);
-        if (next.has(label)) {
-          next.delete(label);
-        } else {
-          next.add(label);
+        for (const l of labels) {
+          if (next.has(l)) {
+            next.delete(l);
+          } else {
+            next.add(l);
+          }
         }
         return next;
       }
-      // plain click isolates the series; clicking the only selected one resets the selection
-      return prev.size === 1 && prev.has(label) ? new Set() : new Set([label]);
+      // plain click isolates the series; clicking the already-isolated selection resets it
+      const isSameSelection = prev.size === labels.length && labels.every((l) => prev.has(l));
+      return isSameSelection ? new Set() : new Set(labels);
     });
   }, []);
 

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
@@ -9,11 +9,42 @@ import { AdHocFilter } from '../../../../types';
 
 import { DrilldownFiltersRow } from './DrilldownFiltersRow';
 
+// useFieldFetch (mounted by the in-place editor) resolves template variables through the
+// runtime singleton, which is not initialized in unit tests
+jest.mock('@grafana/runtime', () => ({
+  ...jest.requireActual('@grafana/runtime'),
+  getTemplateSrv: () => ({ getVariables: () => [] }),
+}));
+
+/** The options list renders in a document.body portal (FloatingDropdown) — scope queries to it,
+ * same helper as AddFilterControl.test.tsx */
+const getOptionsPortal = () => within(document.querySelector('[data-floating-portal]') as HTMLElement);
+
 const datasource = {
   languageProvider: undefined,
   interpolateString: (s: string) => s,
   customQueryParameters: undefined,
 } as unknown as VictoriaLogsDatasource;
+
+/** Datasource with working lookups — needed by tests that open the in-place editor */
+const makeLookupDatasource = () => {
+  // field-name lookups carry no `field`; value lookups do — one mock serves both
+  const getFieldList = jest.fn(async ({ field }: { field?: string }) =>
+    (field ? ['error', 'warn'] : ['level', 'app']).map((value) => ({ value, hits: 1 }))
+  );
+  return {
+    languageProvider: { getFieldList },
+    customQueryParameters: new URLSearchParams(),
+    getQueryBuilderLimits: jest.fn(() => 100),
+    getActiveLevelRules: jest.fn(() => []),
+    interpolateString: jest.fn((s: string) => s),
+  } as unknown as VictoriaLogsDatasource;
+};
+
+beforeAll(() => {
+  // jsdom has no scrollIntoView — useDropdownNavigation calls it when the mouse hovers an option
+  Element.prototype.scrollIntoView = jest.fn();
+});
 
 const timeRange: TimeRange = {
   from: dateTime('2026-07-06T00:00:00Z'),
@@ -148,6 +179,93 @@ describe('DrilldownFiltersRow', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Remove filter app:="web"' }));
 
     expect(onFiltersChange).toHaveBeenCalledWith([levelChip]);
+  });
+
+  it('clicking the value segment opens the in-place editor; a picked value updates that filter', async () => {
+    const onFiltersChange = jest.fn();
+    const filters: AdHocFilter[] = [
+      { key: 'level', value: 'error', operator: '=' },
+      { key: 'app', value: 'web', operator: '=' },
+    ];
+    render(
+      <DrilldownFiltersRow
+        datasource={makeLookupDatasource()}
+        filters={filters}
+        onFiltersChange={onFiltersChange}
+        onApply={jest.fn()}
+        timeRange={timeRange}
+        existingFilters={filters}
+        onAdd={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit value of filter level:="error"' }));
+    await userEvent.click(await getOptionsPortal().findByText('warn'));
+
+    expect(onFiltersChange).toHaveBeenCalledWith([
+      { key: 'level', value: 'warn', operator: '=' },
+      { key: 'app', value: 'web', operator: '=' },
+    ]);
+  });
+
+  it('clicking the operator segment and picking "=~" updates only the operator', async () => {
+    const onFiltersChange = jest.fn();
+    const filters: AdHocFilter[] = [{ key: 'level', value: 'error', operator: '=' }];
+    render(
+      <DrilldownFiltersRow
+        datasource={makeLookupDatasource()}
+        filters={filters}
+        onFiltersChange={onFiltersChange}
+        onApply={jest.fn()}
+        timeRange={timeRange}
+        existingFilters={filters}
+        onAdd={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit operator of filter level:="error"' }));
+    await userEvent.click(await getOptionsPortal().findByText('=~'));
+
+    expect(onFiltersChange).toHaveBeenCalledWith([{ key: 'level', value: 'error', operator: '=~' }]);
+  });
+
+  it('Escape while editing reverts the chip unchanged', async () => {
+    const onFiltersChange = jest.fn();
+    const filters: AdHocFilter[] = [{ key: 'level', value: 'error', operator: '=' }];
+    render(
+      <DrilldownFiltersRow
+        datasource={makeLookupDatasource()}
+        filters={filters}
+        onFiltersChange={onFiltersChange}
+        onApply={jest.fn()}
+        timeRange={timeRange}
+        existingFilters={filters}
+        onAdd={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit operator of filter level:="error"' }));
+    fireEvent.keyDown(await screen.findByRole('textbox'), { key: 'Escape' });
+
+    expect(onFiltersChange).not.toHaveBeenCalled();
+    expect(screen.getByTitle('level:="error"')).toBeInTheDocument();
+  });
+
+  it('multi-value chips are not editable in place — removal only', () => {
+    const filters: AdHocFilter[] = [{ key: 'app', value: 'a', values: ['a', 'b'], operator: '=|' }];
+    render(
+      <DrilldownFiltersRow
+        datasource={datasource}
+        filters={filters}
+        onFiltersChange={jest.fn()}
+        onApply={jest.fn()}
+        timeRange={timeRange}
+        {...addFilterDefaults}
+      />
+    );
+
+    expect(screen.queryByRole('button', { name: /Edit (field|operator|value) of filter/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Remove filter/ })).toBeInTheDocument();
   });
 
   it('renders the zoom toolbar slot and fires onApply once', async () => {
