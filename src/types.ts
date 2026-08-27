@@ -99,6 +99,10 @@ export interface Query extends DataQuery {
   interval?: string;
   /** groups the results by the specified field value for /select/logsql/hits */
   fields?: string[];
+  /** limits the number of groups returned by /select/logsql/hits; the tail is merged into one bucket */
+  fieldsLimit?: number;
+  /** log field the logs volume histogram is grouped by; defaults to the level-based grouping */
+  groupBy?: string;
   /** timezone offset for bucket alignment in stats_query_range and hits endpoints (e.g. "2h", "-5h30m") */
   timezoneOffset?: string;
   /** @deprecated Use adHocFiltersMode instead */
