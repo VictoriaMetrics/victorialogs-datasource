@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: add a `Group hits by` option to `Raw Logs` queries in Explore: the logs volume histogram can be grouped by any log field instead of the default `level`. See [#689](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/689).
+
 * BUGFIX: send an explicit `end` bound in the datasource health check. Without it, VictoriaLogs defaulted the upper bound to the maximum int64 nanosecond timestamp (year 2262), so instances running with `-search.maxQueryTimeRange` failed "Save & test" with `too big time range selected`. See [#712](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/712). Thanks to @dberkerdem for contributing.
 * BUGFIX: keep the selected fields in the Explore logs panel after a query returns no results. Previously, an empty result reset the field selection. See [#714](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/714).
 
