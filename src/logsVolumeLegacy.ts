@@ -85,10 +85,23 @@ export const queryLogsVolume = (datasource: VictoriaLogsDatasource, request: Dat
   });
 };
 
-/** Name for the group of logs that don't have the grouping field (empty value in VictoriaLogs) */
-const EMPTY_GROUP_NAME = '(empty)';
-/** Name for the tail bucket VictoriaLogs merges the groups beyond fields_limit into (it comes back with no fields at all) */
-const OTHER_GROUP_NAME = 'other';
+/** Label for the group of logs that don't have the grouping field (empty value in VictoriaLogs) */
+const EMPTY_GROUP_LABEL = '(empty)';
+/** Label for the tail bucket VictoriaLogs merges the groups beyond fields_limit into (it comes back with no fields at all) */
+const OTHER_GROUP_LABEL = 'other';
+
+/** Separator for composite group keys; never occurs in field names or values */
+const GROUP_KEY_SEPARATOR = '\u0000';
+
+/** Bucket types in the group key — they keep a literal `other` / `(empty)` field value from colliding with the synthetic buckets */
+const GROUP_TYPE_VALUE = 'value';
+const GROUP_TYPE_EMPTY = 'empty';
+const GROUP_TYPE_OTHER = 'other';
+
+interface GroupBucket {
+  label: string;
+  frames: DataFrame[];
+}
 
 /**
  * Aggregate raw hits frames into logs volume series.
@@ -109,7 +122,7 @@ export function aggregateVolumeFrames(
   });
 
   const levelFrames: DataFrame[] = [];
-  const customGroups = new Map<string, DataFrame[]>();
+  const customGroups = new Map<string, GroupBucket>();
 
   rawLogsVolume.forEach((frame) => {
     const groupField = frame.refId ? groupFieldByRefId.get(frame.refId) : undefined;
@@ -119,14 +132,21 @@ export function aggregateVolumeFrames(
     }
     const labels = frame.fields.find((f) => f.name === 'Value')?.labels;
     const value = labels?.[groupField];
-    const name = value === undefined ? OTHER_GROUP_NAME : value || EMPTY_GROUP_NAME;
-    customGroups.set(name, [...(customGroups.get(name) ?? []), frame]);
+    const groupType = value === undefined ? GROUP_TYPE_OTHER : value === '' ? GROUP_TYPE_EMPTY : GROUP_TYPE_VALUE;
+    const label = value === undefined ? OTHER_GROUP_LABEL : value || EMPTY_GROUP_LABEL;
+    // The key includes the grouping field, so equal values of different fields stay
+    // separate series, while the same field from several targets merges — mirroring
+    // the cross-target aggregation of the level path
+    const key = [groupField, groupType, value ?? ''].join(GROUP_KEY_SEPARATOR);
+    const bucket = customGroups.get(key) ?? { label, frames: [] };
+    bucket.frames.push(frame);
+    customGroups.set(key, bucket);
   });
 
   return [
     ...aggregateRawLogsVolume(levelFrames, extractLevel, request, rules),
-    ...Array.from(customGroups, ([name, frames]) =>
-      aggregateFields(frames, getGroupVolumeFieldConfig(name), request)
+    ...Array.from(customGroups.values(), ({ label, frames }) =>
+      aggregateFields(frames, getGroupVolumeFieldConfig(label), request)
     ),
   ];
 }
