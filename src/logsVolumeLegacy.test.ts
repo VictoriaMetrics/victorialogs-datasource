@@ -1,13 +1,14 @@
-import { DataQueryRequest, dateTime, FieldType, LogLevel, toDataFrame } from '@grafana/data';
+import { DataQueryRequest, dateTime, FieldColorModeId, FieldType, LogLevel, toDataFrame } from '@grafana/data';
 
 import { LOG_LEVEL_COLOR } from './configuration/LogLevelRules/const';
 import { LogLevelRuleType } from './configuration/LogLevelRules/types';
-import { aggregateRawLogsVolume, extractLevel } from './logsVolumeLegacy';
+import { aggregateRawLogsVolume, aggregateVolumeFrames, extractLevel } from './logsVolumeLegacy';
 import { Query } from './types';
 import { DERIVED_LEVEL_FIELD } from './utils/query/levelFormatPipes';
 
-const makeFrame = (labels?: Record<string, string>) =>
+const makeFrame = (labels?: Record<string, string>, refId?: string) =>
   toDataFrame({
+    refId,
     fields: [
       { name: 'Time', type: FieldType.time, values: [0] },
       { name: 'Value', type: FieldType.number, values: [1], labels },
@@ -59,5 +60,66 @@ describe('aggregateRawLogsVolume level styling', () => {
     const frames = aggregateRawLogsVolume([makeFrame()], () => LogLevel.unspecified, request, []);
     expect(valueConfig(frames)?.displayNameFromDS).toBe(LogLevel.unknown);
     expect(valueConfig(frames)?.color?.fixedColor).toBe(LOG_LEVEL_COLOR[LogLevel.unknown]);
+  });
+});
+
+describe('aggregateVolumeFrames custom grouping', () => {
+  const request = {
+    range: {
+      from: dateTime('2026-07-06T00:00:00Z'),
+      to: dateTime('2026-07-06T01:00:00Z'),
+      raw: { from: 'now-1h', to: 'now' },
+    },
+  } as DataQueryRequest<Query>;
+
+  const makeTarget = (overrides: Partial<Query>): Query => ({
+    refId: 'log-volume-A',
+    expr: '*',
+    ...overrides,
+  });
+
+  const configOf = (frame: ReturnType<typeof aggregateVolumeFrames>[number]) =>
+    frame.fields.find((f) => f.name === 'Value')?.config;
+
+  it('renders one palette-colored series per group value', () => {
+    const targets = [makeTarget({ groupBy: 'container_name' })];
+    const frames = aggregateVolumeFrames(
+      [
+        makeFrame({ container_name: 'app-1' }, 'log-volume-A'),
+        makeFrame({ container_name: 'app-2' }, 'log-volume-A'),
+      ],
+      targets,
+      request,
+      []
+    );
+
+    expect(frames).toHaveLength(2);
+    expect(frames.map((f) => configOf(f)?.displayNameFromDS)).toEqual(['app-1', 'app-2']);
+    expect(configOf(frames[0])?.color?.mode).toBe(FieldColorModeId.PaletteClassic);
+  });
+
+  it('labels an empty group value as (empty) and the merged tail bucket as other', () => {
+    const targets = [makeTarget({ groupBy: 'container_name' })];
+    const frames = aggregateVolumeFrames(
+      [
+        makeFrame({ container_name: '' }, 'log-volume-A'),
+        // the fields_limit tail bucket comes back without the group field at all
+        makeFrame({}, 'log-volume-A'),
+      ],
+      targets,
+      request,
+      []
+    );
+
+    expect(frames.map((f) => configOf(f)?.displayNameFromDS)).toEqual(['(empty)', 'other']);
+  });
+
+  it('keeps the level aggregation for targets without a custom groupBy', () => {
+    const targets = [makeTarget({ groupBy: 'level' })];
+    const frames = aggregateVolumeFrames([makeFrame({ level: 'error' }, 'log-volume-A')], targets, request, []);
+
+    expect(frames).toHaveLength(1);
+    expect(configOf(frames[0])?.displayNameFromDS).toBe(LogLevel.error);
+    expect(configOf(frames[0])?.color?.fixedColor).toBe(LOG_LEVEL_COLOR[LogLevel.error]);
   });
 });

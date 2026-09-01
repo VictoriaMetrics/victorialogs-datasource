@@ -16,6 +16,8 @@ func TestQuery_getQueryURL(t *testing.T) {
 		QueryType      QueryType
 		ExtraFilters   string
 		TimezoneOffset string
+		Fields         []string
+		FieldsLimit    int
 		rawURL         string
 		queryParams    string
 		want           string
@@ -34,6 +36,8 @@ func TestQuery_getQueryURL(t *testing.T) {
 			QueryType:      opts.QueryType,
 			ExtraFilters:   opts.ExtraFilters,
 			TimezoneOffset: opts.TimezoneOffset,
+			Fields:         opts.Fields,
+			FieldsLimit:    opts.FieldsLimit,
 		}
 		got, err := q.getQueryURL(opts.rawURL, opts.queryParams)
 		if (err != nil) != opts.wantErr {
@@ -256,6 +260,21 @@ func TestQuery_getQueryURL(t *testing.T) {
 		QueryType: QueryTypeHits,
 		rawURL:    "http://127.0.0.1:9429",
 		want:      "http://127.0.0.1:9429/select/logsql/hits?end=1609462800000000000&query=&start=1609459200000000000&step=15s",
+	}
+	f(o)
+
+	// hits grouped by a field with a limit on the number of groups
+	o = opts{
+		RefID: "1",
+		TimeRange: backend.TimeRange{
+			From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		QueryType:   QueryTypeHits,
+		Fields:      []string{"container_name"},
+		FieldsLimit: 20,
+		rawURL:      "http://127.0.0.1:9429",
+		want:        "http://127.0.0.1:9429/select/logsql/hits?end=1609462800000000000&field=container_name&fields_limit=20&query=&start=1609459200000000000&step=15s",
 	}
 	f(o)
 

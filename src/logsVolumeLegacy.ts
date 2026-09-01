@@ -22,6 +22,10 @@ import { Query } from './types';
 import { DERIVED_LEVEL_FIELD, parseDerivedLevel } from './utils/query/levelFormatPipes';
 
 export const LOGS_VOLUME_BARS = 100;
+/** Cap on the number of series when the volume is grouped by a custom field — VictoriaLogs merges the tail into one bucket */
+export const LOGS_VOLUME_GROUPS_LIMIT = 20;
+/** Default logs volume grouping — level-based aggregation with level colors */
+export const LOGS_VOLUME_DEFAULT_GROUP_BY = 'level';
 
 export const queryLogsVolume = (datasource: VictoriaLogsDatasource, request: DataQueryRequest<Query>): Observable<DataQueryResponse> | undefined => {
   return new Observable((observer) => {
@@ -37,7 +41,7 @@ export const queryLogsVolume = (datasource: VictoriaLogsDatasource, request: Dat
 
     const subscription = queryObservable.subscribe({
       complete: () => {
-        const aggregatedLogsVolume = aggregateRawLogsVolume(rawLogsVolume, extractLevel, request, datasource.logLevelRules);
+        const aggregatedLogsVolume = aggregateVolumeFrames(rawLogsVolume, request.targets, request, datasource.logLevelRules);
         if (aggregatedLogsVolume[0]) {
           aggregatedLogsVolume[0].meta = {
             custom: {
@@ -80,6 +84,72 @@ export const queryLogsVolume = (datasource: VictoriaLogsDatasource, request: Dat
     };
   });
 };
+
+/** Label for the group of logs that don't have the grouping field (empty value in VictoriaLogs) */
+const EMPTY_GROUP_LABEL = '(empty)';
+/** Label for the tail bucket VictoriaLogs merges the groups beyond fields_limit into (it comes back with no fields at all) */
+const OTHER_GROUP_LABEL = 'other';
+
+/** Separator for composite group keys; never occurs in field names or values */
+const GROUP_KEY_SEPARATOR = '\u0000';
+
+/** Bucket types in the group key — they keep a literal `other` / `(empty)` field value from colliding with the synthetic buckets */
+const GROUP_TYPE_VALUE = 'value';
+const GROUP_TYPE_EMPTY = 'empty';
+const GROUP_TYPE_OTHER = 'other';
+
+interface GroupBucket {
+  label: string;
+  frames: DataFrame[];
+}
+
+/**
+ * Aggregate raw hits frames into logs volume series.
+ * Frames whose target is grouped by a custom field become one palette-colored series
+ * per field value; the rest go through the level-based aggregation
+ */
+export function aggregateVolumeFrames(
+  rawLogsVolume: DataFrame[],
+  targets: Query[],
+  request: DataQueryRequest<Query>,
+  rules: LogLevelRule[]
+): DataFrame[] {
+  const groupFieldByRefId = new Map<string, string>();
+  targets.forEach((target) => {
+    if (target.groupBy && target.groupBy !== LOGS_VOLUME_DEFAULT_GROUP_BY) {
+      groupFieldByRefId.set(target.refId, target.groupBy);
+    }
+  });
+
+  const levelFrames: DataFrame[] = [];
+  const customGroups = new Map<string, GroupBucket>();
+
+  rawLogsVolume.forEach((frame) => {
+    const groupField = frame.refId ? groupFieldByRefId.get(frame.refId) : undefined;
+    if (!groupField) {
+      levelFrames.push(frame);
+      return;
+    }
+    const labels = frame.fields.find((f) => f.name === 'Value')?.labels;
+    const value = labels?.[groupField];
+    const groupType = value === undefined ? GROUP_TYPE_OTHER : value === '' ? GROUP_TYPE_EMPTY : GROUP_TYPE_VALUE;
+    const label = value === undefined ? OTHER_GROUP_LABEL : value || EMPTY_GROUP_LABEL;
+    // The key includes the grouping field, so equal values of different fields stay
+    // separate series, while the same field from several targets merges — mirroring
+    // the cross-target aggregation of the level path
+    const key = [groupField, groupType, value ?? ''].join(GROUP_KEY_SEPARATOR);
+    const bucket = customGroups.get(key) ?? { label, frames: [] };
+    bucket.frames.push(frame);
+    customGroups.set(key, bucket);
+  });
+
+  return [
+    ...aggregateRawLogsVolume(levelFrames, extractLevel, request, rules),
+    ...Array.from(customGroups.values(), ({ label, frames }) =>
+      aggregateFields(frames, getGroupVolumeFieldConfig(label), request)
+    ),
+  ];
+}
 
 /**
  * Take multiple data frames, sum up values and group by level.
@@ -171,6 +241,28 @@ function getLogVolumeFieldConfig(level: LogLevel) {
       lineColor: color,
       pointColor: color,
       fillColor: color,
+      lineWidth: 1,
+      fillOpacity: 100,
+      stacking: {
+        mode: StackingMode.Normal,
+        group: 'A',
+      },
+    },
+  };
+}
+
+/**
+ * Returns field configuration for a series of the volume grouped by a custom field
+ */
+function getGroupVolumeFieldConfig(name: string): FieldConfig {
+  return {
+    displayNameFromDS: name,
+    color: {
+      mode: FieldColorModeId.PaletteClassic,
+    },
+    custom: {
+      drawStyle: GraphDrawStyle.Bars,
+      barAlignment: BarAlignment.Center,
       lineWidth: 1,
       fillOpacity: 100,
       stacking: {

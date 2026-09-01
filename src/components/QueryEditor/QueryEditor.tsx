@@ -180,6 +180,8 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
               onRunQuery={onRunQuery}
               app={app}
               maxLines={datasource.maxLines}
+              datasource={datasource}
+              timeRange={timeRange}
             />
           </div>
         </div>

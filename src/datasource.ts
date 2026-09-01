@@ -45,7 +45,7 @@ import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABL
 import LogsQlLanguageProvider from './language_provider';
 import { LiveChannelPathProvider } from './live/LiveChannelPathProvider';
 import { LogContextProvider } from './logContext/LogContextProvider';
-import { LOGS_VOLUME_BARS, queryLogsVolume } from './logsVolumeLegacy';
+import { LOGS_VOLUME_BARS, LOGS_VOLUME_DEFAULT_GROUP_BY, LOGS_VOLUME_GROUPS_LIMIT, queryLogsVolume } from './logsVolumeLegacy';
 import {
   addLabelToQuery,
   addSortPipeToQuery,
@@ -548,6 +548,22 @@ export class VictoriaLogsDatasource
         const totalSeconds = request.range.to.diff(request.range.from, 'second');
         const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || '';
 
+        const volumeQuery = {
+          ...query,
+          step: `${step}s`,
+          queryType: QueryType.Hits,
+          refId: `${REF_ID_STARTER_LOG_VOLUME}${query.refId}`,
+          supportingQueryType: SupportingQueryType.LogsVolume,
+          timezoneOffset: formatOffsetDuration(request.timezone, request.range.from.utcOffset()),
+        };
+
+        // Custom grouping: one series per field value, level derivation is not involved.
+        // The groups limit keeps high-cardinality fields from exploding the histogram
+        const customGroupBy = query.groupBy && query.groupBy !== LOGS_VOLUME_DEFAULT_GROUP_BY ? query.groupBy : undefined;
+        if (customGroupBy) {
+          return { ...volumeQuery, fields: [customGroupBy], fieldsLimit: LOGS_VOLUME_GROUPS_LIMIT };
+        }
+
         // With active level rules the level is derived server-side via `format` pipes,
         // grouping hits by the single derived field instead of every rule field
         // (a `_msg` rule would otherwise explode cardinality — issue #700).
@@ -559,14 +575,9 @@ export class VictoriaLogsDatasource
         const levelPipes = query.expr ? buildLevelFormatPipes(this.getActiveLevelRules()) : '';
 
         return {
-          ...query,
+          ...volumeQuery,
           expr: levelPipes ? insertPipesBeforeSortClassPipe(query.expr, levelPipes) : query.expr,
-          step: `${step}s`,
           fields: levelPipes ? [DERIVED_LEVEL_FIELD] : ['level'],
-          queryType: QueryType.Hits,
-          refId: `${REF_ID_STARTER_LOG_VOLUME}${query.refId}`,
-          supportingQueryType: SupportingQueryType.LogsVolume,
-          timezoneOffset: formatOffsetDuration(request.timezone, request.range.from.utcOffset()),
         };
       }
       case SupplementaryQueryType.LogsSample:

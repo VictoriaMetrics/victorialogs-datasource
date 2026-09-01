@@ -1,17 +1,19 @@
 import React, { useMemo } from 'react';
 
-import { CoreApp, isValidGrafanaDuration, SelectableValue } from '@grafana/data';
+import { CoreApp, isValidGrafanaDuration, SelectableValue, TimeRange } from '@grafana/data';
 import { AutoSizeInput, Input, RadioButtonGroup, Switch, TextLink } from '@grafana/ui';
 
 import { VICTORIA_LOGS_DOCS_HOST } from '../../conf';
 import { LOGS_LIMIT_HARD_CAP, LOGS_LIMIT_WARNING_THRESHOLD } from '../../constants';
-import { resolveAdHocFiltersMode } from '../../datasource';
+import { resolveAdHocFiltersMode, VictoriaLogsDatasource } from '../../datasource';
+import { LOGS_VOLUME_DEFAULT_GROUP_BY } from '../../logsVolumeLegacy';
 import { AdHocFiltersMode, Query, QueryType } from '../../types';
 import { isVariable } from '../../utils/isVariable';
 import { useMaxLinesWarning } from '../shared/shared/useMaxLinesWarning';
 
 import EditorField from './EditorField';
 import { EditorRow } from './EditorRow';
+import { GroupByFieldSelect } from './GroupByFieldSelect';
 import QueryEditorOptionsGroup from './QueryEditorOptionsGroup';
 
 export interface Props {
@@ -20,6 +22,8 @@ export interface Props {
   onRunQuery: () => void;
   maxLines: number;
   app?: CoreApp;
+  datasource: VictoriaLogsDatasource;
+  timeRange?: TimeRange;
 }
 
 export const queryTypeOptions: Array<SelectableValue<QueryType>> = [
@@ -47,7 +51,7 @@ const adHocFiltersModeOptions: Array<SelectableValue<AdHocFiltersMode>> = [
   { value: AdHocFiltersMode.Off, label: 'Off' },
 ];
 
-export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onChange, onRunQuery }) => {
+export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onChange, onRunQuery, datasource, timeRange }) => {
   const filteredOptions = queryTypeOptions.filter(option => option.filter?.({ app }) ?? true);
   const queryType = query.queryType;
 
@@ -111,6 +115,13 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
     onRunQuery();
   };
 
+  const onGroupByFieldChange = (field?: string) => {
+    // The default level grouping is stored as undefined so queries don't carry the default around
+    const groupBy = field && field !== LOGS_VOLUME_DEFAULT_GROUP_BY ? field : undefined;
+    onChange({ ...query, groupBy });
+    onRunQuery();
+  };
+
   return (
     <EditorRow>
       {maxLinesWarningModal}
@@ -143,6 +154,20 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
             Learn more about querying logs
           </TextLink>
         </div>
+        {queryType === QueryType.Instant && (
+          <EditorField
+            label='Group hits by'
+            tooltip='Groups the logs volume histogram by the selected field value. Each field value gets its own series. The default `level` grouping colors the histogram by log level.'
+          >
+            <GroupByFieldSelect
+              datasource={datasource}
+              timeRange={timeRange}
+              queryContext={query.expr}
+              value={query.groupBy ?? LOGS_VOLUME_DEFAULT_GROUP_BY}
+              onChange={onGroupByFieldChange}
+            />
+          </EditorField>
+        )}
         {queryType === QueryType.Instant && (
           <EditorField
             label='Line limit'
@@ -228,6 +253,10 @@ function getCollapsedInfo({ app, query, queryType, maxLines, isValidStep }: Coll
 
   if (queryType === QueryType.StatsRange && query.step) {
     items.push(`Step: ${isValidStep ? query.step : 'Invalid value'}`);
+  }
+
+  if (queryType === QueryType.Instant) {
+    items.push(`Group hits by: ${query.groupBy || LOGS_VOLUME_DEFAULT_GROUP_BY}`);
   }
 
   if (queryType === QueryType.Instant && maxLines) {
