@@ -19,8 +19,10 @@ make vl-e2e-build                                       # once
 make vl-e2e-test GRAFANA_VERSION=11.0.0 VL_VERSION=v1.51.1
 ```
 
-`vl-e2e-test` starts the stack, runs the tests, always stops the stack and
-preserves the test exit code. Both versions default to `latest`.
+`vl-e2e-build` installs the dependencies and the Playwright Chromium browser,
+then builds the frontend and the linux backend binaries. `vl-e2e-test` starts
+the stack, runs the tests, always stops the stack and preserves the test exit
+code. Both versions default to `latest`.
 
 The step-by-step flow behind it:
 

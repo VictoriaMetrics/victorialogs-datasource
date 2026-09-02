@@ -46,7 +46,7 @@ vl-backend-plugin-build-e2e: mage
 	$(MAGE) -v build:linux build:linuxARM64
 
 vl-e2e-build: vl-backend-plugin-build-e2e
-	yarn install --immutable && yarn build
+	yarn install --immutable && yarn build && yarn playwright install chromium
 
 vl-e2e-test:
 	@test -f plugins/$(PLUGIN_ID)/plugin.json && ls plugins/$(PLUGIN_ID)/$(APP_NAME)_linux_* >/dev/null 2>&1 || { \
