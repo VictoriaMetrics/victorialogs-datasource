@@ -1,0 +1,36 @@
+# Compose stack for e2e tests, see tests/README.md.
+#
+# Both images are parameterized so the same stack can be run against
+# multiple Grafana and VictoriaLogs versions:
+#   GRAFANA_VERSION=11.0.0 VL_VERSION=v1.44.0 docker compose -f docker-compose.e2e.yaml up -d
+#
+# The project name keeps the e2e stack isolated from the development stack in compose.yaml.
+name: victorialogs-datasource-e2e
+
+services:
+  victorialogs:
+    # No persistent volume: every `up` starts from an empty database,
+    # tests/global-setup.ts seeds the test data.
+    image: victoriametrics/victoria-logs:${VL_VERSION:-latest}
+    ports:
+      - ${VL_HOST_PORT:-9428}:9428
+    networks:
+      - grafana-network
+
+  grafana:
+    image: grafana/${GRAFANA_IMAGE:-grafana-enterprise}:${GRAFANA_VERSION:-latest}
+    ports:
+      - ${GRAFANA_HOST_PORT:-3000}:3000/tcp
+    environment:
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: victoriametrics-logs-datasource
+    volumes:
+      - ./plugins/victoriametrics-logs-datasource:/var/lib/grafana/plugins/victoriametrics-logs-datasource
+      - ./tests/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - victorialogs
+    networks:
+      - grafana-network
+
+networks:
+  grafana-network:
+    driver: bridge

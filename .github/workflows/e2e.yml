@@ -1,0 +1,197 @@
+name: E2E tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/e2e.yml'
+      - 'src/**'
+      - 'pkg/**'
+      - 'tests/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '**/yarn.lock'
+      - '**/package.json'
+      - 'playwright.config.ts'
+      - 'docker-compose.e2e.yaml'
+      - 'webpack.config.ts'
+      - 'tsconfig.json'
+      - '.config/**'
+      - 'Magefile.go'
+      - 'Makefile'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/e2e.yml'
+      - 'src/**'
+      - 'pkg/**'
+      - 'tests/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '**/yarn.lock'
+      - '**/package.json'
+      - 'playwright.config.ts'
+      - 'docker-compose.e2e.yaml'
+      - 'webpack.config.ts'
+      - 'tsconfig.json'
+      - '.config/**'
+      - 'Magefile.go'
+      - 'Makefile'
+  workflow_call:
+    inputs:
+      full-matrix:
+        description: 'Test the full version matrix (minimum supported Grafana and two VictoriaLogs minors) instead of only the latest versions'
+        required: false
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      full-matrix:
+        description: 'Test the full version matrix (minimum supported Grafana and two VictoriaLogs minors) instead of only the latest versions'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-versions:
+    name: Resolve Grafana and VictoriaLogs versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      grafana-matrix: ${{ steps.resolve-grafana-versions.outputs.matrix }}
+      victorialogs-matrix: ${{ steps.resolve-victorialogs-versions.outputs.matrix }}
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        with:
+          persist-credentials: false
+
+      # Resolves the newest Grafana release satisfying grafanaDependency from
+      # src/plugin.json, plus the minimum supported version when the full
+      # matrix is requested: with a limit the action picks the newest and the
+      # oldest satisfying minor versions.
+      - name: Resolve Grafana E2E versions
+        id: resolve-grafana-versions
+        uses: grafana/plugin-actions/e2e-version@3ef49643a84470fd25bafeb96701fa0be3be6746  # e2e-version/v3.0.2
+        with:
+          skip-grafana-nightly-image: true
+          limit: ${{ inputs.full-matrix && 2 || 1 }}
+
+      # Resolves the latest patch release of the most recent minor
+      # VictoriaLogs versions (two minors for the full matrix) from GitHub
+      # releases. Release tags match the victoriametrics/victoria-logs
+      # Docker image tags.
+      - name: Resolve VictoriaLogs E2E versions
+        id: resolve-victorialogs-versions
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b  # v7.1.0
+        with:
+          script: |
+            const wanted = ${{ inputs.full-matrix && 2 || 1 }};
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: 'VictoriaMetrics',
+              repo: 'VictoriaLogs',
+              per_page: 100,
+            });
+
+            // The highest patch of every stable vX.Y.Z release, keyed by minor version.
+            const latestPerMinor = new Map();
+            for (const { tag_name, draft, prerelease } of releases) {
+              const version = tag_name.match(/^v(\d+)\.(\d+)\.(\d+)$/)?.slice(1).map(Number);
+              if (draft || prerelease || !version) {
+                continue;
+              }
+              const minor = `${version[0]}.${version[1]}`;
+              const current = latestPerMinor.get(minor);
+              if (!current || version[2] > current[2]) {
+                latestPerMinor.set(minor, version);
+              }
+            }
+
+            const matrix = [...latestPerMinor.values()]
+              .sort((a, b) => a[0] - b[0] || a[1] - b[1])
+              .slice(-wanted)
+              .reverse()
+              .map((version) => `v${version.join('.')}`);
+            if (matrix.length !== wanted) {
+              throw new Error(`Failed to resolve VictoriaLogs versions from GitHub releases, got: ${JSON.stringify(matrix)}`);
+            }
+
+            core.info(`Resolved VictoriaLogs versions: ${JSON.stringify(matrix)}`);
+            core.setOutput('matrix', JSON.stringify(matrix));
+
+  run-e2e-tests:
+    name: grafana@${{ matrix.GRAFANA_IMAGE.VERSION }} / victoria-logs@${{ matrix.VICTORIALOGS_VERSION }}
+    needs: resolve-versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        GRAFANA_IMAGE: ${{ fromJson(needs.resolve-versions.outputs.grafana-matrix) }}
+        VICTORIALOGS_VERSION: ${{ fromJson(needs.resolve-versions.outputs.victorialogs-matrix) }}
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: 24.11.1
+
+      - name: Set up go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff  # v5.6.0
+        with:
+          go-version-file: go.mod
+
+      - name: Install all dependencies
+        run: yarn install
+
+      - name: Build frontend
+        run: yarn build
+
+      - name: Build backend
+        run: make vl-backend-plugin-build-e2e
+
+      - name: Install Playwright browsers
+        run: yarn playwright install --with-deps chromium
+
+      - name: Start Grafana and VictoriaLogs
+        run: docker compose -f docker-compose.e2e.yaml up -d
+        env:
+          GRAFANA_IMAGE: ${{ matrix.GRAFANA_IMAGE.NAME }}
+          GRAFANA_VERSION: ${{ matrix.GRAFANA_IMAGE.VERSION }}
+          VL_VERSION: ${{ matrix.VICTORIALOGS_VERSION }}
+
+      - name: Wait for Grafana to start
+        uses: grafana/plugin-actions/wait-for-grafana@4205a0824a13b71fdb9b9b49f28f5f72b754f81f  # wait-for-grafana/v1.0.5
+        with:
+          url: http://localhost:3000/login
+
+      - name: Run e2e tests
+        id: run-tests
+        run: yarn e2e
+
+      # failure() also covers steps before the tests (stack startup, Grafana
+      # wait): docker logs are the primary diagnostics for those failures.
+      - name: Collect docker logs
+        if: ${{ failure() }}
+        run: docker compose -f docker-compose.e2e.yaml logs --no-color > docker-logs.txt
+
+      - name: Upload e2e artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: ${{ failure() }}
+        with:
+          name: e2e-report-grafana-${{ matrix.GRAFANA_IMAGE.VERSION }}-vl-${{ matrix.VICTORIALOGS_VERSION }}
+          path: |
+            playwright-report/
+            docker-logs.txt
+          retention-days: 7
+
+      - name: Stop Grafana and VictoriaLogs
+        if: ${{ always() }}
+        run: docker compose -f docker-compose.e2e.yaml down
