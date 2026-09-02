@@ -18,7 +18,7 @@ on:
       - 'tsconfig.json'
       - '.config/**'
       - 'Magefile.go'
-      - '**/Makefile'
+      - 'Makefile'
   pull_request:
     branches: [main]
     paths:
@@ -36,7 +36,7 @@ on:
       - 'tsconfig.json'
       - '.config/**'
       - 'Magefile.go'
-      - '**/Makefile'
+      - 'Makefile'
   workflow_call:
     inputs:
       full-matrix:
