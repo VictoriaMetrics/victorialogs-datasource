@@ -99,7 +99,7 @@ yystart1:
 	case l.current == 'n':
 		goto yystate16
 	case l.current == '|':
-		goto yystate20
+		goto yystate21
 	case l.current >= '0' && l.current <= '9':
 		goto yystate8
 	case l.current >= '\x01' && l.current <= '\t' || l.current >= '\v' && l.current <= '*' || l.current == ',' || l.current >= ';' && l.current <= 'G' || l.current >= 'I' && l.current <= 'L' || l.current >= 'N' && l.current <= 'P' || l.current == 'R' || l.current == 'S' || l.current >= 'U' && l.current <= 'Y' || l.current >= '[' && l.current <= 'a' || l.current == 'c' || l.current == 'e' || l.current == 'g' || l.current >= 'i' && l.current <= 'l' || l.current >= 'o' && l.current <= 'r' || l.current >= 't' && l.current <= 'v' || l.current == 'x' || l.current == 'z' || l.current == '{' || l.current >= '}' && l.current <= 'ÿ':
@@ -112,7 +112,7 @@ yystate2:
 
 yystate3:
 	l.next()
-	goto yyrule16
+	goto yyrule17
 
 yystate4:
 	l.next()
@@ -154,7 +154,7 @@ yystate13:
 	l.next()
 	switch {
 	default:
-		goto yyrule16
+		goto yyrule17
 	case l.current == 'Q':
 		goto yystate14
 	case l.current == 'y':
@@ -173,40 +173,46 @@ yystate16:
 	l.next()
 	switch {
 	default:
-		goto yyrule16
+		goto yyrule17
 	case l.current == 'o':
+		goto yystate18
+	case l.current >= '\x01' && l.current <= '\t' || l.current >= '\v' && l.current <= 'n' || l.current >= 'p' && l.current <= 'ÿ':
 		goto yystate17
 	}
 
 yystate17:
 	l.next()
-	switch {
-	default:
-		goto yyabort
-	case l.current == 'w':
-		goto yystate19
-	case l.current >= '\x01' && l.current <= '\t' || l.current >= '\v' && l.current <= 'v' || l.current >= 'x' && l.current <= 'ÿ':
-		goto yystate18
-	}
+	goto yyrule16
 
 yystate18:
-	l.next()
-	goto yyrule15
-
-yystate19:
-	l.next()
-	goto yyrule2
-
-yystate20:
 	l.next()
 	switch {
 	default:
 		goto yyrule16
-	case l.current == '|':
-		goto yystate21
+	case l.current == 'w':
+		goto yystate20
+	case l.current >= '\x01' && l.current <= '\t' || l.current >= '\v' && l.current <= 'v' || l.current >= 'x' && l.current <= 'ÿ':
+		goto yystate19
 	}
 
+yystate19:
+	l.next()
+	goto yyrule15
+
+yystate20:
+	l.next()
+	goto yyrule2
+
 yystate21:
+	l.next()
+	switch {
+	default:
+		goto yyrule17
+	case l.current == '|':
+		goto yystate22
+	}
+
+yystate22:
 	l.next()
 	goto yyrule6
 
@@ -314,7 +320,12 @@ yyrule15: // no.
 
 		return tINVALID_TOKEN
 	}
-yyrule16: // .
+yyrule16: // n.
+	{
+
+		return tINVALID_TOKEN
+	}
+yyrule17: // .
 	if true { // avoid go vet determining the below panic will not be reached
 
 		return tINVALID_TOKEN
@@ -322,9 +333,7 @@ yyrule16: // .
 	panic("unreachable")
 
 yyabort: // no lexem recognized
-	//
 	// silence unused label errors for build and satisfy go vet reachability analysis
-	//
 	{
 		if false {
 			goto yyabort

@@ -147,6 +147,9 @@ eof \0
 no.
 	return tINVALID_TOKEN
 
+n.
+	return tINVALID_TOKEN
+
 .
 	return tINVALID_TOKEN
 
