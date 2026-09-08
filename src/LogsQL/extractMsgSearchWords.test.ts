@@ -119,7 +119,19 @@ describe('extractMsgSearchWords', () => {
   describe('termination on stray separators', () => {
     it('terminates on a pipe inside a parenthesized group', () => {
       expect(extractMsgSearchWords('(foo | bar)')).toEqual(['foo', 'bar']);
-      expect(Array.isArray(extractMsgSearchWords('_msg:in(_time:5m | fields x)'))).toBe(true);
+      // TODO: the body of a subquery is still scanned as default _msg context,
+      // so its pipe-stage tokens leak into the terms. Tracked separately.
+      expect(extractMsgSearchWords('_msg:in(_time:5m | fields x)')).toEqual(['fields', 'x']);
+    });
+    it('keeps a colon bound to its field instead of consuming it as a stray separator', () => {
+      expect(extractMsgSearchWords('_time:2023-04-25T22:45:59Z')).toEqual([]);
+      expect(extractMsgSearchWords('error _time:2023-04-25T22:45:59Z')).toEqual(['error']);
+      expect(extractMsgSearchWords('url:"http://example.com" error')).toEqual(['error']);
+    });
+    it('skips a bracketed range value of a field', () => {
+      expect(extractMsgSearchWords('_time:[2023-04-25T22:45:59Z, 2023-04-26T22:45:59Z]')).toEqual([]);
+      expect(extractMsgSearchWords('_time:[2023-04-25T22:45:59Z, 2023-04-26T22:45:59Z] error')).toEqual(['error']);
+      expect(extractMsgSearchWords('response_size:[1KB, 10MB]')).toEqual([]);
     });
     it('terminates on an unmatched closing brace', () => {
       expect(extractMsgSearchWords('}')).toEqual([]);
