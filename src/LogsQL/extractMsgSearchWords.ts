@@ -193,7 +193,8 @@ function scanFilterSegment(segment: string): string[] {
 
     // An empty word means `ch` is a separator with no dedicated branch above
     // (an argument-list comma, a stray `|` or `}`). Consume it so the scan always advances.
-    if (word === '') {
+    // `:` is deliberately excluded — it must reach the field/value branch below.
+    if (word === '' && (ch === ',' || ch === '|' || ch === '}')) {
       i++;
       continue;
     }
@@ -218,6 +219,12 @@ function scanFilterSegment(segment: string): string[] {
           continue; // scan the group as default _msg context
         }
         i = skipBalanced(segment, i, '(', ')'); // group filters a non-_msg field — skip it
+        negateNext = false;
+        continue;
+      }
+      // range value: `field:[min, max]` — a numeric/time range, never a _msg term
+      if (segment[i] === '[') {
+        i = skipBalanced(segment, i, '[', ']');
         negateNext = false;
         continue;
       }
