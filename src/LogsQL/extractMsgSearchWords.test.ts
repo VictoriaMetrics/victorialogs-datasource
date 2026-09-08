@@ -117,11 +117,26 @@ describe('extractMsgSearchWords', () => {
   });
 
   describe('termination on stray separators', () => {
-    it('terminates on a pipe inside a parenthesized group', () => {
-      expect(extractMsgSearchWords('(foo | bar)')).toEqual(['foo', 'bar']);
-      // TODO: the body of a subquery is still scanned as default _msg context,
-      // so its pipe-stage tokens leak into the terms. Tracked separately.
-      expect(extractMsgSearchWords('_msg:in(_time:5m | fields x)')).toEqual(['fields', 'x']);
+    it('skips a group holding a pipe instead of scanning its stages as _msg terms', () => {
+      expect(extractMsgSearchWords('_msg:in(* | fields _msg)')).toEqual([]);
+      expect(extractMsgSearchWords('_msg:in(_time:5m | fields x)')).toEqual([]);
+      expect(extractMsgSearchWords('in(_time:5m | fields x)')).toEqual([]);
+      expect(extractMsgSearchWords('(foo | bar)')).toEqual([]);
+    });
+    it('still scans a group holding no pipe', () => {
+      expect(extractMsgSearchWords('(foo OR bar)')).toEqual(['foo', 'bar']);
+      expect(extractMsgSearchWords('error _msg:in(a, b)')).toEqual(['error', 'a', 'b']);
+    });
+    it('keeps highlighting terms around a skipped subquery', () => {
+      expect(extractMsgSearchWords('error _msg:in(* | fields _msg) warn')).toEqual(['error', 'warn']);
+    });
+    it('skips only the subquery when it is nested in a boolean group', () => {
+      expect(extractMsgSearchWords('(error OR _msg:in(* | fields x))')).toEqual(['error']);
+      expect(extractMsgSearchWords('(_msg:error OR _msg:in(* | fields _msg))')).toEqual(['error']);
+      expect(extractMsgSearchWords('(error OR (warn AND _msg:in(* | fields x)))')).toEqual(['error', 'warn']);
+    });
+    it('keeps a quoted pipe as part of the term', () => {
+      expect(extractMsgSearchWords('_msg:in("a|b", c)')).toEqual(['a\\|b', 'c']);
     });
     it('keeps a colon bound to its field instead of consuming it as a stray separator', () => {
       expect(extractMsgSearchWords('_time:2023-04-25T22:45:59Z')).toEqual([]);
