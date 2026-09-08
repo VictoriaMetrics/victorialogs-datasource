@@ -5,8 +5,8 @@ import { skipBalanced } from '../utils';
 import { splitByPipes } from './splitByPipes';
 import { stripComments } from './stripComments';
 
-// Tabs/newlines are normalized to spaces in extractMsgSearchWords, so a plain space is enough here
-const TERM_SEPARATORS = [' ', ':', '|', '(', ')', '{', '}'];
+// Tabs/newlines are normalized to spaces in extractMsgSearchWords, so a plain space is enough here.
+const TERM_SEPARATORS = [' ', ',', ':', '|', '(', ')', '{', '}'];
 
 /**
  * Reads a quoted string starting at `openIdx` (quote char at that index)
@@ -190,6 +190,13 @@ function scanFilterSegment(segment: string): string[] {
       i++;
     }
     let word = segment.slice(start, i);
+
+    // An empty word means `ch` is a separator with no dedicated branch above
+    // (an argument-list comma, a stray `|` or `}`). Consume it so the scan always advances.
+    if (word === '') {
+      i++;
+      continue;
+    }
 
     const upper = word.toUpperCase();
     if (upper === 'AND' || upper === 'OR') {

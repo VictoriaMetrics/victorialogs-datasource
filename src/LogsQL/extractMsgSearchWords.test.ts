@@ -98,6 +98,35 @@ describe('extractMsgSearchWords', () => {
     });
   });
 
+  describe('comma-delimited function arguments', () => {
+    it('does not highlight the comma between quoted arguments', () => {
+      expect(extractMsgSearchWords('contains_common_case("foo", "bar")')).toEqual(['foo', 'bar']);
+      expect(extractMsgSearchWords('seq("foo", "bar")')).toEqual(['foo', 'bar']);
+    });
+    it('splits quoted arguments without a space after the comma', () => {
+      expect(extractMsgSearchWords('contains_common_case("foo","bar")')).toEqual(['foo', 'bar']);
+    });
+    it('splits bare-word arguments on the comma', () => {
+      expect(extractMsgSearchWords('in(foo, bar)')).toEqual(['foo', 'bar']);
+      expect(extractMsgSearchWords('_msg:in(foo,bar)')).toEqual(['foo', 'bar']);
+    });
+    it('keeps a comma inside a quoted phrase or a regexp', () => {
+      expect(extractMsgSearchWords('"a, b"')).toEqual(['a, b']);
+      expect(extractMsgSearchWords('~"a,b"')).toEqual(['a,b']);
+    });
+  });
+
+  describe('termination on stray separators', () => {
+    it('terminates on a pipe inside a parenthesized group', () => {
+      expect(extractMsgSearchWords('(foo | bar)')).toEqual(['foo', 'bar']);
+      expect(Array.isArray(extractMsgSearchWords('_msg:in(_time:5m | fields x)'))).toBe(true);
+    });
+    it('terminates on an unmatched closing brace', () => {
+      expect(extractMsgSearchWords('}')).toEqual([]);
+      expect(extractMsgSearchWords('error } warn')).toEqual(['error', 'warn']);
+    });
+  });
+
   describe('grouped values after a field', () => {
     it('skips a grouped value of a non-_msg field', () => {
       expect(extractMsgSearchWords('app:(buggy_app OR foobar)')).toEqual([]);
