@@ -1,6 +1,6 @@
 import { escapeRegExp } from 'lodash';
 
-import { skipBalanced } from '../utils';
+import { findGroupsWithChar, skipBalanced } from '../utils';
 
 import { splitByPipes } from './splitByPipes';
 import { stripComments } from './stripComments';
@@ -114,6 +114,10 @@ function readValueTermInner(s: string, i: number): { term: string | null; isRege
  */
 function scanFilterSegment(segment: string): string[] {
   const results: string[] = [];
+  // A `|` at a group's own level marks that group as a subquery (`in(* | fields x)`): the terms it
+  // matches come from the subquery result, not from this filter. Resolved in one pass up front, so
+  // a group nested inside a subquery does not drag its ancestors down with it.
+  const subqueryGroups = findGroupsWithChar(segment, '(', ')', '|');
   let i = 0;
   let negateNext = false;
 
@@ -139,9 +143,10 @@ function scanFilterSegment(segment: string): string[] {
       continue;
     }
 
-    // grouping parens
+    // grouping parens — every descent into a group funnels through here, including
+    // the `_msg:(...)` and `_msg:fn(...)` branches below, which continue without moving `i`
     if (ch === '(') {
-      if (negateNext) {
+      if (negateNext || subqueryGroups.has(i)) {
         i = skipBalanced(segment, i, '(', ')');
         negateNext = false;
       } else {
