@@ -1,12 +1,12 @@
 import { escapeRegExp } from 'lodash';
 
-import { skipBalanced } from '../utils';
+import { findGroupsWithChar, skipBalanced } from '../utils';
 
 import { splitByPipes } from './splitByPipes';
 import { stripComments } from './stripComments';
 
-// Tabs/newlines are normalized to spaces in extractMsgSearchWords, so a plain space is enough here
-const TERM_SEPARATORS = [' ', ':', '|', '(', ')', '{', '}'];
+// Tabs/newlines are normalized to spaces in extractMsgSearchWords, so a plain space is enough here.
+const TERM_SEPARATORS = [' ', ',', ':', '|', '(', ')', '{', '}'];
 
 /**
  * Reads a quoted string starting at `openIdx` (quote char at that index)
@@ -114,6 +114,10 @@ function readValueTermInner(s: string, i: number): { term: string | null; isRege
  */
 function scanFilterSegment(segment: string): string[] {
   const results: string[] = [];
+  // A `|` at a group's own level marks that group as a subquery (`in(* | fields x)`): the terms it
+  // matches come from the subquery result, not from this filter. Resolved in one pass up front, so
+  // a group nested inside a subquery does not drag its ancestors down with it.
+  const subqueryGroups = findGroupsWithChar(segment, '(', ')', '|');
   let i = 0;
   let negateNext = false;
 
@@ -139,9 +143,10 @@ function scanFilterSegment(segment: string): string[] {
       continue;
     }
 
-    // grouping parens
+    // grouping parens — every descent into a group funnels through here, including
+    // the `_msg:(...)` and `_msg:fn(...)` branches below, which continue without moving `i`
     if (ch === '(') {
-      if (negateNext) {
+      if (negateNext || subqueryGroups.has(i)) {
         i = skipBalanced(segment, i, '(', ')');
         negateNext = false;
       } else {
@@ -191,6 +196,14 @@ function scanFilterSegment(segment: string): string[] {
     }
     let word = segment.slice(start, i);
 
+    // An empty word means `ch` is a separator with no dedicated branch above
+    // (an argument-list comma, a stray `|` or `}`). Consume it so the scan always advances.
+    // `:` is deliberately excluded — it must reach the field/value branch below.
+    if (word === '' && (ch === ',' || ch === '|' || ch === '}')) {
+      i++;
+      continue;
+    }
+
     const upper = word.toUpperCase();
     if (upper === 'AND' || upper === 'OR') {
       continue;
@@ -211,6 +224,12 @@ function scanFilterSegment(segment: string): string[] {
           continue; // scan the group as default _msg context
         }
         i = skipBalanced(segment, i, '(', ')'); // group filters a non-_msg field — skip it
+        negateNext = false;
+        continue;
+      }
+      // range value: `field:[min, max]` — a numeric/time range, never a _msg term
+      if (segment[i] === '[') {
+        i = skipBalanced(segment, i, '[', ']');
         negateNext = false;
         continue;
       }
