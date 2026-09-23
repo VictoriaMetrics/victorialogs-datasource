@@ -59,12 +59,12 @@ describe('useRemainingHeight', () => {
     expect(result.current[1]).toBe(300);
   });
 
-  it('observes the document and the parent, and re-measures when the layout resizes', () => {
+  it('observes only the parent, and re-measures when the layout resizes', () => {
     const { result } = renderHook(() => useRemainingHeight(300, 24));
     const { node, parent, setTop } = makeNode();
 
     act(() => result.current[0](node));
-    expect(observe).toHaveBeenCalledWith(document.documentElement);
+    expect(observe).toHaveBeenCalledTimes(1);
     expect(observe).toHaveBeenCalledWith(parent);
 
     // content above the node grew, pushing it down without any window resize

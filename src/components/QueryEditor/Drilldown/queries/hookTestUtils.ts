@@ -42,6 +42,7 @@ export const makeDatasource = (overrides: Partial<VictoriaLogsDatasource> = {}) 
     logLevelRules: [],
     getActiveLevelRules: jest.fn().mockReturnValue([]),
     customQueryParameters: new URLSearchParams(),
+    interpolateString: jest.fn((s: string) => s),
     languageProvider: {
       getFieldList: jest.fn().mockResolvedValue([
         { value: 'level', hits: 1 },
@@ -58,3 +59,13 @@ export const makeDatasource = (overrides: Partial<VictoriaLogsDatasource> = {}) 
     query: jest.fn().mockReturnValue(of({ data: [makeHitsFrame('error', [10]), makeHitsFrame('info', [1])] })),
     ...overrides,
   }) as unknown as VictoriaLogsDatasource;
+
+/** A facets response with one field holding one value */
+export const facetsResponse = { facets: [{ field_name: 'app', values: [{ field_value: 'web', hits: 3 }] }] };
+
+/** A datasource whose facets endpoint answers with `facetsResponse` unless `postResource` says otherwise */
+export const makeFacetsDatasource = ({
+  postResource = jest.fn().mockResolvedValue(facetsResponse),
+  customQueryParameters = new URLSearchParams(),
+}: { postResource?: jest.Mock; customQueryParameters?: URLSearchParams } = {}) =>
+  makeDatasource({ customQueryParameters, postResource } as unknown as Partial<VictoriaLogsDatasource>);

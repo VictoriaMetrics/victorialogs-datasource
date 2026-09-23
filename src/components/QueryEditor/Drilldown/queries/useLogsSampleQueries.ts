@@ -20,21 +20,20 @@ interface LogsSampleOptions {
   buildTarget: () => Query;
   requestId: string;
   enabled: boolean;
-  /** Extra effect dependencies beyond the identity and the target's adHocFilters, such as the query expression */
-  deps: unknown[];
 }
 
 /** Runs one raw-logs query and keeps its result in PanelData form */
 function useLogsSample(
   datasource: VictoriaLogsDatasource,
   range: TimeRange,
-  { identity, buildTarget, requestId, enabled, deps }: LogsSampleOptions
+  { identity, buildTarget, requestId, enabled }: LogsSampleOptions
 ): PanelData {
   const [data, setData] = useState<PanelData>({ series: [], state: LoadingState.NotStarted, timeRange: range });
   const previousIdentityRef = useRef(identity);
-  // adHocFilters is a new array on every render, so the effect keys off its contents instead.
-  // Keying off the built target covers every sample kind, since each copies the query's chips
-  const filtersKey = JSON.stringify(buildTarget().adHocFilters ?? []);
+  // the target is a new object on every render, so the effect keys off its contents instead.
+  // It carries everything the request depends on: the expression, the chips and the refId
+  const target = buildTarget();
+  const targetKey = JSON.stringify(target);
 
   useEffect(() => {
     if (!enabled) {
@@ -46,14 +45,14 @@ function useLogsSample(
     setData((prev) =>
       identityChanged ? { series: [], state: LoadingState.Loading, timeRange: range } : { ...prev, state: LoadingState.Loading }
     );
-    const request = buildDrilldownRequest([buildTarget()], range, requestId);
+    const request = buildDrilldownRequest([target], range, requestId);
     const subscription = runDrilldownQuery(datasource, request, {
       onError: (errors) => setData({ series: [], state: LoadingState.Error, timeRange: range, errors }),
       onFrames: (frames) => setData({ series: frames, state: LoadingState.Done, timeRange: range }),
     });
     return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [datasource, enabled, identity, requestId, range.from.valueOf(), range.to.valueOf(), filtersKey, ...deps]);
+  }, [datasource, enabled, identity, requestId, range.from.valueOf(), range.to.valueOf(), targetKey]);
 
   return data;
 }
@@ -70,7 +69,6 @@ export function useQueryLogsSample(
     buildTarget: () => buildRawLogsQuery(query),
     requestId: 'drilldown-raw-logs',
     enabled,
-    deps: [query.expr],
   });
 }
 
@@ -89,7 +87,6 @@ export function useValueLogsSample(
     buildTarget: () => buildValueLogsQuery(query, field, value, refIdSuffix),
     requestId: `drilldown-logs-${refIdSuffix}`,
     enabled,
-    deps: [query.expr, refIdSuffix],
   });
 }
 
@@ -107,7 +104,6 @@ export function useFieldLogsSample(
     buildTarget: () => buildFieldPresenceLogsQuery(query, field, refIdSuffix),
     requestId: `drilldown-field-logs-${refIdSuffix}`,
     enabled,
-    deps: [query.expr, refIdSuffix],
   });
 }
 
@@ -125,6 +121,5 @@ export function usePatternLogsSample(
     buildTarget: () => buildPatternLogsQuery(query, pattern, refIdSuffix),
     requestId: `drilldown-pattern-logs-${refIdSuffix}`,
     enabled,
-    deps: [query.expr, refIdSuffix],
   });
 }

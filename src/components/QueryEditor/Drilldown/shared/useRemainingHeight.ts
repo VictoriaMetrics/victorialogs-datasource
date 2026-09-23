@@ -1,16 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
- * Calls `onChange` whenever the layout around `node` resizes: the document itself, or the
- * node's parent, which grows or shrinks with the content above the node and so moves its top.
- * Returns undefined where ResizeObserver is unavailable, such as in jsdom
+ * Calls `onChange` whenever the node's parent resizes. The parent grows or shrinks with the
+ * content above the node and so moves its top. Viewport changes are covered by the window
+ * resize listener instead
  */
-function observeLayout(node: HTMLElement, onChange: () => void): ResizeObserver | undefined {
-  if (typeof ResizeObserver === 'undefined') {
-    return undefined;
-  }
+function observeLayout(node: HTMLElement, onChange: () => void): ResizeObserver {
   const observer = new ResizeObserver(() => onChange());
-  observer.observe(document.documentElement);
   if (node.parentElement) {
     observer.observe(node.parentElement);
   }

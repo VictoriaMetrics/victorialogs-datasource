@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 
 import { LoadingState } from '@grafana/data';
@@ -53,8 +54,8 @@ describe('BreakdownTable row volumes', () => {
     const datasource = makeDatasource();
     const rowVolumes: ProvidedRowVolumes = {
       byLabel: new Map([
-        ['web', { frames: [makeLabeledFrame({ app: 'web' }, [10, 2])], total: 12 }],
-        ['api', { frames: [makeLabeledFrame({ app: 'api' }, [3, 0])], total: 3 }],
+        ['web', { frames: [makeLabeledFrame({ app: 'web' }, [10, 2])] }],
+        ['api', { frames: [makeLabeledFrame({ app: 'api' }, [3, 0])] }],
       ]),
       state: LoadingState.Done,
     };
@@ -75,7 +76,7 @@ describe('BreakdownTable row volumes', () => {
   it('falls back to a per-row query only for rows the settled shared source does not cover', async () => {
     const datasource = makeDatasource();
     const rowVolumes: ProvidedRowVolumes = {
-      byLabel: new Map([['web', { frames: [makeLabeledFrame({ app: 'web' }, [10, 2])], total: 12 }]]),
+      byLabel: new Map([['web', { frames: [makeLabeledFrame({ app: 'web' }, [10, 2])] }]]),
       state: LoadingState.Done,
     };
     renderTable(datasource, rowVolumes);
@@ -98,5 +99,39 @@ describe('BreakdownTable row volumes', () => {
     expect(screen.getByText('toString')).toBeInTheDocument();
     // each row loads and reports its own volume without tripping over inherited properties
     await waitFor(() => expect(screen.getAllByTestId('panel')).toHaveLength(prototypeItems.length));
+  });
+});
+
+describe('BreakdownTable counts', () => {
+  const labelsInOrder = () =>
+    screen
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => row.textContent);
+
+  it('keeps an approximate count as "~N" after the row volume loads', async () => {
+    const datasource = makeDatasource();
+    renderTable(datasource, undefined, [{ label: 'web', total: 120, approx: true }]);
+
+    await waitFor(() => expect(screen.getAllByTestId('panel')).toHaveLength(1));
+    expect(screen.getByText('~120')).toBeInTheDocument();
+  });
+
+  it('sorts rows by count when the Count header is clicked', async () => {
+    renderTable(makeDatasource(), undefined, [
+      { label: 'mid', total: 5 },
+      { label: 'big', total: 9 },
+      { label: 'small', total: 1 },
+    ]);
+
+    await userEvent.click(screen.getByText('Count'));
+    const ascending = labelsInOrder();
+    expect(ascending[0]).toContain('small');
+    expect(ascending[2]).toContain('big');
+
+    await userEvent.click(screen.getByText('Count'));
+    const descending = labelsInOrder();
+    expect(descending[0]).toContain('big');
+    expect(descending[2]).toContain('small');
   });
 });

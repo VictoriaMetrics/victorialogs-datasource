@@ -1,11 +1,13 @@
 import { CoreApp, DataFrame, DataQueryRequest, FieldType, TimeRange, rangeUtil } from '@grafana/data';
 
+import { LogLevelRule } from '../../../../configuration/LogLevelRules/types';
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { escapeLabelValueInSelector } from '../../../../languageUtils';
 import { calculateVolumeStep } from '../../../../logsVolumeLegacy';
 import { addLabelToQuery, insertPipesBeforeSortClassPipe, isStreamKey, normalizeKey } from '../../../../modifyQuery';
 import { AdHocFilter, Query, QueryType } from '../../../../types';
 import { serializeChipsForBackend } from '../../../../utils/query/adHocFilters';
+import { usableLevelRules } from '../../../../utils/query/levelExpansion';
 import { LevelGrouping } from '../../../../utils/query/levelFormatPipes';
 import { splitExpression } from '../../../../utils/query/parseFromString';
 import { applyPatternFilters, PatternFilter } from '../patterns/patternFilters';
@@ -23,6 +25,11 @@ export const FIELD_HITS_LIMIT = 100;
 // a row chart is 300 to 500 pixels wide, so it needs fewer buckets than the full-width main
 // volume chart. At LOGS_VOLUME_BARS the bars would render as hairlines
 export const DRILLDOWN_ROW_BARS = 50;
+
+/** Level rules the drilldown classifies with: the active ones minus drafts without a field */
+export function getDrilldownLevelRules(datasource: VictoriaLogsDatasource): LogLevelRule[] {
+  return usableLevelRules(datasource.getActiveLevelRules());
+}
 
 /** Total of every numeric sample across the frames, which is the hit count they represent */
 export function sumFrameValues(frames: DataFrame[]): number {
@@ -98,7 +105,7 @@ export function buildPatternsListQuery(query: Query): Query {
     ...query,
     // sampling makes the list about five times faster on large installations. The hits it
     // returns are roughly 1/PATTERNS_SAMPLE_FACTOR of the real counts, so the table shows
-    // them as "~N" until the per-pattern volume queries replace them
+    // them as "~N". The exact count shows up once the user filters for the pattern
     expr: `${query.expr} | sample ${PATTERNS_SAMPLE_FACTOR} | collapse_nums prettify | top ${PATTERNS_LIMIT + 1} by (_msg)`,
     queryType: QueryType.Instant,
     maxLines: PATTERNS_LIMIT + 1,

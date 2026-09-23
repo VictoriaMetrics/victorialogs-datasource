@@ -47,7 +47,7 @@ export const FieldValuesTable: React.FC<FieldValuesTableProps> = ({
 
   const rowVolumes = useMemo<ProvidedRowVolumes>(
     () => ({
-      byLabel: new Map(grouped.groups.map((g) => [g.value, { frames: g.frames, total: g.total }])),
+      byLabel: new Map(grouped.groups.map((g) => [g.value, { frames: g.frames }])),
       state: grouped.loading ? LoadingState.Loading : grouped.error ? LoadingState.Error : LoadingState.Done,
     }),
     [grouped.groups, grouped.loading, grouped.error]

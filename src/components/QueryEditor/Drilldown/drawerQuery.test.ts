@@ -1,6 +1,6 @@
 import { AdHocFilter, Query } from '../../../types';
 
-import { buildDrawerQuery, toEditorQuery } from './drawerQuery';
+import { buildDrawerQuery } from './drawerQuery';
 
 const editorQuery: Query = {
   refId: 'A',
@@ -21,18 +21,9 @@ describe('buildDrawerQuery', () => {
       streamFilters: undefined,
     });
   });
-});
-
-describe('toEditorQuery', () => {
-  it('applies exactly what the drawer shows, dropping the original expr and stream filters', () => {
-    const result = toEditorQuery(buildDrawerQuery(editorQuery, [chip], []));
-    expect(result.expr).toBe('*');
-    expect(result.streamFilters).toBeUndefined();
-    expect(result.adHocFilters).toEqual([chip]);
-  });
 
   it('clears adHocFilters when the drawer has no chips', () => {
-    const result = toEditorQuery(buildDrawerQuery(editorQuery, [], [{ pattern: 'b', type: 'exclude' }]));
+    const result = buildDrawerQuery(editorQuery, [], [{ pattern: 'b', type: 'exclude' }]);
     expect(result.adHocFilters).toBeUndefined();
     expect(result.expr).toBe('* | filter !(pattern_match_full("b"))');
   });

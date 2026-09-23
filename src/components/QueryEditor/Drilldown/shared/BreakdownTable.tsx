@@ -55,13 +55,16 @@ const TOP_CHART_FIELD_CONFIG: FieldConfigSource = { defaults: { unit: 'short' },
 export interface BreakdownTableItem {
   label: string;
   total: number;
-  /** `total` is a sampled estimate. The Count cell shows "~N" until the row's exact volume arrives */
+  /** `total` is a sampled estimate, which the Count cell shows as "~N" */
   approx?: boolean;
 }
 
 interface BreakdownTableRowData {
   label: string;
-  total: number;
+  // InteractiveTable sorts a column by the row field named after the column id
+  count: number;
+  /** Undefined when every loaded row has a zero count, so no share can be computed */
+  percent: number | undefined;
   approx: boolean;
   index: number;
 }
@@ -74,12 +77,11 @@ export interface TransformedVolume {
 interface LoadedRowVolume {
   raw: PanelData;
   topSeries: DataFrame[];
-  total?: number;
 }
 
 /** Per-row volumes the parent precomputed from one grouped hits query. RowVolumeCell decides when a row still needs its own query */
 export interface ProvidedRowVolumes {
-  byLabel: Map<string, { frames: DataFrame[]; total: number }>;
+  byLabel: Map<string, { frames: DataFrame[] }>;
   state: LoadingState;
 }
 
@@ -93,6 +95,8 @@ interface BreakdownTableProps {
   noun: string;
   searchPlaceholder: string;
   labelHeader?: string;
+  /** Explains the Count column in a header tooltip, e.g. why the counts are approximate */
+  countTooltip?: string;
   /** When set, labels render as clickable links */
   onLabelClick?: (label: string) => void;
   datasource: VictoriaLogsDatasource;
@@ -125,7 +129,7 @@ const withDisplayName = (frames: DataFrame[], name: string): DataFrame[] =>
 
 /**
  * Breakdown view in two phases. The list renders at once, then each visible row loads its
- * volume, which fills the sparkline, the exact count and the shared top chart. Clicking the
+ * volume, which fills the sparkline and the shared top chart. Clicking the
  * top chart's legend narrows the table to the same rows
  */
 export const BreakdownTable: React.FC<BreakdownTableProps> = ({
@@ -136,6 +140,7 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
   noun,
   searchPlaceholder,
   labelHeader = 'Value',
+  countTooltip,
   onLabelClick,
   datasource,
   range,
@@ -151,23 +156,13 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
   const [search, setSearch] = useState('');
   const [chartRef, chartWidth] = useElementWidth();
   const timeZone = useDrilldownTimeZone();
-  // the visible rows' sparkline cells report their exact volumes here. The ref mirrors the
-  // state so the column definitions can read a volume without listing it as a dependency:
-  // any new column identity makes InteractiveTable remount every cell, which restarts the
-  // per-row volume queries. A Map, because row labels are arbitrary field values and a plain
-  // object would resolve names like `constructor` to Object.prototype members
+  // the visible rows' sparkline cells report their volumes here for the top chart. A Map,
+  // because row labels are arbitrary field values and a plain object would resolve names like
+  // `constructor` to Object.prototype members
   const [volumes, setVolumes] = useState<Map<string, LoadedRowVolume>>(() => new Map());
-  const volumesRef = React.useRef(volumes);
 
-  const onVolumeLoaded = useCallback((label: string, raw: PanelData, topSeries: DataFrame[], total?: number) => {
-    setVolumes((prev) => {
-      if (prev.get(label)?.raw === raw) {
-        return prev;
-      }
-      const next = new Map(prev).set(label, { raw, topSeries, total });
-      volumesRef.current = next;
-      return next;
-    });
+  const onVolumeLoaded = useCallback((label: string, raw: PanelData, topSeries: DataFrame[]) => {
+    setVolumes((prev) => (prev.get(label)?.raw === raw ? prev : new Map(prev).set(label, { raw, topSeries })));
   }, []);
 
   // `legendSelected` holds display labels, because the legend reports what it renders.
@@ -208,8 +203,15 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
   );
 
   const tableData = useMemo<BreakdownTableRowData[]>(
-    () => filtered.map((i, index) => ({ label: i.label, total: i.total, approx: !!i.approx, index })),
-    [filtered]
+    () =>
+      filtered.map((i, index) => ({
+        label: i.label,
+        count: i.total,
+        percent: totalHits > 0 ? (100 * i.total) / totalHits : undefined,
+        approx: !!i.approx,
+        index,
+      })),
+    [filtered, totalHits]
   );
 
   const columns = useMemo(
@@ -235,11 +237,8 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
         sortType: 'number' as const,
         disableGrow: true,
         cell: (props: CellProps<BreakdownTableRowData>) => {
-          const { label, total, approx } = props.cell.row.original;
-          // read through the ref, see the `volumes` comment above
-          const exact = volumesRef.current.get(label)?.total;
-          const text = !approx ? formatHits(total) : exact !== undefined ? formatHits(exact) : `~${formatHits(total)}`;
-          return <span className={styles.countText}>{text}</span>;
+          const { count, approx } = props.cell.row.original;
+          return <span className={styles.countText}>{approx ? `~${formatHits(count)}` : formatHits(count)}</span>;
         },
       },
       {
@@ -247,11 +246,10 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
         header: '%',
         sortType: 'number' as const,
         disableGrow: true,
-        cell: (props: CellProps<BreakdownTableRowData>) => (
-          <span className={styles.countText}>
-            {totalHits > 0 ? `${((100 * props.cell.row.original.total) / totalHits).toFixed(0)}%` : '-'}
-          </span>
-        ),
+        cell: (props: CellProps<BreakdownTableRowData>) => {
+          const { percent } = props.cell.row.original;
+          return <span className={styles.countText}>{percent === undefined ? '-' : `${percent.toFixed(0)}%`}</span>;
+        },
       },
       {
         id: 'label',
@@ -278,8 +276,9 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
         ),
       },
     ],
-    // `volumes` is left out on purpose. The cells read it through `volumesRef`
-    [styles, range, datasource, totalHits, buildVolumeQuery, rowVolumes, transformVolume, renderActions, onVolumeLoaded, labelHeader, onLabelClick]
+    // any new column identity makes InteractiveTable remount every cell, which restarts the
+    // per-row volume queries, so nothing that changes per loaded volume may be listed here
+    [styles, range, datasource, buildVolumeQuery, rowVolumes, transformVolume, renderActions, onVolumeLoaded, labelHeader, onLabelClick]
   );
 
   // a refetch keeps the previous rows on screen, so only the first load shows a placeholder
@@ -336,6 +335,7 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
           // react-table keys its rows in a plain object, so a bare label such as `constructor`
           // would resolve to an Object.prototype member. The prefix keeps every id an own key
           getRowId={(row: BreakdownTableRowData) => `row:${row.label}`}
+          headerTooltips={countTooltip ? { count: { content: countTooltip } } : undefined}
           pageSize={BREAKDOWN_PAGE_SIZE}
           // a legend click or a search from page 2 must land on the first page of the narrowed
           // list, otherwise the old page index survives and the table looks empty. Background
@@ -358,7 +358,7 @@ interface RowVolumeCellProps {
   target: Query;
   rowVolumes?: ProvidedRowVolumes;
   transformVolume?: (frames: DataFrame[], range: TimeRange) => TransformedVolume;
-  onLoaded: (label: string, raw: PanelData, topSeries: DataFrame[], total?: number) => void;
+  onLoaded: (label: string, raw: PanelData, topSeries: DataFrame[]) => void;
 }
 
 /**
@@ -367,7 +367,7 @@ interface RowVolumeCellProps {
  * page, tuple truncation, or a failed grouped query). Without `rowVolumes` the cell always
  * owns the query, and because InteractiveTable renders only the current page, mounting the
  * cell is what loads the row lazily. The cell reports the finished result up for the top
- * chart and the exact count
+ * chart
  */
 const RowVolumeCell: React.FC<RowVolumeCellProps> = ({
   datasource,
@@ -383,7 +383,7 @@ const RowVolumeCell: React.FC<RowVolumeCellProps> = ({
   const provided = rowVolumes?.byLabel.get(label);
   const groupedSettled = rowVolumes?.state === LoadingState.Done || rowVolumes?.state === LoadingState.Error;
   const needsOwnQuery = !rowVolumes || (groupedSettled && !provided);
-  const { data: ownData, total: ownTotal } = useTargetVolume(datasource, target, range, needsOwnQuery);
+  const ownData = useTargetVolume(datasource, target, range, needsOwnQuery);
 
   // `range` is often a fresh object holding the same timestamps, so the memos below key off
   // this string instead
@@ -400,7 +400,6 @@ const RowVolumeCell: React.FC<RowVolumeCellProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [provided, needsOwnQuery, ownData, rangeKey]
   );
-  const total = provided ? provided.total : ownTotal;
   const transformed = useMemo<TransformedVolume>(
     () =>
       data.state === LoadingState.Done && transformVolume
@@ -412,9 +411,9 @@ const RowVolumeCell: React.FC<RowVolumeCellProps> = ({
 
   useEffect(() => {
     if (data.state === LoadingState.Done) {
-      onLoaded(label, data, transformed.topSeries, total);
+      onLoaded(label, data, transformed.topSeries);
     }
-  }, [data, transformed, total, label, onLoaded]);
+  }, [data, transformed, label, onLoaded]);
 
   return (
     <div className={styles.sparklineWrap}>

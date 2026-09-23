@@ -13,7 +13,7 @@ import { MainFieldTabs, PATTERNS_TAB } from './MainFieldTabs';
 import { StreamFieldsBreakdown } from './StreamFieldsBreakdown';
 import { ValueDetails } from './ValueDetails/ValueDetails';
 import { detectBreakdownField, STREAM_FIELD } from './breakdownField';
-import { buildDrawerQuery, toEditorQuery } from './drawerQuery';
+import { buildDrawerQuery } from './drawerQuery';
 import { DrilldownFiltersRow } from './filters/DrilldownFiltersRow';
 import { LevelFilterRow } from './filters/LevelFilterRow';
 import { PatternsTable } from './patterns/PatternsTable';
@@ -170,7 +170,7 @@ const DrilldownDrawer: React.FC<DrilldownDrawerProps> = ({
     // WYSIWYG: the editor gets exactly the query the drawer shows. Its original expression and
     // stream filters are replaced, not merged, because appending the drawer's filters after
     // arbitrary editor pipes (e.g. `| stats`) would change their meaning
-    onChange(toEditorQuery(drawerQuery));
+    onChange(drawerQuery);
     onRunQuery();
     onClose();
   }, [drawerQuery, onChange, onRunQuery, onClose]);

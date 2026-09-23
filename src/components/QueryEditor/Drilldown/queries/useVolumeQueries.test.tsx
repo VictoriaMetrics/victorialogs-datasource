@@ -134,14 +134,12 @@ describe('useTargetVolume', () => {
     );
 
     expect(datasource.query).not.toHaveBeenCalled();
-    expect(result.current.data.state).toBe(LoadingState.NotStarted);
+    expect(result.current.state).toBe(LoadingState.NotStarted);
 
     rerender({ enabled: true });
 
-    await waitFor(() => expect(result.current.data.state).toBe(LoadingState.Done));
+    await waitFor(() => expect(result.current.state).toBe(LoadingState.Done));
     expect(datasource.query).toHaveBeenCalledTimes(1);
-    // the exact count is the sum over the returned series
-    expect(result.current.total).toBe(11);
   });
 });
 

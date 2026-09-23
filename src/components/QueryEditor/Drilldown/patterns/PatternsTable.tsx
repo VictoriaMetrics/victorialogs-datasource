@@ -5,7 +5,7 @@ import { IconButton } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { Query } from '../../../../types';
-import { buildPatternVolumeQuery } from '../queries/drilldownQueries';
+import { buildPatternVolumeQuery, PATTERNS_SAMPLE_FACTOR } from '../queries/drilldownQueries';
 import { PatternListItem } from '../queries/useListQueries';
 import { usePatternLogsSample } from '../queries/useLogsSampleQueries';
 import { BreakdownTable, BreakdownTableItem } from '../shared/BreakdownTable';
@@ -26,6 +26,8 @@ interface PatternsTableProps {
   /** The list query hit its cap, so the real pattern count is higher */
   serverTruncated?: boolean;
 }
+
+const PATTERN_COUNT_TOOLTIP = `Estimated from a 1-in-${PATTERNS_SAMPLE_FACTOR} sample of logs. Filter for a pattern to see its exact count`;
 
 /** Patterns breakdown: the shared table fed by the sampled patterns list, plus the filter for and filter out toggles */
 export const PatternsTable: React.FC<PatternsTableProps> = ({
@@ -91,6 +93,7 @@ export const PatternsTable: React.FC<PatternsTableProps> = ({
       serverTruncated={serverTruncated}
       noun='patterns'
       searchPlaceholder='Search patterns'
+      countTooltip={PATTERN_COUNT_TOOLTIP}
       datasource={datasource}
       range={range}
       buildVolumeQuery={buildVolumeQuery}

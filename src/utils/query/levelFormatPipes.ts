@@ -13,6 +13,12 @@ export const DERIVED_LEVEL_FIELD = '__vl_ds_level';
 
 const derivedLevelValues = new Set<string>(Object.values(UNIQ_LOG_LEVEL));
 
+/**
+ * Distinct values the derived level field can take: one per known level plus the empty string
+ * the reset pipe writes when no rule matches (see buildLevelFormatPipes)
+ */
+export const DERIVED_LEVEL_VALUE_COUNT = derivedLevelValues.size + 1;
+
 const guardedFormatPipe = (condition: string, level: string): string =>
   `format if ((${condition}) and ${DERIVED_LEVEL_FIELD}:"") "${level}" as ${DERIVED_LEVEL_FIELD}`;
 

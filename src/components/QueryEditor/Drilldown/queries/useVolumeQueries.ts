@@ -2,12 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { CoreApp, FieldType, LoadingState, PanelData, SupplementaryQueryType, TimeRange } from '@grafana/data';
 
-import { UNIQ_LOG_LEVEL } from '../../../../configuration/LogLevelRules/const';
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { aggregateRawLogsVolume, extractLevel, queryLogsVolume } from '../../../../logsVolumeLegacy';
 import { Query, QueryType } from '../../../../types';
-import { usableLevelRules } from '../../../../utils/query/levelExpansion';
-import { buildLevelGrouping, LevelGrouping } from '../../../../utils/query/levelFormatPipes';
+import { buildLevelGrouping, DERIVED_LEVEL_VALUE_COUNT } from '../../../../utils/query/levelFormatPipes';
 
 import {
   buildDrilldownRequest,
@@ -15,20 +13,14 @@ import {
   DRILLDOWN_ROW_BARS,
   FIELD_HITS_LIMIT,
   FieldValueFrames,
+  getDrilldownLevelRules,
   groupHitsByFieldValue,
-  sumFrameValues,
   withLevelPipes,
 } from './drilldownQueries';
 import { errorMessage } from './errorMessage';
 import { FACETS_VALUES_LIMIT } from './facets';
 import { drilldownQueryScheduler } from './queryScheduler';
 import { responseErrors, runDrilldownQuery, toErrorText } from './runDrilldownQuery';
-
-/**
- * Distinct values of the derived level field: one per known level plus the empty string the
- * reset pipe writes when no rule matches (see buildLevelFormatPipes)
- */
-const DERIVED_LEVEL_BUCKETS = Object.values(UNIQ_LOG_LEVEL).length + 1;
 
 /**
  * Headroom per field value when hits group by the raw `level` field, whose cardinality the
@@ -38,10 +30,6 @@ const DERIVED_LEVEL_BUCKETS = Object.values(UNIQ_LOG_LEVEL).length + 1;
  * that `groupHitsByFieldValue` turns into `serverTruncated`
  */
 export const RAW_LEVEL_BUCKETS = 20;
-
-/** Upper bound of level buckets a single field value splits into under the given grouping */
-const levelBucketsPerValue = (grouping: LevelGrouping): number =>
-  grouping.pipes ? DERIVED_LEVEL_BUCKETS : RAW_LEVEL_BUCKETS;
 
 /** Level-grouped hits volume for the current query, run through the supplementary-query path */
 export function useLogsVolume(datasource: VictoriaLogsDatasource, query: Query, range: TimeRange): PanelData {
@@ -159,7 +147,7 @@ export function useFieldValueFrames(
     // the level buckets a value can split into keeps room for FIELD_HITS_LIMIT distinct values
     const target = {
       ...buildFieldHitsQuery({ ...query, expr: withLevelPipes(query.expr, grouping) }, range, hitsFields),
-      fieldsLimit: FIELD_HITS_LIMIT * levelBucketsPerValue(grouping),
+      fieldsLimit: FIELD_HITS_LIMIT * (grouping.pipes ? DERIVED_LEVEL_VALUE_COUNT : RAW_LEVEL_BUCKETS),
     };
     const request = buildDrilldownRequest([target], range, `drilldown-hits-${field}`);
     const subscription = runDrilldownQuery(datasource, request, {
@@ -201,7 +189,7 @@ export function useFieldValuesHits(
     // the aggregation reads only the range from the request, so the target list stays empty
     const request = buildDrilldownRequest([], range, 'drilldown-field-values-aggregate');
     // the same rules the server-side grouping was built from, so drafts never reach the client matcher
-    const rules = usableLevelRules(datasource.getActiveLevelRules());
+    const rules = getDrilldownLevelRules(datasource);
     return groups.map(({ value, total, frames }) => ({
       value,
       total,
@@ -270,15 +258,14 @@ export function useFieldVolume(
   return data;
 }
 
-/** Single-series volume for one breakdown row. The sum of the series is the row's exact count. Idle until `enabled` */
+/** Single-series volume for one breakdown row. Idle until `enabled` */
 export function useTargetVolume(
   datasource: VictoriaLogsDatasource,
   target: Query,
   range: TimeRange,
   enabled = true
-): { data: PanelData; total?: number } {
+): PanelData {
   const [data, setData] = useState<PanelData>({ series: [], state: LoadingState.NotStarted, timeRange: range });
-  const [total, setTotal] = useState<number>();
 
   // adHocFilters is a new array on every render, so the effect keys off its contents instead
   const filtersKey = JSON.stringify(target.adHocFilters ?? []);
@@ -293,14 +280,11 @@ export function useTargetVolume(
     const request = buildDrilldownRequest([target], range, target.refId);
     const subscription = runDrilldownQuery(datasource, request, {
       onError: (errors) => setData({ series: [], state: LoadingState.Error, timeRange: range, errors }),
-      onFrames: (frames) => {
-        setTotal(sumFrameValues(frames));
-        setData({ series: frames, state: LoadingState.Done, timeRange: range });
-      },
+      onFrames: (frames) => setData({ series: frames, state: LoadingState.Done, timeRange: range }),
     });
     return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datasource, enabled, target.expr, filtersKey, target.refId, range.from.valueOf(), range.to.valueOf()]);
 
-  return { data, total };
+  return data;
 }

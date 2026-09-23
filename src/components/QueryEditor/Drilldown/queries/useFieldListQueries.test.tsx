@@ -3,7 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { Query } from '../../../../types';
 
-import { makeDatasource, query, range } from './hookTestUtils';
+import { facetsResponse, makeDatasource, makeFacetsDatasource, query, range } from './hookTestUtils';
 import { drilldownQueryScheduler } from './queryScheduler';
 import { useFacets, useFieldNames, useStreamFields } from './useFieldListQueries';
 
@@ -65,25 +65,18 @@ describe('useStreamFields', () => {
 });
 
 describe('useFacets', () => {
-  const facetsResponse = { facets: [{ field_name: 'app', values: [{ field_value: 'web', hits: 3 }] }] };
-  const makeFacetsDatasource = (postResource: jest.Mock) =>
-    makeDatasource({
-      interpolateString: jest.fn((s: string) => s),
-      postResource,
-    } as unknown as Partial<VictoriaLogsDatasource>);
-
   afterEach(() => jest.restoreAllMocks());
 
   it('stays idle until enabled', () => {
     const postResource = jest.fn().mockResolvedValue(facetsResponse);
-    const datasource = makeFacetsDatasource(postResource);
+    const datasource = makeFacetsDatasource({ postResource });
     renderHook(() => useFacets(datasource, query, range, false));
     expect(postResource).not.toHaveBeenCalled();
   });
 
   it('loads the facets through the shared drilldown scheduler', async () => {
     const scheduleSpy = jest.spyOn(drilldownQueryScheduler, 'schedule');
-    const datasource = makeFacetsDatasource(jest.fn().mockResolvedValue(facetsResponse));
+    const datasource = makeFacetsDatasource();
     const { result } = renderHook(() => useFacets(datasource, query, range, true));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(scheduleSpy).toHaveBeenCalledTimes(1);
@@ -92,7 +85,7 @@ describe('useFacets', () => {
   });
 
   it('reports an error when the facets request rejects', async () => {
-    const datasource = makeFacetsDatasource(jest.fn().mockRejectedValue(new Error('facets failed')));
+    const datasource = makeFacetsDatasource({ postResource: jest.fn().mockRejectedValue(new Error('facets failed')) });
     const { result } = renderHook(() => useFacets(datasource, query, range, true));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBe('facets failed');
@@ -105,7 +98,7 @@ describe('useFacets', () => {
       .fn()
       .mockReturnValueOnce(new Promise((resolve) => (resolveFirst = resolve)))
       .mockResolvedValue({ facets: [{ field_name: 'level', values: [] }] });
-    const datasource = makeFacetsDatasource(postResource);
+    const datasource = makeFacetsDatasource({ postResource });
     const { result, rerender } = renderHook(({ q }: { q: Query }) => useFacets(datasource, q, range, true), {
       initialProps: { q: query },
     });
