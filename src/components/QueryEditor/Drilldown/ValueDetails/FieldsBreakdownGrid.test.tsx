@@ -52,6 +52,13 @@ describe('FieldsBreakdownGrid', () => {
     expect(screen.queryByText('Field summaries unavailable')).not.toBeInTheDocument();
   });
 
+  it('reports the field list failure while the facets request is still loading', () => {
+    renderGrid({ fieldsError: 'boom', facetsLoading: true, facets: [] });
+
+    expect(screen.getByText('Failed to load stream fields')).toBeInTheDocument();
+    expect(screen.queryByText('Loading stream fields...')).not.toBeInTheDocument();
+  });
+
   it('warns that summaries are unavailable when only the facets failed', () => {
     renderGrid({ facetsError: 'facets down', fallbackFieldNames: ['app'] });
 

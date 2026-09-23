@@ -167,7 +167,9 @@ describe('AddFilterControl', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Filter' }));
     await userEvent.click(await getOptionsPortal().findByText('level'));
     await getOptionsPortal().findByText('!=');
-    fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'Escape' });
+    // target the operator input itself: focus moves there only after the chip's animation
+    // frames, so document.activeElement is still <body> at this point
+    fireEvent.keyDown(screen.getByPlaceholderText('='), { key: 'Escape' });
 
     expect(screen.getByRole('button', { name: 'Cancel new filter' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Filter' })).not.toBeInTheDocument();

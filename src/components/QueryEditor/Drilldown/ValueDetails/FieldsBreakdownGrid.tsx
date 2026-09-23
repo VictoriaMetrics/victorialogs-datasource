@@ -93,16 +93,17 @@ export const FieldsBreakdownGrid: React.FC<FieldsBreakdownGridProps> = ({
     setPage((prev) => Math.min(prev, numberOfPages));
   }, [numberOfPages]);
 
-  if (facetsLoading && !facets.length) {
-    return <LoadingPlaceholder text={`Loading ${noun}...`} />;
-  }
-
+  // the field list failure is final, so it must not wait behind the independent facets request
   if (fieldsError) {
     return (
       <Alert severity='error' title={`Failed to load ${noun}`}>
         {fieldsError}
       </Alert>
     );
+  }
+
+  if (facetsLoading && !facets.length) {
+    return <LoadingPlaceholder text={`Loading ${noun}...`} />;
   }
 
   if (!facetsError && !multiValue.length && !constFields.length && !otherFields.length) {
