@@ -19,13 +19,6 @@ jest.mock('@grafana/runtime', () => ({
 const originalGetBoundingClientRect = Element.prototype.getBoundingClientRect;
 
 beforeAll(() => {
-  // jsdom has no ResizeObserver, so useElementWidth needs a stub
-  global.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  } as unknown as typeof ResizeObserver;
-
   // jsdom always measures 0, so report a real width and let useElementWidth mount the panels
   Element.prototype.getBoundingClientRect = jest.fn(
     () => ({ width: 300, height: 0, top: 0, left: 0, bottom: 0, right: 0, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect

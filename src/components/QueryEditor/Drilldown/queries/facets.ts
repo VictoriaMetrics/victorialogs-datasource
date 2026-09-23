@@ -32,6 +32,8 @@ export async function fetchFacets(
 ): Promise<FacetField[]> {
   const expr = datasource.interpolateString(query.expr ?? '').trim();
   const params: Record<string, string> = {
+    // the datasource-wide custom parameters go first, so the endpoint-specific ones win on a clash
+    ...Object.fromEntries(datasource.customQueryParameters),
     query: expr || '*',
     start: String(range.from.valueOf()),
     end: String(range.to.valueOf()),

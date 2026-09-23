@@ -1,4 +1,4 @@
-import { applyPatternFilters, PatternFilter, stripPatternFilterPipes, togglePatternFilter } from './patternFilters';
+import { applyPatternFilters, PatternFilter, togglePatternFilter } from './patternFilters';
 
 const include = (pattern: string): PatternFilter => ({ pattern, type: 'include' });
 const exclude = (pattern: string): PatternFilter => ({ pattern, type: 'exclude' });
@@ -19,40 +19,23 @@ describe('applyPatternFilters', () => {
       '* | filter (pattern_match_full("a") OR pattern_match_full("b")) !(pattern_match_full("c"))'
     );
   });
-});
 
-describe('stripPatternFilterPipes', () => {
-  it('leaves an expression without pattern filters alone', () => {
-    expect(stripPatternFilterPipes('foo | stats count()')).toBe('foo | stats count()');
+  it('escapes double quotes in the pattern', () => {
+    expect(applyPatternFilters('*', [include('say "hi" <N>')])).toBe(
+      '* | filter pattern_match_full("say \\"hi\\" <N>")'
+    );
   });
 
-  it('removes an include pipe and keeps the rest of the chain', () => {
-    const expr = applyPatternFilters('foo', [include('a')]) + ' | stats count()';
-    expect(stripPatternFilterPipes(expr)).toBe('foo | stats count()');
+  it('escapes backslashes in the pattern', () => {
+    expect(applyPatternFilters('*', [include('C:\\temp\\<N>')])).toBe(
+      '* | filter pattern_match_full("C:\\\\temp\\\\<N>")'
+    );
   });
 
-  it('removes an exclude pipe', () => {
-    expect(stripPatternFilterPipes(applyPatternFilters('foo', [exclude('a')]))).toBe('foo');
-  });
-
-  it('keeps a `filter` pipe that is not a pattern filter', () => {
-    expect(stripPatternFilterPipes('foo | filter level:="error"')).toBe('foo | filter level:="error"');
-  });
-
-  it('removes a pipe whose pattern contains a `|`', () => {
-    const expr = applyPatternFilters('foo', [include('a | b')]);
-    expect(stripPatternFilterPipes(expr)).toBe('foo');
-  });
-
-  it('makes a repeated Apply idempotent', () => {
-    const once = applyPatternFilters('foo', [include('a')]);
-    const twice = applyPatternFilters(stripPatternFilterPipes(once), [include('b')]);
-    expect(twice).toBe('foo | filter pattern_match_full("b")');
-  });
-
-  it('removes the pre-1.33 copy and rename chain', () => {
-    const expr = 'foo | copy _msg as __vl_pf_msg | collapse_nums | rename __vl_pf_msg as _msg | stats count()';
-    expect(stripPatternFilterPipes(expr)).toBe('foo | stats count()');
+  it('escapes newlines in the pattern', () => {
+    expect(applyPatternFilters('*', [exclude('line1\nline2')])).toBe(
+      '* | filter !(pattern_match_full("line1\\nline2"))'
+    );
   });
 });
 

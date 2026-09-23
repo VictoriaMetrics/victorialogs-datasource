@@ -47,23 +47,28 @@ describe('QueryScheduler', () => {
     const scheduler = new QueryScheduler(1);
     const b = makeTask();
 
-    scheduler.schedule(() => throwError(() => new Error('boom'))).subscribe({ error: () => {} });
+    const onError = jest.fn();
+
+    scheduler.schedule(() => throwError(() => new Error('boom'))).subscribe({ error: onError });
     scheduler.schedule(b.factory).subscribe();
 
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: 'boom' }));
     expect(b.started).toHaveBeenCalledTimes(1);
   });
 
   it('frees the slot when the factory itself throws', () => {
     const scheduler = new QueryScheduler(1);
     const b = makeTask();
+    const onError = jest.fn();
 
     scheduler
       .schedule(() => {
         throw new Error('sync boom');
       })
-      .subscribe({ error: () => {} });
+      .subscribe({ error: onError });
     scheduler.schedule(b.factory).subscribe();
 
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: 'sync boom' }));
     expect(b.started).toHaveBeenCalledTimes(1);
   });
 

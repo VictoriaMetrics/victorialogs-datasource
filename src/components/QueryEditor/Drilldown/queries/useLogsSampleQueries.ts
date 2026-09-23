@@ -20,7 +20,7 @@ interface LogsSampleOptions {
   buildTarget: () => Query;
   requestId: string;
   enabled: boolean;
-  /** Extra effect dependencies beyond the identity, such as the query expression */
+  /** Extra effect dependencies beyond the identity and the target's adHocFilters, such as the query expression */
   deps: unknown[];
 }
 
@@ -32,6 +32,9 @@ function useLogsSample(
 ): PanelData {
   const [data, setData] = useState<PanelData>({ series: [], state: LoadingState.NotStarted, timeRange: range });
   const previousIdentityRef = useRef(identity);
+  // adHocFilters is a new array on every render, so the effect keys off its contents instead.
+  // Keying off the built target covers every sample kind, since each copies the query's chips
+  const filtersKey = JSON.stringify(buildTarget().adHocFilters ?? []);
 
   useEffect(() => {
     if (!enabled) {
@@ -40,7 +43,6 @@ function useLogsSample(
     const identityChanged = previousIdentityRef.current !== identity;
     previousIdentityRef.current = identity;
 
-     
     setData((prev) =>
       identityChanged ? { series: [], state: LoadingState.Loading, timeRange: range } : { ...prev, state: LoadingState.Loading }
     );
@@ -51,7 +53,7 @@ function useLogsSample(
     });
     return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [datasource, enabled, identity, requestId, range.from.valueOf(), range.to.valueOf(), ...deps]);
+  }, [datasource, enabled, identity, requestId, range.from.valueOf(), range.to.valueOf(), filtersKey, ...deps]);
 
   return data;
 }
@@ -63,14 +65,12 @@ export function useQueryLogsSample(
   range: TimeRange,
   enabled: boolean
 ): PanelData {
-  // adHocFilters is a new array on every render, so the effect keys off its contents instead
-  const filtersKey = JSON.stringify(query.adHocFilters ?? []);
   return useLogsSample(datasource, range, {
     identity: 'raw-logs',
     buildTarget: () => buildRawLogsQuery(query),
     requestId: 'drilldown-raw-logs',
     enabled,
-    deps: [query.expr, filtersKey],
+    deps: [query.expr],
   });
 }
 

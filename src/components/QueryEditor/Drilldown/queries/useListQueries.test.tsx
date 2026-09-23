@@ -73,8 +73,10 @@ describe('usePatternsList', () => {
   });
 
   it('reports an in-band error emitted alongside a next value instead of treating it as data', async () => {
+    // the frame is real, so feeding it through despite the error would surface a pattern
+    const listFrame = makePatternsListFrame([['pattern-a', 5]]);
     const datasource = makeDatasource({
-      query: jest.fn().mockReturnValue(of({ data: [], error: { message: 'patterns failed' } })),
+      query: jest.fn().mockReturnValue(of({ data: [listFrame], errors: [{ message: 'patterns failed' }] })),
     } as Partial<VictoriaLogsDatasource>);
     const { result } = renderHook(() => usePatternsList(datasource, query, range, true));
     await waitFor(() => expect(result.current.loading).toBe(false));

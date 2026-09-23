@@ -2,6 +2,8 @@
 
 ## tip
 
+* FEATURE: add a `Drilldown` button to the query editor that opens a drawer for exploring logs without writing LogsQL. The main view breaks the logs down by field, by stream field and by message pattern. Adding any filter chip opens a details view with a volume chart and the `Logs`, `Stream fields`, `Fields` and `Patterns` tabs. See [#424](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/424).
+
 ## v0.32.0
 
 * FEATURE: add a `Group hits by` option to `Raw Logs` queries in Explore: the logs volume histogram can be grouped by any log field instead of the default `level`. See [#689](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/689).
@@ -13,7 +15,6 @@
 
 * FEATURE: `Filter for value` / `Filter out value` in log details now adds the value to the `Stream filters` when the clicked field is a stream field. Stream filters are resolved via the stream index, so such filters run noticeably faster on large volumes. See [#691](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/691).
 * FEATURE: speed up the logs volume histogram when log level rules reference high-cardinality fields like `_msg`. See [#700](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/700).
-* FEATURE: add a `Drilldown` button to the query editor that opens an explorer drawer: a local query row with label pickers and one-click `Apply to editor`, a `Patterns` tab with the top message patterns (`collapse_nums`), and per-field tabs with hits charts paired with log samples; zoom into any chart and add values as filters without touching your query until you apply it. See [#424](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/424).
 
 * BUGFIX: keep the selected values of multi-value ad-hoc filter operators (`one of`, `not one of`) when serializing the query. Previously, such dashboard filters produced an empty `in()` filter, and the panel showed no results.
 * BUGFIX: interpolate dashboard variables into the query builder state and stream filter values when jumping from a dashboard panel to Explore. Previously, the raw variable names (e.g., `$app`) leaked back into the query on the first editor interaction, and the query returned no results.

@@ -19,6 +19,7 @@ import { NoDataPlaceholder } from '../shared/NoDataPlaceholder';
 import { makeCounterSuffix } from '../shared/TabCounterSuffix';
 import { useElementWidth } from '../shared/useElementWidth';
 import { useRemainingHeight } from '../shared/useRemainingHeight';
+import { useDrilldownTimeZone } from '../timeZoneContext';
 
 import { FieldValuesSection } from './FieldValuesSection';
 import { FieldsBreakdownGrid } from './FieldsBreakdownGrid';
@@ -104,7 +105,12 @@ export const ValueDetails: React.FC<ValueDetailsProps> = ({
   );
 
   // both breakdown tabs render the same grid, over a different set of fields
-  const renderBreakdownTab = (tabFacets: FacetField[], fallbackFieldNames: string[], noun: string) => {
+  const renderBreakdownTab = (
+    tabFacets: FacetField[],
+    fallbackFieldNames: string[],
+    noun: string,
+    fieldsError?: string
+  ) => {
     if (drillField) {
       return (
         <Stack direction='column' gap={1}>
@@ -138,7 +144,8 @@ export const ValueDetails: React.FC<ValueDetailsProps> = ({
         facets={tabFacets}
         fallbackFieldNames={fallbackFieldNames}
         facetsLoading={facets.loading || streamFieldsLoading}
-        facetsError={facets.error ?? streamFieldsError}
+        facetsError={facets.error}
+        fieldsError={fieldsError}
         noun={noun}
         onSelectField={setDrillField}
         onChangeTimeRange={onChangeTimeRange}
@@ -171,7 +178,7 @@ export const ValueDetails: React.FC<ValueDetailsProps> = ({
         />
       </TabsBar>
       {activeTab === 'logs' && <LogsTabContent data={logsData} />}
-      {activeTab === 'streams' && renderBreakdownTab(streamFacets, streamFieldNames, 'stream fields')}
+      {activeTab === 'streams' && renderBreakdownTab(streamFacets, streamFieldNames, 'stream fields', streamFieldsError)}
       {activeTab === 'fields' && renderBreakdownTab(otherFacets, otherFallback, 'fields')}
       {activeTab === 'patterns' && (
         <PatternsTable
@@ -195,16 +202,20 @@ export const ValueDetails: React.FC<ValueDetailsProps> = ({
 const LogsTabContent: React.FC<{ data: PanelData }> = ({ data }) => {
   const [widthRef, width] = useElementWidth();
   const [heightRef, height] = useRemainingHeight();
+  const timeZone = useDrilldownTimeZone();
   const isLoading = data.state === LoadingState.Loading;
   const hasSeries = data.series.length > 0;
+  // a stable merged ref, so the observers are not reconnected on every render
+  const containerRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      widthRef(node);
+      heightRef(node);
+    },
+    [widthRef, heightRef]
+  );
 
   return (
-    <div
-      ref={(node) => {
-        widthRef(node);
-        heightRef(node);
-      }}
-    >
+    <div ref={containerRef}>
       {data.state === LoadingState.Error && (
         <Alert severity='error' title='Failed to load logs'>
           {data.errors?.[0]?.message}
@@ -220,6 +231,7 @@ const LogsTabContent: React.FC<{ data: PanelData }> = ({ data }) => {
           data={data}
           width={width}
           height={height}
+          timeZone={timeZone}
           options={{ ...LOGS_PANEL_OPTIONS, enableLogDetails: true }}
         />
       )}

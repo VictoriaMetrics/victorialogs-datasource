@@ -46,7 +46,7 @@ describe('LevelFilterRow', () => {
   it('marks only the selected levels as active', () => {
     render(<LevelFilterRow filters={[levelChip('error')]} onFiltersChange={jest.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'error' })).toHaveStyle({ opacity: 1 });
-    expect(screen.getByRole('button', { name: 'info' })).toHaveStyle({ opacity: 0.5 });
+    expect(screen.getByRole('button', { name: 'error' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'info' })).toHaveAttribute('aria-pressed', 'false');
   });
 });

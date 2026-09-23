@@ -27,7 +27,7 @@ export const FilterChip: React.FC<FilterChipProps> = ({ filter, onRemove, onEdit
 
   const filterLabel = formatAdHocFilterLabel(filter);
   // a multi-value filter shows every value, and an empty value must not collapse the segment
-  const displayValue = filter.values?.length ? filter.values.join(', ') : filter.value || '""';
+  const displayValue = filter.values?.length ? filter.values.map((v) => (v === '' ? '""' : v)).join(', ') : filter.value || '""';
   const editable = Boolean(onEditSegment) && isEditableFilter(filter);
 
   return (

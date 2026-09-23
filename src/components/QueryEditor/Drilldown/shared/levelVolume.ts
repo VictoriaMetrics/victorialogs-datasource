@@ -1,14 +1,13 @@
 import { DataFrame, FieldConfigSource, LoadingState, LogLevel, TimeRange } from '@grafana/data';
 
+import { LogLevelRule } from '../../../../configuration/LogLevelRules/types';
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { aggregateRawLogsVolume, extractLevel } from '../../../../logsVolumeLegacy';
+import { usableLevelRules } from '../../../../utils/query/levelExpansion';
 import { buildLevelGrouping, LevelGrouping } from '../../../../utils/query/levelFormatPipes';
 import { buildDrilldownRequest, DRILLDOWN_ROW_BARS } from '../queries/drilldownQueries';
 
 import { TransformedVolume } from './BreakdownTable';
-
-/** Plain-line chart config. It only forces the compact 'short' unit on the axis, tooltip and legend */
-export const SHORT_UNIT_CHART_FIELD_CONFIG: FieldConfigSource = { defaults: { unit: 'short' }, overrides: [] };
 
 export const STACKED_BARS_CHART_FIELD_CONFIG: FieldConfigSource = {
   defaults: {
@@ -18,9 +17,14 @@ export const STACKED_BARS_CHART_FIELD_CONFIG: FieldConfigSource = {
   overrides: [],
 };
 
+/** Level rules the drilldown classifies with: the active ones minus drafts without a field */
+function getLevelRules(datasource: VictoriaLogsDatasource): LogLevelRule[] {
+  return usableLevelRules(datasource.getActiveLevelRules());
+}
+
 /** The same server-side level derivation the main logs-volume panel uses */
 export function getLevelGrouping(datasource: VictoriaLogsDatasource): LevelGrouping {
-  return buildLevelGrouping(datasource.getActiveLevelRules());
+  return buildLevelGrouping(getLevelRules(datasource));
 }
 
 /**
@@ -35,7 +39,7 @@ export function transformLevelVolume(
   range: TimeRange
 ): TransformedVolume {
   const request = buildDrilldownRequest([], range, 'drilldown-value-volume-aggregate');
-  const perLevel = aggregateRawLogsVolume(frames, extractLevel, request, datasource.logLevelRules, DRILLDOWN_ROW_BARS);
+  const perLevel = aggregateRawLogsVolume(frames, extractLevel, request, getLevelRules(datasource), DRILLDOWN_ROW_BARS);
   const summed = aggregateRawLogsVolume(frames, () => LogLevel.unknown, request, [], DRILLDOWN_ROW_BARS).map(
     (frame) => ({
       ...frame,

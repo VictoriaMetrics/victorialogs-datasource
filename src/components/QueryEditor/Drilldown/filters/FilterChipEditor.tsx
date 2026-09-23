@@ -135,12 +135,9 @@ export const FilterChipEditor: React.FC<FilterChipEditorProps> = ({
 
   const handleFieldConfirm = useCallback(() => {
     if (!fieldRef.current) {
-      // an empty confirm closes the draft, and in edit mode it leaves the chip unchanged
-      if (isEdit) {
-        onCancel();
-      } else {
-        setActive(null);
-      }
+      // an empty confirm collapses a new draft back to the button, and in edit mode it leaves
+      // the chip unchanged
+      onCancel();
       return;
     }
     // composing moves on to the operator. Editing jumps straight to the value, because the

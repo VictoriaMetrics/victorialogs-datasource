@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { from } from 'rxjs';
 
 import { DEFAULT_FIELD_DISPLAY_VALUES_LIMIT, TimeRange } from '@grafana/data';
 
@@ -7,6 +8,7 @@ import { FieldHits, FilterFieldType, Query } from '../../../../types';
 
 import { errorMessage } from './errorMessage';
 import { FacetField, fetchFacets } from './facets';
+import { drilldownQueryScheduler } from './queryScheduler';
 
 /** Field names seen in the logs that match `lookupQuery` */
 export function useFieldNames(
@@ -71,7 +73,10 @@ export function useStreamFields(
     setLoading(true);
     setError(undefined);
     datasource.languageProvider
-      ?.getStreamFieldList({ type: FilterFieldType.FieldName, timeRange: range, query: lookupQuery })
+      ?.getStreamFieldList(
+        { type: FilterFieldType.FieldName, timeRange: range, query: lookupQuery },
+        datasource.customQueryParameters
+      )
       .then((values) => {
         if (!cancelled) {
           setStreamFields(values.map((v) => ({ ...v, value: v.value.trim() })).filter((v) => v.value));
@@ -116,28 +121,23 @@ export function useFacets(
     if (!enabled) {
       return;
     }
-    let cancelled = false;
     setLoading(true);
     setError(undefined);
-    fetchFacets(datasource, query, range)
-      .then((fields) => {
-        if (!cancelled) {
+    // the shared scheduler caps the drilldown requests in flight, and the unsubscribe on a
+    // dependency change drops a queued request or ignores the reply of a running one
+    const subscription = drilldownQueryScheduler
+      .schedule(() => from(fetchFacets(datasource, query, range)))
+      .subscribe({
+        next: (fields) => {
           setFacets(fields);
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) {
-          setError(errorMessage(e));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
           setLoading(false);
-        }
+        },
+        error: (e) => {
+          setError(errorMessage(e));
+          setLoading(false);
+        },
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datasource, enabled, query.expr, filtersKey, range.from.valueOf(), range.to.valueOf()]);
 

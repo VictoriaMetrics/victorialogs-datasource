@@ -17,15 +17,6 @@ jest.mock('./FieldValuesTable', () => ({
   FieldValuesTable: ({ field }: { field: string }) => <div data-testid='values-table'>{field}</div>,
 }));
 
-beforeAll(() => {
-  // jsdom has no ResizeObserver, so useElementWidth needs a stub
-  global.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  } as unknown as typeof ResizeObserver;
-});
-
 // deliberately not in hit order, so the ordering test proves the component sorts
 const streamFields = [
   { value: 'pod', hits: 7 },

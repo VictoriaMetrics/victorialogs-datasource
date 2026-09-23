@@ -4,9 +4,15 @@ import { of, Subject } from 'rxjs';
 import { dateTime, LoadingState, TimeRange, toDataFrame } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
+import { Query } from '../../../../types';
 
 import { makeDatasource, query, range } from './hookTestUtils';
-import { usePatternLogsSample, useValueLogsSample } from './useLogsSampleQueries';
+import {
+  useFieldLogsSample,
+  usePatternLogsSample,
+  useQueryLogsSample,
+  useValueLogsSample,
+} from './useLogsSampleQueries';
 
 describe('useValueLogsSample', () => {
   const logsFrame = toDataFrame({ fields: [{ name: 'Line', values: ['a', 'b'] }] });
@@ -85,6 +91,40 @@ describe('useValueLogsSample', () => {
 
     expect(result.current.state).toBe(LoadingState.Loading);
     expect(result.current.series).toEqual([]);
+  });
+});
+
+describe('adHocFilters changes on an unchanged expr', () => {
+  const withFilter: Query = { ...query, adHocFilters: [{ key: 'level', operator: '=', value: 'error' }] };
+
+  it.each([
+    ['useValueLogsSample', (q: Query, ds: VictoriaLogsDatasource) => useValueLogsSample(ds, q, 'app', 'web', range, true, 0)],
+    ['useFieldLogsSample', (q: Query, ds: VictoriaLogsDatasource) => useFieldLogsSample(ds, q, 'app', range, true, 0)],
+    ['usePatternLogsSample', (q: Query, ds: VictoriaLogsDatasource) => usePatternLogsSample(ds, q, 'GET /api', range, true, 0)],
+    ['useQueryLogsSample', (q: Query, ds: VictoriaLogsDatasource) => useQueryLogsSample(ds, q, range, true)],
+  ])('%s refetches with the new chips', async (_name, useHook) => {
+    const datasource = makeDatasource();
+    const { rerender } = renderHook(({ q }: { q: Query }) => useHook(q, datasource), { initialProps: { q: query } });
+    await waitFor(() => expect(datasource.query).toHaveBeenCalledTimes(1));
+
+    rerender({ q: withFilter });
+
+    await waitFor(() => expect(datasource.query).toHaveBeenCalledTimes(2));
+    const lastRequest = (datasource.query as jest.Mock).mock.calls.at(-1)![0];
+    expect(lastRequest.targets[0].adHocFilters).toEqual(withFilter.adHocFilters);
+  });
+
+  it('does not refetch on a rerender with an equal but new filters array', async () => {
+    const datasource = makeDatasource();
+    const { rerender } = renderHook(
+      ({ q }: { q: Query }) => useValueLogsSample(datasource, q, 'app', 'web', range, true, 0),
+      { initialProps: { q: withFilter } }
+    );
+    await waitFor(() => expect(datasource.query).toHaveBeenCalledTimes(1));
+
+    rerender({ q: { ...withFilter, adHocFilters: [...withFilter.adHocFilters!] } });
+
+    expect(datasource.query).toHaveBeenCalledTimes(1);
   });
 });
 

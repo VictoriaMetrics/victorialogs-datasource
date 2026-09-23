@@ -26,6 +26,7 @@ import { STACKED_BARS_CHART_FIELD_CONFIG } from '../shared/levelVolume';
 import { useElementWidth } from '../shared/useElementWidth';
 import { useInView } from '../shared/useInView';
 import { getSeriesLabels, useLegendSeriesToggle } from '../shared/useLegendSeriesToggle';
+import { useDrilldownTimeZone } from '../timeZoneContext';
 
 // tall enough to include the bottom legend that lists the values with their sums
 const CARD_CHART_HEIGHT = 220;
@@ -39,7 +40,10 @@ interface FieldsBreakdownGridProps {
   /** Every known field name of this tab. A field missing from `facets` lands in the no-summary section */
   fallbackFieldNames: string[];
   facetsLoading: boolean;
+  /** The value summaries failed to load: the fields are still listed, without summaries */
   facetsError?: string;
+  /** The tab's field list itself failed to load, so there is nothing to list */
+  fieldsError?: string;
   /** Plural noun for the loading and empty texts: "fields", "stream fields" */
   noun?: string;
   onSelectField: (field: string) => void;
@@ -59,6 +63,7 @@ export const FieldsBreakdownGrid: React.FC<FieldsBreakdownGridProps> = ({
   fallbackFieldNames,
   facetsLoading,
   facetsError,
+  fieldsError,
   noun = 'fields',
   onSelectField,
   onChangeTimeRange,
@@ -75,7 +80,8 @@ export const FieldsBreakdownGrid: React.FC<FieldsBreakdownGridProps> = ({
     const consts = facets
       .filter((f) => f.values.length === 1)
       .map((f) => ({ name: f.name, value: f.values[0].value }));
-    const facetNames = new Set(facets.map((f) => f.name));
+    // a facet without values has nothing to summarize, so it falls through to the chartless list
+    const facetNames = new Set(facets.filter((f) => f.values.length >= 1).map((f) => f.name));
     const others = fallbackFieldNames.filter((name) => !facetNames.has(name)).sort();
     return { multiValue: multi, constFields: consts, otherFields: others };
   }, [facets, fallbackFieldNames]);
@@ -89,6 +95,14 @@ export const FieldsBreakdownGrid: React.FC<FieldsBreakdownGridProps> = ({
 
   if (facetsLoading && !facets.length) {
     return <LoadingPlaceholder text={`Loading ${noun}...`} />;
+  }
+
+  if (fieldsError) {
+    return (
+      <Alert severity='error' title={`Failed to load ${noun}`}>
+        {fieldsError}
+      </Alert>
+    );
   }
 
   if (!facetsError && !multiValue.length && !constFields.length && !otherFields.length) {
@@ -155,6 +169,7 @@ const FieldCard: React.FC<FieldCardProps> = ({ facet, datasource, query, range, 
   const styles = useStyles2(getStyles);
   const [inViewRef, inView] = useInView();
   const [chartRef, chartWidth] = useElementWidth();
+  const timeZone = useDrilldownTimeZone();
   const volumeData = useFieldVolume(datasource, query, facet.name, range, inView);
   const volumeHasSeries = volumeData.series.length > 0;
 
@@ -193,6 +208,7 @@ const FieldCard: React.FC<FieldCardProps> = ({ facet, datasource, query, range, 
                 data={volumeData}
                 width={chartWidth}
                 height={CARD_CHART_HEIGHT}
+                timeZone={timeZone}
                 options={{
                   // the legend doubles as the values list, one entry per value with its total
                   legend: { showLegend: true, displayMode: 'list', placement: 'bottom', calcs: ['sum'] },

@@ -4,17 +4,29 @@ import React from 'react';
 import { GrafanaTheme2 } from '@grafana/data';
 import { Icon, useStyles2 } from '@grafana/ui';
 
-interface Props {
+interface BaseProps {
   /** Segment contents; each direct child renders as one segment behind a vertical divider */
   children: React.ReactNode;
   /** Tooltip text on the whole chip */
   title?: string;
-  /** When provided, renders a × button as the trailing segment */
-  onRemove?: () => void;
-  removeAriaLabel?: string;
+}
+
+/** The × button has no visible text, so a remove handler always comes with an accessible name */
+interface RemovableProps extends BaseProps {
+  /** Renders a × button as the trailing segment */
+  onRemove: () => void;
+  removeAriaLabel: string;
   /** Tooltip for the remove button; falls back to removeAriaLabel */
   removeTooltip?: string;
 }
+
+interface StaticProps extends BaseProps {
+  onRemove?: undefined;
+  removeAriaLabel?: undefined;
+  removeTooltip?: undefined;
+}
+
+type Props = RemovableProps | StaticProps;
 
 /**
  * Monolithic segmented chip: one rounded frame whose children render as segments

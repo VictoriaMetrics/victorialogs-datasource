@@ -9,6 +9,7 @@ import { LOGS_PANEL_OPTIONS } from '../shared/ExpandedLogsPanel';
 import { NoDataPlaceholder } from '../shared/NoDataPlaceholder';
 import { useElementWidth } from '../shared/useElementWidth';
 import { getSeriesLabels, useLegendSeriesToggle } from '../shared/useLegendSeriesToggle';
+import { useDrilldownTimeZone } from '../timeZoneContext';
 
 const ROW_PANEL_HEIGHT = 200;
 
@@ -51,6 +52,7 @@ export const BreakdownRow: React.FC<BreakdownRowProps> = ({
   const styles = useStyles2(getStyles);
   const [chartRef, chartWidth] = useElementWidth();
   const [logsRef, logsWidth] = useElementWidth();
+  const timeZone = useDrilldownTimeZone();
   const logsLoading = logsData.state === LoadingState.Loading;
   const volumeHasSeries = volumeData.series.length > 0;
   const logsHasSeries = logsData.series.length > 0;
@@ -87,6 +89,7 @@ export const BreakdownRow: React.FC<BreakdownRowProps> = ({
                 data={volumeData}
                 width={chartWidth}
                 height={ROW_PANEL_HEIGHT}
+                timeZone={timeZone}
                 options={showChartLegend ? CHART_OPTIONS_WITH_LEGEND : CHART_OPTIONS_WITHOUT_LEGEND}
                 onChangeTimeRange={onChangeTimeRange}
                 fieldConfig={fieldConfig}
@@ -118,6 +121,7 @@ export const BreakdownRow: React.FC<BreakdownRowProps> = ({
                 data={logsData}
                 width={logsWidth}
                 height={ROW_PANEL_HEIGHT}
+                timeZone={timeZone}
                 options={LOGS_PANEL_OPTIONS}
               />
             </div>

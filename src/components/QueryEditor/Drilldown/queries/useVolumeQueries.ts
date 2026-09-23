@@ -6,7 +6,8 @@ import { UNIQ_LOG_LEVEL } from '../../../../configuration/LogLevelRules/const';
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { aggregateRawLogsVolume, extractLevel, queryLogsVolume } from '../../../../logsVolumeLegacy';
 import { Query, QueryType } from '../../../../types';
-import { buildLevelGrouping } from '../../../../utils/query/levelFormatPipes';
+import { usableLevelRules } from '../../../../utils/query/levelExpansion';
+import { buildLevelGrouping, LevelGrouping } from '../../../../utils/query/levelFormatPipes';
 
 import {
   buildDrilldownRequest,
@@ -23,8 +24,24 @@ import { FACETS_VALUES_LIMIT } from './facets';
 import { drilldownQueryScheduler } from './queryScheduler';
 import { responseErrors, runDrilldownQuery, toErrorText } from './runDrilldownQuery';
 
-/** A value splits into at most one hits bucket per known level */
-const LEVEL_BUCKETS = Object.values(UNIQ_LOG_LEVEL).length;
+/**
+ * Distinct values of the derived level field: one per known level plus the empty string the
+ * reset pipe writes when no rule matches (see buildLevelFormatPipes)
+ */
+const DERIVED_LEVEL_BUCKETS = Object.values(UNIQ_LOG_LEVEL).length + 1;
+
+/**
+ * Headroom per field value when hits group by the raw `level` field, whose cardinality the
+ * plugin does not control. It covers one casing of every known level alias plus a missing
+ * level. `fields_limit` is a budget shared by all tuples, so values with fewer levels leave
+ * room for the rest, and a real overflow still surfaces as the labels-less remainder series
+ * that `groupHitsByFieldValue` turns into `serverTruncated`
+ */
+export const RAW_LEVEL_BUCKETS = 20;
+
+/** Upper bound of level buckets a single field value splits into under the given grouping */
+const levelBucketsPerValue = (grouping: LevelGrouping): number =>
+  grouping.pipes ? DERIVED_LEVEL_BUCKETS : RAW_LEVEL_BUCKETS;
 
 /** Level-grouped hits volume for the current query, run through the supplementary-query path */
 export function useLogsVolume(datasource: VictoriaLogsDatasource, query: Query, range: TimeRange): PanelData {
@@ -38,13 +55,17 @@ export function useLogsVolume(datasource: VictoriaLogsDatasource, query: Query, 
     const rawQuery: Query = { ...query, hide: false, queryType: QueryType.Instant };
     const request = buildDrilldownRequest([rawQuery], range, 'drilldown-volume', CoreApp.Unknown);
     const volumeQuery = datasource.getSupplementaryQuery({ type: SupplementaryQueryType.LogsVolume }, rawQuery, request);
-    if (!volumeQuery) {
-      return;
-    }
-    const observable = queryLogsVolume(datasource, { ...request, targets: [volumeQuery] });
+    const observable = volumeQuery && queryLogsVolume(datasource, { ...request, targets: [volumeQuery] });
     if (!observable) {
+      // this query has no volume. Settle the state, otherwise a Loading left by a cancelled
+      // previous request would never end
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setData({ series: [], state: LoadingState.Done, timeRange: range });
       return;
     }
+    // report Loading at once: the scheduler may hold the request back behind other queries,
+    // and until the first emission the panel would otherwise render nothing
+    setData((prev) => ({ ...prev, state: LoadingState.Loading, timeRange: range }));
     // the observable from queryLogsVolume is cold, so scheduling holds back both the
     // subscription and the request until the shared limiter grants a slot
     const subscription = drilldownQueryScheduler.schedule(() => observable).subscribe({
@@ -134,16 +155,20 @@ export function useFieldValueFrames(
     // level with the same server-side derivation the main logs-volume panel uses
     const grouping = buildLevelGrouping(datasource.getActiveLevelRules());
     const hitsFields = Array.from(new Set([field, ...grouping.fields]));
-    // fields_limit bounds unique (value, level) tuples, not field values alone. A value splits
-    // into at most one bucket per level, so scaling the limit by the level count still covers
-    // FIELD_HITS_LIMIT distinct values
+    // fields_limit bounds unique (value, level) tuples, not field values alone. Scaling it by
+    // the level buckets a value can split into keeps room for FIELD_HITS_LIMIT distinct values
     const target = {
       ...buildFieldHitsQuery({ ...query, expr: withLevelPipes(query.expr, grouping) }, range, hitsFields),
-      fieldsLimit: FIELD_HITS_LIMIT * LEVEL_BUCKETS,
+      fieldsLimit: FIELD_HITS_LIMIT * levelBucketsPerValue(grouping),
     };
     const request = buildDrilldownRequest([target], range, `drilldown-hits-${field}`);
     const subscription = runDrilldownQuery(datasource, request, {
       onError: (errors) => {
+        // drop the previous result, otherwise consumers keep rendering groups that belong to
+        // an older request as if they were the answer to this one
+        setGroups([]);
+        setTotalValues(0);
+        setServerTruncated(false);
         setError(toErrorText(errors));
         setLoading(false);
       },
@@ -175,13 +200,15 @@ export function useFieldValuesHits(
   const top = useMemo<FieldValueVolume[]>(() => {
     // the aggregation reads only the range from the request, so the target list stays empty
     const request = buildDrilldownRequest([], range, 'drilldown-field-values-aggregate');
+    // the same rules the server-side grouping was built from, so drafts never reach the client matcher
+    const rules = usableLevelRules(datasource.getActiveLevelRules());
     return groups.map(({ value, total, frames }) => ({
       value,
       total,
       volumeData: {
         // the same level grouping and coloring the main logs-volume path uses, with the
         // narrower row-chart bucket count so the grid matches the query's own step
-        series: aggregateRawLogsVolume(frames, extractLevel, request, datasource.logLevelRules, DRILLDOWN_ROW_BARS),
+        series: aggregateRawLogsVolume(frames, extractLevel, request, rules, DRILLDOWN_ROW_BARS),
         state: LoadingState.Done,
         timeRange: range,
       },

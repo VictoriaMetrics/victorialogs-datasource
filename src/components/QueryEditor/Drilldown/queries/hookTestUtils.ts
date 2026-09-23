@@ -15,10 +15,16 @@ export const range: TimeRange = {
 
 export const query: Query = { refId: 'A', expr: 'error' };
 
+/** Spacing of the fixture buckets. It keeps a few samples well inside the one-hour `range` */
+const FIXTURE_STEP_MS = 60_000;
+
+/** Epoch-ms bucket timestamps inside `range`, one per value */
+const fixtureTimes = (values: number[]) => values.map((_, i) => range.from.valueOf() + i * FIXTURE_STEP_MS);
+
 export const makeHitsFrame = (level: string, values: number[]) =>
   toDataFrame({
     fields: [
-      { name: 'Time', values: values.map((_, i) => i) },
+      { name: 'Time', values: fixtureTimes(values) },
       { name: 'Value', values, labels: { level } },
     ],
   });
@@ -26,7 +32,7 @@ export const makeHitsFrame = (level: string, values: number[]) =>
 export const makeLabeledFrame = (labels: Record<string, string>, values: number[]) =>
   toDataFrame({
     fields: [
-      { name: 'Time', values: values.map((_, i) => i) },
+      { name: 'Time', values: fixtureTimes(values) },
       { name: 'Value', values, labels },
     ],
   });

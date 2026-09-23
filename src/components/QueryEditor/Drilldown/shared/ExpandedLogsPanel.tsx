@@ -4,6 +4,8 @@ import { LoadingState, PanelData } from '@grafana/data';
 import { PanelRenderer } from '@grafana/runtime';
 import { Alert, LoadingPlaceholder } from '@grafana/ui';
 
+import { useDrilldownTimeZone } from '../timeZoneContext';
+
 import { NoDataPlaceholder } from './NoDataPlaceholder';
 import { useElementWidth } from './useElementWidth';
 
@@ -26,7 +28,9 @@ interface ExpandedLogsPanelProps {
 
 export const ExpandedLogsPanel: React.FC<ExpandedLogsPanelProps> = ({ data, title }) => {
   const [ref, width] = useElementWidth();
-  const isLoading = data.state === LoadingState.Loading;
+  const timeZone = useDrilldownTimeZone();
+  // a queued request has not started yet, but it is on its way, so it reads as loading too
+  const isLoading = data.state === LoadingState.Loading || data.state === LoadingState.NotStarted;
   const hasSeries = data.series.length > 0;
 
   return (
@@ -45,6 +49,7 @@ export const ExpandedLogsPanel: React.FC<ExpandedLogsPanelProps> = ({ data, titl
           data={data}
           width={width}
           height={EXPANDED_LOGS_HEIGHT}
+          timeZone={timeZone}
           options={LOGS_PANEL_OPTIONS}
         />
       )}

@@ -123,3 +123,57 @@ describe('aggregateVolumeFrames custom grouping', () => {
     expect(configOf(frames[0])?.color?.fixedColor).toBe(LOG_LEVEL_COLOR[LogLevel.error]);
   });
 });
+
+describe('aggregateRawLogsVolume re-bucketing', () => {
+  const from = dateTime('2026-07-06T00:00:00Z');
+  const request = {
+    range: { from, to: dateTime('2026-07-06T01:00:00Z'), raw: { from: 'now-1h', to: 'now' } },
+  } as DataQueryRequest<Query>;
+  // 4 bars over one hour give a 15-minute display grid
+  const bars = 4;
+  const stepMs = 15 * 60 * 1000;
+  const start = from.valueOf();
+
+  const makeTimedFrame = (times: number[], values: number[]) =>
+    toDataFrame({
+      fields: [
+        { name: 'Time', type: FieldType.time, values: times },
+        { name: 'Value', type: FieldType.number, values, labels: { level: 'info' } },
+      ],
+    });
+
+  const valuesOf = (frames: ReturnType<typeof aggregateRawLogsVolume>) =>
+    frames[0].fields.find((f) => f.name === 'Value')?.values;
+
+  it('lays the output on a grid of `bars` cells starting at range.from', () => {
+    const frames = aggregateRawLogsVolume([makeTimedFrame([start], [1])], extractLevel, request, [], bars);
+    expect(frames[0].fields.find((f) => f.name === 'Time')?.values).toEqual(
+      [0, 1, 2, 3].map((i) => start + i * stepMs)
+    );
+  });
+
+  it('sums every source bucket into the grid cell it falls into, across frames', () => {
+    const frames = aggregateRawLogsVolume(
+      [makeTimedFrame([start + stepMs, start + stepMs + 60_000], [2, 3]), makeTimedFrame([start + 2 * stepMs], [4])],
+      extractLevel,
+      request,
+      [],
+      bars
+    );
+    expect(valuesOf(frames)).toEqual([0, 5, 4, 0]);
+  });
+
+  it('clamps buckets aligned outside the range into the edge cells instead of dropping them', () => {
+    const frames = aggregateRawLogsVolume(
+      [makeTimedFrame([start - 30_000, start + 4 * stepMs + 30_000], [7, 9])],
+      extractLevel,
+      request,
+      [],
+      bars
+    );
+    const values = valuesOf(frames);
+    expect(values).toEqual([7, 0, 0, 9]);
+    // the re-bucketing preserves the total hits
+    expect(values?.reduce((a: number, v: number) => a + v, 0)).toBe(16);
+  });
+});

@@ -8,6 +8,7 @@ import { Alert, LoadingPlaceholder, PanelContextProvider, useStyles2 } from '@gr
 import { NoDataPlaceholder } from '../shared/NoDataPlaceholder';
 import { useElementWidth } from '../shared/useElementWidth';
 import { getSeriesLabels, useLegendSeriesToggle } from '../shared/useLegendSeriesToggle';
+import { useDrilldownTimeZone } from '../timeZoneContext';
 
 const VOLUME_PANEL_HEIGHT = 140;
 
@@ -23,6 +24,7 @@ interface VolumePanelProps {
 export const VolumePanel: React.FC<VolumePanelProps> = ({ data, onChangeTimeRange }) => {
   const [ref, width] = useElementWidth();
   const styles = useStyles2(getStyles);
+  const timeZone = useDrilldownTimeZone();
   const isLoading = data.state === LoadingState.Loading;
   const hasSeries = data.series.length > 0;
 
@@ -52,6 +54,7 @@ export const VolumePanel: React.FC<VolumePanelProps> = ({ data, onChangeTimeRang
               data={data}
               width={width}
               height={VOLUME_PANEL_HEIGHT}
+              timeZone={timeZone}
               options={{
                 // the per-level totals answer how many logs of each level the selection holds
                 legend: { showLegend: true, displayMode: 'table', placement: 'right', calcs: ['sum'] },

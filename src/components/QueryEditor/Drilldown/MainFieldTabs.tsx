@@ -1,8 +1,8 @@
-import { css, cx } from '@emotion/css';
+import { css } from '@emotion/css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
-import { Icon, IconButton, Tab, TabsBar, useStyles2 } from '@grafana/ui';
+import { IconButton, Tab, TabsBar, useStyles2 } from '@grafana/ui';
 
 import { AddFieldDropdown } from './AddFieldDropdown';
 import { breakdownTabLabel } from './breakdownField';
@@ -25,43 +25,6 @@ interface MainFieldTabsProps {
   fieldsLoading: boolean;
   fieldsError?: string;
 }
-
-/**
- * Builds the close icon of a field tab. A click closes the tab without activating it. The icon
- * is a `span` rather than an IconButton, because it sits inside the Tab's own `<button>` and a
- * button inside a button is invalid DOM nesting
- */
-const makeCloseTabSuffix = (
-  field: string,
-  onCloseField: (field: string) => void
-): React.ComponentType<{ className?: string }> => {
-  const CloseTabSuffix: React.FC<{ className?: string }> = ({ className }) => {
-    const styles = useStyles2(getStyles);
-    return (
-      <span
-        role='button'
-        tabIndex={0}
-        aria-label={`Close ${field} tab`}
-        className={cx(className, styles.closeTabIcon)}
-        onClick={(e) => {
-          e.stopPropagation();
-          onCloseField(field);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-          // this span is not a native button, so Space would otherwise scroll the drawer
-            e.preventDefault();
-            e.stopPropagation();
-            onCloseField(field);
-          }
-        }}
-      >
-        <Icon name='times' />
-      </span>
-    );
-  };
-  return CloseTabSuffix;
-};
 
 /** The main tab bar: one tab per breakdown field, a fixed Patterns tab, and a "+" that opens more fields */
 export const MainFieldTabs: React.FC<MainFieldTabsProps> = ({
@@ -88,18 +51,6 @@ export const MainFieldTabs: React.FC<MainFieldTabsProps> = ({
   // order they were added. unclosableTabs is what splits the two groups
   const defaultFieldTabs = tabs.filter((field) => unclosableTabs.includes(field));
   const addedFieldTabs = tabs.filter((field) => !unclosableTabs.includes(field));
-
-  // memoized per field, so a Tab's `suffix` keeps one component identity. A new component type
-  // on every render would make React remount the suffix each time
-  const closeTabSuffixes = useMemo(() => {
-    const suffixes = new Map<string, React.ComponentType<{ className?: string }>>();
-    for (const field of tabs) {
-      if (!unclosableTabs.includes(field)) {
-        suffixes.set(field, makeCloseTabSuffix(field, onCloseField));
-      }
-    }
-    return suffixes;
-  }, [tabs, unclosableTabs, onCloseField]);
 
   const handleAddField = (field: string) => {
     onAddField(field);
@@ -159,13 +110,20 @@ export const MainFieldTabs: React.FC<MainFieldTabsProps> = ({
         suffix={patternsCounter}
       />
       {addedFieldTabs.map((field) => (
-        <Tab
-          key={field}
-          label={breakdownTabLabel(field)}
-          active={active === field}
-          onChangeTab={() => onSelect(field)}
-          suffix={closeTabSuffixes.get(field)}
-        />
+        // the close button is a sibling of the Tab, not its suffix: the suffix renders inside the
+        // Tab's own `<button role="tab">`, and an interactive element must not nest in another one
+        <div key={field} className={styles.closableTab}>
+          <Tab label={breakdownTabLabel(field)} active={active === field} onChangeTab={() => onSelect(field)} />
+          <span className={styles.closeTabButton}>
+            <IconButton
+              name='times'
+              size='sm'
+              aria-label={`Close ${field} tab`}
+              tooltip={`Close ${field} tab`}
+              onClick={() => onCloseField(field)}
+            />
+          </span>
+        </div>
       ))}
       {/* the search input takes the "+" button's place in the bar; its options list floats below it */}
       {addOpen ? (
@@ -198,29 +156,21 @@ const getStyles = (theme: GrafanaTheme2) => ({
     alignItems: 'center',
     alignSelf: 'center',
   }),
-  closeTabIcon: css({
-    display: 'inline-flex',
+  // the close button overlays the right end of the Tab, whose padding makes room for it. The
+  // Tab's hover and active underline then still span the close button, as they did with a suffix
+  closableTab: css({
+    position: 'relative',
+    '& [role="tab"]': {
+      paddingRight: theme.spacing(4.5),
+    },
+  }),
+  closeTabButton: css({
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    // the Tab item's side padding plus its button's side padding
+    right: 16,
+    display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    // a fixed square around the glyph keeps the hover backdrop even on all sides
-    width: 20,
-    height: 20,
-    verticalAlign: 'middle',
-    borderRadius: theme.shape.radius.default,
-    color: theme.colors.text.secondary,
-    cursor: 'pointer',
-    // the Tab button gives every descendant svg a margin-right for its leading icon, which
-    // skews this suffix sideways, so undo it here
-    '& svg': {
-      margin: 0,
-    },
-    '&:hover': {
-      background: theme.colors.action.hover,
-      color: theme.colors.text.primary,
-    },
-    '&:focus-visible': {
-      outline: `2px solid ${theme.colors.primary.border}`,
-      outlineOffset: -2,
-    },
   }),
 });

@@ -66,14 +66,19 @@ export const AddFieldDropdown: React.FC<AddFieldDropdownProps> = ({
         autoFocus
         placeholder='Search fields'
         value={search}
-        onChange={(e) => setSearch(e.currentTarget.value)}
+        onChange={(e) => {
+          setSearch(e.currentTarget.value);
+          // the options list changes with the search, so a previous highlight may point past its end
+          setHighlightedIndex(-1);
+        }}
         onKeyDown={(e) => {
           if (handleNavigationKeyDown(e.nativeEvent)) {
             return;
           }
-          if (e.key === 'Enter' && highlightedIndex >= 0) {
+          const highlighted = highlightedIndex >= 0 ? options[highlightedIndex] : undefined;
+          if (e.key === 'Enter' && highlighted) {
             e.preventDefault();
-            onSelect(String(options[highlightedIndex].value));
+            onSelect(String(highlighted.value));
           }
         }}
         width={30}

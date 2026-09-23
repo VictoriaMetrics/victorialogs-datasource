@@ -30,6 +30,7 @@ import { Query } from '../../../../types';
 import { formatHits } from '../../shared/formatHits';
 import { BREAKDOWN_PAGE_SIZE } from '../queries/drilldownQueries';
 import { useTargetVolume } from '../queries/useVolumeQueries';
+import { useDrilldownTimeZone } from '../timeZoneContext';
 
 import { useElementWidth } from './useElementWidth';
 import { useLegendSeriesToggle } from './useLegendSeriesToggle';
@@ -149,19 +150,21 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
   const styles = useStyles2(getStyles);
   const [search, setSearch] = useState('');
   const [chartRef, chartWidth] = useElementWidth();
+  const timeZone = useDrilldownTimeZone();
   // the visible rows' sparkline cells report their exact volumes here. The ref mirrors the
   // state so the column definitions can read a volume without listing it as a dependency:
   // any new column identity makes InteractiveTable remount every cell, which restarts the
-  // per-row volume queries
-  const [volumes, setVolumes] = useState<Record<string, LoadedRowVolume>>({});
+  // per-row volume queries. A Map, because row labels are arbitrary field values and a plain
+  // object would resolve names like `constructor` to Object.prototype members
+  const [volumes, setVolumes] = useState<Map<string, LoadedRowVolume>>(() => new Map());
   const volumesRef = React.useRef(volumes);
 
   const onVolumeLoaded = useCallback((label: string, raw: PanelData, topSeries: DataFrame[], total?: number) => {
     setVolumes((prev) => {
-      if (prev[label]?.raw === raw) {
+      if (prev.get(label)?.raw === raw) {
         return prev;
       }
-      const next = { ...prev, [label]: { raw, topSeries, total } };
+      const next = new Map(prev).set(label, { raw, topSeries, total });
       volumesRef.current = next;
       return next;
     });
@@ -195,7 +198,7 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
   const topChartData = useMemo(
     () => ({
       series: searchFiltered.flatMap((i) => {
-        const loaded = volumes[i.label];
+        const loaded = volumes.get(i.label);
         return loaded ? withDisplayName(loaded.topSeries, toDisplayLabel(i.label)) : [];
       }),
       state: LoadingState.Done,
@@ -234,7 +237,7 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
         cell: (props: CellProps<BreakdownTableRowData>) => {
           const { label, total, approx } = props.cell.row.original;
           // read through the ref, see the `volumes` comment above
-          const exact = volumesRef.current[label]?.total;
+          const exact = volumesRef.current.get(label)?.total;
           const text = !approx ? formatHits(total) : exact !== undefined ? formatHits(exact) : `~${formatHits(total)}`;
           return <span className={styles.countText}>{text}</span>;
         },
@@ -315,6 +318,7 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
                 data={topChartData}
                 width={chartWidth}
                 height={TOP_CHART_HEIGHT}
+                timeZone={timeZone}
                 options={{
                   legend: { showLegend: true, displayMode: 'list', placement: 'right' },
                   tooltip: { mode: 'single' },
@@ -329,7 +333,9 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
         <InteractiveTable
           columns={columns}
           data={tableData}
-          getRowId={(row: BreakdownTableRowData) => row.label}
+          // react-table keys its rows in a plain object, so a bare label such as `constructor`
+          // would resolve to an Object.prototype member. The prefix keeps every id an own key
+          getRowId={(row: BreakdownTableRowData) => `row:${row.label}`}
           pageSize={BREAKDOWN_PAGE_SIZE}
           // a legend click or a search from page 2 must land on the first page of the narrowed
           // list, otherwise the old page index survives and the table looks empty. Background
@@ -373,6 +379,7 @@ const RowVolumeCell: React.FC<RowVolumeCellProps> = ({
   onLoaded,
 }) => {
   const styles = useStyles2(getStyles);
+  const timeZone = useDrilldownTimeZone();
   const provided = rowVolumes?.byLabel.get(label);
   const groupedSettled = rowVolumes?.state === LoadingState.Done || rowVolumes?.state === LoadingState.Error;
   const needsOwnQuery = !rowVolumes || (groupedSettled && !provided);
@@ -418,6 +425,7 @@ const RowVolumeCell: React.FC<RowVolumeCellProps> = ({
           data={transformed.sparkline}
           width={SPARKLINE_WIDTH}
           height={SPARKLINE_HEIGHT}
+          timeZone={timeZone}
           options={{ legend: { showLegend: false }, tooltip: { mode: 'none' } }}
           fieldConfig={SPARKLINE_FIELD_CONFIG}
         />

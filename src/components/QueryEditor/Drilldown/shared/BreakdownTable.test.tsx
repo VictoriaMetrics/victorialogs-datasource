@@ -8,31 +8,26 @@ import { VictoriaLogsDatasource } from '../../../../datasource';
 import { buildValueVolumeQuery } from '../queries/drilldownQueries';
 import { makeDatasource, makeLabeledFrame, query, range } from '../queries/hookTestUtils';
 
-import { BreakdownTable, ProvidedRowVolumes } from './BreakdownTable';
+import { BreakdownTable, BreakdownTableItem, ProvidedRowVolumes } from './BreakdownTable';
 
 jest.mock('@grafana/runtime', () => ({
   ...jest.requireActual('@grafana/runtime'),
   PanelRenderer: (_props: PanelRendererProps) => <div data-testid='panel' />,
 }));
 
-beforeAll(() => {
-  // jsdom has no ResizeObserver, so useElementWidth needs a stub
-  global.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  } as unknown as typeof ResizeObserver;
-});
-
 const items = [
   { label: 'web', total: 12 },
   { label: 'api', total: 3 },
 ];
 
-const renderTable = (datasource: VictoriaLogsDatasource, rowVolumes?: ProvidedRowVolumes) =>
+const renderTable = (
+  datasource: VictoriaLogsDatasource,
+  rowVolumes?: ProvidedRowVolumes,
+  tableItems: BreakdownTableItem[] = items
+) =>
   render(
     <BreakdownTable
-      items={items}
+      items={tableItems}
       loading={false}
       noun='values'
       searchPlaceholder='Search values'
@@ -89,5 +84,19 @@ describe('BreakdownTable row volumes', () => {
     await waitFor(() => expect(datasource.query).toHaveBeenCalledTimes(1));
     const request = (datasource.query as jest.Mock).mock.calls[0][0];
     expect(request.targets[0].expr).toContain('api');
+  });
+
+  it('handles row values that shadow Object.prototype members', async () => {
+    const datasource = makeDatasource();
+    const prototypeItems = [
+      { label: 'constructor', total: 5 },
+      { label: 'toString', total: 2 },
+    ];
+    renderTable(datasource, undefined, prototypeItems);
+
+    expect(screen.getByText('constructor')).toBeInTheDocument();
+    expect(screen.getByText('toString')).toBeInTheDocument();
+    // each row loads and reports its own volume without tripping over inherited properties
+    await waitFor(() => expect(screen.getAllByTestId('panel')).toHaveLength(prototypeItems.length));
   });
 });

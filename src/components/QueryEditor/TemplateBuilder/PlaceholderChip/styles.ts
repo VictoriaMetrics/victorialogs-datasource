@@ -36,9 +36,13 @@ export const getStyles = (theme: GrafanaTheme2) => ({
   }),
   // seamless variant — a divider-separated segment of SegmentedChip: no own frame,
   // the active state is a background highlight instead of an outline
+  // minWidth: 0 lets the segment shrink inside the chip, so a long value ellipsizes through
+  // seamlessText instead of pushing the chip's × button out
   seamlessEmpty: css({
     display: 'inline-flex',
     alignItems: 'center',
+    minWidth: 0,
+    overflow: 'hidden',
     padding: theme.spacing(0, 1),
     color: theme.colors.text.disabled,
     fontStyle: 'italic',
@@ -50,6 +54,8 @@ export const getStyles = (theme: GrafanaTheme2) => ({
   seamlessFilled: css({
     display: 'inline-flex',
     alignItems: 'center',
+    minWidth: 0,
+    overflow: 'hidden',
     padding: theme.spacing(0, 1),
     color: theme.colors.text.primary,
     cursor: 'pointer',
@@ -57,8 +63,17 @@ export const getStyles = (theme: GrafanaTheme2) => ({
       backgroundColor: theme.colors.action.hover,
     },
   }),
+  // cx merges this into the empty/filled class, whose own :hover would otherwise win over it
   seamlessActive: css({
-    backgroundColor: theme.colors.action.selected,
+    '&, &:hover': {
+      backgroundColor: theme.colors.action.selected,
+    },
+  }),
+  // textOverflow has no effect on the inline-flex segment itself, so the text gets its own box
+  seamlessText: css({
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   }),
   chipInput: css({
     background: 'none',

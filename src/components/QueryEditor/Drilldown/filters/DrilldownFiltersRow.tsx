@@ -130,7 +130,12 @@ export const DrilldownFiltersRow: React.FC<DrilldownFiltersRowProps> = ({
       </div>
       <Stack direction='row' gap={1} alignItems='center'>
         {zoomToolbar}
-        <Button size='sm' variant='primary' onClick={onApply}>
+        <Button
+          size='sm'
+          variant='primary'
+          onClick={onApply}
+          tooltip='Replaces the editor query with the drilldown selection'
+        >
           Go to editor
         </Button>
       </Stack>

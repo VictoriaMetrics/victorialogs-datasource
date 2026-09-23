@@ -142,6 +142,8 @@ export const PlaceholderChip: React.FC<Props> = ({
               size={Math.max(inputValue.length || (isMulti && currentMultiValues.length > 0 ? 1 : segment.displayHint.length), 2)}
             />
           </>
+        ) : variant === 'seamless' ? (
+          <span className={styles.seamlessText}>{displayText}</span>
         ) : (
           displayText
         )}

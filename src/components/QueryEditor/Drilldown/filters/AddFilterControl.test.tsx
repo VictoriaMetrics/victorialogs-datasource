@@ -147,4 +147,30 @@ describe('AddFilterControl', () => {
 
     document.removeEventListener('keydown', outerKeyDown);
   });
+
+  it.each(['Enter', 'Tab'])('%s on an empty field input collapses the draft back to the button', async (key) => {
+    const onAdd = renderControl(makeDatasource());
+
+    await userEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    fireEvent.keyDown(screen.getByPlaceholderText('field_name'), { key });
+
+    // no empty inactive chip is left behind
+    expect(screen.queryByPlaceholderText('field_name')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel new filter' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument();
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it('Escape after a field is chosen keeps the draft chip', async () => {
+    const onAdd = renderControl(makeDatasource());
+
+    await userEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    await userEvent.click(await getOptionsPortal().findByText('level'));
+    await getOptionsPortal().findByText('!=');
+    fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'Escape' });
+
+    expect(screen.getByRole('button', { name: 'Cancel new filter' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Filter' })).not.toBeInTheDocument();
+    expect(onAdd).not.toHaveBeenCalled();
+  });
 });

@@ -9,9 +9,15 @@ import { VictoriaLogsDatasource } from '../../../../datasource';
 import { Query } from '../../../../types';
 import { DERIVED_LEVEL_FIELD } from '../../../../utils/query/levelFormatPipes';
 
-import { buildValueVolumeQuery, FIELD_HITS_LIMIT } from './drilldownQueries';
+import { buildValueVolumeQuery, DRILLDOWN_ROW_BARS, FIELD_HITS_LIMIT } from './drilldownQueries';
 import { makeDatasource, makeHitsFrame, makeLabeledFrame, query, range } from './hookTestUtils';
-import { useFieldValueFrames, useFieldValuesHits, useLogsVolume, useTargetVolume } from './useVolumeQueries';
+import {
+  RAW_LEVEL_BUCKETS,
+  useFieldValueFrames,
+  useFieldValuesHits,
+  useLogsVolume,
+  useTargetVolume,
+} from './useVolumeQueries';
 
 const levelRule = { field: 'severity', operator: LogLevelRuleType.Equals, value: 'err', level: LogLevel.error, enabled: true };
 
@@ -49,6 +55,22 @@ describe('useLogsVolume', () => {
     await waitFor(() => expect(datasource.getSupplementaryQuery).toHaveBeenCalledTimes(2));
     const lastRawQuery = (datasource.getSupplementaryQuery as jest.Mock).mock.calls.at(-1)![1];
     expect(lastRawQuery.adHocFilters).toEqual(withFilter.adHocFilters);
+  });
+
+  it('reports Loading at once, while the request still waits in the scheduler queue', () => {
+    const datasource = makeDatasource({ query: jest.fn().mockReturnValue(new Subject()) } as Partial<VictoriaLogsDatasource>);
+    const { result } = renderHook(() => useLogsVolume(datasource, query, range));
+    expect(result.current.state).toBe(LoadingState.Loading);
+  });
+
+  it('settles as Done with no series when the query has no volume query', () => {
+    const datasource = makeDatasource({
+      getSupplementaryQuery: jest.fn().mockReturnValue(undefined),
+    } as Partial<VictoriaLogsDatasource>);
+    const { result } = renderHook(() => useLogsVolume(datasource, query, range));
+    expect(result.current.state).toBe(LoadingState.Done);
+    expect(result.current.series).toEqual([]);
+    expect(datasource.query).not.toHaveBeenCalled();
   });
 
   it('keeps the previous series (as Loading) during a context-only refetch — e.g. the time range changed', async () => {
@@ -143,8 +165,8 @@ describe('useFieldValuesHits', () => {
     // aggregateRawLogsVolume produces the stacked series, one frame per level
     expect(result.current.top[0].volumeData.series.length).toBe(2);
     expect(result.current.top[0].volumeData.state).toBe(LoadingState.Done);
-    // a row chart uses the narrower DRILLDOWN_ROW_BARS grid of 50, not the panel's 100
-    expect(result.current.top[0].volumeData.series[0].length).toBe(50);
+    // a row chart uses the narrower DRILLDOWN_ROW_BARS grid, not the panel's LOGS_VOLUME_BARS
+    expect(result.current.top[0].volumeData.series[0].length).toBe(DRILLDOWN_ROW_BARS);
   });
 
   it('requests hits grouped by the field plus the raw level without rules', async () => {
@@ -167,15 +189,59 @@ describe('useFieldValuesHits', () => {
     expect(request.targets[0].expr).toContain(`format "" as ${DERIVED_LEVEL_FIELD}`);
   });
 
-  it('scales fieldsLimit by the level-bucket count — fields_limit bounds (value,level) tuples, not values', async () => {
+  it('scales fieldsLimit by the derived level values with rules — fields_limit bounds (value,level) tuples, not values', async () => {
     const datasource = makeDatasource({
       getActiveLevelRules: jest.fn().mockReturnValue([levelRule]),
     } as Partial<VictoriaLogsDatasource>);
     renderHook(() => useFieldValuesHits(datasource, query, 'app', range));
     await waitFor(() => expect(datasource.query).toHaveBeenCalled());
     const request = (datasource.query as jest.Mock).mock.calls[0][0];
-    // each value splits into at most one bucket per known level
-    expect(request.targets[0].fieldsLimit).toBe(FIELD_HITS_LIMIT * Object.values(UNIQ_LOG_LEVEL).length);
+    // the derived field holds every known level plus the "" the reset pipe leaves when nothing matched
+    expect(request.targets[0].fieldsLimit).toBe(FIELD_HITS_LIMIT * (Object.values(UNIQ_LOG_LEVEL).length + 1));
+  });
+
+  it('scales fieldsLimit by the raw-level headroom without rules — the raw level field is not bounded to known levels', async () => {
+    const datasource = makeDatasource();
+    renderHook(() => useFieldValuesHits(datasource, query, 'app', range));
+    await waitFor(() => expect(datasource.query).toHaveBeenCalled());
+    const request = (datasource.query as jest.Mock).mock.calls[0][0];
+    expect(request.targets[0].fieldsLimit).toBe(FIELD_HITS_LIMIT * RAW_LEVEL_BUCKETS);
+  });
+
+  it('classifies the rows client-side with the usable active rules only — drafts without a field are skipped', async () => {
+    // a draft without a field reads `labels['']`, which is undefined, so NotEquals matches every row
+    const draftRule = { ...levelRule, field: '', operator: LogLevelRuleType.NotEquals, value: 'x', level: LogLevel.critical };
+    const datasource = makeDatasource({
+      logLevelRules: [draftRule],
+      getActiveLevelRules: jest.fn().mockReturnValue([draftRule]),
+      query: jest.fn().mockReturnValue(of({ data: [makeLabeledFrame({ app: 'web', level: 'custom' }, [4])] })),
+    } as Partial<VictoriaLogsDatasource>);
+    const { result } = renderHook(() => useFieldValuesHits(datasource, query, 'app', range));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const series = result.current.top[0].volumeData.series;
+    expect(series.map((f) => f.fields[1].config.displayNameFromDS)).toEqual([LogLevel.unknown]);
+  });
+
+  it('drops the previous groups when a refetch fails — stale rows must not pass for the failed request', async () => {
+    const datasource = makeDatasource({
+      query: jest
+        .fn()
+        .mockReturnValueOnce(of({ data: hitsFrames }))
+        .mockReturnValue(throwError(() => new Error('refetch failed'))),
+    } as Partial<VictoriaLogsDatasource>);
+    const { result, rerender } = renderHook(({ r }: { r: TimeRange }) => useFieldValueFrames(datasource, query, 'app', r), {
+      initialProps: { r: range },
+    });
+    await waitFor(() => expect(result.current.groups.length).toBeGreaterThan(0));
+
+    rerender({
+      r: { from: dateTime('2026-07-06T02:00:00Z'), to: dateTime('2026-07-06T03:00:00Z'), raw: { from: 'now-1h', to: 'now' } },
+    });
+
+    await waitFor(() => expect(result.current.error).toBe('refetch failed'));
+    expect(result.current.groups).toEqual([]);
+    expect(result.current.totalValues).toBe(0);
+    expect(result.current.serverTruncated).toBe(false);
   });
 
   it('reports serverTruncated when the response includes a labels-less remainder frame', async () => {
