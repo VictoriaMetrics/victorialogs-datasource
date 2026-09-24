@@ -40,6 +40,12 @@ describe('skipBalanced', () => {
     expect(skipBalanced('{a{b}c', 0, '{', '}')).toBe(6);
   });
 
+  it('treats open/close as character sets, balancing mixed pairs', () => {
+    expect(skipBalanced('[a, b) c', 0, '([', ')]')).toBe(6);
+    expect(skipBalanced('(a, b] c', 0, '([', ')]')).toBe(6);
+    expect(skipBalanced('(x [a, b) y) z', 0, '([', ')]')).toBe(12);
+  });
+
   it('starts scanning at openIdx, ignoring earlier characters', () => {
     expect(skipBalanced('foo{a}', 3, '{', '}')).toBe(6);
   });

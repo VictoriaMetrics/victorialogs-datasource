@@ -98,6 +98,105 @@ describe('extractMsgSearchWords', () => {
     });
   });
 
+  describe('comma-delimited function arguments', () => {
+    it('does not highlight the comma between quoted arguments', () => {
+      expect(extractMsgSearchWords('contains_common_case("foo", "bar")')).toEqual(['foo', 'bar']);
+      expect(extractMsgSearchWords('seq("foo", "bar")')).toEqual(['foo', 'bar']);
+    });
+    it('splits quoted arguments without a space after the comma', () => {
+      expect(extractMsgSearchWords('contains_common_case("foo","bar")')).toEqual(['foo', 'bar']);
+    });
+    it('splits bare-word arguments on the comma', () => {
+      expect(extractMsgSearchWords('in(foo, bar)')).toEqual(['foo', 'bar']);
+      expect(extractMsgSearchWords('_msg:in(foo,bar)')).toEqual(['foo', 'bar']);
+    });
+    it('keeps a comma inside a quoted phrase or a regexp', () => {
+      expect(extractMsgSearchWords('"a, b"')).toEqual(['a, b']);
+      expect(extractMsgSearchWords('~"a,b"')).toEqual(['a,b']);
+    });
+  });
+
+  describe('termination on stray separators', () => {
+    it('skips a group holding a pipe instead of scanning its stages as _msg terms', () => {
+      expect(extractMsgSearchWords('_msg:in(* | fields _msg)')).toEqual([]);
+      expect(extractMsgSearchWords('_msg:in(_time:5m | fields x)')).toEqual([]);
+      expect(extractMsgSearchWords('in(_time:5m | fields x)')).toEqual([]);
+      expect(extractMsgSearchWords('(foo | bar)')).toEqual([]);
+    });
+    it('still scans a group holding no pipe', () => {
+      expect(extractMsgSearchWords('(foo OR bar)')).toEqual(['foo', 'bar']);
+      expect(extractMsgSearchWords('error _msg:in(a, b)')).toEqual(['error', 'a', 'b']);
+    });
+    it('keeps highlighting terms around a skipped subquery', () => {
+      expect(extractMsgSearchWords('error _msg:in(* | fields _msg) warn')).toEqual(['error', 'warn']);
+    });
+    it('skips only the subquery when it is nested in a boolean group', () => {
+      expect(extractMsgSearchWords('(error OR _msg:in(* | fields x))')).toEqual(['error']);
+      expect(extractMsgSearchWords('(_msg:error OR _msg:in(* | fields _msg))')).toEqual(['error']);
+      expect(extractMsgSearchWords('(error OR (warn AND _msg:in(* | fields x)))')).toEqual(['error', 'warn']);
+    });
+    it('keeps a quoted pipe as part of the term', () => {
+      expect(extractMsgSearchWords('_msg:in("a|b", c)')).toEqual(['a\\|b', 'c']);
+    });
+    it('keeps a colon bound to its field instead of consuming it as a stray separator', () => {
+      expect(extractMsgSearchWords('_time:2023-04-25T22:45:59Z')).toEqual([]);
+      expect(extractMsgSearchWords('error _time:2023-04-25T22:45:59Z')).toEqual(['error']);
+      expect(extractMsgSearchWords('url:"http://example.com" error')).toEqual(['error']);
+    });
+    it('skips a bracketed range value of a field', () => {
+      expect(extractMsgSearchWords('_time:[2023-04-25T22:45:59Z, 2023-04-26T22:45:59Z]')).toEqual([]);
+      expect(extractMsgSearchWords('_time:[2023-04-25T22:45:59Z, 2023-04-26T22:45:59Z] error')).toEqual(['error']);
+      expect(extractMsgSearchWords('response_size:[1KB, 10MB]')).toEqual([]);
+    });
+    it('skips a half-open range value of a field', () => {
+      expect(extractMsgSearchWords('_time:[2026-04-25, 2026-04-26) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:(2026-04-25, 2026-04-26] error')).toEqual(['error']);
+      expect(extractMsgSearchWords('size:[1, 5) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('-_time:[2026-04-25, 2026-04-26) error')).toEqual(['error']);
+    });
+    it('skips a range nested in a field group', () => {
+      expect(extractMsgSearchWords('app:(_time:[1, 5) OR x) error')).toEqual(['error']);
+    });
+    it('skips range() filter arguments with any bracket combination', () => {
+      expect(extractMsgSearchWords('size:range(1, 5) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('size:range(1, 5] error')).toEqual(['error']);
+      expect(extractMsgSearchWords('size:range[1, 5) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('size:range[1, 5] error')).toEqual(['error']);
+    });
+    it('skips len_range, ipv4_range, ipv6_range and string_range filters with a bracketed bound', () => {
+      expect(extractMsgSearchWords('size:len_range[5, 10) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('ip:ipv4_range[1.2.3.0, 1.2.3.255] error')).toEqual(['error']);
+      expect(extractMsgSearchWords('ip:ipv6_range[::1, ::ff) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('x:string_range[A, C) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('x:string_range(A, C] error')).toEqual(['error']);
+    });
+    it('skips day_range and week_range time filters with any bracket combination', () => {
+      expect(extractMsgSearchWords('_time:day_range[08:00, 18:00) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:day_range(08:00, 18:00] error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:week_range[Mon, Fri] error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:week_range(Mon, Fri) error')).toEqual(['error']);
+    });
+    it('skips the offset modifier of a _time filter', () => {
+      expect(extractMsgSearchWords('_time:5m offset 1h error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:[2026-04-25, 2026-04-26) offset 1w error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:day_range[08:00, 18:00) offset 2h error')).toEqual(['error']);
+      expect(extractMsgSearchWords('-_time:5m offset 1h error')).toEqual(['error']);
+    });
+    it('skips a bare offset _time filter', () => {
+      expect(extractMsgSearchWords('_time:offset 1h error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time: offset 1h error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:offset 1h')).toEqual([]);
+    });
+    it('keeps an offset word that does not follow a _time filter', () => {
+      expect(extractMsgSearchWords('offset 1h')).toEqual(['offset', '1h']);
+      expect(extractMsgSearchWords('size:5 offset 1h')).toEqual(['offset', '1h']);
+    });
+    it('terminates on an unmatched closing brace', () => {
+      expect(extractMsgSearchWords('}')).toEqual([]);
+      expect(extractMsgSearchWords('error } warn')).toEqual(['error', 'warn']);
+    });
+  });
+
   describe('grouped values after a field', () => {
     it('skips a grouped value of a non-_msg field', () => {
       expect(extractMsgSearchWords('app:(buggy_app OR foobar)')).toEqual([]);
