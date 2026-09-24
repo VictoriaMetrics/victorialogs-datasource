@@ -2,20 +2,24 @@
  * Scans from `openIdx` (which should sit on an `open` char) and returns the index just past the
  * matching `close` char, accounting for nested `open`/`close` pairs.
  *
+ * `open` and `close` are character sets: any char of `open` opens a level and any char of `close`
+ * closes one, so mixed pairs balance too (e.g. the half-open range `[a, b)` with `'(['` / `')]'`).
+ *
  * Quote characters (`"`, `'`, `` ` ``) open a quoted span in which `open`/`close` are ignored, so
  * brackets inside strings never unbalance the block; a backslash inside a quote escapes the next
  * character. If the block is never closed, `s.length` is returned.
  *
  * @param s - the string to scan
  * @param openIdx - index to start scanning from, normally the position of an `open` char
- * @param open - the opening bracket character (e.g. `{` or `(`)
- * @param close - the matching closing bracket character (e.g. `}` or `)`)
+ * @param open - the opening bracket character(s) (e.g. `{`, `(` or `([`)
+ * @param close - the matching closing bracket character(s) (e.g. `}`, `)` or `)]`)
  * @returns the index immediately after the matching `close`, or `s.length` if unterminated
  *
  * @example
  *   skipBalanced('{a{b}c}', 0, '{', '}') // 7
  *   skipBalanced('(a)b', 0, '(', ')')    // 3
  *   '{a}b'.slice(skipBalanced('{a}b', 0, '{', '}')) // 'b'
+ *   skipBalanced('[a, b) c', 0, '([', ')]') // 6
  */
 export function skipBalanced(s: string, openIdx: number, open: string, close: string): number {
   let depth = 0;
@@ -33,9 +37,9 @@ export function skipBalanced(s: string, openIdx: number, open: string, close: st
     }
     if (c === '"' || c === "'" || c === '`') {
       quote = c;
-    } else if (c === open) {
+    } else if (open.includes(c)) {
       depth++;
-    } else if (c === close) {
+    } else if (close.includes(c)) {
       depth--;
       if (depth === 0) {
         return i + 1;
