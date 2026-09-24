@@ -148,6 +148,49 @@ describe('extractMsgSearchWords', () => {
       expect(extractMsgSearchWords('_time:[2023-04-25T22:45:59Z, 2023-04-26T22:45:59Z] error')).toEqual(['error']);
       expect(extractMsgSearchWords('response_size:[1KB, 10MB]')).toEqual([]);
     });
+    it('skips a half-open range value of a field', () => {
+      expect(extractMsgSearchWords('_time:[2026-04-25, 2026-04-26) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:(2026-04-25, 2026-04-26] error')).toEqual(['error']);
+      expect(extractMsgSearchWords('size:[1, 5) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('-_time:[2026-04-25, 2026-04-26) error')).toEqual(['error']);
+    });
+    it('skips a range nested in a field group', () => {
+      expect(extractMsgSearchWords('app:(_time:[1, 5) OR x) error')).toEqual(['error']);
+    });
+    it('skips range() filter arguments with any bracket combination', () => {
+      expect(extractMsgSearchWords('size:range(1, 5) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('size:range(1, 5] error')).toEqual(['error']);
+      expect(extractMsgSearchWords('size:range[1, 5) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('size:range[1, 5] error')).toEqual(['error']);
+    });
+    it('skips len_range, ipv4_range, ipv6_range and string_range filters with a bracketed bound', () => {
+      expect(extractMsgSearchWords('size:len_range[5, 10) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('ip:ipv4_range[1.2.3.0, 1.2.3.255] error')).toEqual(['error']);
+      expect(extractMsgSearchWords('ip:ipv6_range[::1, ::ff) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('x:string_range[A, C) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('x:string_range(A, C] error')).toEqual(['error']);
+    });
+    it('skips day_range and week_range time filters with any bracket combination', () => {
+      expect(extractMsgSearchWords('_time:day_range[08:00, 18:00) error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:day_range(08:00, 18:00] error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:week_range[Mon, Fri] error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:week_range(Mon, Fri) error')).toEqual(['error']);
+    });
+    it('skips the offset modifier of a _time filter', () => {
+      expect(extractMsgSearchWords('_time:5m offset 1h error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:[2026-04-25, 2026-04-26) offset 1w error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:day_range[08:00, 18:00) offset 2h error')).toEqual(['error']);
+      expect(extractMsgSearchWords('-_time:5m offset 1h error')).toEqual(['error']);
+    });
+    it('skips a bare offset _time filter', () => {
+      expect(extractMsgSearchWords('_time:offset 1h error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time: offset 1h error')).toEqual(['error']);
+      expect(extractMsgSearchWords('_time:offset 1h')).toEqual([]);
+    });
+    it('keeps an offset word that does not follow a _time filter', () => {
+      expect(extractMsgSearchWords('offset 1h')).toEqual(['offset', '1h']);
+      expect(extractMsgSearchWords('size:5 offset 1h')).toEqual(['offset', '1h']);
+    });
     it('terminates on an unmatched closing brace', () => {
       expect(extractMsgSearchWords('}')).toEqual([]);
       expect(extractMsgSearchWords('error } warn')).toEqual(['error', 'warn']);

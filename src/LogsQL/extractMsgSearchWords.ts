@@ -7,6 +7,14 @@ import { stripComments } from './stripComments';
 
 // Tabs/newlines are normalized to spaces in extractMsgSearchWords, so a plain space is enough here.
 const TERM_SEPARATORS = [' ', ',', ':', '|', '(', ')', '{', '}'];
+// A field value group or range may close with either bracket: `(a OR b)`, `[min, max)`, `(min, max]`
+const VALUE_OPEN = '([';
+const VALUE_CLOSE = ')]';
+// Range functions whose bounds may open with `[`, which is not a term separator: `range[1, 5)`
+const BRACKETED_RANGE_FN = /^(?:range|len_range|ipv4_range|ipv6_range|string_range|day_range|week_range)\[/;
+// `_time:<range> offset <duration>` or a bare `_time:offset <duration>` — the offset shifts the time filter,
+// it is not a search term
+const TIME_OFFSET = /^ *offset +[^ |(){}]+/;
 
 /**
  * Reads a quoted string starting at `openIdx` (quote char at that index)
@@ -106,6 +114,50 @@ function readValueTermInner(s: string, i: number): { term: string | null; isRege
     word = word.slice(0, -1);
   }
   return { term: word ? escapeRegExp(word) : null, isRegex: false, next: j };
+}
+
+/**
+ * Whether the value at `i` is a range (`[min, max)` or `range[min, max)`), which never yields a _msg term
+ */
+function isRangeValue(s: string, i: number): boolean {
+  return s[i] === '[' || BRACKETED_RANGE_FN.test(s.slice(i));
+}
+
+/**
+ * Skips a field value that yields no _msg term: a group, a range, a function call or a plain value
+ * Returns the index past the value.
+ */
+function skipFieldValue(s: string, i: number): number {
+  if (s[i] === '(' || s[i] === '[') {
+    return skipBalanced(s, i, VALUE_OPEN, VALUE_CLOSE);
+  }
+  const rangeFn = BRACKETED_RANGE_FN.exec(s.slice(i));
+  if (rangeFn) {
+    return skipBalanced(s, i + rangeFn[0].length - 1, VALUE_OPEN, VALUE_CLOSE);
+  }
+  const { next } = readValueTerm(s, i);
+  return s[next] === '(' ? skipBalanced(s, next, VALUE_OPEN, VALUE_CLOSE) : next;
+}
+
+/**
+ * Skips an optional `offset <duration>` modifier of a `_time` filter at `i`
+ * Returns the index past the modifier, or `i` when there is none.
+ */
+function skipTimeOffset(s: string, i: number): number {
+  const offset = TIME_OFFSET.exec(s.slice(i));
+  return offset ? i + offset[0].length : i;
+}
+
+/**
+ * Skips a `_time` filter value with its optional offset modifier, which may also stand alone (`_time:offset 1h`)
+ * Returns the index past the value.
+ */
+function skipTimeValue(s: string, i: number): number {
+  const afterBareOffset = skipTimeOffset(s, i);
+  if (afterBareOffset !== i) {
+    return afterBareOffset;
+  }
+  return skipTimeOffset(s, skipFieldValue(s, i));
 }
 
 /**
@@ -218,33 +270,27 @@ function scanFilterSegment(segment: string): string[] {
       while (segment[i] === ' ') {
         i++; // a space after the colon still binds the value to its field
       }
-      // grouped value: `field:(...)` — the whole group binds to the field
+
+      // a non-_msg field value or a range binds to its field and never yields a _msg term
+      if (word !== '_msg' || isRangeValue(segment, i)) {
+        i = word === '_time' ? skipTimeValue(segment, i) : skipFieldValue(segment, i);
+        negateNext = false;
+        continue;
+      }
+
+      // grouped value: `_msg:(...)` — scan the group as default _msg context
       if (segment[i] === '(') {
-        if (word === '_msg') {
-          continue; // scan the group as default _msg context
-        }
-        i = skipBalanced(segment, i, '(', ')'); // group filters a non-_msg field — skip it
-        negateNext = false;
         continue;
       }
-      // range value: `field:[min, max]` — a numeric/time range, never a _msg term
-      if (segment[i] === '[') {
-        i = skipBalanced(segment, i, '[', ']');
-        negateNext = false;
-        continue;
-      }
+
       const { term, next } = readValueTerm(segment, i);
       i = next;
-      // function-style value: `field:fn(...)` — the value word is a function name, not a term
+      // function-style value: `_msg:fn(...)` — the value word is a function name, not a term;
+      // scan the function args as default _msg context
       if (segment[i] === '(') {
-        if (word === '_msg') {
-          continue; // scan the function args as default _msg context
-        }
-        i = skipBalanced(segment, i, '(', ')'); // function filters a non-_msg field — skip it
-        negateNext = false;
         continue;
       }
-      emit(word === '_msg' ? term : null);
+      emit(term);
       continue;
     }
 
