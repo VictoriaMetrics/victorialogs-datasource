@@ -57,7 +57,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
       <Stack direction={'row'} justifyContent={'flex-end'} alignItems={'center'}>
         <LogsQLSyntaxHelp />
         <QueryEditorHelp />
-        {editorMode === QueryEditorMode.Code && (
+        {editorMode === QueryEditorMode.Code && app === CoreApp.Explore && (
           <DrilldownButton
             datasource={datasource}
             query={query}

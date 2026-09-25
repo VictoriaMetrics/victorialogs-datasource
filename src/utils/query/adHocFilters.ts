@@ -61,6 +61,18 @@ export function resolveAdHocFiltersMode(query: Query): AdHocFiltersMode {
   return query.isApplyExtraFiltersToRootQuery ? AdHocFiltersMode.RootQuery : AdHocFiltersMode.ExtraFilters;
 }
 
+/**
+ * Clears the RootQuery mode of a query whose filters `resolveAdHocFilters` has already inlined
+ * into `expr`. Otherwise the mode would travel with the query (e.g. from a dashboard panel to
+ * Explore, where it cannot be changed) and prefix every chip added later. Other modes are kept
+ */
+export function clearResolvedRootQueryMode<T extends Query>(query: T): T {
+  if (resolveAdHocFiltersMode(query) !== AdHocFiltersMode.RootQuery) {
+    return query;
+  }
+  return { ...query, adHocFiltersMode: undefined, isApplyExtraFiltersToRootQuery: undefined };
+}
+
 export interface ExpandedLevelChips {
   levelExpr?: string;
   rest: AdHocFilter[];

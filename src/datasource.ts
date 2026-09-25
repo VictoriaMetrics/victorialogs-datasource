@@ -75,6 +75,7 @@ import { frameHasStreamField } from './utils/dataFrame/streamFields';
 import { isVariable } from './utils/isVariable';
 import { adHocFiltersHaveValue, removeAdHocFilterValue, toggleAdHocFilterValue } from './utils/query/adHocFilterToggle';
 import {
+  clearResolvedRootQueryMode,
   resolveAdHocFilters,
   serializeChipsForBackend,
 } from './utils/query/adHocFilters';
@@ -304,7 +305,7 @@ export class VictoriaLogsDatasource
       const interpolate = (value: string) => this.interpolateString(value, scopedVars);
 
       return {
-        ...query,
+        ...clearResolvedRootQueryMode(query),
         datasource: this.getRef(),
         expr,
         interval: this.templateSrv.replace(query.interval, scopedVars),

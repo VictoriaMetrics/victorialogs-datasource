@@ -701,6 +701,25 @@ describe('VictoriaLogsDatasource', () => {
       expect(result[0].adHocFilters).toBeUndefined();
     });
 
+    it('clears the rootQuery mode once its filters are inlined into expr', () => {
+      const result = ds.interpolateVariablesInQueries(
+        [{ expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.RootQuery }],
+        {},
+        dashboardFilters
+      );
+      expect(result[0].adHocFiltersMode).toBeUndefined();
+      expect(result[0].isApplyExtraFiltersToRootQuery).toBeUndefined();
+    });
+
+    it('keeps the off mode', () => {
+      const result = ds.interpolateVariablesInQueries(
+        [{ expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.Off }],
+        {},
+        dashboardFilters
+      );
+      expect(result[0].adHocFiltersMode).toBe(AdHocFiltersMode.Off);
+    });
+
     it('drops dashboard ad-hoc filters when mode is off', () => {
       const result = ds.interpolateVariablesInQueries(
         [{ expr: '_time:5m', refId: 'A', adHocFiltersMode: AdHocFiltersMode.Off }],
