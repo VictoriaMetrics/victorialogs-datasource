@@ -29,8 +29,13 @@ interface DrilldownFiltersRowProps {
   onApply: () => void;
   timeRange: TimeRange;
   zoomToolbar?: React.ReactNode;
+  /** The drawer's time range differs from the editor's, which "Go to editor" does not transfer */
+  timeRangeChanged?: boolean;
   onAdd: (filter: AdHocFilter) => void;
 }
+
+const APPLY_TOOLTIP = 'Replaces the editor query with the drilldown selection';
+const APPLY_TIME_RANGE_TOOLTIP = `${APPLY_TOOLTIP}. The drilldown time range is not transferred: the editor keeps its own`;
 
 /** The drawer's filter row: the ad-hoc chips, which are editable in place, the zoom toolbar and the go-to-editor button */
 export const DrilldownFiltersRow: React.FC<DrilldownFiltersRowProps> = ({
@@ -42,6 +47,7 @@ export const DrilldownFiltersRow: React.FC<DrilldownFiltersRowProps> = ({
   onApply,
   timeRange,
   zoomToolbar,
+  timeRangeChanged = false,
   onAdd,
 }) => {
   const styles = useStyles2(getStyles);
@@ -134,7 +140,8 @@ export const DrilldownFiltersRow: React.FC<DrilldownFiltersRowProps> = ({
           size='sm'
           variant='primary'
           onClick={onApply}
-          tooltip='Replaces the editor query with the drilldown selection'
+          icon={timeRangeChanged ? 'exclamation-triangle' : undefined}
+          tooltip={timeRangeChanged ? APPLY_TIME_RANGE_TOOLTIP : APPLY_TOOLTIP}
         >
           Go to editor
         </Button>

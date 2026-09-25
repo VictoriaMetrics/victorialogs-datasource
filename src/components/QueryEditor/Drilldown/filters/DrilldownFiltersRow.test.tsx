@@ -282,4 +282,22 @@ describe('DrilldownFiltersRow', () => {
 
     expect(onApply).toHaveBeenCalledTimes(1);
   });
+
+  it('warns on "Go to editor" that a changed time range is not transferred', async () => {
+    render(
+      <DrilldownFiltersRow
+        datasource={datasource}
+        filters={[]}
+        onFiltersChange={jest.fn()}
+        onApply={jest.fn()}
+        timeRange={timeRange}
+        timeRangeChanged
+        {...addFilterDefaults}
+      />
+    );
+
+    await userEvent.hover(screen.getByRole('button', { name: 'Go to editor' }));
+
+    expect(await screen.findByText(/drilldown time range is not transferred/)).toBeInTheDocument();
+  });
 });

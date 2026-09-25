@@ -23,6 +23,7 @@ import { useFieldNames, useStreamFields } from './queries/useFieldListQueries';
 import { usePatternsList } from './queries/useListQueries';
 import { hasDrilldownSelection } from './selection';
 import { makeCounterSuffix } from './shared/TabCounterSuffix';
+import { isSameTimeRange } from './timeRange';
 import { DrilldownTimeZoneContext } from './timeZoneContext';
 
 const toAbsoluteTimeRange = (from: number, to: number): TimeRange => {
@@ -94,17 +95,24 @@ const DrilldownDrawer: React.FC<DrilldownDrawerProps> = ({
 
   const timeRange = zoomRange ?? editorRange;
 
-  const onZoom = useCallback((absRange: AbsoluteTimeRange) => {
-    setZoomRange(toAbsoluteTimeRange(absRange.from, absRange.to));
-  }, []);
+  // a range equal to the editor's one is no zoom, so re-picking it hides Reset and the warning
+  const changeTimeRange = useCallback(
+    (next: TimeRange) => setZoomRange(isSameTimeRange(next, editorRange) ? undefined : next),
+    [editorRange]
+  );
 
-  const onZoomOut = useCallback(() => setZoomRange(shiftRange(timeRange, 0, 1)), [timeRange]);
+  const onZoom = useCallback(
+    (absRange: AbsoluteTimeRange) => changeTimeRange(toAbsoluteTimeRange(absRange.from, absRange.to)),
+    [changeTimeRange]
+  );
+
+  const onZoomOut = useCallback(() => changeTimeRange(shiftRange(timeRange, 0, 1)), [changeTimeRange, timeRange]);
 
   const onZoomReset = useCallback(() => setZoomRange(undefined), []);
 
-  const onMoveBackward = useCallback(() => setZoomRange(shiftRange(timeRange, -1)), [timeRange]);
+  const onMoveBackward = useCallback(() => changeTimeRange(shiftRange(timeRange, -1)), [changeTimeRange, timeRange]);
 
-  const onMoveForward = useCallback(() => setZoomRange(shiftRange(timeRange, 1)), [timeRange]);
+  const onMoveForward = useCallback(() => changeTimeRange(shiftRange(timeRange, 1)), [changeTimeRange, timeRange]);
 
   const fields = useFieldNames(datasource, timeRange, lookupQuery);
   const streams = useStreamFields(datasource, timeRange, lookupQuery);
@@ -192,7 +200,7 @@ const DrilldownDrawer: React.FC<DrilldownDrawerProps> = ({
     <Stack direction='row' gap={1} alignItems='center'>
       <TimeRangePicker
         value={timeRange}
-        onChange={(r) => setZoomRange(r)}
+        onChange={changeTimeRange}
         onZoom={onZoomOut}
         onMoveBackward={onMoveBackward}
         onMoveForward={onMoveForward}
@@ -222,6 +230,7 @@ const DrilldownDrawer: React.FC<DrilldownDrawerProps> = ({
             onApply={onApply}
             timeRange={timeRange}
             zoomToolbar={zoomToolbar}
+            timeRangeChanged={Boolean(zoomRange)}
             onAdd={addFilter}
           />
           <LevelFilterRow filters={filters} onFiltersChange={setFilters} />
