@@ -13,6 +13,12 @@ export const DERIVED_LEVEL_FIELD = '__vl_ds_level';
 
 const derivedLevelValues = new Set<string>(Object.values(UNIQ_LOG_LEVEL));
 
+/**
+ * Distinct values the derived level field can take: one per known level plus the empty string
+ * the reset pipe writes when no rule matches (see buildLevelFormatPipes)
+ */
+export const DERIVED_LEVEL_VALUE_COUNT = derivedLevelValues.size + 1;
+
 const guardedFormatPipe = (condition: string, level: string): string =>
   `format if ((${condition}) and ${DERIVED_LEVEL_FIELD}:"") "${level}" as ${DERIVED_LEVEL_FIELD}`;
 
@@ -46,4 +52,25 @@ export function buildLevelFormatPipes(rules: LogLevelRule[]): string {
  */
 export function parseDerivedLevel(value: string): LogLevel {
   return derivedLevelValues.has(value) ? (value as LogLevel) : LogLevel.unknown;
+}
+
+/** How a hits query splits its volume by log level (see buildLevelGrouping) */
+export interface LevelGrouping {
+  /** Format pipes deriving the level server-side; empty when no usable rules exist */
+  pipes: string;
+  /** The level grouping fields: the single derived field, or the raw `level` without rules */
+  fields: string[];
+}
+
+/**
+ * Resolves the level-splitting recipe for a hits query. With usable rules the
+ * level is derived server-side via `format` pipes and hits group by the single
+ * derived field — grouping by every raw rule field instead would lose the
+ * classifier's first-match-wins semantics and explode the tuple space (a `_msg`
+ * rule can't be grouped at all). Without rules the lightweight `field=level`
+ * request needs no pipes.
+ */
+export function buildLevelGrouping(rules: LogLevelRule[]): LevelGrouping {
+  const pipes = buildLevelFormatPipes(rules);
+  return { pipes, fields: pipes ? [DERIVED_LEVEL_FIELD] : ['level'] };
 }

@@ -22,6 +22,7 @@ export const LevelFilterButton = ({ onClick, label, level, isSelected }: LevelFi
         variant={'secondary'}
         size={'sm'}
         type={'button'}
+        aria-pressed={isSelected}
         style={{ opacity: isSelected ? 1 : 0.5, userSelect: 'none' }}
       >
         <div className={styles.colorCircle} style={{ backgroundColor: getLogLevelColor(level) }} />
