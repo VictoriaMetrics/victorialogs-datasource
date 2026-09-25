@@ -179,10 +179,9 @@ describe('buildValueLogsQuery', () => {
     expect(result.refId).toBe('drilldown-logs-3');
   });
 
-  it('escapes special characters in the value', () => {
-    const result = buildValueLogsQuery({ refId: 'A', expr: '*' }, 'app', 'he"llo', 0);
-    const escaped = escapeLabelValueInSelector('he"llo');
-    expect(result.expr).toBe(`${addLabelToQuery('*', { key: 'app', value: escaped, operator: '=' })} | sort by (_time) desc`);
+  it('escapes quotes and backslashes in the value exactly once', () => {
+    const result = buildValueLogsQuery({ refId: 'A', expr: '*' }, 'app', 'say "hi" C:\\tmp', 0);
+    expect(result.expr).toBe('* AND app:="say \\"hi\\" C:\\\\tmp" | sort by (_time) desc');
   });
 });
 

@@ -4,7 +4,7 @@ import { LogLevelRule } from '../../../../configuration/LogLevelRules/types';
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { escapeLabelValueInSelector } from '../../../../languageUtils';
 import { calculateVolumeStep } from '../../../../logsVolumeLegacy';
-import { addLabelToQuery, insertPipesBeforeSortClassPipe, isStreamKey, normalizeKey } from '../../../../modifyQuery';
+import { addLabelToQuery, insertPipesBeforeSortClassPipe, normalizeKey } from '../../../../modifyQuery';
 import { AdHocFilter, Query, QueryType } from '../../../../types';
 import { serializeChipsForBackend } from '../../../../utils/query/adHocFilters';
 import { usableLevelRules } from '../../../../utils/query/levelExpansion';
@@ -190,12 +190,9 @@ export function buildValueVolumeQuery(
   range: TimeRange,
   refIdSuffix: number
 ): Query {
-  // addLabelToQuery inserts a _stream value raw, because it is a `{...}` selector. Escaping
-  // its inner quotes would produce an invalid stream filter
-  const escapedValue = isStreamKey(field) ? value : escapeLabelValueInSelector(value);
   return {
     ...query,
-    expr: withLevelPipes(addLabelToQuery(query.expr, { key: field, value: escapedValue, operator: '=' }), grouping),
+    expr: withLevelPipes(addLabelToQuery(query.expr, { key: field, value, operator: '=' }), grouping),
     queryType: QueryType.Hits,
     fields: grouping.fields,
     fieldsLimit: FIELD_HITS_LIMIT,
@@ -252,14 +249,11 @@ export function buildRawLogsQuery(query: Query): Query {
 }
 
 export function buildValueLogsQuery(query: Query, field: string, value: string, refIdSuffix: number): Query {
-  // addLabelToQuery inserts a _stream value raw, because it is a `{...}` selector. Escaping
-  // its inner quotes would produce an invalid stream filter
-  const escapedValue = isStreamKey(field) ? value : escapeLabelValueInSelector(value);
   return {
     ...query,
     // addSortPipeToQuery in datasource.query() skips drilldown requests, so the sort belongs
     // here. Without it the backend applies `limit` to unordered rows and returns arbitrary ones
-    expr: `${addLabelToQuery(query.expr, { key: field, value: escapedValue, operator: '=' })} | sort by (_time) desc`,
+    expr: `${addLabelToQuery(query.expr, { key: field, value, operator: '=' })} | sort by (_time) desc`,
     queryType: QueryType.Instant,
     maxLines: VALUE_LOGS_SAMPLE_LIMIT,
     hide: false,
