@@ -1,9 +1,9 @@
 import { DataFrame, FieldConfigSource, LoadingState, LogLevel, TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
-import { aggregateRawLogsVolume, extractLevel } from '../../../../logsVolumeLegacy';
+import { aggregateRawLogsVolume, extractLevel, getUniformVolumeTimeAxis } from '../../../../logsVolumeLegacy';
 import { buildLevelGrouping, LevelGrouping } from '../../../../utils/query/levelFormatPipes';
-import { buildDrilldownRequest, DRILLDOWN_ROW_BARS, getDrilldownLevelRules } from '../queries/drilldownQueries';
+import { DRILLDOWN_ROW_BARS, getDrilldownLevelRules } from '../queries/drilldownQueries';
 
 import { TransformedVolume } from './BreakdownTable';
 
@@ -31,9 +31,9 @@ export function transformLevelVolume(
   frames: DataFrame[],
   range: TimeRange
 ): TransformedVolume {
-  const request = buildDrilldownRequest([], range, 'drilldown-value-volume-aggregate');
-  const perLevel = aggregateRawLogsVolume(frames, extractLevel, request, getDrilldownLevelRules(datasource), DRILLDOWN_ROW_BARS);
-  const summed = aggregateRawLogsVolume(frames, () => LogLevel.unknown, request, [], DRILLDOWN_ROW_BARS).map(
+  const times = getUniformVolumeTimeAxis(range, DRILLDOWN_ROW_BARS);
+  const perLevel = aggregateRawLogsVolume(frames, extractLevel, times, getDrilldownLevelRules(datasource));
+  const summed = aggregateRawLogsVolume(frames, () => LogLevel.unknown, times, []).map(
     (frame) => ({
       ...frame,
       // drop the grey "unknown" level styling so the top chart assigns a palette color

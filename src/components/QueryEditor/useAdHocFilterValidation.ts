@@ -5,7 +5,7 @@ import { TimeRange } from '@grafana/data';
 import { VictoriaLogsDatasource } from '../../datasource';
 import { FilterFieldType, Query } from '../../types';
 import { LRUCache } from '../../utils/LRUCache';
-import { bucketTimeRange } from '../../utils/timeUtils';
+import { bucketTimeRange } from '../../utils/time/bucketTimeRange';
 
 import { buildStreamExtraFilters, withExtraStreamFilters } from './StreamFilters/streamFilterUtils';
 

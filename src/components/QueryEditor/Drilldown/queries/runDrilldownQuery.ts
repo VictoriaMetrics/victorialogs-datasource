@@ -1,9 +1,10 @@
 import { Unsubscribable } from 'rxjs';
 
-import { DataFrame, DataQueryError, DataQueryRequest, DataQueryResponse, toDataFrame } from '@grafana/data';
+import { DataFrame, DataQueryError, DataQueryRequest, toDataFrame } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { Query } from '../../../../types';
+import { responseErrors } from '../../../../utils/dataQueryResponse';
 
 import { errorMessage } from './errorMessage';
 import { scheduleDrilldownQuery } from './queryScheduler';
@@ -18,25 +19,6 @@ interface DrilldownQueryHandlers {
 /** Joins the errors into one line, for the hooks that keep a single error string */
 export const toErrorText = (errors: DataQueryError[]): string => errors.map((e) => e.message).join('; ');
 
-/** Fills in `message`, which the rest of the drilldown reads without checking the other fields */
-const withMessage = (error: DataQueryError): DataQueryError => ({
-  ...error,
-  message: error.message ?? error.data?.message ?? error.statusText ?? 'Query failed',
-});
-
-/**
- * Reads the errors of one response. `errors` is the current field, and `error` is the
- * deprecated single-value predecessor that parts of Grafana still fill in on their own, so
- * fall back to it when `errors` is missing. Keeping the deprecated access here means the
- * drilldown reads it in one place
- */
-export function responseErrors(resp: DataQueryResponse): DataQueryError[] {
-  if (resp.errors?.length) {
-    return resp.errors.map(withMessage);
-  }
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  return resp.error ? [withMessage(resp.error)] : [];
-}
 
 /**
  * Runs a drilldown request through the shared scheduler and collects its frames.

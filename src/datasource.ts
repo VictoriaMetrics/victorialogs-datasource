@@ -45,7 +45,9 @@ import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABL
 import LogsQlLanguageProvider from './language_provider';
 import { LiveChannelPathProvider } from './live/LiveChannelPathProvider';
 import { LogContextProvider } from './logContext/LogContextProvider';
-import { LOGS_VOLUME_BARS, LOGS_VOLUME_DEFAULT_GROUP_BY, LOGS_VOLUME_GROUPS_LIMIT, queryLogsVolume } from './logsVolumeLegacy';
+import { LogsGate, openLogsGate } from './logsVolume/logsGate';
+import { getRequestVolumeBucketing } from './logsVolume/volumeBucketing';
+import { LOGS_VOLUME_DEFAULT_GROUP_BY, LOGS_VOLUME_GROUPS_LIMIT, queryLogsVolume } from './logsVolumeLegacy';
 import {
   addLabelToQuery,
   addSortPipeToQuery,
@@ -81,7 +83,8 @@ import {
 } from './utils/query/adHocFilters';
 import { buildLevelGrouping } from './utils/query/levelFormatPipes';
 import { streamFiltersHaveValue, toggleStreamFilterValue } from './utils/query/streamFilterToggle';
-import { formatOffsetDuration, getMillisecondsFromDuration } from './utils/timeUtils';
+import { getMillisecondsFromDuration } from './utils/time/duration';
+import { formatOffsetDuration } from './utils/time/timezoneOffset';
 import { VariableSupport } from './variableSupport/VariableSupport';
 
 export { resolveAdHocFiltersMode } from './utils/query/adHocFilters';
@@ -107,6 +110,8 @@ export class VictoriaLogsDatasource
   multitenancyHeaders?: MultitenancyHeaders;
   logContextProvider: LogContextProvider;
   private readonly liveChannelPathProvider = new LiveChannelPathProvider();
+  /** Gate of the last Explore query(), consumed by the getDataProvider() call Grafana makes right after it */
+  private pendingLogsGate: LogsGate | undefined;
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<Options>,
@@ -145,6 +150,8 @@ export class VictoriaLogsDatasource
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
+    const logsGate = openLogsGate(request);
+    this.pendingLogsGate = logsGate;
     const timezoneOffset = formatOffsetDuration(request.timezone, request.range.from.utcOffset());
     const queries: Query[] = request.targets
       .filter((q) => q.expr || config.publicDashboardAccessToken !== '')
@@ -154,7 +161,8 @@ export class VictoriaLogsDatasource
           // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
           expr: addSortPipeToQuery(q, request.app, request.liveStreaming),
           maxLines: Math.min(q.maxLines ?? this.maxLines, LOGS_LIMIT_HARD_CAP),
-          timezoneOffset,
+          // a volume target already carries its bucket grid shift
+          timezoneOffset: q.timezoneOffset ?? timezoneOffset,
           format: getQueryFormat(q.expr),
           step: this.templateSrv.replace(q.step, request.scopedVars),
         };
@@ -168,7 +176,7 @@ export class VictoriaLogsDatasource
       return this.runLiveQueryThroughBackend(request);
     }
 
-    return this.runQuery(request);
+    return logsGate ? this.runQuery(request).pipe(logsGate.logs()) : this.runQuery(request);
   }
 
   runQuery(fixedRequest: DataQueryRequest<Query>) {
@@ -546,16 +554,15 @@ export class VictoriaLogsDatasource
           return undefined;
         }
 
-        const totalSeconds = request.range.to.diff(request.range.from, 'second');
-        const step = Math.ceil(totalSeconds / LOGS_VOLUME_BARS) || '';
+        const { step, offset } = getRequestVolumeBucketing(request);
 
         const volumeQuery = {
           ...query,
-          step: `${step}s`,
+          step,
           queryType: QueryType.Hits,
           refId: `${REF_ID_STARTER_LOG_VOLUME}${query.refId}`,
           supportingQueryType: SupportingQueryType.LogsVolume,
-          timezoneOffset: formatOffsetDuration(request.timezone, request.range.from.utcOffset()),
+          timezoneOffset: offset,
         };
 
         // Custom grouping: one series per field value, level derivation is not involved.
@@ -616,8 +623,12 @@ export class VictoriaLogsDatasource
     }
 
     switch (type) {
-      case SupplementaryQueryType.LogsVolume:
-        return queryLogsVolume(this, newRequest);
+      case SupplementaryQueryType.LogsVolume: {
+        const logsGate = this.pendingLogsGate;
+        this.pendingLogsGate = undefined;
+        const hits = () => this.query(newRequest);
+        return queryLogsVolume(newRequest, logsGate ? logsGate.volume(hits) : hits(), this.getActiveLevelRules());
+      }
       default:
         return undefined;
     }

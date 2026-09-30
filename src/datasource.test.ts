@@ -1,12 +1,16 @@
-import { firstValueFrom, of } from 'rxjs';
+import { firstValueFrom, of, throwError } from 'rxjs';
+import { TestScheduler } from 'rxjs/testing';
 
 import {
   AdHocVariableFilter,
+  CoreApp,
   DataFrame,
   DataQueryRequest,
   DataQueryResponse,
   DataSourceInstanceSettings,
+  dateTimeForTimeZone,
   FieldType,
+  LoadingState,
   LogLevel,
   SupplementaryQueryOptions,
   SupplementaryQueryType,
@@ -14,16 +18,23 @@ import {
 import * as grafanaRuntime from '@grafana/runtime';
 import { TemplateSrv } from '@grafana/runtime';
 
-
 // eslint-disable-next-line jest/no-mocks-import
 import { createDatasource } from './__mocks__/datasource';
 import { LogLevelRuleType } from './configuration/LogLevelRules/types';
 import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
 import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { VictoriaLogsDatasource } from './datasource';
+import { queryLogsVolume } from './logsVolumeLegacy';
+import store from './store/store';
 import { AdHocFilter, AdHocFiltersMode, FilterActionType, Query, QueryType, SupportingQueryType, ToggleFilterAction } from './types';
 import { buildExactLevelExprMap } from './utils/query/levelExpansion';
 import { DERIVED_LEVEL_FIELD } from './utils/query/levelFormatPipes';
+import { DAY_MS, HOUR_MS } from './utils/time/constants';
+
+jest.mock('./logsVolumeLegacy', () => ({
+  ...jest.requireActual('./logsVolumeLegacy'),
+  queryLogsVolume: jest.fn(),
+}));
 
 const replaceMock = jest.fn().mockImplementation((a: string) => a);
 
@@ -38,6 +49,26 @@ beforeEach(() => {
   // so per-test mockImplementation calls don't leak into the following tests
   replaceMock.mockImplementation((a: string) => a);
 });
+
+const RANGE_TO = Date.UTC(2026, 8, 21, 10, 0);
+
+/** An Explore request whose range carries the UTC offset of its timezone, as Grafana builds it */
+const makeExploreRequest = ({
+  targets = [],
+  spanMs = HOUR_MS,
+  timezone = 'UTC',
+}: { targets?: Query[]; spanMs?: number; timezone?: string } = {}): DataQueryRequest<Query> =>
+  ({
+    app: CoreApp.Explore,
+    requestId: 'r1',
+    interval: '1s',
+    intervalMs: 1000,
+    range: { from: dateTimeForTimeZone(timezone, RANGE_TO - spanMs), to: dateTimeForTimeZone(timezone, RANGE_TO), raw: { from: 'now-1h', to: 'now' } },
+    scopedVars: {},
+    targets,
+    timezone,
+    startTime: 0,
+  }) as DataQueryRequest<Query>;
 
 describe('VictoriaLogsDatasource', () => {
   let ds: VictoriaLogsDatasource;
@@ -1355,21 +1386,7 @@ describe('VictoriaLogsDatasource preset merge', () => {
       ds = createDatasource(templateSrvStub);
     });
 
-    const makeRequest = (): DataQueryRequest<Query> => ({
-      app: 'explore',
-      requestId: 'r1',
-      interval: '1s',
-      intervalMs: 1000,
-      range: {
-        from: { utcOffset: () => 0, diff: () => 3600 } as any,
-        to: { utcOffset: () => 0, diff: () => 3600 } as any,
-        raw: { from: 'now-1h', to: 'now' },
-      } as any,
-      scopedVars: {},
-      targets: [],
-      timezone: 'UTC',
-      startTime: 0,
-    }) as DataQueryRequest<Query>;
+    const makeRequest = (spanMs = HOUR_MS, timezone = 'UTC') => makeExploreRequest({ spanMs, timezone });
 
     const makeQuery = (queryType: QueryType, overrides: Partial<Query> = {}): Query => ({
       refId: 'A',
@@ -1405,6 +1422,19 @@ describe('VictoriaLogsDatasource preset merge', () => {
           makeRequest(),
         );
         expect(result).toBeUndefined();
+      });
+
+      it('buckets the volume by the VMUI step of the range (1h at the default 96 bars → 30s) with no grid shift in UTC', () => {
+        const result = ds.getSupplementaryQuery(opts, makeQuery(QueryType.Instant), makeRequest());
+        expect(result?.step).toBe('30s');
+        expect(result?.timezoneOffset).toBeUndefined();
+      });
+
+      it('shifts week buckets to Monday in the local timezone (365d, UTC+2 → 7d, 3d2h)', () => {
+        const request = makeRequest(365 * DAY_MS, 'Europe/Berlin');
+        const result = ds.getSupplementaryQuery(opts, makeQuery(QueryType.Instant), request);
+        expect(result?.step).toBe('7d');
+        expect(result?.timezoneOffset).toBe('3d2h');
       });
 
       it('keeps the lightweight level grouping when no level rules are active', () => {
@@ -1668,5 +1698,116 @@ describe('VictoriaLogsDatasource live streaming', () => {
 
     const lineField = (response.data[0] as DataFrame).fields.find((f) => f.name === 'Line');
     expect(lineField?.values[0]).toBe('msg');
+  });
+});
+
+describe('getDataProvider', () => {
+  const makeRequest = (targets: Query[]) => makeExploreRequest({ targets });
+  const rawLogs: Query = { refId: 'A', expr: '*', queryType: QueryType.Instant };
+
+  const volumeSpy = jest.mocked(queryLogsVolume);
+  /** The hits source the provider handed to the volume pipeline */
+  const providerSource = () => volumeSpy.mock.calls[0][1];
+  const isHitsCall = ([req]: [DataQueryRequest<Query>]) => req.targets[0].queryType === QueryType.Hits;
+
+  let backendQuery: jest.SpyInstance;
+  beforeEach(() => {
+    volumeSpy.mockReset().mockReturnValue(of({ data: [] }));
+    backendQuery = jest.spyOn(grafanaRuntime.DataSourceWithBackend.prototype, 'query').mockReturnValue(of({ data: [] }));
+    jest.spyOn(store, 'get').mockReturnValue('Descending');
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  it('builds the volume request and runs the hits at once when no logs gate is pending', () => {
+    const ds = createDatasource(templateSrvStub);
+    ds.getDataProvider(SupplementaryQueryType.LogsVolume, makeRequest([rawLogs]));
+
+    expect(volumeSpy).toHaveBeenCalledWith(expect.objectContaining({ targets: [expect.objectContaining({ refId: 'log-volume-A' })] }), expect.anything(), []);
+    providerSource().subscribe();
+    expect(backendQuery).toHaveBeenCalledTimes(1);
+    expect(backendQuery.mock.calls[0][0].targets[0]).toMatchObject({ refId: 'log-volume-A', queryType: QueryType.Hits });
+  });
+
+  it('holds the hits back until the raw logs of the query() made right before have answered', () => {
+    const ds = createDatasource(templateSrvStub);
+    const scheduler = new TestScheduler((a, e) => expect(a).toEqual(e));
+    scheduler.run(({ cold, flush }) => {
+      backendQuery.mockImplementation((req: DataQueryRequest<Query>) =>
+        cold<DataQueryResponse>(req.targets[0].queryType === QueryType.Hits ? '-(a|)' : '--(a|)', { a: { data: [] } })
+      );
+      const request = makeRequest([rawLogs]);
+      ds.query(request).subscribe();
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, { ...request, requestId: 'r1_logs_volume_0' });
+      providerSource().subscribe();
+
+      // only the logs request is in flight
+      expect(backendQuery).toHaveBeenCalledTimes(1);
+      flush();
+      expect(backendQuery.mock.calls.map(isHitsCall)).toEqual([false, true]);
+    });
+  });
+
+  it('skips the hits and completes the volume empty when the logs request fails', () => {
+    const ds = createDatasource(templateSrvStub);
+    backendQuery.mockImplementation((req: DataQueryRequest<Query>) =>
+      req.targets[0].queryType === QueryType.Hits ? of({ data: [] }) : throwError(() => new Error('boom'))
+    );
+    const request = makeRequest([rawLogs]);
+    ds.query(request).subscribe({ error: () => undefined });
+    ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+    const volume: DataQueryResponse[] = [];
+    providerSource().subscribe((p) => volume.push(p));
+    expect(backendQuery.mock.calls.filter(isHitsCall)).toHaveLength(0);
+    expect(volume).toEqual([{ data: [], state: LoadingState.Done }]);
+  });
+
+  it('keeps the logs query streaming until the volume is finished, so Explore keeps the Cancel button', () => {
+    const ds = createDatasource(templateSrvStub);
+    const scheduler = new TestScheduler((a, e) => expect(a).toEqual(e));
+    scheduler.run(({ cold, expectObservable }) => {
+      backendQuery.mockImplementation((req: DataQueryRequest<Query>) =>
+        cold<DataQueryResponse>(req.targets[0].queryType === QueryType.Hits ? '--(a|)' : '-(a|)', { a: { data: [] } })
+      );
+      const request = makeRequest([rawLogs]);
+      const logs = ds.query(request);
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+      expectObservable(providerSource()).toBe('---(a|)', { a: { data: [] } });
+      expectObservable(logs).toBe('-s-(d|)', {
+        s: expect.objectContaining({ state: LoadingState.Streaming }),
+        d: expect.objectContaining({ state: LoadingState.Done }),
+      });
+    });
+  });
+
+  it('hands the gate over once — the next provider without a query() runs the hits at once', () => {
+    const ds = createDatasource(templateSrvStub);
+    const request = makeRequest([rawLogs]);
+    ds.query(request);
+    ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+    volumeSpy.mockClear();
+    ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+    providerSource().subscribe();
+    // backendQuery also saw the logs request of query(), so count the hits only
+    expect(backendQuery.mock.calls.filter(isHitsCall)).toHaveLength(1);
+  });
+
+  it('sends the bucket grid shift of the volume target to the backend instead of the plain timezone offset', () => {
+    const ds = createDatasource(templateSrvStub);
+    ds.getDataProvider(SupplementaryQueryType.LogsVolume, makeExploreRequest({ targets: [rawLogs], spanMs: 365 * DAY_MS, timezone: 'Europe/Berlin' }));
+    providerSource().subscribe();
+    // 365d → 7d buckets shifted to Monday: 3d on top of UTC+2
+    expect(backendQuery.mock.calls[0][0].targets[0]).toMatchObject({ step: '7d', timezoneOffset: '3d2h' });
+  });
+
+  it.each([
+    ['a dashboard request', { app: CoreApp.Dashboard }],
+    ['a mixed request with a stats target', { targets: [rawLogs, { refId: 'B', expr: '* | stats count()', queryType: QueryType.StatsRange }] }],
+  ])('runs the hits at once after %s — no gate is opened', (_label, overrides) => {
+    const ds = createDatasource(templateSrvStub);
+    const request = { ...makeRequest([rawLogs]), ...overrides } as DataQueryRequest<Query>;
+    ds.query(request);
+    ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+    providerSource().subscribe();
+    expect(backendQuery.mock.calls.filter(isHitsCall)).toHaveLength(1);
   });
 });
