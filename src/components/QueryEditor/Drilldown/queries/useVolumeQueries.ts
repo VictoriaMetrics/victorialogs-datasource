@@ -3,8 +3,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CoreApp, FieldType, LoadingState, PanelData, SupplementaryQueryType, TimeRange } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
-import { aggregateRawLogsVolume, extractLevel, queryLogsVolume } from '../../../../logsVolumeLegacy';
+import { aggregateRawLogsVolume, extractLevel, getUniformVolumeTimeAxis, queryLogsVolume } from '../../../../logsVolumeLegacy';
 import { Query, QueryType } from '../../../../types';
+import { responseErrors } from '../../../../utils/dataQueryResponse';
 import { buildLevelGrouping, DERIVED_LEVEL_VALUE_COUNT } from '../../../../utils/query/levelFormatPipes';
 
 import {
@@ -20,7 +21,7 @@ import {
 import { errorMessage } from './errorMessage';
 import { FACETS_VALUES_LIMIT } from './facets';
 import { drilldownQueryScheduler } from './queryScheduler';
-import { responseErrors, runDrilldownQuery, toErrorText } from './runDrilldownQuery';
+import { runDrilldownQuery, toErrorText } from './runDrilldownQuery';
 
 /**
  * Headroom per field value when hits group by the raw `level` field, whose cardinality the
@@ -43,7 +44,8 @@ export function useLogsVolume(datasource: VictoriaLogsDatasource, query: Query, 
     const rawQuery: Query = { ...query, hide: false, queryType: QueryType.Instant };
     const request = buildDrilldownRequest([rawQuery], range, 'drilldown-volume', CoreApp.Unknown);
     const volumeQuery = datasource.getSupplementaryQuery({ type: SupplementaryQueryType.LogsVolume }, rawQuery, request);
-    const observable = volumeQuery && queryLogsVolume(datasource, { ...request, targets: [volumeQuery] });
+    const volumeRequest = volumeQuery && { ...request, targets: [volumeQuery] };
+    const observable = volumeRequest && queryLogsVolume(volumeRequest, datasource.query(volumeRequest), getDrilldownLevelRules(datasource));
     if (!observable) {
       // this query has no volume. Settle the state, otherwise a Loading left by a cancelled
       // previous request would never end
@@ -186,8 +188,8 @@ export function useFieldValuesHits(
 
   const rangeKey = `${range.from.valueOf()}-${range.to.valueOf()}`;
   const top = useMemo<FieldValueVolume[]>(() => {
-    // the aggregation reads only the range from the request, so the target list stays empty
-    const request = buildDrilldownRequest([], range, 'drilldown-field-values-aggregate');
+    // the same grid the hits query was bucketed with (calculateVolumeStep at DRILLDOWN_ROW_BARS)
+    const times = getUniformVolumeTimeAxis(range, DRILLDOWN_ROW_BARS);
     // the same rules the server-side grouping was built from, so drafts never reach the client matcher
     const rules = getDrilldownLevelRules(datasource);
     return groups.map(({ value, total, frames }) => ({
@@ -196,7 +198,7 @@ export function useFieldValuesHits(
       volumeData: {
         // the same level grouping and coloring the main logs-volume path uses, with the
         // narrower row-chart bucket count so the grid matches the query's own step
-        series: aggregateRawLogsVolume(frames, extractLevel, request, rules, DRILLDOWN_ROW_BARS),
+        series: aggregateRawLogsVolume(frames, extractLevel, times, rules),
         state: LoadingState.Done,
         timeRange: range,
       },

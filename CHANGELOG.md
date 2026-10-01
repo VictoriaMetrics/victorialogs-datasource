@@ -6,6 +6,9 @@
 
     - **Note:** for now, the `Drilldown` button is available only in the `Code` mode of the Explore query editor. The drawer does not take the current Explore query and always opens with the `*` query.
 
+* FEATURE: in Explore, request the logs volume histogram after the `Raw Logs` query answers, so the logs appear as early as possible.
+* FEATURE: pick the logs volume bucket step the same way the VictoriaLogs UI does: the closest of its steps from `1s` to `364d`, with the number of buckets following the panel width. Buckets are aligned to calendar boundaries in the dashboard timezone, and weeks start on Monday.
+
 ## v0.32.0
 
 * FEATURE: add a `Group hits by` option to `Raw Logs` queries in Explore: the logs volume histogram can be grouped by any log field instead of the default `level`. See [#689](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/689).

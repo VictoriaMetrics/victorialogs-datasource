@@ -20,7 +20,7 @@ import { IconButton } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../datasource';
 import { Query } from '../../types';
-import { getDurationFromMilliseconds } from '../../utils/timeUtils';
+import { getDurationFromMilliseconds } from '../../utils/time/duration';
 
 const getTimeUrlParams = (panelData?: PanelData) => {
   const timeRange = panelData?.timeRange || getDefaultTimeRange();

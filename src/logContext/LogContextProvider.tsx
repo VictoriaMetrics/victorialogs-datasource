@@ -18,7 +18,7 @@ import { escapeLabelValueInExactSelector, escapeLabelValueInSelector } from '../
 import { FrameField } from '../transformers/types';
 import { Query } from '../types';
 import { getFrameStreamsField } from '../utils/dataFrame/streamFields';
-import { formatNanosEpochToISO } from '../utils/timeUtils';
+import { formatNanosEpochToISO } from '../utils/time/nanosEpoch';
 
 import { LogContextUI } from './components/LogContextUI';
 

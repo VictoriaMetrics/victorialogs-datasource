@@ -1,4 +1,5 @@
-import { from, isObservable, Observable } from 'rxjs';
+import { sortedLastIndex } from 'lodash';
+import { catchError, concat, map, Observable, of, startWith, throwError } from 'rxjs';
 
 import {
   DataFrame,
@@ -18,78 +19,65 @@ import { BarAlignment, GraphDrawStyle, StackingMode } from '@grafana/schema';
 import { LOG_LEVEL_COLOR } from './configuration/LogLevelRules/const';
 import { LogLevelRule } from './configuration/LogLevelRules/types';
 import { extractLevelFromLabels } from './configuration/LogLevelRules/utils';
-import { VictoriaLogsDatasource } from './datasource';
+import { getRequestVolumeBucketing } from './logsVolume/volumeBucketing';
 import { Query } from './types';
+import { responseErrors } from './utils/dataQueryResponse';
 import { DERIVED_LEVEL_FIELD, parseDerivedLevel } from './utils/query/levelFormatPipes';
 
-export const LOGS_VOLUME_BARS = 100;
 /** Cap on the number of series when the volume is grouped by a custom field — VictoriaLogs merges the tail into one bucket */
 export const LOGS_VOLUME_GROUPS_LIMIT = 20;
 /** Default logs volume grouping — level-based aggregation with level colors */
 export const LOGS_VOLUME_DEFAULT_GROUP_BY = 'level';
 
 /** Computes the bucket step (seconds) so a time range is split into `bars` buckets */
-export function calculateVolumeStep(range: TimeRange, bars = LOGS_VOLUME_BARS): number {
+export function calculateVolumeStep(range: TimeRange, bars: number): number {
   const totalSeconds = range.to.diff(range.from, 'second');
   return Math.ceil(totalSeconds / bars) || 1;
 }
 
-export const queryLogsVolume = (datasource: VictoriaLogsDatasource, request: DataQueryRequest<Query>): Observable<DataQueryResponse> | undefined => {
-  return new Observable((observer) => {
-    let rawLogsVolume: DataFrame[] = [];
-    observer.next({
-      state: LoadingState.Loading,
-      error: undefined,
-      data: [],
-    });
+/** Time axis of `bars` evenly spaced buckets starting at range.from, for hits queried with calculateVolumeStep */
+export function getUniformVolumeTimeAxis(range: TimeRange, bars: number): number[] {
+  const stepMs = calculateVolumeStep(range, bars) * 1000;
+  const from = range.from.valueOf();
+  return Array.from({ length: bars }, (_, i) => from + i * stepMs);
+}
 
-    const queryResponse = datasource.query(request);
-    const queryObservable = isObservable(queryResponse) ? queryResponse : from(queryResponse);
+/**
+ * Aggregated logs volume of a hits source: emits `Loading`, then one packet per source
+ * packet with its state (`Done` when the source has none). Errors surface as an `Error`
+ * packet before the stream fails
+ */
+export const queryLogsVolume = (
+  request: DataQueryRequest<Query>,
+  source: Observable<DataQueryResponse>,
+  rules: LogLevelRule[]
+): Observable<DataQueryResponse> => {
+  const aggregate = (rawLogsVolume: DataFrame[]): DataFrame[] => {
+    const aggregated = aggregateVolumeFrames(rawLogsVolume, request.targets, request, rules);
+    if (aggregated[0]) {
+      aggregated[0].meta = {
+        custom: {
+          targets: request.targets,
+          absoluteRange: { from: request.range.from.valueOf(), to: request.range.to.valueOf() },
+        },
+      };
+    }
+    return aggregated;
+  };
 
-    const subscription = queryObservable.subscribe({
-      complete: () => {
-        const aggregatedLogsVolume = aggregateVolumeFrames(rawLogsVolume, request.targets, request, datasource.logLevelRules);
-        if (aggregatedLogsVolume[0]) {
-          aggregatedLogsVolume[0].meta = {
-            custom: {
-              targets: request.targets,
-              absoluteRange: { from: request.range.from.valueOf(), to: request.range.to.valueOf() },
-            },
-          };
-        }
-        observer.next({
-          state: LoadingState.Done,
-          error: undefined,
-          data: aggregatedLogsVolume,
-        });
-        observer.complete();
-      },
-      next: (dataQueryResponse: DataQueryResponse) => {
-        const { error } = dataQueryResponse;
-        if (error !== undefined) {
-          observer.next({
-            state: LoadingState.Error,
-            error,
-            data: [],
-          });
-          observer.error(error);
-        } else {
-          rawLogsVolume = rawLogsVolume.concat(dataQueryResponse.data.map(toDataFrame));
-        }
-      },
-      error: (error) => {
-        observer.next({
-          state: LoadingState.Error,
-          error: error,
-          data: [],
-        });
-        observer.error(error);
-      },
-    });
-    return () => {
-      subscription?.unsubscribe();
-    };
-  });
+  return source.pipe(
+    map((response) => {
+      // an in-band response error fails the stream like a thrown one
+      const [error] = responseErrors(response);
+      if (error) {
+        throw error;
+      }
+      // every packet carries the hits of the whole range, so each one is aggregated from scratch
+      return { state: response.state ?? LoadingState.Done, data: aggregate(response.data.map(toDataFrame)) };
+    }),
+    startWith({ state: LoadingState.Loading, data: [] }),
+    catchError((error) => concat(of({ state: LoadingState.Error, error, data: [] }), throwError(() => error)))
+  );
 };
 
 /** Label for the group of logs that don't have the grouping field (empty value in VictoriaLogs) */
@@ -150,12 +138,27 @@ export function aggregateVolumeFrames(
     customGroups.set(key, bucket);
   });
 
+  const times = getVolumeTimeAxis(rawLogsVolume, request);
+
   return [
-    ...aggregateRawLogsVolume(levelFrames, extractLevel, request, rules),
+    ...aggregateRawLogsVolume(levelFrames, extractLevel, times, rules),
     ...Array.from(customGroups.values(), ({ label, frames }) =>
-      aggregateFields(frames, getGroupVolumeFieldConfig(label), request)
+      aggregateFields(frames, getGroupVolumeFieldConfig(label), times)
     ),
   ];
+}
+
+/**
+ * Time axis of the volume: the calendar bucket grid of the request range, so empty
+ * buckets are zero-filled, plus any timestamp the frames carry off that grid — a
+ * bucket VictoriaLogs aligned differently must not lose its hits
+ */
+function getVolumeTimeAxis(frames: DataFrame[], request: DataQueryRequest<Query>): number[] {
+  const times = new Set<number>(getRequestVolumeBucketing(request).bucketStarts);
+  frames.forEach((frame) => {
+    frame.fields.find((f) => f.type === FieldType.time)?.values.forEach((t: number) => times.add(t));
+  });
+  return Array.from(times).sort((a, b) => a - b);
 }
 
 /**
@@ -165,9 +168,8 @@ export function aggregateVolumeFrames(
 export function aggregateRawLogsVolume(
   rawLogsVolume: DataFrame[],
   extractLevel: (dataFrame: DataFrame, rules: LogLevelRule[]) => LogLevel,
-  request: DataQueryRequest<Query>,
-  rules: LogLevelRule[],
-  bars = LOGS_VOLUME_BARS
+  times: number[],
+  rules: LogLevelRule[]
 ): DataFrame[] {
   const logsVolumeByLevelMap: Partial<Record<LogLevel, DataFrame[]>> = {};
 
@@ -183,56 +185,45 @@ export function aggregateRawLogsVolume(
     return aggregateFields(
       logsVolumeByLevelMap[level as LogLevel]!,
       getLogVolumeFieldConfig(level as LogLevel),
-      request,
-      bars
+      times
     );
   });
 }
 
 /**
- * Aggregate multiple data frames into a single data frame by adding values.
- * Multiple data frames for the same level are passed here to get a single
- * data frame for a given level. Aggregation by level happens in aggregateRawLogsVolume()
+ * Aggregate multiple data frames into a single data frame by adding values on the
+ * given time axis (missing points count as zero). Multiple data frames for the same
+ * level are passed here to get a single data frame for a given level. Aggregation
+ * by level happens in aggregateRawLogsVolume()
  */
-function aggregateFields(
-  dataFrames: DataFrame[],
-  config: FieldConfig,
-  request: DataQueryRequest<Query>,
-  bars = LOGS_VOLUME_BARS
-): DataFrame {
+function aggregateFields(dataFrames: DataFrame[], config: FieldConfig, times: number[]): DataFrame {
   const aggregatedDataFrame = new MutableDataFrame();
-  if (!dataFrames.length) {
+  if (!dataFrames.length || !times.length) {
     return aggregatedDataFrame;
   }
 
-  const stepMs = calculateVolumeStep(request.range, bars) * 1000;
-  const from = request.range.from.valueOf();
-
-  aggregatedDataFrame.addField({ name: 'Time', type: FieldType.time }, bars);
-  aggregatedDataFrame.addField({ name: 'Value', type: FieldType.number, config }, bars);
-
-  // Sum-preserving re-bucketing: every source bucket lands in exactly one grid cell, so the
-  // chart (and its legend totals) always adds up to the raw hits. The previous nearest-match
-  // lookup dropped edge buckets — VictoriaLogs aligns its buckets to an absolute step grid,
-  // the display grid starts at range.from, and with bars+1 source buckets on bars grid points
-  // at least one bucket found no grid point within half a step and silently vanished.
-  const sums = new Array<number>(bars).fill(0);
-  for (const frame of dataFrames) {
+  // Sum-preserving re-bucketing: every source bucket lands in exactly one cell of the axis,
+  // so the chart (and its legend totals) always adds up to the raw hits even when
+  // VictoriaLogs aligns its buckets differently from the axis
+  const sums = new Array<number>(times.length).fill(0);
+  dataFrames.forEach((frame) => {
     const [frameTimes, frameValues] = frame.fields;
-    frameTimes.values.forEach((t: number, i: number) => {
-      // clamp: the first/last VL buckets are aligned outside [from, to) but still hold
-      // in-range hits — fold them into the edge cells instead of dropping them
-      const cell = Math.min(bars - 1, Math.max(0, Math.floor((t - from) / stepMs)));
-      sums[cell] += frameValues.values[i] ?? 0;
+    frameTimes.values.forEach((time: number, i: number) => {
+      sums[findTimeCell(times, time)] += frameValues.values[i] ?? 0;
     });
-  }
+  });
 
-  for (let pointIndex = 0; pointIndex < bars; pointIndex++) {
-    aggregatedDataFrame.set(pointIndex, { Value: sums[pointIndex], Time: from + pointIndex * stepMs });
-  }
+  aggregatedDataFrame.addField({ name: 'Time', type: FieldType.time }, times.length);
+  aggregatedDataFrame.addField({ name: 'Value', type: FieldType.number, config }, times.length);
+  times.forEach((time, pointIndex) => {
+    aggregatedDataFrame.set(pointIndex, { Time: time, Value: sums[pointIndex] });
+  });
 
   return aggregatedDataFrame;
 }
+
+/** Cell of the last axis time at or before `time`; a bucket aligned before the axis folds into the first cell */
+const findTimeCell = (times: number[], time: number): number => Math.max(0, sortedLastIndex(times, time) - 1);
 
 /**
  * Returns field configuration used to render logs volume bars

@@ -22,8 +22,7 @@ export const FIELD_VALUES_LIMIT = 100;
 /** Only every Nth log feeds the patterns list, because collapse_nums over the whole selection is the drawer's slowest computation */
 export const PATTERNS_SAMPLE_FACTOR = 10;
 export const FIELD_HITS_LIMIT = 100;
-// a row chart is 300 to 500 pixels wide, so it needs fewer buckets than the full-width main
-// volume chart. At LOGS_VOLUME_BARS the bars would render as hairlines
+// a row chart is 300 to 500 pixels wide, so it needs fewer buckets than the full-width main volume chart
 export const DRILLDOWN_ROW_BARS = 50;
 
 /** Level rules the drilldown classifies with: the active ones minus drafts without a field */
