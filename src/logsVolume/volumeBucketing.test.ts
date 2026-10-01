@@ -95,6 +95,12 @@ describe('getVolumeBucketing', () => {
       expect(getVolumeBucketing(makeRange(T0 - 365 * DAY_MS, T0), 120).offset).toBe('3d2h');
       expect(getVolumeBucketing(makeRange(T0 - 365 * DAY_MS, T0), -120).offset).toBe('2d22h');
     });
+
+    it('adds the three days for every whole-week step', () => {
+      // 365d / 26 bars ≈ 14d, 365d / 13 bars ≈ 28d
+      expect(getVolumeBucketing(makeRange(T0 - 365 * DAY_MS, T0), 0, 26)).toMatchObject({ step: '14d', offset: '3d' });
+      expect(getVolumeBucketing(makeRange(T0 - 365 * DAY_MS, T0), 120, 13)).toMatchObject({ step: '28d', offset: '3d2h' });
+    });
   });
 });
 
@@ -111,10 +117,10 @@ describe('getRequestVolumeBucketing', () => {
     expect(bucketing.offset).toBe('3h');
   });
 
-  it('uses the browser offset for the browser timezone', () => {
+  it('uses the offset of the range start for the browser timezone', () => {
+    // a browser-timezone range is a local dateTime, so its offset is the local one at the range start, DST included
     const range = makeRange(T0, T0 + 2 * HOUR_MS);
-    const browserOffset = new Date().getTimezoneOffset() * -1;
-    expect(getRequestVolumeBucketing(request('browser', range))).toEqual(getVolumeBucketing(range, browserOffset));
+    expect(getRequestVolumeBucketing(request('browser', range))).toEqual(getVolumeBucketing(range, range.from.utcOffset()));
   });
 
   it('derives the target bar count from the panel width Grafana passes as maxDataPoints', () => {

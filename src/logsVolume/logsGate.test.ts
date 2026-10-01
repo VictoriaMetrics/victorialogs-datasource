@@ -49,17 +49,18 @@ describe('LogsGate', () => {
   });
 
   it('holds the hits back until the logs answer, and the logs in Streaming until the volume is finished', () => {
+    const hits = jest.fn<Observable<DataQueryResponse>, []>();
     scheduler.run(({ cold, expectObservable }) => {
       const logs = cold('---(a|)', { a: response('logs') }).pipe(gate.logs());
-      const hits = jest.fn(() => cold('--(b|)', { b: response('hits') }));
+      hits.mockImplementation(() => cold('--(b|)', { b: response('hits') }));
 
       expectObservable(gate.volume(hits)).toBe('-----(b|)', { b: response('hits') });
       expectObservable(logs).toBe('---a-(d|)', {
         a: response('logs', LoadingState.Streaming),
         d: response('logs', LoadingState.Done),
       });
-      expect(hits).not.toHaveBeenCalled();
     });
+    expect(hits).toHaveBeenCalledTimes(1);
   });
 
   it('passes the logs through unchanged when no volume is waiting', () => {

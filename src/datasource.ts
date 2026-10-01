@@ -152,7 +152,7 @@ export class VictoriaLogsDatasource
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
     const logsGate = openLogsGate(request);
     this.pendingLogsGate = logsGate;
-    const timezoneOffset = formatOffsetDuration(request.timezone, request.range.from.utcOffset());
+    const timezoneOffset = formatOffsetDuration(request.range.from.utcOffset());
     const queries: Query[] = request.targets
       .filter((q) => q.expr || config.publicDashboardAccessToken !== '')
       .map(({ templateBuilder, ...q }) => {

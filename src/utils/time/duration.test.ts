@@ -82,4 +82,15 @@ describe('getMillisecondsFromDuration', () => {
   it('should handle invalid durations gracefully by returning 0', () => {
     expect(getMillisecondsFromDuration('invalid')).toBe(0);
   });
+
+  it('should keep the fractional part of a decimal value', () => {
+    expect(getMillisecondsFromDuration('1.5h')).toBe(5400000);
+    expect(getMillisecondsFromDuration('1.5d')).toBe(129600000);
+    expect(getMillisecondsFromDuration('0.5s')).toBe(500);
+  });
+
+  it('should treat weeks and years as 7 and 365 days', () => {
+    expect(getMillisecondsFromDuration('1w')).toBe(604800000);
+    expect(getMillisecondsFromDuration('1y')).toBe(31536000000);
+  });
 });

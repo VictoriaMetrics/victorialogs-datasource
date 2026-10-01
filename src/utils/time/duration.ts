@@ -1,20 +1,4 @@
-import { durationToMilliseconds } from '@grafana/data';
-
-const supportedDurations = [
-  { long: 'years', short: 'y', possible: 'year' },
-  { long: 'weeks', short: 'w', possible: 'week' },
-  { long: 'days', short: 'd', possible: 'day' },
-  { long: 'hours', short: 'h', possible: 'hour' },
-  { long: 'minutes', short: 'm', possible: 'min' },
-  { long: 'seconds', short: 's', possible: 'sec' },
-  { long: 'milliseconds', short: 'ms', possible: 'millisecond' }
-] as const;
-
-type SupportedDuration = (typeof supportedDurations)[number];
-type LongDuration = SupportedDuration['long'];
-type ShortDuration = SupportedDuration['short'];
-type LongDurationByShort = Record<ShortDuration, LongDuration>;
-type Duration = Partial<Record<LongDuration, number>>;
+import { DAY_MS, HOUR_MS, MINUTE_MS, SECOND_MS, WEEK_MS } from './constants';
 
 export const getDurationFromMilliseconds = (ms: number): string => {
   const milliseconds = Math.floor(ms % 1000);
@@ -27,54 +11,23 @@ export const getDurationFromMilliseconds = (ms: number): string => {
   return values.filter(t => t).join('');
 };
 
-const shortDurations = supportedDurations.map((d) => d.short);
-const longDurationsByShort: LongDurationByShort = supportedDurations.reduce(
-  (acc, d) => ({
-    ...acc,
-    [d.short]: d.long,
-  }),
-  {} as LongDurationByShort
-);
-
-const isShortDuration = (str: string): str is ShortDuration => shortDurations.includes(str as ShortDuration);
-
-const isSupportedDuration = (str: string): Duration | undefined => {
-  const digits = str.match(/\d+/g);
-  const words = str.match(/[a-zA-Z]+/g);
-  const shortDuration = words && words[0];
-  if (shortDuration && digits && isShortDuration(shortDuration)) {
-    const longDur = longDurationsByShort[shortDuration];
-    if (longDur) {
-      return { [longDur]: parseInt(digits[0], 10) };
-    }
-  }
-  return;
+/** Milliseconds per duration unit; `y` is the fixed 365 days VictoriaLogs uses */
+const MS_BY_UNIT: Record<string, number> = {
+  y: 365 * DAY_MS,
+  w: WEEK_MS,
+  d: DAY_MS,
+  h: HOUR_MS,
+  m: MINUTE_MS,
+  s: SECOND_MS,
+  ms: 1,
 };
 
-export const getMillisecondsFromDuration = (dur: string) => {
-  const shortSupportedDur = supportedDurations.map(d => d.short).join('|');
-  const regexp = new RegExp(`\\d+(\\.\\d+)?[${shortSupportedDur}]+`, 'g');
-  const durItems = dur.match(regexp) || [];
+// a decimal value with its unit; `ms` goes before `m` so the alternation does not stop at the `m`
+const DURATION_ITEM = /(\d+(?:\.\d+)?)(ms|y|w|d|h|m|s)/g;
 
-  const durObject = durItems.reduce((prev: Duration, curr) => {
-    const dur = isSupportedDuration(curr);
-    if (dur) {
-      return {
-        ...prev,
-        ...dur
-      };
-    } else {
-      return {
-        ...prev
-      };
-    }
-  }, {});
-
-  const millisecondsAddition = durObject.milliseconds ? durObject.milliseconds : 0;
-
-  // durationToMilliseconds does not handle the millisecond key, so we add it separately
-  return durationToMilliseconds(durObject) + millisecondsAddition;
-};
+/** Sums the items of a duration string ("1d 2h", "1.5h", "30m") in milliseconds; unknown text adds nothing */
+export const getMillisecondsFromDuration = (dur: string): number =>
+  Array.from(dur.matchAll(DURATION_ITEM)).reduce((total, [, value, unit]) => total + parseFloat(value) * MS_BY_UNIT[unit], 0);
 
 /** Formats a millisecond duration as a VictoriaLogs duration with a leading minus for negative values (e.g. "-5h30m") */
 export function formatSignedDuration(ms: number): string {

@@ -14,8 +14,8 @@ export function responseErrors(resp: DataQueryResponse): DataQueryError[] {
   return resp.error ? [withMessage(resp.error)] : [];
 }
 
-/** Fills in `message`, which the callers read without checking the other fields */
+/** Fills in `message`, which the callers read without checking the other fields; an empty string counts as missing */
 const withMessage = (error: DataQueryError): DataQueryError => ({
   ...error,
-  message: error.message ?? error.data?.message ?? error.statusText ?? 'Query failed',
+  message: error.message || error.data?.message || error.statusText || 'Query failed',
 });
