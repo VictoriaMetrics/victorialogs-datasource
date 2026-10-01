@@ -27,7 +27,12 @@ const DURATION_ITEM = /(\d+(?:\.\d+)?)(ms|y|w|d|h|m|s)/g;
 
 /** Sums the items of a duration string ("1d 2h", "1.5h", "30m") in milliseconds; unknown text adds nothing */
 export const getMillisecondsFromDuration = (dur: string): number =>
-  Array.from(dur.matchAll(DURATION_ITEM)).reduce((total, [, value, unit]) => total + parseFloat(value) * MS_BY_UNIT[unit], 0);
+  Array
+    .from(dur.matchAll(DURATION_ITEM))
+    .reduce(
+      (total, [, value, unit]) => total + parseFloat(value) * MS_BY_UNIT[unit],
+      0
+    );
 
 /** Formats a millisecond duration as a VictoriaLogs duration with a leading minus for negative values (e.g. "-5h30m") */
 export function formatSignedDuration(ms: number): string {
