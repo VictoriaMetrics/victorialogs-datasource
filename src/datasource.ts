@@ -84,7 +84,7 @@ import {
 import { buildLevelGrouping } from './utils/query/levelFormatPipes';
 import { streamFiltersHaveValue, toggleStreamFilterValue } from './utils/query/streamFilterToggle';
 import { getMillisecondsFromDuration } from './utils/time/duration';
-import { formatOffsetDuration } from './utils/time/timezoneOffset';
+import { formatOffsetDuration, getRangeStartOffsetMinutes } from './utils/time/timezoneOffset';
 import { VariableSupport } from './variableSupport/VariableSupport';
 
 export { resolveAdHocFiltersMode } from './utils/query/adHocFilters';
@@ -152,7 +152,7 @@ export class VictoriaLogsDatasource
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
     const logsGate = openLogsGate(request);
     this.pendingLogsGate = logsGate;
-    const timezoneOffset = formatOffsetDuration(request.range.from.utcOffset());
+    const timezoneOffset = formatOffsetDuration(getRangeStartOffsetMinutes(request.timezone, request.range));
     const queries: Query[] = request.targets
       .filter((q) => q.expr || config.publicDashboardAccessToken !== '')
       .map(({ templateBuilder, ...q }) => {

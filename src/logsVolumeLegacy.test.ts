@@ -62,6 +62,7 @@ describe('aggregateRawLogsVolume level styling', () => {
 
 describe('aggregateVolumeFrames custom grouping', () => {
   const request = {
+    timezone: 'UTC',
     range: {
       from: dateTime('2026-07-06T00:00:00Z'),
       to: dateTime('2026-07-06T01:00:00Z'),

@@ -5,6 +5,7 @@ import { DataQueryRequest, TimeRange } from '@grafana/data';
 import { Query } from '../types';
 import { DAY_MS, HOUR_MS, MINUTE_MS, SECOND_MS, WEEK_MS } from '../utils/time/constants';
 import { formatSignedDuration } from '../utils/time/duration';
+import { getRangeStartOffsetMinutes } from '../utils/time/timezoneOffset';
 
 /** Bucket steps in ascending order — the VMUI histogram intervals (app/vmui constants/intervals.ts) without the sub-second ones */
 const STEPS = [
@@ -79,7 +80,7 @@ export function getVolumeBucketing(range: TimeRange, tzOffsetMinutes: number, ta
  * bar count that fits the panel width Grafana passes as `maxDataPoints`
  */
 export const getRequestVolumeBucketing = (request: DataQueryRequest<Query>): VolumeBucketing =>
-  getVolumeBucketing(request.range, request.range.from.utcOffset(), getTargetBars(request.maxDataPoints));
+  getVolumeBucketing(request.range, getRangeStartOffsetMinutes(request.timezone, request.range), getTargetBars(request.maxDataPoints));
 
 const getTargetBars = (maxDataPoints: number | undefined): number =>
   maxDataPoints ? clamp(Math.floor(maxDataPoints / VOLUME_BAR_MIN_PX), VOLUME_BARS_MIN, VOLUME_BARS_MAX) : VOLUME_BARS_MAX;

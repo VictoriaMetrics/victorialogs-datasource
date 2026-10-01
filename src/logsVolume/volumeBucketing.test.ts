@@ -1,4 +1,4 @@
-import { DataQueryRequest, dateTime, dateTimeForTimeZone, makeTimeRange, TimeRange } from '@grafana/data';
+import { DataQueryRequest, dateTime, dateTimeForTimeZone, makeTimeRange, TimeRange, toUtc } from '@grafana/data';
 
 import { Query } from '../types';
 import { DAY_MS, HOUR_MS, MINUTE_MS } from '../utils/time/constants';
@@ -120,11 +120,11 @@ describe('getRequestVolumeBucketing', () => {
     expect(bucketing.offset).toBe('3h');
   });
 
-  it('uses the offset of the range start for the browser timezone', () => {
-    // a browser-timezone range is a local dateTime, so its offset is the local one at the range start, DST included
-    const range = makeRange(T0, T0 + 2 * HOUR_MS);
-    const expected = getVolumeBucketing(range, range.from.utcOffset());
-    expect(getRequestVolumeBucketing(request('browser', range))).toEqual(expected);
+  it('aligns the grid to the request timezone when an absolute range is parsed as UTC', () => {
+    // an absolute range from the URL carries no offset, so the grid shift comes from the timezone name
+    const range = makeTimeRange(toUtc(T0), toUtc(T0 + 2 * HOUR_MS));
+    expect(range.from.utcOffset()).toBe(0);
+    expect(getRequestVolumeBucketing(request('Europe/Moscow', range))).toEqual(getVolumeBucketing(range, 180));
   });
 
   it('derives the target bar count from the panel width Grafana passes as maxDataPoints', () => {
