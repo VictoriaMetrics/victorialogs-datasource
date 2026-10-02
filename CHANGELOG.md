@@ -6,6 +6,9 @@
 
     - **Note:** for now, the `Drilldown` button is available only in the `Code` mode of the Explore query editor. The drawer does not take the current Explore query and always opens with the `*` query.
 
+* BUGFIX: stop highlighting commas in the logs panel when the query uses a LogsQL filter with a comma-separated argument list, such as `seq("foo", "bar")` or `contains_common_case("foo", "bar")`. See [#725](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/725).
+* BUGFIX: fix a browser tab freeze when the query contains a pipe inside parentheses, for example a subquery filter like `_msg:in(* | fields _msg)`.
+
 ## v0.32.0
 
 * FEATURE: add a `Group hits by` option to `Raw Logs` queries in Explore: the logs volume histogram can be grouped by any log field instead of the default `level`. See [#689](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/689).

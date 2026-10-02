@@ -1,12 +1,20 @@
 import { escapeRegExp } from 'lodash';
 
-import { skipBalanced } from '../utils';
+import { findGroupsWithChar, skipBalanced } from '../utils';
 
 import { splitByPipes } from './splitByPipes';
 import { stripComments } from './stripComments';
 
-// Tabs/newlines are normalized to spaces in extractMsgSearchWords, so a plain space is enough here
-const TERM_SEPARATORS = [' ', ':', '|', '(', ')', '{', '}'];
+// Tabs/newlines are normalized to spaces in extractMsgSearchWords, so a plain space is enough here.
+const TERM_SEPARATORS = [' ', ',', ':', '|', '(', ')', '{', '}'];
+// A field value group or range may close with either bracket: `(a OR b)`, `[min, max)`, `(min, max]`
+const VALUE_OPEN = '([';
+const VALUE_CLOSE = ')]';
+// Range functions whose bounds may open with `[`, which is not a term separator: `range[1, 5)`
+const BRACKETED_RANGE_FN = /^(?:range|len_range|ipv4_range|ipv6_range|string_range|day_range|week_range)\[/;
+// `_time:<range> offset <duration>` or a bare `_time:offset <duration>` — the offset shifts the time filter,
+// it is not a search term
+const TIME_OFFSET = /^ *offset +[^ |(){}]+/;
 
 /**
  * Reads a quoted string starting at `openIdx` (quote char at that index)
@@ -109,11 +117,59 @@ function readValueTermInner(s: string, i: number): { term: string | null; isRege
 }
 
 /**
+ * Whether the value at `i` is a range (`[min, max)` or `range[min, max)`), which never yields a _msg term
+ */
+function isRangeValue(s: string, i: number): boolean {
+  return s[i] === '[' || BRACKETED_RANGE_FN.test(s.slice(i));
+}
+
+/**
+ * Skips a field value that yields no _msg term: a group, a range, a function call or a plain value
+ * Returns the index past the value.
+ */
+function skipFieldValue(s: string, i: number): number {
+  if (s[i] === '(' || s[i] === '[') {
+    return skipBalanced(s, i, VALUE_OPEN, VALUE_CLOSE);
+  }
+  const rangeFn = BRACKETED_RANGE_FN.exec(s.slice(i));
+  if (rangeFn) {
+    return skipBalanced(s, i + rangeFn[0].length - 1, VALUE_OPEN, VALUE_CLOSE);
+  }
+  const { next } = readValueTerm(s, i);
+  return s[next] === '(' ? skipBalanced(s, next, VALUE_OPEN, VALUE_CLOSE) : next;
+}
+
+/**
+ * Skips an optional `offset <duration>` modifier of a `_time` filter at `i`
+ * Returns the index past the modifier, or `i` when there is none.
+ */
+function skipTimeOffset(s: string, i: number): number {
+  const offset = TIME_OFFSET.exec(s.slice(i));
+  return offset ? i + offset[0].length : i;
+}
+
+/**
+ * Skips a `_time` filter value with its optional offset modifier, which may also stand alone (`_time:offset 1h`)
+ * Returns the index past the value.
+ */
+function skipTimeValue(s: string, i: number): number {
+  const afterBareOffset = skipTimeOffset(s, i);
+  if (afterBareOffset !== i) {
+    return afterBareOffset;
+  }
+  return skipTimeOffset(s, skipFieldValue(s, i));
+}
+
+/**
  * Scans a single filter sub-query and returns regex-ready `_msg` search terms.
  * The same grammar applies to the first query segment and to filter pipes.
  */
 function scanFilterSegment(segment: string): string[] {
   const results: string[] = [];
+  // A `|` at a group's own level marks that group as a subquery (`in(* | fields x)`): the terms it
+  // matches come from the subquery result, not from this filter. Resolved in one pass up front, so
+  // a group nested inside a subquery does not drag its ancestors down with it.
+  const subqueryGroups = findGroupsWithChar(segment, '(', ')', '|');
   let i = 0;
   let negateNext = false;
 
@@ -139,9 +195,10 @@ function scanFilterSegment(segment: string): string[] {
       continue;
     }
 
-    // grouping parens
+    // grouping parens — every descent into a group funnels through here, including
+    // the `_msg:(...)` and `_msg:fn(...)` branches below, which continue without moving `i`
     if (ch === '(') {
-      if (negateNext) {
+      if (negateNext || subqueryGroups.has(i)) {
         i = skipBalanced(segment, i, '(', ')');
         negateNext = false;
       } else {
@@ -191,6 +248,14 @@ function scanFilterSegment(segment: string): string[] {
     }
     let word = segment.slice(start, i);
 
+    // An empty word means `ch` is a separator with no dedicated branch above
+    // (an argument-list comma, a stray `|` or `}`). Consume it so the scan always advances.
+    // `:` is deliberately excluded — it must reach the field/value branch below.
+    if (word === '' && (ch === ',' || ch === '|' || ch === '}')) {
+      i++;
+      continue;
+    }
+
     const upper = word.toUpperCase();
     if (upper === 'AND' || upper === 'OR') {
       continue;
@@ -205,27 +270,27 @@ function scanFilterSegment(segment: string): string[] {
       while (segment[i] === ' ') {
         i++; // a space after the colon still binds the value to its field
       }
-      // grouped value: `field:(...)` — the whole group binds to the field
-      if (segment[i] === '(') {
-        if (word === '_msg') {
-          continue; // scan the group as default _msg context
-        }
-        i = skipBalanced(segment, i, '(', ')'); // group filters a non-_msg field — skip it
+
+      // a non-_msg field value or a range binds to its field and never yields a _msg term
+      if (word !== '_msg' || isRangeValue(segment, i)) {
+        i = word === '_time' ? skipTimeValue(segment, i) : skipFieldValue(segment, i);
         negateNext = false;
         continue;
       }
+
+      // grouped value: `_msg:(...)` — scan the group as default _msg context
+      if (segment[i] === '(') {
+        continue;
+      }
+
       const { term, next } = readValueTerm(segment, i);
       i = next;
-      // function-style value: `field:fn(...)` — the value word is a function name, not a term
+      // function-style value: `_msg:fn(...)` — the value word is a function name, not a term;
+      // scan the function args as default _msg context
       if (segment[i] === '(') {
-        if (word === '_msg') {
-          continue; // scan the function args as default _msg context
-        }
-        i = skipBalanced(segment, i, '(', ')'); // function filters a non-_msg field — skip it
-        negateNext = false;
         continue;
       }
-      emit(word === '_msg' ? term : null);
+      emit(term);
       continue;
     }
 
