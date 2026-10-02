@@ -103,6 +103,8 @@ export interface Query extends DataQuery {
   fieldsLimit?: number;
   /** log field the logs volume histogram is grouped by; defaults to the level-based grouping */
   groupBy?: string;
+  /** Explore only: bar-by-bar logs volume loading after a slow one-shot request; undefined = enabled */
+  incrementalHitsLoading?: boolean;
   /** timezone offset for bucket alignment in stats_query_range and hits endpoints (e.g. "2h", "-5h30m") */
   timezoneOffset?: string;
   /** @deprecated Use adHocFiltersMode instead */

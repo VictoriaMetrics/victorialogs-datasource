@@ -3,7 +3,7 @@ import { DataQueryRequest, dateTime, dateTimeForTimeZone, makeTimeRange, TimeRan
 import { Query } from '../types';
 import { DAY_MS, HOUR_MS, MINUTE_MS } from '../utils/time/constants';
 
-import { getRequestVolumeBucketing, getVolumeBucketing } from './volumeBucketing';
+import { getRequestVolumeBucketing, getVolumeBars, getVolumeBucketing } from './volumeBucketing';
 
 const makeRange = (fromMs: number, toMs: number): TimeRange => makeTimeRange(dateTime(fromMs), dateTime(toMs));
 
@@ -135,5 +135,34 @@ describe('getRequestVolumeBucketing', () => {
     // 16px per bar, clamped to 24…96 bars: 200px → 24 → 5m, 3000px → 96 → 30s
     expect(getRequestVolumeBucketing(request('UTC', range, 200)).step).toBe('5m');
     expect(getRequestVolumeBucketing(request('UTC', range, 3000)).step).toBe('30s');
+  });
+});
+
+describe('getVolumeBars', () => {
+  const request = (range: TimeRange) => ({ timezone: 'utc', range }) as DataQueryRequest<Query>;
+  const spans = (bars: TimeRange[]) => bars.map((bar) => [bar.from.valueOf(), bar.to.valueOf()]);
+
+  it('splits the range into one bar per bucket, from the newest to the oldest', () => {
+    // 3 s at the default 96 target bars → 1 s step
+    expect(spans(getVolumeBars(request(makeRange(0, 3000))))).toEqual([
+      [2000, 3000],
+      [1000, 2000],
+      [0, 1000],
+    ]);
+  });
+
+  it('clips the newest and the oldest bar to the range so the bars count exactly what the whole range would', () => {
+    expect(spans(getVolumeBars(request(makeRange(500, 3500))))).toEqual([
+      [3000, 3500],
+      [2000, 3000],
+      [1000, 2000],
+      [500, 1000],
+    ]);
+  });
+
+  it('builds proper time ranges with a raw part', () => {
+    const [bar] = getVolumeBars(request(makeRange(0, 1000)));
+    expect(bar.raw.from.valueOf()).toBe(0);
+    expect(bar.raw.to.valueOf()).toBe(1000);
   });
 });

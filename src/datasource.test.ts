@@ -24,6 +24,8 @@ import { LogLevelRuleType } from './configuration/LogLevelRules/types';
 import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
 import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { VictoriaLogsDatasource } from './datasource';
+import { getIncrementalHitsLoadingController } from './logsVolume/IncrementalHitsLoadingController';
+import { emptyLogsFrame } from './logsVolume/logsGate';
 import { queryLogsVolume } from './logsVolumeLegacy';
 import store from './store/store';
 import { AdHocFilter, AdHocFiltersMode, FilterActionType, Query, QueryType, SupportingQueryType, ToggleFilterAction } from './types';
@@ -1753,10 +1755,13 @@ describe('getDataProvider', () => {
       req.targets[0].queryType === QueryType.Hits ? of({ data: [] }) : throwError(() => new Error('boom'))
     );
     const request = makeRequest([rawLogs]);
-    ds.query(request).subscribe({ error: () => undefined });
-    ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
     const volume: DataQueryResponse[] = [];
-    providerSource().subscribe((p) => volume.push(p));
+    new TestScheduler((a, e) => expect(a).toEqual(e)).run(({ flush }) => {
+      ds.query(request).subscribe({ error: () => undefined });
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+      providerSource().subscribe((p) => volume.push(p));
+      flush();
+    });
     expect(backendQuery.mock.calls.filter(isHitsCall)).toHaveLength(0);
     expect(volume).toEqual([{ data: [], state: LoadingState.Done }]);
   });
@@ -1772,7 +1777,9 @@ describe('getDataProvider', () => {
       const logs = ds.query(request);
       ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
       expectObservable(providerSource()).toBe('---(a|)', { a: { data: [] } });
-      expectObservable(logs).toBe('-s-(d|)', {
+      // the leading empty packet clears the previous Explore result, then the logs are held in Streaming
+      expectObservable(logs).toBe('ps-(d|)', {
+        p: { data: [emptyLogsFrame('A')], state: LoadingState.Streaming },
         s: expect.objectContaining({ state: LoadingState.Streaming }),
         d: expect.objectContaining({ state: LoadingState.Done }),
       });
@@ -1809,5 +1816,98 @@ describe('getDataProvider', () => {
     ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
     providerSource().subscribe();
     expect(backendQuery.mock.calls.filter(isHitsCall)).toHaveLength(1);
+  });
+});
+
+describe('getDataProvider with incremental hits loading', () => {
+  const rawLogs: Query = { refId: 'A', expr: '*', queryType: QueryType.Instant };
+  // 3 s at the default 96 target bars → 1 s step → three bars
+  const makeRequest = (targets: Query[] = [rawLogs]) => makeExploreRequest({ targets, spanMs: 3000 });
+  const isHits = (req: DataQueryRequest<Query>) => req.targets[0].queryType === QueryType.Hits;
+  const isWholeRange = (req: DataQueryRequest<Query>, request: DataQueryRequest<Query>) =>
+    req.range.from.valueOf() === request.range.from.valueOf() && req.range.to.valueOf() === request.range.to.valueOf();
+
+  const volumeSpy = jest.mocked(queryLogsVolume);
+  const providerSource = () => volumeSpy.mock.calls[0][1];
+
+  let backendQuery: jest.SpyInstance;
+  let scheduler: TestScheduler;
+  beforeEach(() => {
+    volumeSpy.mockReset().mockReturnValue(of({ data: [] }));
+    backendQuery = jest.spyOn(grafanaRuntime.DataSourceWithBackend.prototype, 'query');
+    jest.spyOn(store, 'get').mockReturnValue('Descending');
+    scheduler = new TestScheduler((a, e) => expect(a).toEqual(e));
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  it('shares one bar-by-bar loading controller between the instances of a datasource uid', () => {
+    const ds = createDatasource(templateSrvStub, { uid: 'ds-incremental' });
+    expect(ds.incrementalHitsLoading).toBe(getIncrementalHitsLoadingController('ds-incremental'));
+    expect(createDatasource(templateSrvStub, { uid: 'ds-incremental' }).incrementalHitsLoading).toBe(ds.incrementalHitsLoading);
+  });
+
+  it('switches the hits to bar-by-bar loading when the one-shot request takes longer than 3 s after fast logs', () => {
+    const ds = createDatasource(templateSrvStub);
+    const request = makeRequest();
+    scheduler.run(({ cold, expectObservable }) => {
+      backendQuery.mockImplementation((req: DataQueryRequest<Query>) =>
+        cold<DataQueryResponse>(isHits(req) && isWholeRange(req, request) ? '10s (a|)' : '-(a|)', { a: { data: [] } })
+      );
+      ds.query(request).subscribe();
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+      // logs at 1 ms, the one-shot hits give up at 3001 ms, the bars answer at 3002, 3003 and 3004 ms
+      expectObservable(providerSource()).toBe('3002ms ab(cd|)', {
+        a: expect.objectContaining({ state: LoadingState.Streaming }),
+        b: expect.objectContaining({ state: LoadingState.Streaming }),
+        c: expect.objectContaining({ state: LoadingState.Streaming }),
+        d: expect.objectContaining({ state: LoadingState.Done }),
+      });
+    });
+    const hitsRanges = backendQuery.mock.calls.filter(([req]) => isHits(req)).map(([req]) => [req.range.from.valueOf(), req.range.to.valueOf()]);
+    const to = request.range.to.valueOf();
+    expect(hitsRanges).toEqual([
+      [to - 3000, to],
+      [to - 1000, to],
+      [to - 2000, to - 1000],
+      [to - 3000, to - 2000],
+    ]);
+  });
+
+  it('cancels raw logs slower than 3 s while the volume waits, loads the bars and requests the logs again afterwards', () => {
+    const ds = createDatasource(templateSrvStub);
+    const request = makeRequest();
+    scheduler.run(({ cold, expectObservable }) => {
+      let logsCalls = 0;
+      backendQuery.mockImplementation((req: DataQueryRequest<Query>) =>
+        cold<DataQueryResponse>(!isHits(req) && logsCalls++ === 0 ? '10s (a|)' : '-(a|)', { a: { data: [] } })
+      );
+      const logs = ds.query(request);
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+      // the timeout at 3000 ms starts the bars (3001, 3002, 3003 ms); the logs are requested again at 3003 ms
+      expectObservable(providerSource()).toBe('3001ms ab(cd|)', {
+        a: expect.objectContaining({ state: LoadingState.Streaming }),
+        b: expect.objectContaining({ state: LoadingState.Streaming }),
+        c: expect.objectContaining({ state: LoadingState.Streaming }),
+        d: expect.objectContaining({ state: LoadingState.Done }),
+      });
+      expectObservable(logs).toBe('p 3003ms (a|)', {
+        p: { data: [emptyLogsFrame('A')], state: LoadingState.Streaming },
+        a: expect.objectContaining({ data: [] }),
+      });
+    });
+    expect(backendQuery.mock.calls.map(([req]) => (isHits(req) ? 'hits' : 'logs'))).toEqual(['logs', 'hits', 'hits', 'hits', 'logs']);
+    expect(backendQuery.mock.calls.some(([req]) => isHits(req) && isWholeRange(req, request))).toBe(false);
+  });
+
+  it('keeps the plain one-shot hits without a timeout when a target has the option switched off', () => {
+    const ds = createDatasource(templateSrvStub);
+    const request = makeRequest([{ ...rawLogs, incrementalHitsLoading: false }]);
+    scheduler.run(({ cold, expectObservable }) => {
+      backendQuery.mockImplementation((req: DataQueryRequest<Query>) => cold<DataQueryResponse>(isHits(req) ? '10s (a|)' : '-(a|)', { a: { data: [] } }));
+      ds.query(request).subscribe();
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+      expectObservable(providerSource()).toBe('10001ms (a|)', { a: expect.objectContaining({ data: [] }) });
+    });
+    expect(backendQuery.mock.calls.filter(([req]) => isHits(req))).toHaveLength(1);
   });
 });

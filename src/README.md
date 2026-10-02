@@ -328,6 +328,27 @@ VictoriaLogs datasource supports automatic variable interpolation with the follo
 - Avoid using variables as values in regexp filters (e.g., `field:~$var`), in this case, you will get a warning message
 - Invalid usage will show an error message
 
+## Incremental hits loading
+
+In Explore, `Raw Logs` queries and their logs volume histogram are loaded incrementally by default:
+
+- the logs are requested first; the histogram request starts once the logs have answered;
+- when the histogram request takes longer than 3 seconds, it is cancelled and the histogram is loaded
+  bar by bar from the newest to the oldest, so a specific moment can be zoomed into before the whole range is loaded;
+- when the logs request itself takes longer than 3 seconds, it is cancelled and the histogram is loaded bar by bar
+  right away; the logs are requested again for the whole range once the histogram is complete (or stopped).
+  With the **Logs volume** panel collapsed the logs request simply keeps running.
+
+While the histogram is loaded bar by bar, a status row in the query editor shows the progress
+(`Logs volume: 12 / 28 bars`) with **Pause**/**Resume** and **Stop** controls. **Pause** lets the bar in flight finish
+and holds the next one; **Stop** keeps the bars loaded so far and lets the logs load, unlike the Explore **Cancel**
+button which discards everything. Zooming into the histogram while it loads cancels the current requests and starts
+over for the new time range.
+
+The behaviour can be switched off per query with the **Incremental hits loading** option in the query editor.
+With a **Group hits by** field, the top-20 groups are picked within every bar separately, so the tail
+group `other` may differ from the one of a single whole-range request.
+
 ## Line limits
 
 Every VictoriaLogs query is sent with a limit on the maximum number of log lines returned. Keeping this limit low

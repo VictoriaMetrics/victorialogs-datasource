@@ -45,7 +45,8 @@ import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABL
 import LogsQlLanguageProvider from './language_provider';
 import { LiveChannelPathProvider } from './live/LiveChannelPathProvider';
 import { LogContextProvider } from './logContext/LogContextProvider';
-import { LogsGate, openLogsGate } from './logsVolume/logsGate';
+import { getIncrementalHitsLoadingController, IncrementalHitsLoadingController } from './logsVolume/IncrementalHitsLoadingController';
+import { LogsGate, openLogsGate, INCREMENTAL_HITS_TIMEOUT_MS } from './logsVolume/logsGate';
 import { getRequestVolumeBucketing } from './logsVolume/volumeBucketing';
 import { LOGS_VOLUME_DEFAULT_GROUP_BY, LOGS_VOLUME_GROUPS_LIMIT, queryLogsVolume } from './logsVolumeLegacy';
 import {
@@ -110,6 +111,8 @@ export class VictoriaLogsDatasource
   multitenancyHeaders?: MultitenancyHeaders;
   logContextProvider: LogContextProvider;
   private readonly liveChannelPathProvider = new LiveChannelPathProvider();
+  /** Progress, pause and stop of the bar-by-bar logs volume loading; shared with the query editor by datasource uid */
+  readonly incrementalHitsLoading: IncrementalHitsLoadingController;
   /** Gate of the last Explore query(), consumed by the getDataProvider() call Grafana makes right after it */
   private pendingLogsGate: LogsGate | undefined;
 
@@ -119,6 +122,7 @@ export class VictoriaLogsDatasource
     languageProvider?: LogsQlLanguageProvider
   ) {
     super(instanceSettings);
+    this.incrementalHitsLoading = getIncrementalHitsLoadingController(instanceSettings.uid);
 
     const settingsData = instanceSettings.jsonData || {};
     this.id = instanceSettings.id;
@@ -150,7 +154,7 @@ export class VictoriaLogsDatasource
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-    const logsGate = openLogsGate(request);
+    const logsGate = openLogsGate(request, { timeoutMs: INCREMENTAL_HITS_TIMEOUT_MS, controller: this.incrementalHitsLoading });
     this.pendingLogsGate = logsGate;
     const timezoneOffset = formatOffsetDuration(getRangeStartOffsetMinutes(request.timezone, request.range));
     const queries: Query[] = request.targets
@@ -176,7 +180,7 @@ export class VictoriaLogsDatasource
       return this.runLiveQueryThroughBackend(request);
     }
 
-    return logsGate ? this.runQuery(request).pipe(logsGate.logs()) : this.runQuery(request);
+    return logsGate ? logsGate.logs(() => this.runQuery(request)) : this.runQuery(request);
   }
 
   runQuery(fixedRequest: DataQueryRequest<Query>) {
@@ -626,8 +630,8 @@ export class VictoriaLogsDatasource
       case SupplementaryQueryType.LogsVolume: {
         const logsGate = this.pendingLogsGate;
         this.pendingLogsGate = undefined;
-        const hits = () => this.query(newRequest);
-        return queryLogsVolume(newRequest, logsGate ? logsGate.volume(hits) : hits(), this.getActiveLevelRules());
+        const hits = (req: DataQueryRequest<Query>) => this.query(req);
+        return queryLogsVolume(newRequest, logsGate ? logsGate.volume(newRequest, hits) : hits(newRequest), this.getActiveLevelRules());
       }
       default:
         return undefined;
