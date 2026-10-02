@@ -5,6 +5,7 @@
 * FEATURE: add a `Drilldown` button to the query editor that opens a drawer for exploring logs without writing LogsQL. The main view breaks the logs down by field, by stream field and by message pattern. Adding any filter chip opens a details view with a volume chart and the `Logs`, `Stream fields`, `Fields` and `Patterns` tabs. See [#424](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/424).
 
     - **Note:** for now, the `Drilldown` button is available only in the `Code` mode of the Explore query editor. The drawer does not take the current Explore query and always opens with the `*` query.
+* FEATURE: expose every log field as its own column in annotation query results, so annotation field mappings can use a single field for `Title` or `Tags`, and a field with an epoch-milliseconds timestamp for `Time end` to draw range annotations. See [#568](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/568).
 
 * BUGFIX: stop highlighting commas in the logs panel when the query uses a LogsQL filter with a comma-separated argument list, such as `seq("foo", "bar")` or `contains_common_case("foo", "bar")`. See [#725](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/725).
 * BUGFIX: fix a browser tab freeze when the query contains a pipe inside parentheses, for example a subquery filter like `_msg:in(* | fields _msg)`.
