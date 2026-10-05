@@ -79,7 +79,8 @@ async function ingestSeedLogs(logs: ReturnType<typeof buildSeedLogs>): Promise<v
 
   // Force flush so the ingested logs become searchable immediately,
   // see https://docs.victoriametrics.com/victorialogs/#forced-flush
-  const flush = await fetch(`${VICTORIALOGS_URL}/internal/force_flush`);
+  // VictoriaLogs v1.53.0+ accepts only POST on the /internal/* endpoints
+  const flush = await fetch(`${VICTORIALOGS_URL}/internal/force_flush`, { method: 'POST' });
   if (!flush.ok) {
     throw new Error(`VictoriaLogs forced flush failed: ${flush.status} ${await flush.text()}`);
   }
