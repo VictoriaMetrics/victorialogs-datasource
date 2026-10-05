@@ -1,10 +1,12 @@
-import { concat, defer, finalize, map, Observable, of, scan, switchMap, takeUntil, tap } from 'rxjs';
+import { concat, defer, finalize, map, Observable, of, scan, switchMap, takeUntil, tap, timeout } from 'rxjs';
 
 import { DataFrame, DataQueryRequest, DataQueryResponse, LoadingState, TimeRange } from '@grafana/data';
 
 import { Query } from '../types';
 
 import { IncrementalHitsLoadingController } from './IncrementalHitsLoadingController';
+import { LogsOutcome } from './logsHandOff';
+import { getVolumeBars } from './volumeBucketing';
 
 export type RunQuery = (request: DataQueryRequest<Query>) => Observable<DataQueryResponse>;
 
@@ -41,4 +43,24 @@ export function queryHitsByBars(
       defer(() => of({ data: accumulated, state: LoadingState.Done }))
     ).pipe(finalize(release));
   });
+}
+
+/** The hits of the volume once the logs settled: none after failed logs, bars at once after slow ones, one shot with the timeout after fast ones */
+export function queryHitsAfterLogs(
+  outcome: LogsOutcome,
+  run: RunQuery,
+  request: DataQueryRequest<Query>,
+  timeoutMs: number | undefined,
+  registerJob: RegisterJob
+): Observable<DataQueryResponse> {
+  if (outcome === 'failed') {
+    // an empty Done rather than EMPTY: the volume panel leaves its loading state only on a packet
+    return of({ data: [], state: LoadingState.Done });
+  }
+  const byBars = () => queryHitsByBars(run, request, getVolumeBars(request), registerJob);
+  if (outcome === 'slow') {
+    return byBars();
+  }
+  const oneShot = run(request);
+  return timeoutMs === undefined ? oneShot : oneShot.pipe(timeout({ first: timeoutMs, with: byBars }));
 }

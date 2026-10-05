@@ -25,7 +25,7 @@ import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
 import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { VictoriaLogsDatasource } from './datasource';
 import { getIncrementalHitsLoadingRuns, IncrementalHitsLoadingJob } from './logsVolume/incrementalHitsLoadingRuns';
-import { emptyLogsFrame } from './logsVolume/logsGate';
+import { emptyLogsFrame } from './logsVolume/incrementalLogs';
 import { queryLogsVolume } from './logsVolumeLegacy';
 import store from './store/store';
 import { AdHocFilter, AdHocFiltersMode, FilterActionType, Query, QueryType, SupportingQueryType, ToggleFilterAction } from './types';

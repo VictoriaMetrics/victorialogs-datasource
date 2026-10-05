@@ -7,7 +7,8 @@ import { Query, QueryType, SupportingQueryType } from '../types';
 
 import { IncrementalHitsLoadingController } from './IncrementalHitsLoadingController';
 import { IncrementalHitsLoadingRuns } from './incrementalHitsLoadingRuns';
-import { emptyLogsFrame, IncrementalHitsLoadingOptions, LogsGate, openLogsGate } from './logsGate';
+import { emptyLogsFrame } from './incrementalLogs';
+import { IncrementalHitsLoadingOptions, LogsGate, openLogsGate } from './logsGate';
 
 const makeRequest = (targets: Array<Partial<Query>>, overrides: Partial<DataQueryRequest<Query>> = {}) =>
   ({
