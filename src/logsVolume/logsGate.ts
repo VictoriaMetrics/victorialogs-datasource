@@ -7,8 +7,8 @@ import { Query, QueryType } from '../types';
 import { responseErrors } from '../utils/dataQueryResponse';
 import { SECOND_MS } from '../utils/time/constants';
 
-import { IncrementalHitsLoadingController } from './IncrementalHitsLoadingController';
-import { queryHitsByBars, RunQuery } from './incrementalHits';
+import { queryHitsByBars, RegisterJob, RunQuery } from './incrementalHits';
+import { IncrementalHitsLoadingRuns } from './incrementalHitsLoadingRuns';
 import { isIncrementalHitsLoadingEnabled } from './incrementalHitsOption';
 import { getVolumeBars } from './volumeBucketing';
 
@@ -21,8 +21,8 @@ type LogsOutcome = 'fast' | 'slow' | 'failed';
 export interface IncrementalHitsLoadingOptions {
   /** The one-shot timeout, see `INCREMENTAL_HITS_TIMEOUT_MS`; without it slow logs are never handed over and the volume is a single request */
   timeoutMs?: number;
-  /** Progress, pause and stop of the bar-by-bar volume, shared with the query editor */
-  controller: IncrementalHitsLoadingController;
+  /** Where a bar-by-bar job registers its controller for the status row of its pane */
+  runs: IncrementalHitsLoadingRuns;
 }
 
 /**
@@ -50,10 +50,12 @@ export function openLogsGate(request: DataQueryRequest<Query>, options: Incremen
     return undefined;
   }
   const timeoutMs = visible.every(isIncrementalHitsLoadingEnabled) ? options.timeoutMs : undefined;
+  // the pane finds the job by the request that started it
+  const registerJob: RegisterJob = (controller) => options.runs.register(request.requestId, controller);
   return createLogsGate(
     visible.map((query) => query.refId),
     timeoutMs,
-    options.controller
+    registerJob
   );
 }
 
@@ -65,7 +67,7 @@ const isExploreRawLogsRequest = (request: DataQueryRequest<Query>, visible: Quer
 const isRawLogsQuery = (query: Query): boolean =>
   query.queryType === QueryType.Instant && query.supportingQueryType === undefined;
 
-function createLogsGate(refIds: string[], timeoutMs: number | undefined, controller: IncrementalHitsLoadingController): LogsGate {
+function createLogsGate(refIds: string[], timeoutMs: number | undefined, registerJob: RegisterJob): LogsGate {
   // AsyncSubject: the volume may subscribe before or after the logs settle, and settleLogs runs
   // from several places (the response, the timeout, finalize), only the first of which counts
   const logsOutcome = new AsyncSubject<LogsOutcome>();
@@ -126,7 +128,7 @@ function createLogsGate(refIds: string[], timeoutMs: number | undefined, control
       // an empty Done rather than EMPTY: the volume panel leaves its loading state only on a packet
       return of({ data: [], state: LoadingState.Done });
     }
-    const byBars = () => queryHitsByBars(run, request, getVolumeBars(request), controller);
+    const byBars = () => queryHitsByBars(run, request, getVolumeBars(request), registerJob);
     if (outcome === 'slow') {
       return byBars();
     }

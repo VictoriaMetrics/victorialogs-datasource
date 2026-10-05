@@ -24,7 +24,7 @@ import { LogLevelRuleType } from './configuration/LogLevelRules/types';
 import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
 import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { VictoriaLogsDatasource } from './datasource';
-import { getIncrementalHitsLoadingController } from './logsVolume/IncrementalHitsLoadingController';
+import { getIncrementalHitsLoadingRuns, IncrementalHitsLoadingJob } from './logsVolume/incrementalHitsLoadingRuns';
 import { emptyLogsFrame } from './logsVolume/logsGate';
 import { queryLogsVolume } from './logsVolumeLegacy';
 import store from './store/store';
@@ -1840,10 +1840,23 @@ describe('getDataProvider with incremental hits loading', () => {
   });
   afterEach(() => jest.restoreAllMocks());
 
-  it('shares one bar-by-bar loading controller between the instances of a datasource uid', () => {
+  it('registers the bar-by-bar job in the run registry of the datasource uid under the request of the pane', () => {
     const ds = createDatasource(templateSrvStub, { uid: 'ds-incremental' });
-    expect(ds.incrementalHitsLoading).toBe(getIncrementalHitsLoadingController('ds-incremental'));
-    expect(createDatasource(templateSrvStub, { uid: 'ds-incremental' }).incrementalHitsLoading).toBe(ds.incrementalHitsLoading);
+    const request = makeRequest();
+    const seen: Array<IncrementalHitsLoadingJob | undefined> = [];
+    getIncrementalHitsLoadingRuns('ds-incremental').job$(request.requestId).subscribe((job) => seen.push(job));
+    scheduler.run(({ cold, flush }) => {
+      backendQuery.mockImplementation((req: DataQueryRequest<Query>) =>
+        cold<DataQueryResponse>(isHits(req) && isWholeRange(req, request) ? '10s (a|)' : '-(a|)', { a: { data: [] } })
+      );
+      ds.query(request).subscribe();
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+      providerSource().subscribe();
+      flush();
+    });
+    // none before the bars, the job while they load (one state per bar), none again once they are done
+    const phases = seen.map((job) => (job ? 'job' : 'none')).filter((phase, i, all) => phase !== all[i - 1]);
+    expect(phases).toEqual(['none', 'job', 'none']);
   });
 
   it('switches the hits to bar-by-bar loading when the one-shot request takes longer than 3 s after fast logs', () => {

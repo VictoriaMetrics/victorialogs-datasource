@@ -176,7 +176,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
             )}
             {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange} />)}
             {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType} />)}
-            {app === CoreApp.Explore && <IncrementalHitsLoadingStatus controller={datasource.incrementalHitsLoading} />}
+            {app === CoreApp.Explore && <IncrementalHitsLoadingStatus datasourceUid={datasource.uid} requestId={data?.request?.requestId} />}
             <QueryEditorOptions
               query={query}
               onChange={onChange}

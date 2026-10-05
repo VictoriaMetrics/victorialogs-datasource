@@ -3,32 +3,61 @@ import '@testing-library/jest-dom';
 import React from 'react';
 
 import { IncrementalHitsLoadingController } from '../../logsVolume/IncrementalHitsLoadingController';
+import { getIncrementalHitsLoadingRuns } from '../../logsVolume/incrementalHitsLoadingRuns';
 
 import { IncrementalHitsLoadingStatus } from './IncrementalHitsLoadingStatus';
 
 describe('IncrementalHitsLoadingStatus', () => {
-  it('renders nothing while no bar-by-bar job runs', () => {
-    const { container } = render(<IncrementalHitsLoadingStatus controller={new IncrementalHitsLoadingController()} />);
+  // a registry of its own per test: the registries are kept per datasource uid for the page lifetime
+  let uid: string;
+  beforeEach(() => {
+    uid = `ds-${expect.getState().currentTestName}`;
+  });
+
+  /** A job of the pane: registered while it runs */
+  const startJob = (requestId: string, totalBars: number) => {
+    const controller = new IncrementalHitsLoadingController(totalBars);
+    let release!: () => void;
+    act(() => {
+      release = getIncrementalHitsLoadingRuns(uid).register(requestId, controller);
+    });
+    return { controller, finish: () => act(release) };
+  };
+
+  it('renders nothing while the pane has no bar-by-bar job', () => {
+    const { container } = render(<IncrementalHitsLoadingStatus datasourceUid={uid} requestId='explore_a' />);
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows the progress of a running job and hides again when it finishes', () => {
-    const controller = new IncrementalHitsLoadingController();
-    render(<IncrementalHitsLoadingStatus controller={controller} />);
+  it('shows the progress of the job of the pane and hides again when it is over', () => {
+    render(<IncrementalHitsLoadingStatus datasourceUid={uid} requestId='explore_a' />);
+    const job = startJob('explore_a', 12);
     act(() => {
-      controller.start(12);
-      controller.barLoaded();
-      controller.barLoaded();
+      job.controller.barLoaded();
+      job.controller.barLoaded();
     });
     expect(screen.getByText('Logs volume: 2 / 12 bars')).toBeInTheDocument();
-    act(() => controller.finish());
+    job.finish();
+    expect(screen.queryByText(/Logs volume/)).not.toBeInTheDocument();
+  });
+
+  it('shows the job of its own pane, not the one of another pane', () => {
+    render(<IncrementalHitsLoadingStatus datasourceUid={uid} requestId='explore_a' />);
+    startJob('explore_b', 5);
+    expect(screen.queryByText(/Logs volume/)).not.toBeInTheDocument();
+    startJob('explore_a', 3);
+    expect(screen.getByText('Logs volume: 0 / 3 bars')).toBeInTheDocument();
+  });
+
+  it('renders nothing before the pane has run a request', () => {
+    render(<IncrementalHitsLoadingStatus datasourceUid={uid} requestId={undefined} />);
+    startJob('explore_b', 5);
     expect(screen.queryByText(/Logs volume/)).not.toBeInTheDocument();
   });
 
   it('pauses and resumes the job', () => {
-    const controller = new IncrementalHitsLoadingController();
-    render(<IncrementalHitsLoadingStatus controller={controller} />);
-    act(() => controller.start(3));
+    render(<IncrementalHitsLoadingStatus datasourceUid={uid} requestId='explore_a' />);
+    const { controller } = startJob('explore_a', 3);
     fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
     expect(controller.state.status).toBe('paused');
     expect(screen.getByText(/paused/)).toBeInTheDocument();
@@ -36,12 +65,11 @@ describe('IncrementalHitsLoadingStatus', () => {
     expect(controller.state.status).toBe('running');
   });
 
-  it('stops the job and hides once the job has finished', () => {
-    const controller = new IncrementalHitsLoadingController();
-    // the job: finishes as soon as it is stopped
-    controller.stopped$.subscribe(() => controller.finish());
-    render(<IncrementalHitsLoadingStatus controller={controller} />);
-    act(() => controller.start(3));
+  it('stops the job and hides once the job is over', () => {
+    render(<IncrementalHitsLoadingStatus datasourceUid={uid} requestId='explore_a' />);
+    const job = startJob('explore_a', 3);
+    // the job: over as soon as it is stopped
+    job.controller.stopped$.subscribe(() => job.finish());
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
     expect(screen.queryByText(/Logs volume/)).not.toBeInTheDocument();
   });

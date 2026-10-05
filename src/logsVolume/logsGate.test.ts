@@ -1,4 +1,4 @@
-import { merge, Observable, of, share, takeUntil, throwError, timer } from 'rxjs';
+import { distinctUntilChanged, map, merge, Observable, of, share, takeUntil, throwError, timer } from 'rxjs';
 import { RunHelpers, TestScheduler } from 'rxjs/testing';
 
 import { CoreApp, DataQueryRequest, DataQueryResponse, dateTime, LoadingState, makeTimeRange } from '@grafana/data';
@@ -6,11 +6,13 @@ import { CoreApp, DataQueryRequest, DataQueryResponse, dateTime, LoadingState, m
 import { Query, QueryType, SupportingQueryType } from '../types';
 
 import { IncrementalHitsLoadingController } from './IncrementalHitsLoadingController';
-import { emptyLogsFrame, LogsGate, openLogsGate, IncrementalHitsLoadingOptions } from './logsGate';
+import { IncrementalHitsLoadingRuns } from './incrementalHitsLoadingRuns';
+import { emptyLogsFrame, IncrementalHitsLoadingOptions, LogsGate, openLogsGate } from './logsGate';
 
 const makeRequest = (targets: Array<Partial<Query>>, overrides: Partial<DataQueryRequest<Query>> = {}) =>
   ({
     app: CoreApp.Explore,
+    requestId: 'explore_a',
     liveStreaming: false,
     timezone: 'utc',
     // 3 s at the default 96 target bars → 1 s step → bars [2000, 3000), [1000, 2000), [0, 1000)
@@ -31,7 +33,7 @@ const barByRange = (cold: Cold) => (req: DataQueryRequest<Query>) =>
   cold<DataQueryResponse>('-(a|)', { a: response(`bar${req.range.from.valueOf() / 1000}`) });
 
 describe('openLogsGate', () => {
-  const plain = { controller: new IncrementalHitsLoadingController() };
+  const plain = { runs: new IncrementalHitsLoadingRuns() };
   it('opens a gate for an Explore request of Raw Logs queries, with or without pipes', () => {
     expect(openLogsGate(makeRequest([{ expr: '{app="x"} error' }]), plain)).toBeDefined();
     expect(openLogsGate(makeRequest([{ expr: '* | stats count()' }]), plain)).toBeDefined();
@@ -60,7 +62,7 @@ describe('LogsGate', () => {
   let gate: LogsGate;
   beforeEach(() => {
     scheduler = new TestScheduler((actual, expected) => expect(actual).toEqual(expected));
-    gate = openLogsGate(request, { controller: new IncrementalHitsLoadingController() })!;
+    gate = openLogsGate(request, { runs: new IncrementalHitsLoadingRuns() })!;
   });
 
   it('holds the hits back until the logs answer, and the logs in Streaming until the volume is finished', () => {
@@ -162,13 +164,22 @@ describe('LogsGate', () => {
 describe('LogsGate with incremental hits loading', () => {
   const request = makeRequest([{}]);
   let scheduler: TestScheduler;
-  let controller: IncrementalHitsLoadingController;
+  let runs: IncrementalHitsLoadingRuns;
   let incremental: IncrementalHitsLoadingOptions;
+  /** The controller of the pane's running job, as the status row would find it */
+  const controller = (): IncrementalHitsLoadingController => {
+    let seen: IncrementalHitsLoadingController | undefined;
+    runs.job$(request.requestId).subscribe((job) => (seen = job?.controller)).unsubscribe();
+    if (!seen) {
+      throw new Error('no running job');
+    }
+    return seen;
+  };
   let gate: LogsGate;
   beforeEach(() => {
     scheduler = new TestScheduler((actual, expected) => expect(actual).toEqual(expected));
-    controller = new IncrementalHitsLoadingController();
-    incremental = { timeoutMs: 5, controller };
+    runs = new IncrementalHitsLoadingRuns();
+    incremental = { timeoutMs: 5, runs };
     gate = openLogsGate(request, incremental)!;
   });
 
@@ -235,6 +246,19 @@ describe('LogsGate with incremental hits loading', () => {
     expect(run!).toHaveBeenCalledTimes(2);
   });
 
+  it('registers the bar-by-bar job under the request of the pane while it runs', () => {
+    scheduler.run(({ cold, expectObservable }) => {
+      gate.logs(() => cold('-(a|)', { a: response('logs') })).subscribe();
+      const oneShot = cold<DataQueryResponse>('----------(b|)', { b: response('hits') });
+      const hits = (req: DataQueryRequest<Query>) => (req.range === request.range ? oneShot : barByRange(cold)(req));
+      gate.volume(request, hits).subscribe();
+
+      // nothing before the bars start at 6; a job from 6 to 9; released with the last bar
+      expectObservable(runs.job$('explore_a').pipe(map((job) => (job ? 'job' : 'none')), distinctUntilChanged())).toBe('n-----j--(n)', { n: 'none', j: 'job' });
+      expectObservable(runs.job$('explore_other').pipe(map((job) => (job ? 'job' : 'none')))).toBe('n', { n: 'none' });
+    });
+  });
+
   it('keeps the re-requested logs waiting while the bars are paused', () => {
     scheduler.run(({ cold, expectObservable, expectSubscriptions }) => {
       const slow = cold<DataQueryResponse>('----------(a|)', { a: response('slow') });
@@ -242,7 +266,7 @@ describe('LogsGate with incremental hits loading', () => {
       let call = 0;
       const run = () => (call++ === 0 ? slow : rerun);
       // pause right after the first bar (frame 6), resume at 10: bars at 6, 11, 12
-      cold('------x---y').subscribe((v) => (v === 'x' ? controller.pause() : controller.resume()));
+      cold('------x---y').subscribe((v) => (v === 'x' ? controller().pause() : controller().resume()));
 
       expectObservable(gate.volume(request, barByRange(cold))).toBe('------a----b(cd|)', {
         a: streaming('bar2'),
@@ -261,7 +285,7 @@ describe('LogsGate with incremental hits loading', () => {
       const rerun = cold<DataQueryResponse>('(a|)', { a: response('rerun') });
       let call = 0;
       const run = () => (call++ === 0 ? slow : rerun);
-      cold('-------x').subscribe(() => controller.stop());
+      cold('-------x').subscribe(() => controller().stop());
 
       expectObservable(gate.volume(request, barByRange(cold))).toBe('------a(d|)', {
         a: streaming('bar2'),

@@ -45,7 +45,7 @@ import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABL
 import LogsQlLanguageProvider from './language_provider';
 import { LiveChannelPathProvider } from './live/LiveChannelPathProvider';
 import { LogContextProvider } from './logContext/LogContextProvider';
-import { getIncrementalHitsLoadingController, IncrementalHitsLoadingController } from './logsVolume/IncrementalHitsLoadingController';
+import { getIncrementalHitsLoadingRuns } from './logsVolume/incrementalHitsLoadingRuns';
 import { LogsGate, openLogsGate, INCREMENTAL_HITS_TIMEOUT_MS } from './logsVolume/logsGate';
 import { getRequestVolumeBucketing } from './logsVolume/volumeBucketing';
 import { LOGS_VOLUME_DEFAULT_GROUP_BY, LOGS_VOLUME_GROUPS_LIMIT, queryLogsVolume } from './logsVolumeLegacy';
@@ -111,8 +111,6 @@ export class VictoriaLogsDatasource
   multitenancyHeaders?: MultitenancyHeaders;
   logContextProvider: LogContextProvider;
   private readonly liveChannelPathProvider = new LiveChannelPathProvider();
-  /** Progress, pause and stop of the bar-by-bar logs volume loading; shared with the query editor by datasource uid */
-  readonly incrementalHitsLoading: IncrementalHitsLoadingController;
   /** Gate of the last Explore query(), consumed by the getDataProvider() call Grafana makes right after it */
   private pendingLogsGate: LogsGate | undefined;
 
@@ -122,7 +120,6 @@ export class VictoriaLogsDatasource
     languageProvider?: LogsQlLanguageProvider
   ) {
     super(instanceSettings);
-    this.incrementalHitsLoading = getIncrementalHitsLoadingController(instanceSettings.uid);
 
     const settingsData = instanceSettings.jsonData || {};
     this.id = instanceSettings.id;
@@ -154,7 +151,7 @@ export class VictoriaLogsDatasource
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-    const logsGate = openLogsGate(request, { timeoutMs: INCREMENTAL_HITS_TIMEOUT_MS, controller: this.incrementalHitsLoading });
+    const logsGate = openLogsGate(request, { timeoutMs: INCREMENTAL_HITS_TIMEOUT_MS, runs: getIncrementalHitsLoadingRuns(this.uid) });
     this.pendingLogsGate = logsGate;
     this.prepareRequest(request);
 

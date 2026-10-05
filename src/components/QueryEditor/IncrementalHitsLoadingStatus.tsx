@@ -1,25 +1,29 @@
 import { css } from '@emotion/css';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useObservable } from 'react-use';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { Button, Stack, Text, useStyles2 } from '@grafana/ui';
 
-import { IncrementalHitsLoadingController } from '../../logsVolume/IncrementalHitsLoadingController';
+import { getIncrementalHitsLoadingRuns } from '../../logsVolume/incrementalHitsLoadingRuns';
 
 interface Props {
-  controller: IncrementalHitsLoadingController;
+  datasourceUid: string;
+  /** The Explore request of the pane; undefined before its first run */
+  requestId: string | undefined;
 }
 
-/** Progress of the bar-by-bar logs volume loading with pause/resume and stop; rendered only while a job runs */
-export const IncrementalHitsLoadingStatus = ({ controller }: Props) => {
+/** Progress of the bar-by-bar logs volume loading of the pane with pause/resume and stop; rendered only while its job runs */
+export const IncrementalHitsLoadingStatus = ({ datasourceUid, requestId }: Props) => {
   const styles = useStyles2(getStyles);
-  const state = useObservable(controller.state$, controller.state);
+  const job$ = useMemo(() => getIncrementalHitsLoadingRuns(datasourceUid).job$(requestId), [datasourceUid, requestId]);
+  const job = useObservable(job$);
 
-  if (state.status === 'idle') {
+  if (!job) {
     return null;
   }
 
+  const { controller, state } = job;
   const paused = state.status === 'paused';
 
   return (
@@ -46,6 +50,7 @@ export const IncrementalHitsLoadingStatus = ({ controller }: Props) => {
 };
 
 const getStyles = (theme: GrafanaTheme2) => ({
+  // keeps the hovered buttons clear of the query input above
   row: css({
     marginTop: theme.spacing(1),
   }),
