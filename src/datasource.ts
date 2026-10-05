@@ -156,6 +156,21 @@ export class VictoriaLogsDatasource
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
     const logsGate = openLogsGate(request, { timeoutMs: INCREMENTAL_HITS_TIMEOUT_MS, controller: this.incrementalHitsLoading });
     this.pendingLogsGate = logsGate;
+    this.prepareRequest(request);
+
+    if (request.liveStreaming) {
+      return this.runLiveQueryThroughBackend(request);
+    }
+
+    return logsGate ? logsGate.logs(() => this.runQuery(request)) : this.runQuery(request);
+  }
+
+  /**
+   * Resolves the targets of the request for the backend in place: the sort pipe, the line
+   * limit, the timezone offset of the range start, the format and the step. Done once per
+   * request, so a derived request (a volume bar) keeps the parameters of its parent
+   */
+  private prepareRequest(request: DataQueryRequest<Query>): DataQueryRequest<Query> {
     const timezoneOffset = formatOffsetDuration(getRangeStartOffsetMinutes(request.timezone, request.range));
     const queries: Query[] = request.targets
       .filter((q) => q.expr || config.publicDashboardAccessToken !== '')
@@ -175,12 +190,7 @@ export class VictoriaLogsDatasource
     // if step is defined, use it as the request interval to set the width of bars correctly
     request.intervalMs = queries[0]?.step ? getMillisecondsFromDuration(queries[0]?.step) : request.intervalMs;
     request.targets = queries;
-
-    if (request.liveStreaming) {
-      return this.runLiveQueryThroughBackend(request);
-    }
-
-    return logsGate ? logsGate.logs(() => this.runQuery(request)) : this.runQuery(request);
+    return request;
   }
 
   runQuery(fixedRequest: DataQueryRequest<Query>) {
@@ -630,8 +640,10 @@ export class VictoriaLogsDatasource
       case SupplementaryQueryType.LogsVolume: {
         const logsGate = this.pendingLogsGate;
         this.pendingLogsGate = undefined;
-        const hits = (req: DataQueryRequest<Query>) => this.query(req);
-        return queryLogsVolume(newRequest, logsGate ? logsGate.volume(newRequest, hits) : hits(newRequest), this.getActiveLevelRules());
+        // prepared once: the bar requests of the gate differ from the whole-range one only by their range
+        const hitsRequest = this.prepareRequest(newRequest);
+        const hits = (req: DataQueryRequest<Query>) => this.runQuery(req);
+        return queryLogsVolume(hitsRequest, logsGate ? logsGate.volume(hitsRequest, hits) : hits(hitsRequest), this.getActiveLevelRules());
       }
       default:
         return undefined;

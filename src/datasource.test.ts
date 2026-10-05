@@ -1899,6 +1899,33 @@ describe('getDataProvider with incremental hits loading', () => {
     expect(backendQuery.mock.calls.some(([req]) => isHits(req) && isWholeRange(req, request))).toBe(false);
   });
 
+  it('requests every bar with the parameters of the whole-range hits request, whatever the offset at the bar itself', () => {
+    const ds = createDatasource(templateSrvStub);
+    // Europe/London: UTC+0 on 15 March, UTC+1 from 29 March; 30 days at 96 target bars → 6h buckets
+    const timezone = 'Europe/London';
+    const request = {
+      ...makeExploreRequest({ targets: [rawLogs], timezone }),
+      range: {
+        from: dateTimeForTimeZone(timezone, Date.UTC(2026, 2, 15)),
+        to: dateTimeForTimeZone(timezone, Date.UTC(2026, 3, 14)),
+        raw: { from: 'now-30d', to: 'now' },
+      },
+    } as DataQueryRequest<Query>;
+    scheduler.run(({ cold, flush }) => {
+      backendQuery.mockImplementation((req: DataQueryRequest<Query>) =>
+        cold<DataQueryResponse>(isHits(req) && isWholeRange(req, request) ? '10s (a|)' : '-(a|)', { a: { data: [] } })
+      );
+      ds.query(request).subscribe();
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+      providerSource().subscribe();
+      flush();
+    });
+    const [wholeRange, ...bars] = backendQuery.mock.calls.filter(([req]) => isHits(req)).map(([req]) => req.targets[0]);
+    expect(wholeRange).toMatchObject({ step: '6h', timezoneOffset: undefined });
+    expect(bars).toHaveLength(120);
+    bars.forEach((bar) => expect(bar).toMatchObject({ step: '6h', timezoneOffset: undefined, expr: wholeRange.expr }));
+  });
+
   it('keeps the plain one-shot hits without a timeout when a target has the option switched off', () => {
     const ds = createDatasource(templateSrvStub);
     const request = makeRequest([{ ...rawLogs, incrementalHitsLoading: false }]);
