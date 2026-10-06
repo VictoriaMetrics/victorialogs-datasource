@@ -1,13 +1,13 @@
 import { concat, defer, finalize, map, Observable, of, scan, switchMap, takeUntil, tap } from 'rxjs';
 
-import { DataFrame, DataQueryRequest, DataQueryResponse, LoadingState, TimeRange } from '@grafana/data';
+import { DataFrame, DataQueryRequest, DataQueryResponse, LoadingState } from '@grafana/data';
 
 import { Query } from '../types';
 
 import { IncrementalHitsLoadingController } from './IncrementalHitsLoadingController';
 import { isSlowResponse, withFirstByteTimeout } from './firstByteTimeout';
 import { LogsOutcome } from './logsHandOff';
-import { getVolumeBars } from './volumeBucketing';
+import { getVolumeBars, VolumeBars } from './volumeBucketing';
 
 export type RunQuery = (request: DataQueryRequest<Query>) => Observable<DataQueryResponse>;
 
@@ -23,15 +23,15 @@ export type RegisterJob = (controller: IncrementalHitsLoadingController) => () =
 export function queryHitsByBars(
   run: RunQuery,
   request: DataQueryRequest<Query>,
-  bars: TimeRange[],
+  bars: VolumeBars,
   registerJob: RegisterJob
 ): Observable<DataQueryResponse> {
   return defer(() => {
     let accumulated: DataFrame[] = [];
-    const controller = new IncrementalHitsLoadingController(bars.length);
+    const controller = new IncrementalHitsLoadingController({ totalBars: bars.ranges.length, step: bars.step });
     const release = registerJob(controller);
 
-    const streaming = concat(...bars.map((bar) => controller.gate$.pipe(switchMap(() => run({ ...request, range: bar }))))).pipe(
+    const streaming = concat(...bars.ranges.map((bar) => controller.gate$.pipe(switchMap(() => run({ ...request, range: bar }))))).pipe(
       tap(() => controller.barLoaded()),
       scan((acc, response) => acc.concat(response.data), accumulated),
       tap((data) => (accumulated = data)),

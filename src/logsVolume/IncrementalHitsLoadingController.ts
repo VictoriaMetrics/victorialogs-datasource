@@ -4,6 +4,14 @@ export interface IncrementalHitsLoadingState {
   status: 'running' | 'paused';
   loadedBars: number;
   totalBars: number;
+  /** Bucket step of the bars, e.g. `2d` */
+  step: string;
+}
+
+/** What the job knows about its bars before it starts */
+export interface IncrementalHitsLoadingBars {
+  totalBars: number;
+  step: string;
 }
 
 /**
@@ -22,8 +30,8 @@ export class IncrementalHitsLoadingController {
   /** Emits once as soon as the job is not paused; subscribe before every bar request */
   readonly gate$: Observable<IncrementalHitsLoadingState>;
 
-  constructor(totalBars: number) {
-    this.stateSubject = new BehaviorSubject<IncrementalHitsLoadingState>({ status: 'running', loadedBars: 0, totalBars });
+  constructor({ totalBars, step }: IncrementalHitsLoadingBars) {
+    this.stateSubject = new BehaviorSubject<IncrementalHitsLoadingState>({ status: 'running', loadedBars: 0, totalBars, step });
     this.state$ = this.stateSubject.asObservable();
     this.gate$ = this.state$.pipe(
       filter((state) => state.status !== 'paused'),

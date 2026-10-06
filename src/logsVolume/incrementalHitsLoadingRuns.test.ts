@@ -16,8 +16,8 @@ describe('IncrementalHitsLoadingRuns', () => {
 
   it('hands a pane its own job only and releases it when the job is over', () => {
     const runs = new IncrementalHitsLoadingRuns();
-    const left = new IncrementalHitsLoadingController(3);
-    const right = new IncrementalHitsLoadingController(5);
+    const left = new IncrementalHitsLoadingController({ totalBars: 3, step: '1h' });
+    const right = new IncrementalHitsLoadingController({ totalBars: 5, step: '1h' });
     const releaseLeft = runs.register('explore_a', left);
     runs.register('explore_b', right);
     expect(currentJob(runs, 'explore_a')?.controller).toBe(left);
@@ -30,7 +30,7 @@ describe('IncrementalHitsLoadingRuns', () => {
 
   it('finds the job of a mixed datasource sub-request by the pane behind its prefixed request id', () => {
     const runs = new IncrementalHitsLoadingRuns();
-    const job = new IncrementalHitsLoadingController(1);
+    const job = new IncrementalHitsLoadingController({ totalBars: 1, step: '1h' });
     runs.register('mixed-0-explore_a', job);
     expect(currentJob(runs, 'explore_a')?.controller).toBe(job);
     expect(currentJob(runs, 'explore_b')).toBeUndefined();
@@ -38,8 +38,8 @@ describe('IncrementalHitsLoadingRuns', () => {
 
   it('replaces the job of a pane that runs again and ignores the stale release', () => {
     const runs = new IncrementalHitsLoadingRuns();
-    const old = new IncrementalHitsLoadingController(1);
-    const fresh = new IncrementalHitsLoadingController(1);
+    const old = new IncrementalHitsLoadingController({ totalBars: 1, step: '1h' });
+    const fresh = new IncrementalHitsLoadingController({ totalBars: 1, step: '1h' });
     const releaseOld = runs.register('explore_a', old);
     runs.register('explore_a', fresh);
     releaseOld();
@@ -50,7 +50,7 @@ describe('IncrementalHitsLoadingRuns', () => {
     const runs = new IncrementalHitsLoadingRuns();
     const seen: Array<string | undefined> = [];
     runs.job$('explore_a').subscribe((job) => seen.push(job && `${job.state.status}:${job.state.loadedBars}/${job.state.totalBars}`));
-    const controller = new IncrementalHitsLoadingController(2);
+    const controller = new IncrementalHitsLoadingController({ totalBars: 2, step: '1h' });
     const release = runs.register('explore_a', controller);
     controller.barLoaded();
     controller.pause();

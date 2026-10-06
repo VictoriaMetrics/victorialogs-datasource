@@ -15,8 +15,8 @@ describe('IncrementalHitsLoadingStatus', () => {
   });
 
   /** A job of the pane: registered while it runs */
-  const startJob = (requestId: string, totalBars: number) => {
-    const controller = new IncrementalHitsLoadingController(totalBars);
+  const startJob = (requestId: string, totalBars: number, step = '1h') => {
+    const controller = new IncrementalHitsLoadingController({ totalBars, step });
     let release!: () => void;
     act(() => {
       release = getIncrementalHitsLoadingRuns(uid).register(requestId, controller);
@@ -36,7 +36,7 @@ describe('IncrementalHitsLoadingStatus', () => {
       job.controller.barLoaded();
       job.controller.barLoaded();
     });
-    expect(screen.getByText('Logs volume: 2 / 12 bars')).toBeInTheDocument();
+    expect(screen.getByText('Logs volume is loading incrementally: 2 / 12 bars')).toBeInTheDocument();
     job.finish();
     expect(screen.queryByText(/Logs volume/)).not.toBeInTheDocument();
   });
@@ -46,7 +46,7 @@ describe('IncrementalHitsLoadingStatus', () => {
     startJob('explore_b', 5);
     expect(screen.queryByText(/Logs volume/)).not.toBeInTheDocument();
     startJob('explore_a', 3);
-    expect(screen.getByText('Logs volume: 0 / 3 bars')).toBeInTheDocument();
+    expect(screen.getByText('Logs volume is loading incrementally: 0 / 3 bars')).toBeInTheDocument();
   });
 
   it('renders nothing before the pane has run a request', () => {
