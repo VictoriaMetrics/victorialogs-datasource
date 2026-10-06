@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
@@ -401,9 +402,10 @@ func (di *DatasourceInstance) datasourceQuery(ctx context.Context, q *Query, isS
 	}
 	req.Header = di.grafanaSettings.CustomHeaders.Clone()
 
-	resp, err := client.Do(req)
+	firstByteTimeout := time.Duration(q.FirstByteTimeoutMs) * time.Millisecond
+	resp, err := doWithFirstByteTimeout(client, req, firstByteTimeout)
 	if err != nil {
-		if !isTrivialError(err) {
+		if errors.Is(err, errSlowResponse) || !isTrivialError(err) {
 			// Return unexpected error to the caller.
 			return nil, err
 		}
@@ -417,8 +419,11 @@ func (di *DatasourceInstance) datasourceQuery(ctx context.Context, q *Query, isS
 
 		req.Header = di.grafanaSettings.CustomHeaders.Clone()
 
-		resp, err = client.Do(req)
+		resp, err = doWithFirstByteTimeout(client, req, firstByteTimeout)
 		if err != nil {
+			if errors.Is(err, errSlowResponse) {
+				return nil, err
+			}
 			return nil, fmt.Errorf("failed to make http request: %w", err)
 		}
 	}
@@ -449,6 +454,9 @@ func (di *DatasourceInstance) datasourceQuery(ctx context.Context, q *Query, isS
 // query sends a query to the datasource and returns the result.
 func (di *DatasourceInstance) query(ctx context.Context, q *Query) backend.DataResponse {
 	r, err := di.datasourceQuery(ctx, q, false)
+	if errors.Is(err, errSlowResponse) {
+		return slowQueryResponse(q)
+	}
 	if err != nil {
 		return newResponseError(err, backend.StatusInternal)
 	}

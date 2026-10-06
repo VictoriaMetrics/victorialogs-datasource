@@ -1,35 +1,37 @@
-import { concat, defer, EMPTY, filter, finalize, map, NEVER, Observable, of, switchMap, takeUntil, tap, timer } from 'rxjs';
+import { concat, defer, finalize, map, Observable, of, switchMap, timer } from 'rxjs';
 
-import { DataFrame, DataQueryResponse, FieldType, LoadingState } from '@grafana/data';
+import { DataFrame, DataQueryRequest, DataQueryResponse, FieldType, LoadingState } from '@grafana/data';
 
 import { FrameField } from '../transformers/types';
+import { Query } from '../types';
 import { responseErrors } from '../utils/dataQueryResponse';
 
+import { isSlowResponse, withFirstByteTimeout } from './firstByteTimeout';
+import { RunQuery } from './incrementalHits';
 import { LogsHandOff } from './logsHandOff';
 
 /**
  * The raw logs of a run: an empty frame first, then the response, reported as `Streaming`
- * while a waiting volume loads. Past the timeout the logs count as slow; when a volume
- * waits for them they are cut and requested again once the volume is done
+ * while a waiting volume loads. With a budget and a volume already waiting, the request
+ * carries the budget; given up by the backend, the logs are requested again once the
+ * volume is done
  */
 export function queryLogsWithHandOff(
-  run: () => Observable<DataQueryResponse>,
+  request: DataQueryRequest<Query>,
+  run: RunQuery,
   handOff: LogsHandOff,
-  refIds: string[],
   timeoutMs: number | undefined
 ): Observable<DataQueryResponse> {
-  let handedOver = false;
-  const handOver = timeoutMs === undefined ? NEVER : timer(timeoutMs).pipe(
-    // slow either way; cut only when a volume waits, otherwise the result would be lost for nothing
-    map(() => handOff.settle('slow')),
-    tap((cut) => (handedOver = cut)),
-    filter(Boolean)
-  );
+  // decided when the request goes out: by then Explore has subscribed the volume, if it shows one
+  const firstAttempt = defer(() => run(timeoutMs !== undefined && handOff.volumeWaits ? withFirstByteTimeout(request, timeoutMs) : request));
+  const afterVolume = () => {
+    handOff.settle('slow');
+    return handOff.volumeDone$.pipe(switchMap(() => run(request)));
+  };
 
   return concat(
-    emptyFirst(refIds),
-    run().pipe(switchMap((response) => holdWhileVolumeLoads(response, handOff)), takeUntil(handOver)),
-    defer(() => (handedOver ? handOff.volumeDone$.pipe(switchMap(() => run())) : EMPTY))
+    emptyFirst(request),
+    firstAttempt.pipe(switchMap((response) => (isSlowResponse(response) ? afterVolume() : holdWhileVolumeLoads(response, handOff))))
   ).pipe(
     // an error or a cancellation before the response counts as failed logs
     finalize(() => handOff.settle('failed'))
@@ -41,8 +43,10 @@ export function queryLogsWithHandOff(
  * A tick later: Grafana's runRequest subscribes to the shared stream twice, and a
  * synchronous first packet would reset it in between
  */
-const emptyFirst = (refIds: string[]): Observable<DataQueryResponse> =>
-  timer(0).pipe(map(() => ({ data: refIds.map(emptyLogsFrame), state: LoadingState.Streaming })));
+const emptyFirst = (request: DataQueryRequest<Query>): Observable<DataQueryResponse> =>
+  timer(0).pipe(
+    map(() => ({ data: request.targets.filter((target) => !target.hide).map((target) => emptyLogsFrame(target.refId)), state: LoadingState.Streaming }))
+  );
 
 /** A failed response passes as is; a good one stays `Streaming` while a waiting volume loads, so the Explore Cancel button covers both */
 function holdWhileVolumeLoads(response: DataQueryResponse, handOff: LogsHandOff): Observable<DataQueryResponse> {

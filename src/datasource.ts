@@ -45,6 +45,7 @@ import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABL
 import LogsQlLanguageProvider from './language_provider';
 import { LiveChannelPathProvider } from './live/LiveChannelPathProvider';
 import { LogContextProvider } from './logContext/LogContextProvider';
+import { isSlowResponse } from './logsVolume/firstByteTimeout';
 import { getIncrementalHitsLoadingRuns } from './logsVolume/incrementalHitsLoadingRuns';
 import { LogsGate, openLogsGate, INCREMENTAL_HITS_TIMEOUT_MS } from './logsVolume/logsGate';
 import { getRequestVolumeBucketing } from './logsVolume/volumeBucketing';
@@ -159,7 +160,7 @@ export class VictoriaLogsDatasource
       return this.runLiveQueryThroughBackend(request);
     }
 
-    return logsGate ? logsGate.logs(() => this.runQuery(request)) : this.runQuery(request);
+    return logsGate ? logsGate.logs((req) => this.runQuery(req)) : this.runQuery(request);
   }
 
   /**
@@ -194,8 +195,9 @@ export class VictoriaLogsDatasource
     return super
       .query(fixedRequest)
       .pipe(
+        // the marker of a request given up at its first byte budget carries no data to transform
         map((response) =>
-          transformBackendResult(
+          isSlowResponse(response) ? response : transformBackendResult(
             response,
             fixedRequest,
             this.derivedFields ?? [],

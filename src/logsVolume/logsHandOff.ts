@@ -1,6 +1,6 @@
 import { AsyncSubject, Observable } from 'rxjs';
 
-/** How the raw logs ended: in time, past the timeout, or with an error or a cancellation */
+/** How the raw logs ended: in time, past the budget, or with an error or a cancellation */
 export type LogsOutcome = 'fast' | 'slow' | 'failed';
 
 /**
@@ -14,10 +14,15 @@ export class LogsHandOff {
   readonly outcome$: Observable<LogsOutcome> = this.outcome.asObservable();
   readonly volumeDone$: Observable<void> = this.volumeDone.asObservable();
 
+  /** Whether a volume is subscribed and waiting for the logs to settle */
+  get volumeWaits(): boolean {
+    // `observed` drops to false once the subject completes
+    return this.outcome.observed;
+  }
+
   /** Records the outcome (the first call wins) and reports whether a volume was waiting for it */
   settle(outcome: LogsOutcome): boolean {
-    // `observed` drops to false once the subject completes
-    const volumeWaits = this.outcome.observed;
+    const volumeWaits = this.volumeWaits;
     this.outcome.next(outcome);
     this.outcome.complete();
     return volumeWaits;

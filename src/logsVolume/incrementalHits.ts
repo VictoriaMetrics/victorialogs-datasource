@@ -1,10 +1,11 @@
-import { concat, defer, finalize, map, Observable, of, scan, switchMap, takeUntil, tap, timeout } from 'rxjs';
+import { concat, defer, finalize, map, Observable, of, scan, switchMap, takeUntil, tap } from 'rxjs';
 
 import { DataFrame, DataQueryRequest, DataQueryResponse, LoadingState, TimeRange } from '@grafana/data';
 
 import { Query } from '../types';
 
 import { IncrementalHitsLoadingController } from './IncrementalHitsLoadingController';
+import { isSlowResponse, withFirstByteTimeout } from './firstByteTimeout';
 import { LogsOutcome } from './logsHandOff';
 import { getVolumeBars } from './volumeBucketing';
 
@@ -45,7 +46,7 @@ export function queryHitsByBars(
   });
 }
 
-/** The hits of the volume once the logs settled: none after failed logs, bars at once after slow ones, one shot with the timeout after fast ones */
+/** The hits of the volume once the logs settled: none after failed logs, bars at once after slow ones, one shot under the budget after fast ones */
 export function queryHitsAfterLogs(
   outcome: LogsOutcome,
   run: RunQuery,
@@ -61,6 +62,8 @@ export function queryHitsAfterLogs(
   if (outcome === 'slow') {
     return byBars();
   }
-  const oneShot = run(request);
-  return timeoutMs === undefined ? oneShot : oneShot.pipe(timeout({ first: timeoutMs, with: byBars }));
+  if (timeoutMs === undefined) {
+    return run(request);
+  }
+  return run(withFirstByteTimeout(request, timeoutMs)).pipe(switchMap((response) => (isSlowResponse(response) ? byBars() : of(response))));
 }

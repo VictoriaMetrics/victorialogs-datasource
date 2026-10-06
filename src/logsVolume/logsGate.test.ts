@@ -6,6 +6,7 @@ import { CoreApp, DataQueryRequest, DataQueryResponse, dateTime, LoadingState, m
 import { Query, QueryType, SupportingQueryType } from '../types';
 
 import { IncrementalHitsLoadingController } from './IncrementalHitsLoadingController';
+import { slowQueryFrame } from './firstByteTimeout';
 import { IncrementalHitsLoadingRuns } from './incrementalHitsLoadingRuns';
 import { emptyLogsFrame } from './incrementalLogs';
 import { IncrementalHitsLoadingOptions, LogsGate, openLogsGate } from './logsGate';
@@ -26,6 +27,10 @@ const frame = (name: string) => ({ name, fields: [], length: 0 });
 const response = (name: string, state?: LoadingState): DataQueryResponse => ({ data: [frame(name)], state });
 const streaming = (...names: string[]): DataQueryResponse => ({ data: names.map(frame), state: LoadingState.Streaming });
 const done = (...names: string[]): DataQueryResponse => ({ data: names.map(frame), state: LoadingState.Done });
+/** The marker the backend returns instead of a result when VictoriaLogs did not start answering within the budget */
+const slow: DataQueryResponse = { data: [slowQueryFrame('A')] };
+/** Whether a request carries the first byte budget */
+const budgeted = (req: DataQueryRequest<Query>) => req.targets.every((t) => t.firstByteTimeoutMs === 5);
 /** The leading packet of every gated run: an empty logs frame that clears the previous result in Explore */
 const cleared: DataQueryResponse = { data: [emptyLogsFrame('A')], state: LoadingState.Streaming };
 
@@ -184,138 +189,125 @@ describe('LogsGate with incremental hits loading', () => {
     gate = openLogsGate(request, incremental)!;
   });
 
-  it('after fast logs tries the hits in one shot and keeps the logs in Streaming until the volume is done', () => {
-    scheduler.run(({ cold, expectObservable }) => {
-      const logs = gate.logs(() => cold('---(a|)', { a: response('logs') }));
-      const hits = (_req: DataQueryRequest<Query>) => cold('--(b|)', { b: response('hits') });
-
+  it('after fast logs tries the hits in one shot under the budget and keeps the logs in Streaming until the volume is done', () => {
+    const hits = jest.fn((_req: DataQueryRequest<Query>) => scheduler.createColdObservable('--(b|)', { b: response('hits') }));
+    const run = jest.fn((_req: DataQueryRequest<Query>) => scheduler.createColdObservable('---(a|)', { a: response('logs') }));
+    scheduler.run(({ expectObservable }) => {
       expectObservable(gate.volume(request, hits)).toBe('-----(b|)', { b: response('hits') });
-      expectObservable(logs).toBe('p--a-(d|)', {
+      expectObservable(gate.logs(run)).toBe('p--a-(d|)', {
         p: cleared,
         a: response('logs', LoadingState.Streaming),
         d: response('logs', LoadingState.Done),
       });
     });
+    // a volume was waiting when the logs were sent, so both one-shot requests carried the budget
+    expect(run.mock.calls.map(([req]) => budgeted(req))).toEqual([true]);
+    expect(hits.mock.calls.map(([req]) => budgeted(req))).toEqual([true]);
   });
 
-  it('after fast logs switches to bar-by-bar loading when the one-shot hits exceed the timeout', () => {
-    scheduler.run(({ cold, expectObservable, expectSubscriptions }) => {
-      const oneShot = cold<DataQueryResponse>('----------(b|)', { b: response('hits') });
-      const bar = barByRange(cold);
-      const hits = (req: DataQueryRequest<Query>) => (req.range === request.range ? oneShot : bar(req));
+  it('after fast logs switches to bar-by-bar loading when the backend gives the one-shot hits up', () => {
+    const hits = jest.fn<Observable<DataQueryResponse>, [DataQueryRequest<Query>]>();
+    scheduler.run(({ cold, expectObservable }) => {
+      hits.mockImplementation((req) => (budgeted(req) ? cold('---(m|)', { m: slow }) : barByRange(cold)(req)));
       const logs = gate.logs(() => cold('-(a|)', { a: response('logs') }));
 
-      // logs at 1, one-shot hits 1…6 cancelled, bars at 7, 8, 9
-      expectObservable(gate.volume(request, hits)).toBe('-------ab(cd|)', {
+      // logs at 1, the one-shot hits give up at 4, bars at 5, 6, 7
+      expectObservable(gate.volume(request, hits)).toBe('-----ab(cd|)', {
         a: streaming('bar2'),
         b: streaming('bar2', 'bar1'),
         c: streaming('bar2', 'bar1', 'bar0'),
         d: done('bar2', 'bar1', 'bar0'),
       });
-      expectSubscriptions(oneShot.subscriptions).toBe('-^----!');
-      expectObservable(logs).toBe('pa-------(d|)', {
+      expectObservable(logs).toBe('pa-----(d|)', {
         p: cleared,
         a: response('logs', LoadingState.Streaming),
         d: response('logs', LoadingState.Done),
       });
     });
+    // the one-shot carried the budget, the bars did not
+    expect(hits.mock.calls.map(([req]) => budgeted(req))).toEqual([true, false, false, false]);
   });
 
-  it('cancels slow logs while a volume waits, loads the bars right away and re-requests the logs afterwards', () => {
-    let run: jest.Mock<Observable<DataQueryResponse>, []>;
-    scheduler.run(({ cold, expectObservable, expectSubscriptions }) => {
-      const slow = cold<DataQueryResponse>('----------(a|)', { a: response('slow') });
-      const rerun = cold<DataQueryResponse>('--(a|)', { a: response('rerun') });
-      let call = 0;
-      run = jest.fn(() => (call++ === 0 ? slow : rerun));
+  it('hands slow logs over to the volume while it waits: bars right away, the logs requested again without the budget afterwards', () => {
+    const run = jest.fn<Observable<DataQueryResponse>, [DataQueryRequest<Query>]>();
+    scheduler.run(({ cold, expectObservable }) => {
+      run.mockImplementation((req) => (budgeted(req) ? cold('---(m|)', { m: slow }) : cold('--(a|)', { a: response('rerun') })));
       const hits = jest.fn(barByRange(cold));
 
-      // timeout at 5: bars at 6, 7, 8; the logs are requested again at 8 and answer at 10
-      expectObservable(gate.volume(request, hits)).toBe('------ab(cd|)', {
+      // the backend gives the logs up at 3: bars at 4, 5, 6; the logs are requested again at 6 and answer at 8
+      expectObservable(gate.volume(request, hits)).toBe('----ab(cd|)', {
         a: streaming('bar2'),
         b: streaming('bar2', 'bar1'),
         c: streaming('bar2', 'bar1', 'bar0'),
         d: done('bar2', 'bar1', 'bar0'),
       });
       // the leading empty packet keeps the Explore logs section (and the volume above it) on screen while waiting
-      expectObservable(gate.logs(run)).toBe('p---------(a|)', { p: cleared, a: response('rerun') });
-      // the one-shot subscription is torn down at the timeout: that is what cancels the HTTP request
-      expectSubscriptions(slow.subscriptions).toBe('^----!');
-      expectSubscriptions(rerun.subscriptions).toBe('--------^-!');
+      expectObservable(gate.logs(run)).toBe('p-------(a|)', { p: cleared, a: response('rerun') });
       expect(hits.mock.calls.some(([req]) => req.range === request.range)).toBe(false);
     });
-    expect(run!).toHaveBeenCalledTimes(2);
+    expect(run.mock.calls.map(([req]) => budgeted(req))).toEqual([true, false]);
   });
 
   it('registers the bar-by-bar job under the request of the pane while it runs', () => {
     scheduler.run(({ cold, expectObservable }) => {
       gate.logs(() => cold('-(a|)', { a: response('logs') })).subscribe();
-      const oneShot = cold<DataQueryResponse>('----------(b|)', { b: response('hits') });
-      const hits = (req: DataQueryRequest<Query>) => (req.range === request.range ? oneShot : barByRange(cold)(req));
+      const hits = (req: DataQueryRequest<Query>) => (budgeted(req) ? cold('---(m|)', { m: slow }) : barByRange(cold)(req));
       gate.volume(request, hits).subscribe();
 
-      // nothing before the bars start at 6; a job from 6 to 9; released with the last bar
-      expectObservable(runs.job$('explore_a').pipe(map((job) => (job ? 'job' : 'none')), distinctUntilChanged())).toBe('n-----j--(n)', { n: 'none', j: 'job' });
+      // nothing before the bars start at 4; a job from 4 to 7; released with the last bar
+      expectObservable(runs.job$('explore_a').pipe(map((job) => (job ? 'job' : 'none')), distinctUntilChanged())).toBe('n---j--(n)', { n: 'none', j: 'job' });
       expectObservable(runs.job$('explore_other').pipe(map((job) => (job ? 'job' : 'none')))).toBe('n', { n: 'none' });
     });
   });
 
   it('keeps the re-requested logs waiting while the bars are paused', () => {
     scheduler.run(({ cold, expectObservable, expectSubscriptions }) => {
-      const slow = cold<DataQueryResponse>('----------(a|)', { a: response('slow') });
       const rerun = cold<DataQueryResponse>('(a|)', { a: response('rerun') });
-      let call = 0;
-      const run = () => (call++ === 0 ? slow : rerun);
-      // pause right after the first bar (frame 6), resume at 10: bars at 6, 11, 12
-      cold('------x---y').subscribe((v) => (v === 'x' ? controller().pause() : controller().resume()));
+      const run = (req: DataQueryRequest<Query>) => (budgeted(req) ? cold('---(m|)', { m: slow }) : rerun);
+      // pause right after the first bar (frame 4), resume at 8: bars at 4, 9, 10
+      cold('----x---y').subscribe((v) => (v === 'x' ? controller().pause() : controller().resume()));
 
-      expectObservable(gate.volume(request, barByRange(cold))).toBe('------a----b(cd|)', {
+      expectObservable(gate.volume(request, barByRange(cold))).toBe('----a----b(cd|)', {
         a: streaming('bar2'),
         b: streaming('bar2', 'bar1'),
         c: streaming('bar2', 'bar1', 'bar0'),
         d: done('bar2', 'bar1', 'bar0'),
       });
-      expectObservable(gate.logs(run)).toBe('p-----------(a|)', { p: cleared, a: response('rerun') });
-      expectSubscriptions(rerun.subscriptions).toBe('------------(^!)');
+      expectObservable(gate.logs(run)).toBe('p---------(a|)', { p: cleared, a: response('rerun') });
+      expectSubscriptions(rerun.subscriptions).toBe('----------(^!)');
     });
   });
 
   it('loads the logs once the user stops the bars, keeping the bars loaded so far', () => {
     scheduler.run(({ cold, expectObservable }) => {
-      const slow = cold<DataQueryResponse>('----------(a|)', { a: response('slow') });
-      const rerun = cold<DataQueryResponse>('(a|)', { a: response('rerun') });
-      let call = 0;
-      const run = () => (call++ === 0 ? slow : rerun);
-      cold('-------x').subscribe(() => controller().stop());
+      const run = (req: DataQueryRequest<Query>) => (budgeted(req) ? cold('---(m|)', { m: slow }) : cold('(a|)', { a: response('rerun') }));
+      cold('-----x').subscribe(() => controller().stop());
 
-      expectObservable(gate.volume(request, barByRange(cold))).toBe('------a(d|)', {
+      expectObservable(gate.volume(request, barByRange(cold))).toBe('----a(d|)', {
         a: streaming('bar2'),
         d: done('bar2'),
       });
-      expectObservable(gate.logs(run)).toBe('p------(a|)', { p: cleared, a: response('rerun') });
+      expectObservable(gate.logs(run)).toBe('p----(a|)', { p: cleared, a: response('rerun') });
     });
   });
 
-  it('keeps slow logs running when no volume is waiting, and a later volume goes bar by bar at once', () => {
-    scheduler.run(({ cold, expectObservable, expectSubscriptions }) => {
-      const slow = cold<DataQueryResponse>('----------(a|)', { a: response('slow') });
-      const run = jest.fn(() => slow);
-      // the volume panel is switched on after the timeout
-      const hits = jest.fn(barByRange(cold));
-      cold('-------x').subscribe(() => expectObservable(gate.volume(request, hits)).toBe('--------ab(cd|)', {
-        a: streaming('bar2'),
-        b: streaming('bar2', 'bar1'),
-        c: streaming('bar2', 'bar1', 'bar0'),
-        d: done('bar2', 'bar1', 'bar0'),
-      }));
-
-      expectObservable(gate.logs(run)).toBe('p---------(a|)', { p: cleared, a: response('slow') });
-      expectSubscriptions(slow.subscriptions).toBe('^---------!');
-      expect(run).toHaveBeenCalledTimes(1);
+  it('sends the logs without the budget when no volume is waiting, and a later volume waits for them', () => {
+    const run = jest.fn((_req: DataQueryRequest<Query>) => scheduler.createColdObservable('----------(a|)', { a: response('slow') }));
+    const hits = jest.fn((_req: DataQueryRequest<Query>) => scheduler.createColdObservable('--(b|)', { b: response('hits') }));
+    scheduler.run(({ cold, expectObservable }) => {
+      // the volume panel is switched on at 7, after the logs were sent
+      cold('-------x').subscribe(() => expectObservable(gate.volume(request, hits)).toBe('------------(b|)', { b: response('hits') }));
+      expectObservable(gate.logs(run)).toBe('p---------a-(d|)', {
+        p: cleared,
+        a: response('slow', LoadingState.Streaming),
+        d: response('slow', LoadingState.Done),
+      });
     });
+    expect(run.mock.calls.map(([req]) => budgeted(req))).toEqual([false]);
+    expect(hits.mock.calls.map(([req]) => budgeted(req))).toEqual([true]);
   });
 
-  it('skips the volume when the logs fail before the timeout', () => {
+  it('skips the volume when the logs fail', () => {
     const hits = jest.fn(() => of(response('hits')));
     const volume: DataQueryResponse[] = [];
     scheduler.run(({ flush }) => {
@@ -327,7 +319,7 @@ describe('LogsGate with incremental hits loading', () => {
     expect(volume).toEqual([{ data: [], state: LoadingState.Done }]);
   });
 
-  it('skips the volume when the logs are cancelled before the timeout', () => {
+  it('skips the volume when the logs are cancelled before they answer', () => {
     scheduler.run(({ cold, expectObservable }) => {
       const hits = jest.fn(barByRange(cold));
       expectObservable(gate.logs(() => cold<DataQueryResponse>('----------(a|)')), '^--!').toBe('p', { p: cleared });
@@ -336,14 +328,13 @@ describe('LogsGate with incremental hits loading', () => {
     });
   });
 
-  it('is plain (no timeouts, no bars) when a visible target has the option switched off', () => {
+  it('is plain (no budget, no bars) when a visible target has the option switched off', () => {
     const plain = openLogsGate(makeRequest([{}, { refId: 'B', incrementalHitsLoading: false }]), incremental)!;
     const hits = jest.fn((_req: DataQueryRequest<Query>) => scheduler.createColdObservable('----------(b|)', { b: response('hits') }));
-    scheduler.run(({ cold, expectObservable }) => {
-      const logs = plain.logs(() => cold('----------(a|)', { a: response('logs') }));
-
+    const run = jest.fn((_req: DataQueryRequest<Query>) => scheduler.createColdObservable('----------(a|)', { a: response('logs') }));
+    scheduler.run(({ expectObservable }) => {
       expectObservable(plain.volume(request, hits)).toBe('--------------------(b|)', { b: response('hits') });
-      expectObservable(logs).toBe('p---------a---------(d|)', {
+      expectObservable(plain.logs(run)).toBe('p---------a---------(d|)', {
         // one empty frame per visible target
         p: { data: [emptyLogsFrame('A'), emptyLogsFrame('B')], state: LoadingState.Streaming },
         a: response('logs', LoadingState.Streaming),
@@ -351,5 +342,6 @@ describe('LogsGate with incremental hits loading', () => {
       });
     });
     expect(hits).toHaveBeenCalledWith(request);
+    expect(run.mock.calls.map(([req]) => req.targets.some((t) => t.firstByteTimeoutMs !== undefined))).toEqual([false]);
   });
 });

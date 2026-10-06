@@ -105,6 +105,8 @@ export interface Query extends DataQuery {
   groupBy?: string;
   /** Explore only: bar-by-bar logs volume loading after a slow one-shot request; undefined = enabled */
   incrementalHitsLoading?: boolean;
+  /** Set at run time only: how long VictoriaLogs may take to start answering before the backend gives the request up */
+  firstByteTimeoutMs?: number;
   /** timezone offset for bucket alignment in stats_query_range and hits endpoints (e.g. "2h", "-5h30m") */
   timezoneOffset?: string;
   /** @deprecated Use adHocFiltersMode instead */
