@@ -1,7 +1,7 @@
 import { DataFrame, Field, FieldType } from '@grafana/data';
 
 import { Query } from '../../types';
-import { getMillisecondsFromDuration } from '../../utils/timeUtils';
+import { getMillisecondsFromDuration } from '../../utils/time/duration';
 
 export const fillTimestampsWithNullValues = (fields: Field[], timestamps: number[]) => {
   const timestampValueMap = new Map();

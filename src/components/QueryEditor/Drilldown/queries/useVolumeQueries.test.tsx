@@ -163,7 +163,6 @@ describe('useFieldValuesHits', () => {
     // aggregateRawLogsVolume produces the stacked series, one frame per level
     expect(result.current.top[0].volumeData.series.length).toBe(2);
     expect(result.current.top[0].volumeData.state).toBe(LoadingState.Done);
-    // a row chart uses the narrower DRILLDOWN_ROW_BARS grid, not the panel's LOGS_VOLUME_BARS
     expect(result.current.top[0].volumeData.series[0].length).toBe(DRILLDOWN_ROW_BARS);
   });
 
