@@ -5,6 +5,7 @@
 * FEATURE: add a `Drilldown` button to the query editor that opens a drawer for exploring logs without writing LogsQL. The main view breaks the logs down by field, by stream field and by message pattern. Adding any filter chip opens a details view with a volume chart and the `Logs`, `Stream fields`, `Fields` and `Patterns` tabs. See [#424](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/424).
 
     - **Note:** for now, the `Drilldown` button is available only in the `Code` mode of the Explore query editor. The drawer does not take the current Explore query and always opens with the `*` query.
+* FEATURE: expose every log field as its own column in annotation query results, so annotation field mappings can use a single field for `Title` or `Tags`, and a field with an epoch-milliseconds timestamp for `Time end` to draw range annotations. See [#568](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/568).
 
 * FEATURE: in Explore, request the logs volume histogram after the `Raw Logs` query answers, so the logs appear as early as possible.
 * FEATURE: pick the logs volume bucket step the same way the VictoriaLogs UI does: the closest of its steps from `1s` to `364d`, with the number of buckets following the panel width. Buckets are aligned to calendar boundaries in the dashboard timezone, and weeks start on Monday.
