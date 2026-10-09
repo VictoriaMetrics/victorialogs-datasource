@@ -1,5 +1,5 @@
 import { firstValueFrom, of, throwError } from 'rxjs';
-import { TestScheduler } from 'rxjs/testing';
+import { RunHelpers, TestScheduler } from 'rxjs/testing';
 
 import {
   AdHocVariableFilter,
@@ -24,6 +24,9 @@ import { LogLevelRuleType } from './configuration/LogLevelRules/types';
 import { OpenTelemetryPreset } from './configuration/OpenTelemetryPreset/types';
 import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import { VictoriaLogsDatasource } from './datasource';
+import { slowQueryFrame } from './logsVolume/firstByteTimeout';
+import { getIncrementalHitsLoadingRuns, IncrementalHitsLoadingJob } from './logsVolume/incrementalHitsLoadingRuns';
+import { emptyLogsFrame } from './logsVolume/incrementalLogs';
 import { queryLogsVolume } from './logsVolumeLegacy';
 import store from './store/store';
 import { AdHocFilter, AdHocFiltersMode, FilterActionType, Query, QueryType, SupportingQueryType, ToggleFilterAction } from './types';
@@ -1740,8 +1743,8 @@ describe('getDataProvider', () => {
       ds.getDataProvider(SupplementaryQueryType.LogsVolume, { ...request, requestId: 'r1_logs_volume_0' });
       providerSource().subscribe();
 
-      // only the logs request is in flight
-      expect(backendQuery).toHaveBeenCalledTimes(1);
+      // at 1 ms only the logs request is in flight; the hits follow their answer at 2 ms
+      cold('-x').subscribe(() => expect(backendQuery).toHaveBeenCalledTimes(1));
       flush();
       expect(backendQuery.mock.calls.map(isHitsCall)).toEqual([false, true]);
     });
@@ -1753,10 +1756,13 @@ describe('getDataProvider', () => {
       req.targets[0].queryType === QueryType.Hits ? of({ data: [] }) : throwError(() => new Error('boom'))
     );
     const request = makeRequest([rawLogs]);
-    ds.query(request).subscribe({ error: () => undefined });
-    ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
     const volume: DataQueryResponse[] = [];
-    providerSource().subscribe((p) => volume.push(p));
+    new TestScheduler((a, e) => expect(a).toEqual(e)).run(({ flush }) => {
+      ds.query(request).subscribe({ error: () => undefined });
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+      providerSource().subscribe((p) => volume.push(p));
+      flush();
+    });
     expect(backendQuery.mock.calls.filter(isHitsCall)).toHaveLength(0);
     expect(volume).toEqual([{ data: [], state: LoadingState.Done }]);
   });
@@ -1772,7 +1778,9 @@ describe('getDataProvider', () => {
       const logs = ds.query(request);
       ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
       expectObservable(providerSource()).toBe('---(a|)', { a: { data: [] } });
-      expectObservable(logs).toBe('-s-(d|)', {
+      // the leading empty packet clears the previous Explore result, then the logs are held in Streaming
+      expectObservable(logs).toBe('ps-(d|)', {
+        p: { data: [emptyLogsFrame('A')], state: LoadingState.Streaming },
         s: expect.objectContaining({ state: LoadingState.Streaming }),
         d: expect.objectContaining({ state: LoadingState.Done }),
       });
@@ -1809,5 +1817,143 @@ describe('getDataProvider', () => {
     ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
     providerSource().subscribe();
     expect(backendQuery.mock.calls.filter(isHitsCall)).toHaveLength(1);
+  });
+});
+
+describe('getDataProvider with incremental hits loading', () => {
+  const rawLogs: Query = { refId: 'A', expr: '*', queryType: QueryType.Instant };
+  // 3 s at the default 96 target bars → 1 s step → three bars
+  const makeRequest = (targets: Query[] = [rawLogs]) => makeExploreRequest({ targets, spanMs: 3000 });
+  const isHits = (req: DataQueryRequest<Query>) => req.targets[0].queryType === QueryType.Hits;
+  const isWholeRange = (req: DataQueryRequest<Query>, request: DataQueryRequest<Query>) =>
+    req.range.from.valueOf() === request.range.from.valueOf() && req.range.to.valueOf() === request.range.to.valueOf();
+  const budget = (req: DataQueryRequest<Query>) => req.targets[0].firstByteTimeoutMs;
+  /** What the backend returns for a request given up at its first byte budget */
+  const slow: DataQueryResponse = { data: [slowQueryFrame('A')] };
+
+  const volumeSpy = jest.mocked(queryLogsVolume);
+  const providerSource = () => volumeSpy.mock.calls[0][1];
+
+  let backendQuery: jest.SpyInstance;
+  let scheduler: TestScheduler;
+  beforeEach(() => {
+    volumeSpy.mockReset().mockReturnValue(of({ data: [] }));
+    backendQuery = jest.spyOn(grafanaRuntime.DataSourceWithBackend.prototype, 'query');
+    jest.spyOn(store, 'get').mockReturnValue('Descending');
+    scheduler = new TestScheduler((a, e) => expect(a).toEqual(e));
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  /** A backend whose whole-range hits never make the budget: the marker comes back when the budget is up */
+  const slowHitsBackend = (cold: RunHelpers['cold'], request: DataQueryRequest<Query>) => (req: DataQueryRequest<Query>) =>
+    isHits(req) && isWholeRange(req, request) ? cold<DataQueryResponse>(`${budget(req)}ms (m|)`, { m: slow }) : cold<DataQueryResponse>('-(a|)', { a: { data: [] } });
+
+  it('registers the bar-by-bar job in the run registry of the datasource uid under the request of the pane', () => {
+    const ds = createDatasource(templateSrvStub, { uid: 'ds-incremental' });
+    const request = makeRequest();
+    const seen: Array<IncrementalHitsLoadingJob | undefined> = [];
+    getIncrementalHitsLoadingRuns('ds-incremental').job$(request.requestId).subscribe((job) => seen.push(job));
+    scheduler.run(({ cold, flush }) => {
+      backendQuery.mockImplementation(slowHitsBackend(cold, request));
+      ds.query(request).subscribe();
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+      providerSource().subscribe();
+      flush();
+    });
+    // none before the bars, the job while they load (one state per bar), none again once they are done
+    const phases = seen.map((job) => (job ? 'job' : 'none')).filter((phase, i, all) => phase !== all[i - 1]);
+    expect(phases).toEqual(['none', 'job', 'none']);
+  });
+
+  it('sends the one-shot hits with the 3 s budget and switches to bars when the backend gives them up', () => {
+    const ds = createDatasource(templateSrvStub);
+    const request = makeRequest();
+    scheduler.run(({ cold, expectObservable }) => {
+      backendQuery.mockImplementation(slowHitsBackend(cold, request));
+      ds.query(request).subscribe();
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+      // logs at 1 ms, the one-shot hits are given up at 3001 ms, the bars answer at 3002, 3003 and 3004 ms
+      expectObservable(providerSource()).toBe('3002ms ab(cd|)', {
+        a: expect.objectContaining({ state: LoadingState.Streaming }),
+        b: expect.objectContaining({ state: LoadingState.Streaming }),
+        c: expect.objectContaining({ state: LoadingState.Streaming }),
+        d: expect.objectContaining({ state: LoadingState.Done }),
+      });
+    });
+    const hits = backendQuery.mock.calls.filter(([req]) => isHits(req)).map(([req]) => req);
+    const to = request.range.to.valueOf();
+    expect(hits.map((req) => [req.range.from.valueOf(), req.range.to.valueOf()])).toEqual([
+      [to - 3000, to],
+      [to - 1000, to],
+      [to - 2000, to - 1000],
+      [to - 3000, to - 2000],
+    ]);
+    expect(hits.map(budget)).toEqual([3000, undefined, undefined, undefined]);
+  });
+
+  it('sends the raw logs with the budget while the volume waits, loads the bars when the backend gives them up and requests the logs again', () => {
+    const ds = createDatasource(templateSrvStub);
+    const request = makeRequest();
+    scheduler.run(({ cold, expectObservable }) => {
+      backendQuery.mockImplementation((req: DataQueryRequest<Query>) =>
+        !isHits(req) && budget(req) ? cold<DataQueryResponse>(`${budget(req)}ms (m|)`, { m: slow }) : cold<DataQueryResponse>('-(a|)', { a: { data: [] } })
+      );
+      const logs = ds.query(request);
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+      // the logs are given up at 3000 ms: bars at 3001, 3002, 3003 ms; the logs are requested again at 3003 ms
+      expectObservable(providerSource()).toBe('3001ms ab(cd|)', {
+        a: expect.objectContaining({ state: LoadingState.Streaming }),
+        b: expect.objectContaining({ state: LoadingState.Streaming }),
+        c: expect.objectContaining({ state: LoadingState.Streaming }),
+        d: expect.objectContaining({ state: LoadingState.Done }),
+      });
+      expectObservable(logs).toBe('p 3003ms (a|)', {
+        p: { data: [emptyLogsFrame('A')], state: LoadingState.Streaming },
+        a: expect.objectContaining({ data: [] }),
+      });
+    });
+    const calls = backendQuery.mock.calls.map(([req]) => req);
+    expect(calls.map((req) => (isHits(req) ? 'hits' : 'logs'))).toEqual(['logs', 'hits', 'hits', 'hits', 'logs']);
+    expect(calls.filter((req) => !isHits(req)).map(budget)).toEqual([3000, undefined]);
+    expect(calls.some((req) => isHits(req) && isWholeRange(req, request))).toBe(false);
+  });
+
+  it('requests every bar with the parameters of the whole-range hits request, whatever the offset at the bar itself', () => {
+    const ds = createDatasource(templateSrvStub);
+    // Europe/London: UTC+0 on 15 March, UTC+1 from 29 March; 30 days at 96 target bars → 6h buckets
+    const timezone = 'Europe/London';
+    const request = {
+      ...makeExploreRequest({ targets: [rawLogs], timezone }),
+      range: {
+        from: dateTimeForTimeZone(timezone, Date.UTC(2026, 2, 15)),
+        to: dateTimeForTimeZone(timezone, Date.UTC(2026, 3, 14)),
+        raw: { from: 'now-30d', to: 'now' },
+      },
+    } as DataQueryRequest<Query>;
+    scheduler.run(({ cold, flush }) => {
+      backendQuery.mockImplementation(slowHitsBackend(cold, request));
+      ds.query(request).subscribe();
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+      providerSource().subscribe();
+      flush();
+    });
+    const [wholeRange, ...bars] = backendQuery.mock.calls.filter(([req]) => isHits(req)).map(([req]) => req.targets[0]);
+    expect(wholeRange).toMatchObject({ step: '6h', timezoneOffset: undefined });
+    expect(bars).toHaveLength(120);
+    bars.forEach((bar) => expect(bar).toMatchObject({ step: '6h', timezoneOffset: undefined, expr: wholeRange.expr }));
+  });
+
+  it('keeps the plain one-shot hits without a budget when a target has the option switched off', () => {
+    const ds = createDatasource(templateSrvStub);
+    const request = makeRequest([{ ...rawLogs, incrementalHitsLoading: false }]);
+    scheduler.run(({ cold, expectObservable }) => {
+      backendQuery.mockImplementation((req: DataQueryRequest<Query>) => cold<DataQueryResponse>(isHits(req) ? '10s (a|)' : '-(a|)', { a: { data: [] } }));
+      ds.query(request).subscribe();
+      ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
+      expectObservable(providerSource()).toBe('10001ms (a|)', { a: expect.objectContaining({ data: [] }) });
+    });
+    const calls = backendQuery.mock.calls.map(([req]) => req);
+    expect(calls.filter(isHits)).toHaveLength(1);
+    expect(calls.map(budget)).toEqual([undefined, undefined]);
   });
 });

@@ -1,6 +1,6 @@
 import { clamp } from 'lodash';
 
-import { DataQueryRequest, TimeRange } from '@grafana/data';
+import { DataQueryRequest, dateTime, makeTimeRange, TimeRange } from '@grafana/data';
 
 import { Query } from '../types';
 import { DAY_MS, HOUR_MS, MINUTE_MS, SECOND_MS, WEEK_MS } from '../utils/time/constants';
@@ -81,6 +81,27 @@ export function getVolumeBucketing(range: TimeRange, tzOffsetMinutes: number, ta
  */
 export const getRequestVolumeBucketing = (request: DataQueryRequest<Query>): VolumeBucketing =>
   getVolumeBucketing(request.range, getRangeStartOffsetMinutes(request.timezone, request.range), getTargetBars(request.maxDataPoints));
+
+export interface VolumeBars {
+  /** Bucket step of the bars, as the status row shows it */
+  step: string;
+  /** One range per bar, newest first */
+  ranges: TimeRange[];
+}
+
+/**
+ * The bucket ranges of the request, newest first: the requests of the bar-by-bar volume loading.
+ * The outermost bars are clipped to the range, so the bars count the same logs as one whole-range request
+ */
+export function getVolumeBars(request: DataQueryRequest<Query>): VolumeBars {
+  const { step, bucketStarts } = getRequestVolumeBucketing(request);
+  const fromMs = request.range.from.valueOf();
+  const toMs = request.range.to.valueOf();
+  const ranges = bucketStarts
+    .map((start, i) => makeTimeRange(dateTime(Math.max(start, fromMs)), dateTime(bucketStarts[i + 1] ?? toMs)))
+    .reverse();
+  return { step, ranges };
+}
 
 const getTargetBars = (maxDataPoints: number | undefined): number =>
   maxDataPoints ? clamp(Math.floor(maxDataPoints / VOLUME_BAR_MIN_PX), VOLUME_BARS_MIN, VOLUME_BARS_MAX) : VOLUME_BARS_MAX;

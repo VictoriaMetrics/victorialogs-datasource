@@ -291,6 +291,37 @@ describe('queryLogsVolume', () => {
     });
   });
 
+  it('stands in a hidden zero series for a Streaming packet without hits, so the chart shows its grid', () => {
+    scheduler.run(({ cold, flush }) => {
+      const source = cold('-a-(b|)', {
+        a: { state: LoadingState.Streaming, data: [] },
+        b: { state: LoadingState.Streaming, data: hitsResponse('error', T0 - 60_000).data },
+      });
+      const packets: DataQueryResponse[] = [];
+      queryLogsVolume(request, source, []).subscribe((p) => packets.push(p));
+      flush();
+
+      const [, empty, withHits] = packets;
+      expect(empty.data).toHaveLength(1);
+      const [time, value] = empty.data[0].fields;
+      // the calendar bucket grid of the request: 5 minutes of 5 s buckets
+      expect(time.values).toHaveLength(60);
+      expect(time.values[0]).toBe(T0 - 5 * 60_000);
+      expect(value.values.every((v: number) => v === 0)).toBe(true);
+      expect(value.config.custom?.hideFrom).toEqual({ legend: true, tooltip: true, viz: false });
+      // the panel reads its time axis range from the meta of the first frame
+      expect(empty.data[0].meta?.custom?.absoluteRange).toEqual({ from: request.range.from.valueOf(), to: request.range.to.valueOf() });
+      // the stand-in goes away with the first real series
+      expect(seriesNames(withHits)).toEqual([LogLevel.error]);
+    });
+  });
+
+  it('keeps a Done packet without hits empty, so Explore shows its "no volume" message', () => {
+    const packets: DataQueryResponse[] = [];
+    queryLogsVolume(request, of({ state: LoadingState.Done, data: [] }), []).subscribe((p) => packets.push(p));
+    expect(packets[1]).toEqual({ state: LoadingState.Done, data: [] });
+  });
+
   it('emits an Error packet and fails when the source errors', () => {
     const error = new Error('boom');
     const packets: DataQueryResponse[] = [];

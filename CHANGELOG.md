@@ -7,6 +7,7 @@
     - **Note:** for now, the `Drilldown` button is available only in the `Code` mode of the Explore query editor. The drawer does not take the current Explore query and always opens with the `*` query.
 
 * FEATURE: in Explore, request the logs volume histogram after the `Raw Logs` query answers, so the logs appear as early as possible.
+* FEATURE: load the Explore logs volume histogram bar by bar when VictoriaLogs has not started answering a request within 3 seconds, so a specific moment can be zoomed into without waiting for the whole range. The behaviour can be switched off per query with the new `Incremental hits loading` option. See [Incremental hits loading](https://docs.victoriametrics.com/victorialogs/integrations/grafana/#incremental-hits-loading) docs and [#690](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/690).
 * FEATURE: pick the logs volume bucket step the same way the VictoriaLogs UI does: the closest of its steps from `1s` to `364d`, with the number of buckets following the panel width. Buckets are aligned to calendar boundaries in the dashboard timezone, and weeks start on Monday.
 
 * BUGFIX: stop highlighting commas in the logs panel when the query uses a LogsQL filter with a comma-separated argument list, such as `seq("foo", "bar")` or `contains_common_case("foo", "bar")`. See [#725](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/725).
