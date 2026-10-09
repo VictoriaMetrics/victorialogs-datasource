@@ -248,6 +248,24 @@ describe('LogsGate with incremental hits loading', () => {
     expect(run.mock.calls.map(([req]) => budgeted(req))).toEqual([true, false]);
   });
 
+  it('fails the volume on the first bar with an in-band error, releases the job and the held logs', () => {
+    const boom = { message: 'boom' };
+    const run = jest.fn<Observable<DataQueryResponse>, [DataQueryRequest<Query>]>();
+    const hits = jest.fn<Observable<DataQueryResponse>, [DataQueryRequest<Query>]>();
+    scheduler.run(({ cold, expectObservable }) => {
+      run.mockImplementation((req) => (budgeted(req) ? cold('---(m|)', { m: slow }) : cold('--(a|)', { a: response('rerun') })));
+      // the second bar answers with an error instead of a result
+      hits.mockImplementation((req) => (req.range.from.valueOf() === 1000 ? cold('-(e|)', { e: { data: [], errors: [boom] } }) : barByRange(cold)(req)));
+
+      // the logs are given up at 3 and the job starts: the first bar at 4, the failed one at 5 ends the volume and the job; the logs are requested again at 5
+      expectObservable(gate.volume(request, hits)).toBe('----a#', { a: streaming('bar2') }, boom);
+      expectObservable(gate.logs(run)).toBe('p------(a|)', { p: cleared, a: response('rerun') });
+      expectObservable(runs.job$('explore_a').pipe(map((job) => (job ? 'job' : 'none')), distinctUntilChanged())).toBe('n--j-n', { n: 'none', j: 'job' });
+    });
+    // the third bar is never requested
+    expect(hits).toHaveBeenCalledTimes(2);
+  });
+
   it('registers the bar-by-bar job under the request of the pane while it runs', () => {
     scheduler.run(({ cold, expectObservable }) => {
       gate.logs(() => cold('-(a|)', { a: response('logs') })).subscribe();

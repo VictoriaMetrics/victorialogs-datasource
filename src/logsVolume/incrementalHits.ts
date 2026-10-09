@@ -3,6 +3,7 @@ import { concat, defer, finalize, map, Observable, of, scan, switchMap, takeUnti
 import { DataFrame, DataQueryRequest, DataQueryResponse, LoadingState } from '@grafana/data';
 
 import { Query } from '../types';
+import { responseErrors } from '../utils/dataQueryResponse';
 
 import { IncrementalHitsLoadingController } from './IncrementalHitsLoadingController';
 import { isSlowResponse, withFirstByteTimeout } from './firstByteTimeout';
@@ -32,6 +33,7 @@ export function queryHitsByBars(
     const release = registerJob(controller);
 
     const streaming = concat(...bars.ranges.map((bar) => controller.gate$.pipe(switchMap(() => run({ ...request, range: bar }))))).pipe(
+      failOnResponseError,
       tap(() => controller.barLoaded()),
       scan((acc, response) => acc.concat(response.data), accumulated),
       tap((data) => (accumulated = data)),
@@ -45,6 +47,17 @@ export function queryHitsByBars(
     ).pipe(finalize(release));
   });
 }
+
+/**
+ * An in-band error of a bar fails the job like a thrown one: no further bar is requested,
+ * the volume reports the error and the logs held for it are released
+ */
+const failOnResponseError = tap((response: DataQueryResponse) => {
+  const [error] = responseErrors(response);
+  if (error) {
+    throw error;
+  }
+});
 
 /** The hits of the volume once the logs settled: none after failed logs, bars at once after slow ones, one shot under the budget after fast ones */
 export function queryHitsAfterLogs(
