@@ -248,7 +248,7 @@ describe('LogsGate with incremental hits loading', () => {
     expect(run.mock.calls.map(([req]) => budgeted(req))).toEqual([true, false]);
   });
 
-  it('fails the volume on the first bar with an in-band error, releases the job and the held logs', () => {
+  it('fails the volume when a bar answers with an in-band error, releases the job and the held logs', () => {
     const boom = { message: 'boom' };
     const run = jest.fn<Observable<DataQueryResponse>, [DataQueryRequest<Query>]>();
     const hits = jest.fn<Observable<DataQueryResponse>, [DataQueryRequest<Query>]>();

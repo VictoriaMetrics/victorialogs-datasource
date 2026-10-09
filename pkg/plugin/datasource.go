@@ -455,7 +455,7 @@ func (di *DatasourceInstance) datasourceQuery(ctx context.Context, q *Query, isS
 func (di *DatasourceInstance) query(ctx context.Context, q *Query) backend.DataResponse {
 	r, err := di.datasourceQuery(ctx, q, false)
 	if errors.Is(err, errSlowResponse) {
-		return slowQueryResponse(q)
+		return slowQueryResponse()
 	}
 	if err != nil {
 		return newResponseError(err, backend.StatusInternal)

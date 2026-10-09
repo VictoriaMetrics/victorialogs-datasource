@@ -61,17 +61,9 @@ func (c cancelOnClose) Close() error {
 
 // slowQueryResponse is the answer to a query given up at its first byte timeout: one
 // empty frame marked for the frontend, which loads the logs volume bar by bar instead.
-func slowQueryResponse(q *Query) backend.DataResponse {
-	var frame *data.Frame
-	switch q.QueryType {
-	case QueryTypeStats, QueryTypeStatsRange, QueryTypeHits:
-		frame = data.NewFrame("")
-	default:
-		frame = newLogFrame().dataFrame
-	}
-	if frame.Meta == nil {
-		frame.Meta = &data.FrameMeta{}
-	}
-	frame.Meta.Custom = map[string]any{"slowQuery": true}
+// The frontend reads nothing but the marker, so the frame has the same shape for every query type.
+func slowQueryResponse() backend.DataResponse {
+	frame := data.NewFrame("")
+	frame.Meta = &data.FrameMeta{Custom: map[string]any{"slowQuery": true}}
 	return backend.DataResponse{Frames: data.Frames{frame}}
 }
