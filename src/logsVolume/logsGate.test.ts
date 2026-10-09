@@ -338,12 +338,14 @@ describe('LogsGate with incremental hits loading', () => {
   });
 
   it('skips the volume when the logs are cancelled before they answer', () => {
+    const hits = jest.fn<Observable<DataQueryResponse>, [DataQueryRequest<Query>]>();
     scheduler.run(({ cold, expectObservable }) => {
-      const hits = jest.fn(barByRange(cold));
+      hits.mockImplementation(barByRange(cold));
       expectObservable(gate.logs(() => cold<DataQueryResponse>('----------(a|)')), '^--!').toBe('p', { p: cleared });
       expectObservable(gate.volume(request, hits)).toBe('---(e|)', { e: { data: [], state: LoadingState.Done } });
-      expect(hits).not.toHaveBeenCalled();
     });
+    // checked after the run: inside it the subscriptions have not been scheduled yet
+    expect(hits).not.toHaveBeenCalled();
   });
 
   it('is plain (no budget, no bars) when a visible target has the option switched off', () => {

@@ -209,10 +209,9 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
         {queryType === QueryType.Instant && app === CoreApp.Explore && (
           <EditorField
             label='Incremental hits loading'
-            tooltip='When the logs or the logs volume request takes longer than 3 seconds, the volume is loaded bar by bar from the newest to the oldest and can be paused or stopped. Switch off to load everything in one request.'
+            tooltip='When VictoriaLogs has not started answering the logs or the logs volume request within 3 seconds, the volume is loaded bar by bar from the newest to the oldest and can be paused or stopped. Switch off to load everything in one request.'
           >
             <Switch
-              id='incremental-hits-loading-switch'
               value={isIncrementalHitsLoadingEnabled(query)}
               onChange={onIncrementalHitsLoadingChange}
             />
