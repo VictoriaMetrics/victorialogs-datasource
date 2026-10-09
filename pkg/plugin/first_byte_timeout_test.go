@@ -14,12 +14,19 @@ import (
 
 // TestDatasourceQueryFirstByteTimeout checks the budget a query may carry for the
 // time VictoriaLogs takes to start answering: past it the request is given up and
-// a marker frame is returned, without the usual retry.
+// a marker frame is returned, without the usual retry; a retry after a dropped
+// connection shares the budget of the first attempt.
 func TestDatasourceQueryFirstByteTimeout(t *testing.T) {
 	var calls atomic.Int32
 	var headersDelay atomic.Int64
+	// dropAfter > 0: the next call waits that long and then drops the connection without a response
+	var dropAfter atomic.Int64
 	wait := func(r *http.Request) bool {
 		calls.Add(1)
+		if delay := dropAfter.Swap(0); delay > 0 {
+			time.Sleep(time.Duration(delay) * time.Millisecond)
+			return false
+		}
 		select {
 		case <-time.After(time.Duration(headersDelay.Load()) * time.Millisecond):
 			return true
@@ -31,11 +38,14 @@ func TestDatasourceQueryFirstByteTimeout(t *testing.T) {
 	mux.HandleFunc("/select/logsql/query", func(w http.ResponseWriter, r *http.Request) {
 		if wait(r) {
 			_, _ = w.Write([]byte(`{"_msg":"123","_stream":"{app=\"a\"}","_time":"2024-02-20T14:04:27Z"}`))
+			return
 		}
-	})
-	mux.HandleFunc("/select/logsql/hits", func(w http.ResponseWriter, r *http.Request) {
-		if wait(r) {
-			_, _ = w.Write([]byte(`{"hits":[{"fields":{},"timestamps":["2024-02-20T14:00:00Z"],"values":[1],"total":1}]}`))
+		if r.Context().Err() == nil {
+			// dropped on purpose: close the connection so the client sees EOF and retries
+			conn, _, err := w.(http.Hijacker).Hijack()
+			if err == nil {
+				_ = conn.Close()
+			}
 		}
 	})
 	srv := httptest.NewServer(mux)
@@ -70,9 +80,9 @@ func TestDatasourceQueryFirstByteTimeout(t *testing.T) {
 		return custom["slowQuery"] == true && rsp.Frames[0].Rows() == 0
 	}
 
-	t.Run("logs answered within the budget pass as usual", func(t *testing.T) {
+	t.Run("an answer within the budget is read in full through the wrapped body", func(t *testing.T) {
 		calls.Store(0)
-		headersDelay.Store(0)
+		headersDelay.Store(50)
 		rsp := run(t, "instant", 1000)
 		if rsp.Error != nil || len(rsp.Frames) != 1 || rsp.Frames[0].Rows() != 1 {
 			t.Fatalf("expected one logs row, got %+v", rsp)
@@ -98,11 +108,21 @@ func TestDatasourceQueryFirstByteTimeout(t *testing.T) {
 		}
 	})
 
-	t.Run("hits past the budget come back as a slow marker", func(t *testing.T) {
+	t.Run("the retry after a dropped connection gets the rest of the budget, not a new one", func(t *testing.T) {
 		calls.Store(0)
-		headersDelay.Store(500)
-		if rsp := run(t, "hits", 50); !isSlowMarker(rsp) {
+		// the first attempt is dropped at 200 ms, the retry would need 300 ms more: 500 ms in all against a 300 ms budget
+		dropAfter.Store(200)
+		headersDelay.Store(300)
+		started := time.Now()
+		rsp := run(t, "instant", 300)
+		if !isSlowMarker(rsp) {
 			t.Fatalf("expected the slow marker, got %+v", rsp)
+		}
+		if elapsed := time.Since(started); elapsed > 450*time.Millisecond {
+			t.Fatalf("the retry restarted the budget, took %s", elapsed)
+		}
+		if got := calls.Load(); got != 2 {
+			t.Fatalf("expected the dropped attempt and one retry, got %d", got)
 		}
 	})
 

@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
@@ -402,8 +401,9 @@ func (di *DatasourceInstance) datasourceQuery(ctx context.Context, q *Query, isS
 	}
 	req.Header = di.grafanaSettings.CustomHeaders.Clone()
 
-	firstByteTimeout := time.Duration(q.FirstByteTimeoutMs) * time.Millisecond
-	resp, err := doWithFirstByteTimeout(client, req, firstByteTimeout)
+	// one deadline for both attempts, so a retry cannot affect on time deadline
+	deadline := firstByteDeadline(q)
+	resp, err := doWithFirstByteTimeout(client, req, deadline)
 	if err != nil {
 		if errors.Is(err, errSlowResponse) || !isTrivialError(err) {
 			// Return unexpected error to the caller.
@@ -419,7 +419,7 @@ func (di *DatasourceInstance) datasourceQuery(ctx context.Context, q *Query, isS
 
 		req.Header = di.grafanaSettings.CustomHeaders.Clone()
 
-		resp, err = doWithFirstByteTimeout(client, req, firstByteTimeout)
+		resp, err = doWithFirstByteTimeout(client, req, deadline)
 		if err != nil {
 			if errors.Is(err, errSlowResponse) {
 				return nil, err

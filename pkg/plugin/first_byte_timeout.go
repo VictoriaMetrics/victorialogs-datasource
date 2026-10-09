@@ -14,16 +14,24 @@ import (
 // errSlowResponse reports a query VictoriaLogs did not start answering within its first byte timeout.
 var errSlowResponse = errors.New("the datasource did not start answering within the first byte timeout")
 
+func firstByteDeadline(q *Query) time.Time {
+	if q.FirstByteTimeoutMs <= 0 {
+		return time.Time{}
+	}
+	return time.Now().Add(time.Duration(q.FirstByteTimeoutMs) * time.Millisecond)
+}
+
 // doWithFirstByteTimeout sends the request and gives it up when the response headers
-// take longer than the timeout; reading the body is not limited. For the queries the
-// frontend sends with a budget (sorted logs, hits) VictoriaLogs writes the headers only
-// once the result is computed, so the budget covers the server time and nothing else.
-func doWithFirstByteTimeout(client *http.Client, req *http.Request, timeout time.Duration) (*http.Response, error) {
-	if timeout <= 0 {
+// have not arrived by the deadline (zero: no deadline). The deadline covers connecting
+// and the server time up to the headers; reading the body is left to the client's own
+// timeout. VictoriaLogs writes the headers of sorted logs and hits queries only once the
+// result is computed, so for them the budget is mostly server time.
+func doWithFirstByteTimeout(client *http.Client, req *http.Request, deadline time.Time) (*http.Response, error) {
+	if deadline.IsZero() {
 		return client.Do(req)
 	}
 	ctx, cancel := context.WithCancel(req.Context())
-	timer := time.AfterFunc(timeout, cancel)
+	timer := time.AfterFunc(time.Until(deadline), cancel)
 	resp, err := client.Do(req.WithContext(ctx))
 	if !timer.Stop() {
 		// the timer fired: the context is cancelled whatever Do returned
