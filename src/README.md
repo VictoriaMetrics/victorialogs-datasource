@@ -370,7 +370,7 @@ filter chips and hands the finished selection back to the editor.
 The main view shows one tab per breakdown field:
 
 - the first tab is the service field, when the logs have one (`service.name`, `service_name`, `service` or `app`),
-  otherwise the first stream field;
+  otherwise the first stream field, or the first non-internal field if there are no stream fields;
 - **Stream fields** lists the [stream fields](https://docs.victoriametrics.com/victorialogs/keyconcepts/#stream-fields)
   with their hit counts, and **Break down by** on a stream field shows its values;
 - **Patterns** groups the log messages by their shape, with numbers, IPs, UUIDs and the like collapsed into
