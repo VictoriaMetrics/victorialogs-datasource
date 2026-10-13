@@ -6,6 +6,7 @@ import { AutoSizeInput, Input, RadioButtonGroup, Switch, TextLink } from '@grafa
 import { VICTORIA_LOGS_DOCS_HOST } from '../../conf';
 import { LOGS_LIMIT_HARD_CAP, LOGS_LIMIT_WARNING_THRESHOLD } from '../../constants';
 import { resolveAdHocFiltersMode, VictoriaLogsDatasource } from '../../datasource';
+import { isIncrementalHitsLoadingEnabled } from '../../logsVolume/incrementalHitsOption';
 import { LOGS_VOLUME_DEFAULT_GROUP_BY } from '../../logsVolumeLegacy';
 import { AdHocFiltersMode, Query, QueryType } from '../../types';
 import { isVariable } from '../../utils/isVariable';
@@ -115,6 +116,12 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
     onRunQuery();
   };
 
+  const onIncrementalHitsLoadingChange = (e: React.FormEvent<HTMLInputElement>) => {
+    // Enabled is the default and is stored as undefined so queries don't carry it around
+    onChange({ ...query, incrementalHitsLoading: e.currentTarget.checked ? undefined : false });
+    onRunQuery();
+  };
+
   const onGroupByFieldChange = (field?: string) => {
     // The default level grouping is stored as undefined so queries don't carry the default around
     const groupBy = field && field !== LOGS_VOLUME_DEFAULT_GROUP_BY ? field : undefined;
@@ -199,6 +206,17 @@ export const QueryEditorOptions = React.memo<Props>(({ app, query, maxLines, onC
             />
           </EditorField>
         )}
+        {queryType === QueryType.Instant && app === CoreApp.Explore && (
+          <EditorField
+            label='Incremental hits loading'
+            tooltip='When VictoriaLogs has not started answering the logs or the logs volume request within 3 seconds, the volume is loaded bar by bar from the newest to the oldest and can be paused or stopped. Switch off to load everything in one request.'
+          >
+            <Switch
+              value={isIncrementalHitsLoadingEnabled(query)}
+              onChange={onIncrementalHitsLoadingChange}
+            />
+          </EditorField>
+        )}
         {queryType === QueryType.StatsRange && (
           <EditorField
             label='Step'
@@ -265,6 +283,10 @@ function getCollapsedInfo({ app, query, queryType, maxLines, isValidStep }: Coll
 
   if (queryType === QueryType.Instant && query.packJson) {
     items.push('View as JSON: on');
+  }
+
+  if (queryType === QueryType.Instant && app === CoreApp.Explore) {
+    items.push(`Incremental hits loading: ${isIncrementalHitsLoadingEnabled(query) ? 'on' : 'off'}`);
   }
 
   if (app !== CoreApp.Explore) {

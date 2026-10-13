@@ -52,17 +52,17 @@ export const queryLogsVolume = (
   source: Observable<DataQueryResponse>,
   rules: LogLevelRule[]
 ): Observable<DataQueryResponse> => {
-  const aggregate = (rawLogsVolume: DataFrame[]): DataFrame[] => {
-    const aggregated = aggregateVolumeFrames(rawLogsVolume, request.targets, request, rules);
-    if (aggregated[0]) {
-      aggregated[0].meta = {
+  // Explore reads the targets and the time axis range of the volume from the first frame
+  const withMeta = (frames: DataFrame[]): DataFrame[] => {
+    if (frames[0]) {
+      frames[0].meta = {
         custom: {
           targets: request.targets,
           absoluteRange: { from: request.range.from.valueOf(), to: request.range.to.valueOf() },
         },
       };
     }
-    return aggregated;
+    return frames;
   };
 
   return source.pipe(
@@ -73,7 +73,13 @@ export const queryLogsVolume = (
         throw error;
       }
       // every packet carries the hits of the whole range, so each one is aggregated from scratch
-      return { state: response.state ?? LoadingState.Done, data: aggregate(response.data.map(toDataFrame)) };
+      const state = response.state ?? LoadingState.Done;
+      const aggregated = aggregateVolumeFrames(response.data.map(toDataFrame), request.targets, request, rules);
+      // Explore draws nothing for a streaming packet without series, so while the loaded bars are
+      // all empty a zero series keeps the chart grid on screen; a finished empty volume stays
+      // empty and gets the standard "no volume" message
+      const data = !aggregated.length && state === LoadingState.Streaming ? [zeroVolumeFrame(request)] : aggregated;
+      return { state, data: withMeta(data) };
     }),
     startWith({ state: LoadingState.Loading, data: [] }),
     catchError((error) => concat(of({ state: LoadingState.Error, error, data: [] }), throwError(() => error)))
@@ -220,6 +226,20 @@ function aggregateFields(dataFrames: DataFrame[], config: FieldConfig, times: nu
   });
 
   return aggregatedDataFrame;
+}
+
+/** A zero series on the bucket grid of the request, hidden from the legend and the tooltip */
+function zeroVolumeFrame(request: DataQueryRequest<Query>): DataFrame {
+  const times = getRequestVolumeBucketing(request).bucketStarts;
+  const config: FieldConfig = {
+    custom: { drawStyle: GraphDrawStyle.Bars, hideFrom: { legend: true, tooltip: true, viz: false } },
+  };
+  return toDataFrame({
+    fields: [
+      { name: 'Time', type: FieldType.time, values: times },
+      { name: 'Value', type: FieldType.number, values: times.map(() => 0), config },
+    ],
+  });
 }
 
 /** Cell of the last axis time at or before `time`; a bucket aligned before the axis folds into the first cell */

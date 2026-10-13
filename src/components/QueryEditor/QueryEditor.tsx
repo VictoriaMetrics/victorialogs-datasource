@@ -13,6 +13,7 @@ import QueryEditorStatsWarn from '../QueryEditorStatsWarn';
 
 import { AdHocFiltersControl } from './AdHocFiltersControl';
 import { EditorHeader } from './EditorHeader';
+import { IncrementalHitsLoadingStatus } from './IncrementalHitsLoadingStatus';
 import QueryCodeEditor from './QueryCodeEditor';
 import { QueryEditorOptions } from './QueryEditorOptions';
 import QueryEditorVariableRegexpError from './QueryEditorVariableRegexpError';
@@ -175,6 +176,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
             )}
             {varRegExp && (<QueryEditorVariableRegexpError regExp={varRegExp} query={query} onChange={onChange} />)}
             {showStatsWarn && (<QueryEditorStatsWarn queryType={query.queryType} />)}
+            {app === CoreApp.Explore && <IncrementalHitsLoadingStatus datasourceUid={datasource.uid} requestId={data?.request?.requestId} />}
             <QueryEditorOptions
               query={query}
               onChange={onChange}

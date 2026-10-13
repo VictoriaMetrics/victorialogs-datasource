@@ -59,6 +59,9 @@ type Query struct {
 	ExtraFilters       string    `json:"extraFilters"`
 	ExtraStreamFilters string    `json:"extraStreamFilters"`
 	TimezoneOffset     string    `json:"timezoneOffset"`
+	// FirstByteTimeoutMs is the budget for VictoriaLogs to start answering; the frontend sets
+	// it on the requests it can replace with the bar-by-bar logs volume. Zero means no budget.
+	FirstByteTimeoutMs int64 `json:"firstByteTimeoutMs"`
 	url                *url.URL
 	ForAlerting        bool `json:"-"`
 }
