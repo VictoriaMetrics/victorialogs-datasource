@@ -55,6 +55,7 @@ import {
   addSortPipeToQuery,
   getQueryFormat,
   insertPipesBeforeSortClassPipe,
+  removeAggregationPipes,
 } from './modifyQuery';
 import { removeDoubleQuotesAroundVar } from './parsing';
 import { replaceOperatorWithIn, returnVariables } from './parsingUtils';
@@ -609,8 +610,11 @@ export class VictoriaLogsDatasource
           return undefined;
         }
 
+        // the aggregation pipes are dropped, otherwise the sample returns the stats rows
+        // instead of the log lines behind them
         return {
           ...query,
+          expr: removeAggregationPipes(query.expr),
           queryType: QueryType.Instant,
           refId: `${REF_ID_STARTER_LOG_SAMPLE}${query.refId}`,
           supportingQueryType: SupportingQueryType.LogsSample,
@@ -644,6 +648,8 @@ export class VictoriaLogsDatasource
         const hits = (req: DataQueryRequest<Query>) => this.runQuery(req);
         return queryLogsVolume(hitsRequest, logsGate ? logsGate.volume(hitsRequest, hits) : hits(hitsRequest), this.getActiveLevelRules());
       }
+      case SupplementaryQueryType.LogsSample:
+        return this.runQuery(this.prepareRequest(newRequest));
       default:
         return undefined;
     }
