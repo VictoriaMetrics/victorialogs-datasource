@@ -351,6 +351,73 @@ The behaviour can be switched off per query with the **Incremental hits loading*
 With a **Group hits by** field, the top-20 groups are picked within every bar separately, so the tail
 group `other` may differ from the one of a single whole-range request.
 
+## Drilldown
+
+> **Note:** available since [v0.33.0](https://github.com/VictoriaMetrics/victorialogs-datasource/releases/tag/v0.33.0).
+> Requires VictoriaLogs v1.21.0 or newer; filtering by a message pattern requires VictoriaLogs v1.33.0 or newer.
+
+The **Drilldown** button in the Explore query editor opens a drawer that explores the logs without writing LogsQL:
+it breaks the logs down by field values, by stream fields and by message patterns, narrows the selection with
+filter chips and hands the finished selection back to the editor.
+
+<img alt="Drilldown button" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/drilldown_button.png?raw=true">
+
+> **Note:** for now, the button is available only in the `Code` mode of the Explore query editor. The drawer does not
+> take the current query and always starts from the `*` query over the editor's time range.
+
+### Main view
+
+The main view shows one tab per breakdown field:
+
+- the first tab is the service field, when the logs have one (`service.name`, `service_name`, `service` or `app`),
+  otherwise the first stream field, or the first non-internal field if there are no stream fields;
+- **Stream fields** lists the [stream fields](https://docs.victoriametrics.com/victorialogs/keyconcepts/#stream-fields)
+  with their hit counts, and **Break down by** on a stream field shows its values;
+- **Patterns** groups the log messages by their shape, with numbers, IPs, UUIDs and the like collapsed into
+  placeholders such as `<N>`. The list is estimated from a 1-in-10 sample of the logs, so the counts are marked with `~`;
+  filter for a pattern to see its exact count;
+- the **+** button adds a tab for any other field.
+
+Every tab shows the volume of the top values over time, and a table with the count, the share and a sparkline
+of every value. Expanding a row shows a sample of its logs. The **Filter for** / **Filter out** icons at the end
+of a row add a filter chip for the value. The level buttons above the tabs narrow the selection by the log level
+derived from the [log level rules](#log-level-rules) without drilling in.
+
+<img alt="Drilldown main view" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/drilldown_main.png?raw=true">
+
+### Details view
+
+Adding a filter chip or a pattern filter opens the details view of the selection: a volume chart by log level and the tabs
+
+- **Logs** - a sample of the selected logs;
+- **Stream fields** and **Fields** - the breakdown of the selection by every stream field and by every other field,
+  with a chart of the top values per field. Fields that have the same value in every selected log are listed as
+  constant fields, and fields with too many or too long values are listed without a summary;
+- **Patterns** - the message patterns of the selection.
+
+<img alt="Drilldown details view" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/drilldown_details.png?raw=true">
+
+<img alt="Drilldown patterns" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/drilldown_patterns.png?raw=true">
+
+A chip can be edited in place (field, operator `=`, `!=`, `=~`, `!~`, and value) and removed. Removing the last chip
+and pattern filter returns to the main view.
+
+### Time range
+
+The drawer starts with the editor's time range. Selecting a range on any chart zooms the drawer into it, and the
+time range picker at the top moves, zooms out or resets the range. The drawer's time range does not change the
+Explore time range, and **Go to editor** does not transfer it.
+
+### Go to editor
+
+**Go to editor** replaces the editor query with the drawer's selection: the filter chips become the filter
+chips of the query editor, the pattern filters are appended to the query expression, and the query is run.
+The original expression and stream filters of the editor are replaced, not merged.
+
+<img alt="Query editor after Go to editor" width="100%" src="https://github.com/VictoriaMetrics/victorialogs-datasource/blob/main/src/img/drilldown_go_to_editor.png?raw=true">
+
+The drawer runs at most 6 queries at a time, so a wide time range with many fields takes a while to load completely.
+
 ## Line limits
 
 Every VictoriaLogs query is sent with a limit on the maximum number of log lines returned. Keeping this limit low
