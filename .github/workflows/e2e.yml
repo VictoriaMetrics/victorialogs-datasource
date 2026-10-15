@@ -83,7 +83,9 @@ jobs:
       # Resolves the latest patch release of the most recent minor
       # VictoriaLogs versions (two minors for the full matrix) from GitHub
       # releases. Release tags match the victoriametrics/victoria-logs
-      # Docker image tags.
+      # Docker image tags, except for enterprise-only LTS patch releases
+      # (e.g. v1.52.1) that ship no community binary and no community
+      # Docker image: those are skipped by checking the release assets.
       - name: Resolve VictoriaLogs E2E versions
         id: resolve-victorialogs-versions
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b  # v7.1.0
@@ -96,11 +98,20 @@ jobs:
               per_page: 100,
             });
 
+            // A release has a community Docker image when it ships the community
+            // (non-enterprise) linux-amd64 binary alongside the enterprise ones.
+            const hasCommunityBuild = (tag, assets) =>
+              assets.some(({ name }) => name === `victoria-logs-linux-amd64-${tag}.tar.gz`);
+
             // The highest patch of every stable vX.Y.Z release, keyed by minor version.
             const latestPerMinor = new Map();
-            for (const { tag_name, draft, prerelease } of releases) {
+            for (const { tag_name, draft, prerelease, assets } of releases) {
               const version = tag_name.match(/^v(\d+)\.(\d+)\.(\d+)$/)?.slice(1).map(Number);
               if (draft || prerelease || !version) {
+                continue;
+              }
+              if (!hasCommunityBuild(tag_name, assets)) {
+                core.info(`Skipping ${tag_name}: no community build in the release assets`);
                 continue;
               }
               const minor = `${version[0]}.${version[1]}`;
