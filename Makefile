@@ -109,6 +109,9 @@ vl-plugin-check: vl-plugin-release plugincheck2
 		-sourceCodeUri file://$(shell pwd)/ \
 		"$(shell pwd)/dist/${PACKAGE_NAME}.zip"
 
+vl-plugin-vuln-check: plugincheck2
+	scripts/plugin-vuln-check.sh $(PLUGINCHECK2) $(PLUGIN_ID)
+
 LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
@@ -117,14 +120,18 @@ PLUGINCHECK2 = $(LOCALBIN)/plugincheck2-$(PLUGINCHECK2_VERSION)
 MAGE = $(LOCALBIN)/mage-$(MAGE_VERSION)
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
-PLUGINCHECK2_VERSION = v0.38.0
+PLUGINCHECK2_VERSION = v0.51.0
 MAGE_VERSION = v1.15.0
 GOLANGCI_LINT_VERSION = v2.2.2
 
 .PHONY: plugincheck2
 plugincheck2: $(PLUGINCHECK2)
-$(PLUGINCHECK2): $(LOCALBIN)
-	$(call go-install-tool,$(PLUGINCHECK2),github.com/grafana/plugin-validator/pkg/cmd/plugincheck2,$(PLUGINCHECK2_VERSION))
+$(PLUGINCHECK2):
+	scripts/install-plugincheck2.sh $(PLUGINCHECK2_VERSION) $@
+
+# Bumps PLUGINCHECK2_VERSION above to the latest plugin-validator release.
+plugincheck2-update:
+	scripts/plugincheck2-update.sh $(PLUGINCHECK2_VERSION)
 
 .PHONY: mage
 mage: $(MAGE)
