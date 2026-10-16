@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.33.1
+
 * BUGFIX: fix the `An unexpected error happened` crash of the Explore query editor when `Drilldown` opens on Grafana 10.x. See [pr #740](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/740).
 
 ## v0.33.0
