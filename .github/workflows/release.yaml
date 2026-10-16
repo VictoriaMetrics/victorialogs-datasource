@@ -2,12 +2,6 @@ name: release
 
 on:
   workflow_dispatch:
-    ref: main
-    branches:
-      - main
-    permissions:
-      teams:
-        - development
     inputs:
       run_security_scan:
         description: 'Run security vulnerability scan'
@@ -20,51 +14,24 @@ jobs:
     name: Security Vulnerability Scan
     if: ${{ inputs.run_security_scan == true }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
-    outputs:
-      has_high_vulns: ${{ steps.check-severity.outputs.has_high_vulns }}
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
           persist-credentials: false
 
-      - name: Run OSV Scanner
-        id: osv-scan
-        continue-on-error: true
-        uses: google/osv-scanner-action/osv-scanner-action@c5996e0193a3df57d695c1b8a1dec2a4c62e8730  # v2.3.3
+      - name: Cache tool binaries
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
         with:
-          scan-args: |-
-            --format=json
-            --output=osv-results.json
-            --recursive
-            ./
+          path: ./bin
+          key: ${{ runner.os }}-bin-${{ github.job }}-${{ hashFiles('Makefile', 'scripts/install-plugincheck2.sh') }}
 
-      - name: Check vulnerability severity
-        id: check-severity
-        run: |
-          if [ -f osv-results.json ]; then
-            high_critical=$(grep -o '"severity"[[:space:]]*:[[:space:]]*"\(HIGH\|CRITICAL\)"' osv-results.json | wc -l | tr -d ' ')
-            if [ "$high_critical" -gt 0 ]; then
-              echo "has_high_vulns=true" >> $GITHUB_OUTPUT
-              echo "❌ Found $high_critical HIGH/CRITICAL vulnerabilities"
-              exit 1
-            else
-              echo "has_high_vulns=false" >> $GITHUB_OUTPUT
-              echo "✅ No HIGH/CRITICAL vulnerabilities found"
-            fi
-          else
-            echo "has_high_vulns=false" >> $GITHUB_OUTPUT
-            echo "✅ No vulnerabilities found"
-          fi
-
-      - name: Upload scan results
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
-        with:
-          name: osv-scan-results
-          path: osv-results.json
+      # The same vulnerability check the Grafana plugin catalog runs on publish.
+      - name: Check dependencies for vulnerabilities
+        run: make vl-plugin-vuln-check
 
   run-e2e-tests:
     name: E2E tests
@@ -99,7 +66,7 @@ jobs:
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
         with:
           path: ./bin
-          key: binary
+          key: ${{ runner.os }}-bin-${{ github.job }}-${{ hashFiles('Makefile', 'scripts/install-plugincheck2.sh') }}
       - name: Setup Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff  # v5.6.0
         with:
@@ -152,7 +119,7 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
         with:
           path: ./bin
-          key: binary
+          key: ${{ runner.os }}-bin-${{ github.job }}-${{ hashFiles('Makefile', 'scripts/install-plugincheck2.sh') }}
       - name: Upload release assets
         if: ${{ hashFiles('NOTES.md') != '' }}
         env:

@@ -1,0 +1,55 @@
+name: check / vulnerabilities
+
+# Runs the vulnerability analyzer of the Grafana plugin validator on the
+# lockfiles, the same check the Grafana plugin catalog performs on publish.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/pr-checks-vulns.yml'
+      - 'Makefile'
+      - 'scripts/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'yarn.lock'
+      - 'package.json'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/pr-checks-vulns.yml'
+      - 'Makefile'
+      - 'scripts/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'yarn.lock'
+      - 'package.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vuln-check:
+    name: plugin validator / osv-scanner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        with:
+          persist-credentials: false
+
+      # Tool versions are declared in the Makefile, so its hash keys the cache.
+      - name: Cache tool binaries
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
+        with:
+          path: ./bin
+          key: ${{ runner.os }}-bin-${{ github.job }}-${{ hashFiles('Makefile', 'scripts/install-plugincheck2.sh') }}
+
+      - name: Check dependencies for vulnerabilities
+        run: make vl-plugin-vuln-check

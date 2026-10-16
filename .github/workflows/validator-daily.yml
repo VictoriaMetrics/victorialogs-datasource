@@ -1,0 +1,114 @@
+name: Daily plugin validator
+
+# The OSV database and the Grafana plugin validator both change without any
+# commit in this repository, so once a day this workflow re-checks the
+# dependencies on main and proposes a validator upgrade when Grafana ships one.
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vuln-check:
+    name: plugin validator / osv-scanner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Cache tool binaries
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
+        with:
+          path: ./bin
+          key: ${{ runner.os }}-bin-${{ github.job }}-${{ hashFiles('Makefile', 'scripts/install-plugincheck2.sh') }}
+
+      - name: Check dependencies for vulnerabilities
+        run: make vl-plugin-vuln-check
+
+  validator-update:
+    name: Propose plugin validator upgrade
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      # The upgrade branch is pushed with the bot token: a push made with
+      # GITHUB_TOKEN would not trigger the PR checks on an already open PR.
+      - name: Code checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        with:
+          token: ${{ secrets.VM_BOT_GH_TOKEN }}
+          persist-credentials: true
+
+      - name: Update the pinned validator version
+        id: update
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          make plugincheck2-update
+          if git diff --quiet Makefile; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "version=$(sed -n 's/^PLUGINCHECK2_VERSION = //p' Makefile)" >> "$GITHUB_OUTPUT"
+          fi
+
+      # An upgrade pull request left open is refreshed when a newer release
+      # appears, and left alone when it already proposes the latest version.
+      - name: Find the open upgrade pull request
+        id: upgrade-pr
+        if: steps.update.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr="$(gh pr list --head plugin-validator-update --state open --json number,title \
+            --jq '.[0] // empty | "\(.number)|\(.title)"')"
+          if [ -n "$pr" ]; then
+            echo "number=${pr%%|*}" >> "$GITHUB_OUTPUT"
+            echo "title=${pr#*|}" >> "$GITHUB_OUTPUT"
+            echo "Open upgrade pull request: $pr"
+          else
+            echo "No open upgrade pull request"
+          fi
+
+      - name: Import GPG key
+        if: steps.update.outputs.changed == 'true' && !contains(steps.upgrade-pr.outputs.title, steps.update.outputs.version)
+        uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec  # v6.3.0
+        with:
+          gpg_private_key: ${{ secrets.VM_BOT_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.VM_BOT_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
+      - name: Push the upgrade branch
+        if: steps.update.outputs.changed == 'true' && !contains(steps.upgrade-pr.outputs.title, steps.update.outputs.version)
+        env:
+          TITLE: "chore(deps): bump Grafana plugin validator to ${{ steps.update.outputs.version }}"
+        run: |
+          git checkout -b plugin-validator-update
+          git add Makefile
+          git commit -S -m "${TITLE}"
+          git push --force origin plugin-validator-update
+
+      - name: Create or update the upgrade pull request
+        if: steps.update.outputs.changed == 'true' && !contains(steps.upgrade-pr.outputs.title, steps.update.outputs.version)
+        env:
+          PR_NUMBER: ${{ steps.upgrade-pr.outputs.number }}
+          TITLE: "chore(deps): bump Grafana plugin validator to ${{ steps.update.outputs.version }}"
+          BODY: "Bumps plugincheck2 to ${{ steps.update.outputs.version }}, see https://github.com/grafana/plugin-validator/releases/tag/plugin-validator%2F${{ steps.update.outputs.version }}"
+          # The bot token is used so that the PR checks run: events created
+          # with GITHUB_TOKEN never trigger workflows.
+          GH_TOKEN: ${{ secrets.VM_BOT_GH_TOKEN }}
+        run: |
+          if [ -z "$PR_NUMBER" ]; then
+            gh pr create --head plugin-validator-update --title "$TITLE" --body "$BODY"
+          else
+            gh pr edit "$PR_NUMBER" --title "$TITLE" --body "$BODY"
+          fi
