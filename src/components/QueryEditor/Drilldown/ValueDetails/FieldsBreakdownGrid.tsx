@@ -6,7 +6,6 @@ import { PanelRenderer } from '@grafana/runtime';
 import {
   Alert,
   Button,
-  EmptyState,
   LoadingPlaceholder,
   Pagination,
   PanelContextProvider,
@@ -17,6 +16,7 @@ import {
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { Query } from '../../../../types';
+import { CompatibleEmptyState } from '../../../CompatibleEmptyState';
 import { BREAKDOWN_PAGE_SIZE } from '../queries/drilldownQueries';
 import { FacetField } from '../queries/facets';
 import { useFieldVolume } from '../queries/useVolumeQueries';
@@ -107,7 +107,7 @@ export const FieldsBreakdownGrid: React.FC<FieldsBreakdownGridProps> = ({
   }
 
   if (!facetsError && !multiValue.length && !constFields.length && !otherFields.length) {
-    return <EmptyState variant='not-found' message={`No ${noun} for the selected time range`} />;
+    return <CompatibleEmptyState variant='not-found' message={`No ${noun} for the selected time range`} />;
   }
 
   return (

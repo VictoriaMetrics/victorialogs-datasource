@@ -2,6 +2,8 @@
 
 ## tip
 
+* BUGFIX: fix the `An unexpected error happened` crash of the Explore query editor when `Drilldown` opens on Grafana 10.x. See [pr #740](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/740).
+
 ## v0.33.0
 
 * FEATURE: add a `Drilldown` button to the query editor that opens a drawer for exploring logs without writing LogsQL. The main view breaks the logs down by field, by stream field and by message pattern. Adding any filter chip opens a details view with a volume chart and the `Logs`, `Stream fields`, `Fields` and `Patterns` tabs. See [Drilldown](https://docs.victoriametrics.com/victorialogs/integrations/grafana/#drilldown) docs and [#424](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/424).
