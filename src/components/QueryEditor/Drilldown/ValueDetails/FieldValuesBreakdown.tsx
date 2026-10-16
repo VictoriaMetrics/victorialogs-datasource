@@ -2,10 +2,11 @@ import { css } from '@emotion/css';
 import React, { useEffect, useState } from 'react';
 
 import { AbsoluteTimeRange, GrafanaTheme2, TimeRange } from '@grafana/data';
-import { Alert, EmptyState, IconButton, LoadingPlaceholder, Pagination, Stack, Text, useStyles2 } from '@grafana/ui';
+import { Alert, IconButton, LoadingPlaceholder, Pagination, Stack, Text, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { Query } from '../../../../types';
+import { CompatibleEmptyState } from '../../../CompatibleEmptyState';
 import { formatHits } from '../../shared/formatHits';
 import { BREAKDOWN_PAGE_SIZE } from '../queries/drilldownQueries';
 import { useValueLogsSample } from '../queries/useLogsSampleQueries';
@@ -73,7 +74,7 @@ export const FieldValuesBreakdown: React.FC<FieldValuesBreakdownProps> = ({
   }
 
   if (!loading && !top.length) {
-    return <EmptyState variant='not-found' message='No data for the selected time range' />;
+    return <CompatibleEmptyState variant='not-found' message='No data for the selected time range' />;
   }
 
   const pageRows = top.slice((page - 1) * BREAKDOWN_PAGE_SIZE, page * BREAKDOWN_PAGE_SIZE);

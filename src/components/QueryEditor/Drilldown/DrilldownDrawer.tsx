@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { AbsoluteTimeRange, dateTime, getDefaultTimeRange, getTimeZone, TimeRange } from '@grafana/data';
 import { TimeZone } from '@grafana/schema';
-import { Alert, Button, Drawer, EmptyState, LoadingPlaceholder, Stack, TimeRangePicker } from '@grafana/ui';
+import { Alert, Button, Drawer, LoadingPlaceholder, Stack, TimeRangePicker } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../datasource';
 import { AdHocFilter, Query } from '../../../types';
 import { isLevelChip } from '../../../utils/query/levelChips';
+import { CompatibleEmptyState } from '../../CompatibleEmptyState';
 
 import { FieldValuesTable } from './FieldValuesTable';
 import { MainFieldTabs, PATTERNS_TAB } from './MainFieldTabs';
@@ -308,7 +309,7 @@ const DrilldownDrawer: React.FC<DrilldownDrawerProps> = ({
                   {fields.error}
                 </Alert>
               )}
-              <EmptyState variant='not-found' message='No fields for the selected time range' />
+              <CompatibleEmptyState variant='not-found' message='No fields for the selected time range' />
             </>
           )}
         </Stack>

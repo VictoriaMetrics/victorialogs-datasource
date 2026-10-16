@@ -15,7 +15,6 @@ import {
 import { PanelRenderer } from '@grafana/runtime';
 import {
   Alert,
-  EmptyState,
   Icon,
   InteractiveTable,
   Input,
@@ -27,6 +26,7 @@ import {
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { Query } from '../../../../types';
+import { CompatibleEmptyState } from '../../../CompatibleEmptyState';
 import { formatHits } from '../../shared/formatHits';
 import { BREAKDOWN_PAGE_SIZE } from '../queries/drilldownQueries';
 import { useTargetVolume } from '../queries/useVolumeQueries';
@@ -295,7 +295,7 @@ export const BreakdownTable: React.FC<BreakdownTableProps> = ({
   }
 
   if (!loading && !items.length) {
-    return <EmptyState variant='not-found' message={`No ${noun} for the selected time range`} />;
+    return <CompatibleEmptyState variant='not-found' message={`No ${noun} for the selected time range`} />;
   }
 
   return (
