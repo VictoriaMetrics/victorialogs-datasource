@@ -1,6 +1,12 @@
 import { CoreApp } from '@grafana/data';
 
-import { addLabelToQuery, addSortPipeToQuery, insertPipesBeforeSortClassPipe, removeLabelFromQuery } from './modifyQuery';
+import {
+  addLabelToQuery,
+  addSortPipeToQuery,
+  insertPipesBeforeSortClassPipe,
+  removeAggregationPipes,
+  removeLabelFromQuery,
+} from './modifyQuery';
 import store from './store/store';
 import { Query, QueryType } from './types';
 
@@ -407,6 +413,52 @@ describe('modifyQuery', () => {
       expect(insertPipesBeforeSortClassPipe('_msg:"a|b" | sort by (_time) desc', PIPES)).toBe(
         '_msg:"a|b" | format "" as lvl | sort by (_time) desc'
       );
+    });
+  });
+
+  describe('removeAggregationPipes', () => {
+    it('returns the expression unchanged when it has no pipes', () => {
+      expect(removeAggregationPipes('app:x level:=error')).toBe('app:x level:=error');
+    });
+
+    it('returns the expression unchanged when it has no aggregation pipe', () => {
+      expect(removeAggregationPipes('app:x | unpack_json | sort by (_time) desc')).toBe(
+        'app:x | unpack_json | sort by (_time) desc'
+      );
+    });
+
+    it('cuts at the stats pipe, keeping the pipes before it', () => {
+      expect(removeAggregationPipes('{app="a"} level:=error | unpack_json | stats by (loggerName) count() logs')).toBe(
+        '{app="a"} level:=error | unpack_json'
+      );
+    });
+
+    it('drops the pipes following the stats pipe too', () => {
+      expect(removeAggregationPipes('app:x | stats by (host) count() hits | sort by (hits) desc | limit 5')).toBe('app:x');
+    });
+
+    it.each(['top 5 by (host)', 'uniq by (host)', 'facets', 'field_names', 'field_values host', 'block_stats'])(
+      'treats `%s` as an aggregation pipe',
+      (pipe) => {
+        expect(removeAggregationPipes(`app:x | unpack_json | ${pipe}`)).toBe('app:x | unpack_json');
+      }
+    );
+
+    it.each(['by (host) count() hits', 'by(host) count()', 'count() logs', 'count_uniq(host)', 'sum(duration) total'])(
+      'treats the stats shorthand `%s` as an aggregation pipe',
+      (pipe) => {
+        expect(removeAggregationPipes(`app:x | ${pipe}`)).toBe('app:x');
+      }
+    );
+
+    it('does not treat pipes whose name merely starts with a keyword as aggregation', () => {
+      expect(removeAggregationPipes('app:x | total_stats count() total | uniq_values')).toBe(
+        'app:x | total_stats count() total | uniq_values'
+      );
+    });
+
+    it('ignores aggregation keywords inside quoted values', () => {
+      expect(removeAggregationPipes('_msg:"a | stats count()" | unpack_json')).toBe('_msg:"a | stats count()" | unpack_json');
     });
   });
 });
