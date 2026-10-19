@@ -5,6 +5,13 @@
 set -euo pipefail
 
 current="$1"
+
+# sed below exits 0 even when nothing matches, so the line is checked explicitly.
+if ! grep -q '^PLUGINCHECK2_VERSION = ' Makefile; then
+  echo "PLUGINCHECK2_VERSION line not found in Makefile" >&2
+  exit 1
+fi
+
 latest="$("$(dirname "$0")/plugincheck2-latest-version.sh")"
 
 if [ "$current" = "$latest" ]; then
