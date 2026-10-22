@@ -1,7 +1,7 @@
 import { AdHocVariableFilter, CoreApp, LogsSortOrder } from '@grafana/data';
 
 import { splitByPipes } from './LogsQL/splitByPipes';
-import { isExprHasStatsPipeFunc } from './LogsQL/statsPipeFunctions';
+import { isExprHasStatsPipeFunc, statsPipeFunctions } from './LogsQL/statsPipeFunctions';
 import { escapeLabelValueInExactSelector } from './languageUtils';
 import { storeKeys } from './store/constants';
 import store from './store/store';
@@ -172,6 +172,44 @@ export const insertPipesBeforeSortClassPipe = (expr: string, pipesSuffix: string
   const head = segments.slice(0, sortClassIdx).join(' | ');
   const tail = segments.slice(sortClassIdx).join(' | ');
   return `${head}${pipesSuffix} | ${tail}`;
+};
+
+
+// Matches a pipe segment that replaces log rows with something else (aggregated
+// rows, field/stream listings, block and query statistics, generated rows), so
+// the pipes from it onwards cannot produce raw log lines. The `stats` keyword is
+// optional in LogsQL, so `by (...)` and bare stats function calls match too
+const AGGREGATION_PIPES = [
+  'stats',
+  'top',
+  'uniq',
+  'facets',
+  'field_names',
+  'field_values',
+  'block_stats',
+  'blocks_count',
+  'query_stats',
+  'generate_sequence',
+];
+const AGGREGATION_PIPE_RE = new RegExp(
+  `^(?:(?:${AGGREGATION_PIPES.join('|')})\\b|by\\s*\\(|(?:${statsPipeFunctions.join('|')})\\s*\\()`,
+  'i'
+);
+
+/**
+ * Cuts the expression at its first aggregation pipe (`stats`, `top`, `uniq`...),
+ * so a metric query can be turned into the raw logs query behind it. Returns
+ * the expression unchanged when it has no aggregation pipe. `|` characters
+ * inside quoted values, parentheses or `{}` are ignored when locating pipes.
+ */
+export const removeAggregationPipes = (expr: string): string => {
+  const segments = splitByPipes(expr);
+  // segments[0] is the filter part, so only later segments are pipes
+  const aggregationIdx = segments.findIndex((segment, i) => i > 0 && AGGREGATION_PIPE_RE.test(segment));
+  if (aggregationIdx === -1) {
+    return expr;
+  }
+  return segments.slice(0, aggregationIdx).join(' | ');
 };
 
 

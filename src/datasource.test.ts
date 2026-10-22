@@ -1558,8 +1558,21 @@ describe('VictoriaLogsDatasource preset merge', () => {
         const result = ds.getSupplementaryQuery(opts, makeQuery(queryType), makeRequest());
         expect(result).toBeDefined();
         expect(result?.queryType).toBe(QueryType.Instant);
-        expect(result?.supportingQueryType).toBe(SupportingQueryType.LogsSample);
         expect(result?.refId).toBe('log-sample-A');
+      });
+
+      it('carries no supporting-query marker: Grafana reuses the target in "Open logs in split view"', () => {
+        const result = ds.getSupplementaryQuery(opts, makeQuery(QueryType.StatsRange), makeRequest());
+        expect(result?.supportingQueryType).toBeUndefined();
+      });
+
+      it('drops the stats pipe so the sample returns the log lines behind the chart', () => {
+        const result = ds.getSupplementaryQuery(
+          opts,
+          makeQuery(QueryType.StatsRange, { expr: '{app="a"} level:=error | unpack_json | stats by (loggerName) count() logs' }),
+          makeRequest(),
+        );
+        expect(result?.expr).toBe('{app="a"} level:=error | unpack_json');
       });
 
       it.each([
@@ -1729,6 +1742,27 @@ describe('getDataProvider', () => {
     providerSource().subscribe();
     expect(backendQuery).toHaveBeenCalledTimes(1);
     expect(backendQuery.mock.calls[0][0].targets[0]).toMatchObject({ refId: 'log-volume-A', queryType: QueryType.Hits });
+  });
+
+  it('runs the logs sample of a stats query as a raw logs query without the stats pipe', () => {
+    const ds = createDatasource(templateSrvStub);
+    const stats: Query = { refId: 'A', expr: 'app:x | stats by (host) count() hits', queryType: QueryType.StatsRange };
+    const provider = ds.getDataProvider(SupplementaryQueryType.LogsSample, makeRequest([stats]));
+
+    expect(provider).toBeDefined();
+    provider!.subscribe();
+    expect(backendQuery).toHaveBeenCalledTimes(1);
+    expect(backendQuery.mock.calls[0][0].targets[0]).toMatchObject({
+      refId: 'log-sample-A',
+      queryType: QueryType.Instant,
+      supportingQueryType: SupportingQueryType.LogsSample,
+      expr: 'app:x | sort by (_time) desc',
+    });
+  });
+
+  it('returns no logs sample provider for a raw logs query', () => {
+    const ds = createDatasource(templateSrvStub);
+    expect(ds.getDataProvider(SupplementaryQueryType.LogsSample, makeRequest([rawLogs]))).toBeUndefined();
   });
 
   it('holds the hits back until the raw logs of the query() made right before have answered', () => {

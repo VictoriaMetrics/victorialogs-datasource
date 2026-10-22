@@ -55,6 +55,7 @@ import {
   addSortPipeToQuery,
   getQueryFormat,
   insertPipesBeforeSortClassPipe,
+  removeAggregationPipes,
 } from './modifyQuery';
 import { removeDoubleQuotesAroundVar } from './parsing';
 import { replaceOperatorWithIn, returnVariables } from './parsingUtils';
@@ -93,6 +94,18 @@ export { resolveAdHocFiltersMode } from './utils/query/adHocFilters';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 export const REF_ID_STARTER_LOG_SAMPLE = 'log-sample-';
+
+/**
+ * Marks every target of a supplementary request as a supporting query. The marker lives on the
+ * request only: targets returned by getSupplementaryQuery are reused by Grafana as user queries
+ */
+const markSupportingQueries = (
+  request: DataQueryRequest<Query>,
+  supportingQueryType: SupportingQueryType
+): DataQueryRequest<Query> => ({
+  ...request,
+  targets: request.targets.map((target) => ({ ...target, supportingQueryType })),
+});
 
 export class VictoriaLogsDatasource
   extends DataSourceWithBackend<Query, Options>
@@ -609,12 +622,17 @@ export class VictoriaLogsDatasource
           return undefined;
         }
 
+        // The returned target is user-facing: Grafana opens it as a plain query in
+        // "Open logs in split view", so it carries no supporting-query marker.
+        // The marker is attached to the request itself in getDataProvider
         return {
           ...query,
+          // the aggregation pipes are dropped, otherwise the sample returns the stats rows
+          // instead of the log lines behind them
+          expr: removeAggregationPipes(query.expr),
           queryType: QueryType.Instant,
           refId: `${REF_ID_STARTER_LOG_SAMPLE}${query.refId}`,
-          supportingQueryType: SupportingQueryType.LogsSample,
-          maxLines: this.maxLines
+          maxLines: this.maxLines,
         };
 
       default:
@@ -644,6 +662,8 @@ export class VictoriaLogsDatasource
         const hits = (req: DataQueryRequest<Query>) => this.runQuery(req);
         return queryLogsVolume(hitsRequest, logsGate ? logsGate.volume(hitsRequest, hits) : hits(hitsRequest), this.getActiveLevelRules());
       }
+      case SupplementaryQueryType.LogsSample:
+        return this.runQuery(this.prepareRequest(markSupportingQueries(newRequest, SupportingQueryType.LogsSample)));
       default:
         return undefined;
     }
