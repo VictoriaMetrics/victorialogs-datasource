@@ -46,6 +46,30 @@ describe('getStreamFields', () => {
     expect(result.find((f) => f.name === 'Line')?.values).toEqual(['Cleaning', 'Trip']);
   });
 
+  it('keeps a column as string when only some of its values are numeric', () => {
+    const mixed: Field[] = [
+      ...fields.slice(0, 2),
+      { name: 'labels', type: FieldType.other, config: {}, values: [{ code: '200' }, { code: 'n/a' }] },
+    ];
+
+    expect(getStreamFields(mixed, true).find((f) => f.name === 'code')).toMatchObject({
+      type: FieldType.string,
+      values: ['200', 'n/a'],
+    });
+  });
+
+  it('keeps only the first of log fields that differ by case', () => {
+    const sameCase: Field[] = [
+      ...fields.slice(0, 2),
+      { name: 'labels', type: FieldType.other, config: {}, values: [{ status: 'ok' }, { STATUS: 'fail' }] },
+    ];
+
+    const result = getStreamFields(sameCase, true);
+
+    expect(result.map((f) => f.name)).toEqual(['Time', 'Line', 'labels', 'status']);
+    expect(result.find((f) => f.name === 'status')?.values).toEqual(['ok', null]);
+  });
+
   it('skips log fields that collide with existing fields regardless of case', () => {
     const withCollision: Field[] = [
       ...fields.slice(0, 2),
