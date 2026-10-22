@@ -175,11 +175,24 @@ export const insertPipesBeforeSortClassPipe = (expr: string, pipesSuffix: string
 };
 
 
-// Matches a pipe segment that collapses log rows into aggregated rows, so the
-// pipes from it onwards cannot produce raw log lines. The `stats` keyword is
+// Matches a pipe segment that replaces log rows with something else (aggregated
+// rows, field/stream listings, block and query statistics, generated rows), so
+// the pipes from it onwards cannot produce raw log lines. The `stats` keyword is
 // optional in LogsQL, so `by (...)` and bare stats function calls match too
+const AGGREGATION_PIPES = [
+  'stats',
+  'top',
+  'uniq',
+  'facets',
+  'field_names',
+  'field_values',
+  'block_stats',
+  'blocks_count',
+  'query_stats',
+  'generate_sequence',
+];
 const AGGREGATION_PIPE_RE = new RegExp(
-  `^(?:(?:stats|top|uniq|facets|field_names|field_values|block_stats)\\b|by\\s*\\(|(?:${statsPipeFunctions.join('|')})\\s*\\()`,
+  `^(?:(?:${AGGREGATION_PIPES.join('|')})\\b|by\\s*\\(|(?:${statsPipeFunctions.join('|')})\\s*\\()`,
   'i'
 );
 

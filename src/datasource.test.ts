@@ -1558,8 +1558,12 @@ describe('VictoriaLogsDatasource preset merge', () => {
         const result = ds.getSupplementaryQuery(opts, makeQuery(queryType), makeRequest());
         expect(result).toBeDefined();
         expect(result?.queryType).toBe(QueryType.Instant);
-        expect(result?.supportingQueryType).toBe(SupportingQueryType.LogsSample);
         expect(result?.refId).toBe('log-sample-A');
+      });
+
+      it('carries no supporting-query marker: Grafana reuses the target in "Open logs in split view"', () => {
+        const result = ds.getSupplementaryQuery(opts, makeQuery(QueryType.StatsRange), makeRequest());
+        expect(result?.supportingQueryType).toBeUndefined();
       });
 
       it('drops the stats pipe so the sample returns the log lines behind the chart', () => {
@@ -1751,7 +1755,8 @@ describe('getDataProvider', () => {
     expect(backendQuery.mock.calls[0][0].targets[0]).toMatchObject({
       refId: 'log-sample-A',
       queryType: QueryType.Instant,
-      expr: expect.stringMatching(/^app:x(?! \| stats)/),
+      supportingQueryType: SupportingQueryType.LogsSample,
+      expr: 'app:x | sort by (_time) desc',
     });
   });
 

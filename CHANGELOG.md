@@ -4,6 +4,8 @@
 
 * FEATURE: expose every log field as its own column in annotation query results, so annotation field mappings can use a single field for `Title` or `Tags`, and a field with an epoch-milliseconds timestamp for `Time end` to draw range annotations. See [#568](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/568). Thanks to @Danielv123 for contributing.
 
+* BUGFIX: show the `Logs sample` in Explore for `Range` and `Instant` stats queries. The sample was never requested, and its query kept the `stats` pipe, so it returned the aggregated rows instead of the log lines behind the chart. The sample now runs the query without its aggregation pipes (`stats`, `top`, `uniq`, `facets`...). See [#735](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/735). Thanks to @paullacoutiere-oss for contributing.
+
 ## v0.33.1
 
 * BUGFIX: fix the `An unexpected error happened` crash of the Explore query editor when `Drilldown` opens on Grafana 10.x. See [pr #740](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/740).
@@ -20,7 +22,6 @@
 
 * BUGFIX: stop highlighting commas in the logs panel when the query uses a LogsQL filter with a comma-separated argument list, such as `seq("foo", "bar")` or `contains_common_case("foo", "bar")`. See [#725](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/725).
 * BUGFIX: fix a browser tab freeze when the query contains a pipe inside parentheses, for example a subquery filter like `_msg:in(* | fields _msg)`.
-* BUGFIX: show the `Logs sample` in Explore for `Range` and `Instant` stats queries. The sample was never requested, and its query kept the `stats` pipe, so it returned the aggregated rows instead of the log lines behind the chart. The sample now runs the query without its aggregation pipes (`stats`, `top`, `uniq`, `facets`...). See [#735](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/735).
 
 ## v0.32.0
 

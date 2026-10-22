@@ -437,14 +437,33 @@ describe('modifyQuery', () => {
       expect(removeAggregationPipes('app:x | stats by (host) count() hits | sort by (hits) desc | limit 5')).toBe('app:x');
     });
 
-    it.each(['top 5 by (host)', 'uniq by (host)', 'facets', 'field_names', 'field_values host', 'block_stats'])(
+    it.each([
+      'top 5 by (host)',
+      'uniq by (host)',
+      'facets',
+      'field_names',
+      'field_values host',
+      'block_stats',
+      'blocks_count',
+      'query_stats',
+      'generate_sequence 10',
+    ])(
       'treats `%s` as an aggregation pipe',
       (pipe) => {
         expect(removeAggregationPipes(`app:x | unpack_json | ${pipe}`)).toBe('app:x | unpack_json');
       }
     );
 
-    it.each(['by (host) count() hits', 'by(host) count()', 'count() logs', 'count_uniq(host)', 'sum(duration) total'])(
+    it.each([
+      'by (host) count() hits',
+      'by(host) count()',
+      'count() logs',
+      'count_uniq(host)',
+      'sum(duration) total',
+      'any(host)',
+      'stddev(duration)',
+      'field_max(duration, host)',
+    ])(
       'treats the stats shorthand `%s` as an aggregation pipe',
       (pipe) => {
         expect(removeAggregationPipes(`app:x | ${pipe}`)).toBe('app:x');
