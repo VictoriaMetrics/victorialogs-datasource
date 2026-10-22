@@ -27,12 +27,11 @@ export const statsPipeFunctions = [
 
 type StatsPipeFunctions = typeof statsPipeFunctions[number];
 
-export const isExprHasStatsPipeFunctions = (expr: string) => {
-  const regex = new RegExp(`.*\\|.*\\b(${statsPipeFunctions.join('|')})\\b`, 'mi');
+const hasStatsFunctionCall = (expr: string, names: readonly string[]): boolean => {
+  const regex = new RegExp(`\\|.*\\b(?:${names.join('|')})\\s*\\(`, 'mi');
   return regex.test(expr);
 };
 
-export const isExprHasStatsPipeFunc = (expr: string, statFunc: StatsPipeFunctions) => {
-  const regex = new RegExp(`.*\\|.*\\b(${statFunc})\\b`, 'mi');
-  return regex.test(expr);
-};
+export const isExprHasStatsPipeFunctions = (expr: string) => hasStatsFunctionCall(expr, statsPipeFunctions);
+
+export const isExprHasStatsPipeFunc = (expr: string, statFunc: StatsPipeFunctions) => hasStatsFunctionCall(expr, [statFunc]);
