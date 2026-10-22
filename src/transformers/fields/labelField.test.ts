@@ -45,4 +45,31 @@ describe('getStreamFields', () => {
     expect(result.filter((f) => f.name === 'Line')).toHaveLength(1);
     expect(result.find((f) => f.name === 'Line')?.values).toEqual(['Cleaning', 'Trip']);
   });
+
+  it('skips log fields that collide with existing fields regardless of case', () => {
+    const withCollision: Field[] = [
+      ...fields.slice(0, 2),
+      { name: 'labels', type: FieldType.other, config: {}, values: [{ line: 'a', TIME: 'b' }, {}] },
+    ];
+
+    const names = getStreamFields(withCollision, true).map((f) => f.name);
+
+    expect(names).toEqual(['Time', 'Line', 'labels']);
+  });
+
+  it('skips log fields named after annotation event fields', () => {
+    const withReserved: Field[] = [
+      ...fields.slice(0, 2),
+      {
+        name: 'labels',
+        type: FieldType.other,
+        config: {},
+        values: [{ time: 'n/a', TimeEnd: '1', title: 't', text: 'x', tags: 'a,b', ID: '7', level: 'info' }],
+      },
+    ];
+
+    const names = getStreamFields(withReserved, true).map((f) => f.name);
+
+    expect(names).toEqual(['Time', 'Line', 'labels', 'level']);
+  });
 });

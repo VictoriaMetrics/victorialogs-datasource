@@ -25,11 +25,15 @@ function getLogFieldColumns(fields: Field[]): Field[] {
     return [];
   }
 
-  const existing = new Set(fields.map((f) => f.name));
+  // Grafana resolves annotation mappings by lower-cased field name and the last field wins,
+  // so a log field named e.g. `time` or `title` would silently override the default columns
+  const RESERVED = ['time', 'timeend', 'title', 'text', 'tags', 'id'];
+
+  const existing = new Set([...fields.map((f) => f.name.toLowerCase()), ...RESERVED]);
   const keys = new Set<string>(labels.values.flatMap((value) => Object.keys(value ?? {})));
 
   return [...keys]
-    .filter((key) => !existing.has(key))
+    .filter((key) => !existing.has(key.toLowerCase()))
     .map((key) => {
       const values = labels.values.map((value) => value?.[key] ?? null);
       const isNumber = values.every((v) => v === null || (v !== '' && Number.isFinite(Number(v))));
