@@ -4,6 +4,7 @@
 
 * FEATURE: expose every log field as its own column in annotation query results, so annotation field mappings can use a single field for `Title` or `Tags`, and a field with an epoch-milliseconds timestamp for `Time end` to draw range annotations. See [#568](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/568). Thanks to @Danielv123 for contributing.
 
+* BUGFIX: stop failing every alert rule evaluation when an `Instant` stats query matches no logs and VictoriaLogs returns an empty value (for example `stats max(ts)`). The alerting path now reports the empty value as a null sample, the same as dashboards do. See [#747](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/747).
 * BUGFIX: show the `Logs sample` in Explore for `Range` and `Instant` stats queries. The sample was never requested, and its query kept the `stats` pipe, so it returned the aggregated rows instead of the log lines behind the chart. The sample now runs the query without its aggregation pipes (`stats`, `top`, `uniq`, `facets`...). See [#735](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/735). Thanks to @paullacoutiere-oss for contributing.
 
 ## v0.33.1

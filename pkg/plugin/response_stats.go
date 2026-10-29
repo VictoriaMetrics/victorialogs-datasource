@@ -84,13 +84,22 @@ func (ls logStats) vectorDataFrames() (data.Frames, error) {
 func (ls logStats) alertingDataFrames() (data.Frames, error) {
 	frames := make(data.Frames, len(ls.Result))
 	for i, res := range ls.Result {
-		f, err := strconv.ParseFloat(res.Value[1].(string), 64)
+		valuePtr, err := getFloatPtr(res.Value[1])
 		if err != nil {
-			return nil, fmt.Errorf("metric %v, unable to parse timestamp to float64 from %s: %w", res, res.Value[1], err)
+			return nil, fmt.Errorf("failed to parse float value for metric %v: %w", res, err)
 		}
 
-		frames[i] = data.NewFrame("",
-			data.NewField(data.TimeSeriesValueFieldName, data.Labels(res.Labels), []float64{f})).
+		// A stats query that matches no logs (e.g. `stats max(ts)`) returns an
+		// empty value. Report it as a null sample, the same as the non-alerting
+		// path, so the rule sees "no data" instead of failing every evaluation.
+		var field *data.Field
+		if valuePtr == nil {
+			field = data.NewField(data.TimeSeriesValueFieldName, data.Labels(res.Labels), []*float64{nil})
+		} else {
+			field = data.NewField(data.TimeSeriesValueFieldName, data.Labels(res.Labels), []float64{*valuePtr})
+		}
+
+		frames[i] = data.NewFrame("", field).
 			// to show instant alert response with the table we need to define the type of the frame
 			// and it should be [0, 1] like it set in the Grafana
 			SetMeta(&data.FrameMeta{

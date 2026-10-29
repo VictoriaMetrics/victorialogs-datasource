@@ -277,3 +277,41 @@ func Test_getStatsResponse(t *testing.T) {
 	}
 	f(o)
 }
+
+// An Instant (stats) query that matches no logs, e.g. `stats max(ts)`, returns
+// an empty value. The alerting path must report it as a null sample, like the
+// dashboard path does, instead of failing every rule evaluation.
+func Test_parseStatsResponse_AlertingEmptyValue(t *testing.T) {
+	file, err := os.ReadFile("test-data/stats_empty_value_in_the_response")
+	if err != nil {
+		t.Fatalf("error reading file: %s", err)
+	}
+	q := &Query{
+		DataQuery: backend.DataQuery{
+			RefID: "A",
+		},
+		ForAlerting: true,
+	}
+
+	resp := parseStatsResponse(io.NopCloser(bytes.NewBuffer(file)), q)
+	if resp.Error != nil {
+		t.Fatalf("parseStatsResponse() unexpected error: %s", resp.Error)
+	}
+
+	want := backend.DataResponse{Frames: data.Frames{
+		data.NewFrame("",
+			data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "p95"}, []*float64{nil}),
+		).SetMeta(&data.FrameMeta{Type: data.FrameTypeNumericMulti, TypeVersion: data.FrameTypeVersion{0, 1}}),
+	}}
+	got, err := resp.MarshalJSON()
+	if err != nil {
+		t.Fatalf("error marshal response: %s", err)
+	}
+	wantJSON, err := want.MarshalJSON()
+	if err != nil {
+		t.Fatalf("error marshal want response: %s", err)
+	}
+	if !bytes.Equal(got, wantJSON) {
+		t.Fatalf("\n got value: %s, \n want value: %s", got, wantJSON)
+	}
+}
