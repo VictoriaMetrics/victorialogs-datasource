@@ -32,38 +32,25 @@ func Test_getStatsResponse(t *testing.T) {
 		resp := parseStatsResponse(r, opts.q)
 
 		if w.Error != nil {
-			if w.Error.Error() != resp.Error.Error() {
-				t.Errorf("parseStreamResponse() = %#v, want %#v", resp, w)
+			if resp.Error == nil || w.Error.Error() != resp.Error.Error() {
+				t.Errorf("parseStatsResponse() = %#v, want %#v", resp, w)
 			}
 			return
 		}
-
-		if len(resp.Frames) != 0 && len(w.Frames) != 0 {
-			got, err := resp.MarshalJSON()
-			if err != nil {
-				t.Fatalf("error marshal response: %s", err)
-			}
-			want, err := w.MarshalJSON()
-			if err != nil {
-				t.Fatalf("error marshal want response: %s", err)
-			}
-			if !bytes.Equal(got, want) {
-				t.Fatalf("\n got value: %s, \n want value: %s", got, want)
-			}
+		if resp.Error != nil {
+			t.Fatalf("parseStatsResponse() unexpected error: %s", resp.Error)
 		}
 
-		if len(resp.Frames) == 0 && len(w.Frames) == 0 {
-			got, err := resp.MarshalJSON()
-			if err != nil {
-				t.Fatalf("error marshal response: %s", err)
-			}
-			want, err := w.MarshalJSON()
-			if err != nil {
-				t.Fatalf("error marshal want response: %s", err)
-			}
-			if !bytes.Equal(got, want) {
-				t.Fatalf("\n got value: %s, \n want value: %s", got, want)
-			}
+		got, err := resp.MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal response: %s", err)
+		}
+		want, err := w.MarshalJSON()
+		if err != nil {
+			t.Fatalf("error marshal want response: %s", err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Fatalf("\n got value: %s, \n want value: %s", got, want)
 		}
 	}
 
@@ -71,14 +58,7 @@ func Test_getStatsResponse(t *testing.T) {
 	o := opts{
 		filename: "test-data/stats_empty",
 		want: func() backend.DataResponse {
-
-			frame := data.NewFrame("", nil)
-
-			rsp := backend.DataResponse{}
-			frame.Meta = &data.FrameMeta{}
-			rsp.Frames = append(rsp.Frames, frame)
-
-			return rsp
+			return backend.DataResponse{Frames: data.Frames{}}
 		},
 		q: &Query{},
 	}
@@ -186,10 +166,10 @@ func Test_getStatsResponse(t *testing.T) {
 		want: func() backend.DataResponse {
 			frames := []*data.Frame{
 				data.NewFrame("",
-					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": "message"}, []float64{13377}),
+					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": "message"}, []*float64{utils.Ptr(float64(13377))}),
 				).SetMeta(&data.FrameMeta{Type: data.FrameTypeNumericMulti, TypeVersion: data.FrameTypeVersion{0, 1}}),
 				data.NewFrame("",
-					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": ""}, []float64{2078793288}),
+					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "count(*)", "type": ""}, []*float64{utils.Ptr(float64(2078793288))}),
 				).SetMeta(&data.FrameMeta{Type: data.FrameTypeNumericMulti, TypeVersion: data.FrameTypeVersion{0, 1}}),
 			}
 
@@ -268,6 +248,55 @@ func Test_getStatsResponse(t *testing.T) {
 					data.NewField(data.TimeSeriesTimeFieldName, nil, []time.Time{time.Unix(1756992432, 0)}),
 					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "p95"}, []*float64{nil}).SetConfig(&data.FieldConfig{DisplayNameFromDS: "legend "}),
 				),
+			}
+
+			rsp := backend.DataResponse{}
+			rsp.Frames = append(rsp.Frames, frames...)
+			return rsp
+		},
+	}
+	f(o)
+
+	// alerting: stats query that matches no logs returns an empty value
+	o = opts{
+		filename: "test-data/stats_empty_value_in_the_response",
+		q: &Query{
+			DataQuery: backend.DataQuery{
+				RefID: "A",
+			},
+			ForAlerting: true,
+		},
+		want: func() backend.DataResponse {
+			frames := []*data.Frame{
+				data.NewFrame("",
+					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "p95"}, []*float64{nil}),
+				).SetMeta(&data.FrameMeta{Type: data.FrameTypeNumericMulti, TypeVersion: data.FrameTypeVersion{0, 1}}),
+			}
+
+			rsp := backend.DataResponse{}
+			rsp.Frames = append(rsp.Frames, frames...)
+			return rsp
+		},
+	}
+	f(o)
+
+	// alerting: one group without a value next to a group with a value
+	o = opts{
+		filename: "test-data/stats_mixed_empty_value_in_the_response",
+		q: &Query{
+			DataQuery: backend.DataQuery{
+				RefID: "A",
+			},
+			ForAlerting: true,
+		},
+		want: func() backend.DataResponse {
+			frames := []*data.Frame{
+				data.NewFrame("",
+					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "t", "app": "a"}, []*float64{nil}),
+				).SetMeta(&data.FrameMeta{Type: data.FrameTypeNumericMulti, TypeVersion: data.FrameTypeVersion{0, 1}}),
+				data.NewFrame("",
+					data.NewField(data.TimeSeriesValueFieldName, data.Labels{"__name__": "t", "app": "b"}, []*float64{utils.Ptr(float64(1756992432))}),
+				).SetMeta(&data.FrameMeta{Type: data.FrameTypeNumericMulti, TypeVersion: data.FrameTypeVersion{0, 1}}),
 			}
 
 			rsp := backend.DataResponse{}
