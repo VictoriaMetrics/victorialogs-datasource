@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.34.0
+
 * FEATURE: expose every log field as its own column in annotation query results, so annotation field mappings can use a single field for `Title` or `Tags`, and a field with an epoch-milliseconds timestamp for `Time end` to draw range annotations. See [#568](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/568). Thanks to @Danielv123 for contributing.
 
 * BUGFIX: remove the `Manage alert rules in Alerting UI` switch from the data source settings. Grafana reads its `jsonData.manageAlerts` flag only for the data source-managed rules of Loki and Prometheus, so for VictoriaLogs the switch had no effect: Grafana-managed alert rules could still be created with it turned off. Restricting who can create alert rules is done with Grafana RBAC. See [#727](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/727).
