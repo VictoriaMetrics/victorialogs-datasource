@@ -7,7 +7,6 @@ import { InlineSwitch, InlineField, DataSourceHttpSettings, Space } from '@grafa
 
 import { Options } from '../types';
 
-import { AlertingSettings } from './AlertingSettings';
 import { DerivedFields } from './DerivedFields';
 import { HelpfulLinks } from './HelpfulLinks';
 import { LimitsSettings } from './LimitSettings';
@@ -45,8 +44,6 @@ const ConfigEditor = (props: PropsConfigEditor) => {
         onChange={onOptionsChange}
         sigV4AuthToggleEnabled={config.sigV4AuthEnabled}
       />
-      <AlertingSettings {...props} />
-
       <Space v={5} />
 
       <TenantSettings {...props} />
