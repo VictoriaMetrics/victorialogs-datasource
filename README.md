@@ -11,6 +11,7 @@ sitemap:
 The VictoriaLogs datasource plugin allows you to query and visualize
 [VictoriaLogs](https://docs.victoriametrics.com/victorialogs/) data in [Grafana](https://grafana.com/grafana/plugins/victoriametrics-logs-datasource/).
 
+* [VictoriaLogs compatibility](#victorialogs-compatibility)
 * [Installation](#installation)
 * [Development](#getting-started-development)
 * [How to make new release](#how-to-make-new-release)
@@ -35,6 +36,25 @@ Once installed, start exploring logs from [Grafana's Explore page](https://grafa
 * How to connect Logs with Traces using [Derived Fields](https://github.com/VictoriaMetrics/victorialogs-datasource/tree/main/src#derived-fields).
 * How to explore logs without writing LogsQL with [Drilldown](https://github.com/VictoriaMetrics/victorialogs-datasource/tree/main/src#drilldown).
 * [Demo dashboard](https://play-grafana.victoriametrics.com/d/be5zidev72m80f) built with VictoriaLogs plugin.
+
+## VictoriaLogs compatibility
+
+The plugin relies on VictoriaLogs APIs that appeared in specific releases. The table lists each plugin feature with
+the API it needs, the plugin release that added it and the oldest VictoriaLogs release that provides the API. The plugin
+requires the newest of these VictoriaLogs versions: `Save & test` on the data source page fails with the reported
+VictoriaLogs version when it is older, and the query editor shows a warning with the features that do not work. The
+version is read from `/select/buildinfo`; a VictoriaLogs that does not report it (an older release, a build without a
+release tag, or a proxy that hides the endpoint) is treated as unsupported.
+
+The table is generated from `pkg/vlcompat/requirements.go` with `make readme-compat`. The pre-commit hook
+(installed by `yarn install` via husky) runs it when a commit touches the list, and the backend CI check fails when
+the table is stale.
+
+<!-- vlcompat:table:start -->
+| Feature | Needs | Plugin | VictoriaLogs |
+|---|---|---|---|
+| Compatibility check: Save & test on the data source page and the warning in the query editor | [the /select/buildinfo endpoint reporting the VictoriaLogs version](https://github.com/VictoriaMetrics/VictoriaLogs/pull/851) | v0.35.0 | v1.40.0 |
+<!-- vlcompat:table:end -->
 
 ## Installation
 

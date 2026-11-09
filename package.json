@@ -17,7 +17,8 @@
     "lint": "eslint --cache .",
     "lint:fix": "eslint --cache --fix .",
     "server": "docker compose up",
-    "sign": "[ -z $GRAFANA_ACCESS_POLICY_TOKEN ] && echo 'skip plugin signing' || sign-plugin"
+    "sign": "[ -z $GRAFANA_ACCESS_POLICY_TOKEN ] && echo 'skip plugin signing' || sign-plugin",
+    "postinstall": "husky"
   },
   "author": "VictoriaMetrics",
   "license": "Apache-2.0",
@@ -64,6 +65,7 @@
     "eslint-webpack-plugin": "^5.0.3",
     "fork-ts-checker-webpack-plugin": "^9.1.0",
     "glob": "^13.0.6",
+    "husky": "^9.1.7",
     "identity-obj-proxy": "3.0.0",
     "imports-loader": "^5.0.0",
     "jest": "30.4.2",

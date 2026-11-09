@@ -21,6 +21,7 @@ import { StreamFiltersBar } from './StreamFilters/StreamFiltersBar';
 import { StreamFiltersProvider } from './StreamFilters/StreamFiltersContext';
 import TemplateQueryEditor from './TemplateBuilder/TemplateQueryEditor';
 import { serializeQuery } from './TemplateBuilder/serialization';
+import { VictoriaLogsSupportAlert } from './VictoriaLogsSupportAlert';
 import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from './constants';
 import { useDefaultExploreGraph } from './hooks/useDefaultExploreGraph';
 import { useLogsSort } from './hooks/usePanelSort';
@@ -35,6 +36,8 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
   useDefaultExploreGraph(app, EXPLORE_GRAPH_STYLES.BARS);
 
   const query = getQueryWithDefaults(props.query, app, data?.request?.panelPluginId);
+  // one warning per editor, not one per query row
+  const isFirstQuery = !queries?.length || queries[0].refId === query.refId;
   const editorMode = query.editorMode!;
   const isStatsQuery = query.queryType === QueryType.Stats || query.queryType === QueryType.StatsRange;
   const showStatsWarn = useMemo(() => {
@@ -130,6 +133,7 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       />
       <StreamFiltersProvider query={query} onChange={onChange} onRunQuery={onRunQuery}>
         <div className={styles.wrapper}>
+          {isFirstQuery && <VictoriaLogsSupportAlert datasource={datasource} />}
           <EditorHeader
             editorMode={editorMode}
             onEditorModeChange={onEditorModeChange}

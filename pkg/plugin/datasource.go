@@ -63,6 +63,7 @@ func NewDatasource() *Datasource {
 	mux.HandleFunc("/select/logsql/stream_field_values", ds.VLAPIQuery)
 	mux.HandleFunc("/select/tenant_ids", ds.VLAPITenantIDs)
 	mux.HandleFunc("/vmui", ds.VMUIQuery)
+	mux.HandleFunc("/victorialogs/support", ds.VictoriaLogsSupportHandler)
 	ds.CallResourceHandler = httpadapter.New(mux)
 	return &ds
 }
@@ -890,10 +891,23 @@ func checkHealthWithInstance(ctx context.Context, di *DatasourceInstance) (*back
 		}
 		return newHealthCheckErrorf("got response code %d: %s", resp.StatusCode, string(body)), nil
 	}
-	return &backend.CheckHealthResult{
-		Status:  backend.HealthStatusOk,
-		Message: "Data source is working",
-	}, nil
+	support := checkVictoriaLogsSupport(ctx, di)
+	switch {
+	case support.Supported:
+		return &backend.CheckHealthResult{
+			Status:  backend.HealthStatusOk,
+			Message: "Data source is working. VictoriaLogs " + support.Version,
+		}, nil
+	case support.VersionKnown:
+		return newHealthCheckErrorf("%s. This plugin version requires VictoriaLogs %s or newer", support.Reason, support.MinVersion), nil
+	default:
+		// the test query passed, so the data source works: a version hidden by a proxy or
+		// an untagged build is reported as a warning rather than a failure
+		return &backend.CheckHealthResult{
+			Status:  backend.HealthStatusOk,
+			Message: fmt.Sprintf("Data source is working, but the %s. This plugin version requires VictoriaLogs %s or newer: the features relying on it may not work", support.Reason, support.MinVersion),
+		}, nil
+	}
 }
 
 func parseMultitenancyHeaders(settings backend.DataSourceInstanceSettings) (MultitenancyHeaders, error) {

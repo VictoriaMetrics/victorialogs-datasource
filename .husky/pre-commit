@@ -1,0 +1,7 @@
+# README.md and src/README.md carry a table and a sentence generated from
+# pkg/vlcompat/requirements.go; regenerate them when a commit changes the source.
+if git diff --cached --quiet -- pkg/vlcompat cmd/readme-compat; then
+  exit 0
+fi
+make readme-compat
+git add README.md src/README.md
