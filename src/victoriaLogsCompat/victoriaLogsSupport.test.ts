@@ -9,16 +9,18 @@ const unknown: VictoriaLogsSupport = {
   reason: 'VictoriaLogs version is unknown: request error',
 };
 
-const datasource = (uid: string, getResource: jest.Mock) => ({ uid, getResource });
+const datasource = (getResource: jest.Mock) => ({ getResource });
 
 describe('VictoriaLogsSupportCache', () => {
-  it('asks the backend resource once per datasource uid', async () => {
+  it('asks the backend resource once per datasource instance', async () => {
     const cache = new VictoriaLogsSupportCache();
     const getResource = jest.fn().mockResolvedValue(supported);
+    const a = datasource(getResource);
 
-    await expect(cache.get(datasource('a', getResource))).resolves.toEqual(supported);
-    await expect(cache.get(datasource('a', getResource))).resolves.toEqual(supported);
-    await cache.get(datasource('b', getResource));
+    await expect(cache.get(a)).resolves.toEqual(supported);
+    await expect(cache.get(a)).resolves.toEqual(supported);
+    // the instance Grafana creates after the data source is saved with other settings is asked anew
+    await cache.get(datasource(getResource));
 
     expect(getResource).toHaveBeenCalledTimes(2);
     expect(getResource).toHaveBeenCalledWith('victorialogs/support');
@@ -27,25 +29,27 @@ describe('VictoriaLogsSupportCache', () => {
   it('reports a failed call as an unknown, unsupported version and asks again next time', async () => {
     const cache = new VictoriaLogsSupportCache();
     const getResource = jest.fn().mockRejectedValueOnce(new Error('plugin unavailable')).mockResolvedValueOnce(supported);
+    const a = datasource(getResource);
 
-    await expect(cache.get(datasource('a', getResource))).resolves.toEqual({
+    await expect(cache.get(a)).resolves.toEqual({
       version: '',
       versionKnown: false,
       minVersion: '',
       supported: false,
       reason: 'plugin unavailable',
     });
-    await expect(cache.get(datasource('a', getResource))).resolves.toEqual(supported);
+    await expect(cache.get(a)).resolves.toEqual(supported);
     expect(getResource).toHaveBeenCalledTimes(2);
   });
 
   it('asks again after an answer with an unknown version, since VictoriaLogs may be back', async () => {
     const cache = new VictoriaLogsSupportCache();
     const getResource = jest.fn().mockResolvedValueOnce(unknown).mockResolvedValueOnce(supported);
+    const a = datasource(getResource);
 
-    await expect(cache.get(datasource('a', getResource))).resolves.toEqual(unknown);
-    await expect(cache.get(datasource('a', getResource))).resolves.toEqual(supported);
-    await expect(cache.get(datasource('a', getResource))).resolves.toEqual(supported);
+    await expect(cache.get(a)).resolves.toEqual(unknown);
+    await expect(cache.get(a)).resolves.toEqual(supported);
+    await expect(cache.get(a)).resolves.toEqual(supported);
     expect(getResource).toHaveBeenCalledTimes(2);
   });
 });

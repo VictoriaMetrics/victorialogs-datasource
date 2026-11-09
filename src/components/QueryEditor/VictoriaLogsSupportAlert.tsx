@@ -15,7 +15,7 @@ interface Props {
 /** Warning that the VictoriaLogs behind the datasource is older than this plugin version needs; rendered only then */
 export const VictoriaLogsSupportAlert = ({ datasource, cache = victoriaLogsSupportCache }: Props) => {
   const styles = useStyles2(getStyles);
-  const { value: support } = useAsync(() => cache.get(datasource), [cache, datasource.uid]);
+  const { value: support } = useAsync(() => cache.get(datasource), [cache, datasource]);
 
   if (!support || support.supported) {
     return null;
@@ -32,7 +32,10 @@ export const VictoriaLogsSupportAlert = ({ datasource, cache = victoriaLogsSuppo
     );
   }
 
-  const title = `VictoriaLogs ${support.version || 'of an unknown version'} is not supported by this plugin version`;
+  // a version the backend could not read says nothing about the VictoriaLogs behind it
+  const title = support.versionKnown
+    ? `VictoriaLogs ${support.version} is not supported by this plugin version`
+    : 'The VictoriaLogs version is unknown';
   const unmet = support.unmet ?? [];
   return (
     <div className={styles.row}>

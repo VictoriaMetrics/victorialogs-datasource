@@ -43,8 +43,9 @@ The plugin relies on VictoriaLogs APIs that appeared in specific releases. The t
 the API it needs, the plugin release that added it and the oldest VictoriaLogs release that provides the API. The plugin
 requires the newest of these VictoriaLogs versions: `Save & test` on the data source page fails with the reported
 VictoriaLogs version when it is older, and the query editor shows a warning with the features that do not work. The
-version is read from `/select/buildinfo`; a VictoriaLogs that does not report it (an older release, a build without a
-release tag, or a proxy that hides the endpoint) is treated as unsupported.
+version is read from `/select/buildinfo`. When VictoriaLogs does not report it (an older release, a build without a
+release tag, or a proxy that hides the endpoint), `Save & test` passes with a warning and the query editor warns that
+the features may not work.
 
 The table is generated from `pkg/vlcompat/requirements.go` with `make readme-compat`. The pre-commit hook
 (installed by `yarn install` via husky) runs it when a commit touches the list, and the backend CI check fails when

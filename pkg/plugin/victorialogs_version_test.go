@@ -79,7 +79,7 @@ func TestCheckVictoriaLogsSupport(t *testing.T) {
 		srv := buildinfoServer(t, status, body, &headers, &query)
 		defer srv.Close()
 		d := NewDatasource()
-		di, err := d.getInstance(ctx, pluginContextFor(srv.URL))
+		di, err := d.getInstance(ctx, pluginContextFor(srv.URL+"/?tenant=7"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -87,8 +87,8 @@ func TestCheckVictoriaLogsSupport(t *testing.T) {
 		if got.Version != want.Version || got.VersionKnown != want.VersionKnown || got.Supported != want.Supported || got.MinVersion != required {
 			t.Fatalf("checkVictoriaLogsSupport() = %+v, want %+v", got, want)
 		}
-		if query.Get("token") != "secret" {
-			t.Fatalf("custom query parameters are not forwarded: %v", query)
+		if query.Get("token") != "secret" || query.Get("tenant") != "7" {
+			t.Fatalf("the URL query and the custom query parameters are not forwarded: %v", query)
 		}
 		if !strings.Contains(got.Reason, wantReason) {
 			t.Fatalf("reason %q does not contain %q", got.Reason, wantReason)

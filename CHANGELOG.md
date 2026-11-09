@@ -2,7 +2,7 @@
 
 ## tip
 
-* FEATURE: check the VictoriaLogs version on `Save & test` and in the query editor. The test fails and the editor shows a warning with the features that do not work when VictoriaLogs is older than the plugin requires or does not report its version via `/select/buildinfo` (added in VictoriaLogs `v1.40.0`). The requirements are listed in the [VictoriaLogs compatibility](https://github.com/VictoriaMetrics/victorialogs-datasource/tree/main#victorialogs-compatibility) section of the README.
+* FEATURE: check the VictoriaLogs version on `Save & test` and in the query editor. The test fails and the editor shows a warning with the features that do not work when VictoriaLogs is older than the plugin requires. When VictoriaLogs does not report its version via `/select/buildinfo` (added in VictoriaLogs `v1.40.0`), the test passes with a warning and the editor lists the features that may not work. The requirements are listed in the [VictoriaLogs compatibility](https://github.com/VictoriaMetrics/victorialogs-datasource/tree/main#victorialogs-compatibility) section of the README.
 
 ## v0.34.0
 

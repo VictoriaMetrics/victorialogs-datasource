@@ -31,7 +31,6 @@ export const VICTORIA_LOGS_SUPPORT_RESOURCE = 'victorialogs/support';
 
 /** What the cache needs of a datasource instance */
 export interface VictoriaLogsSupportSource {
-  uid: string;
   getResource<T>(path: string): Promise<T>;
 }
 
@@ -48,16 +47,16 @@ export const describeError = (error: unknown): string => {
 };
 
 /**
- * The support answers of the backend, requested once per datasource uid: Explore creates
- * two instances of one datasource, so the cache is keyed by uid rather than kept per instance.
+ * The support answers of the backend, requested once per datasource instance: Grafana creates a new
+ * instance when the data source is saved with other settings, so an answer never outlives them.
  * Only an answer with a known VictoriaLogs version is kept: a failed call or a version the backend
  * could not obtain (VictoriaLogs down, URL being edited) is asked again by the next editor
  */
 export class VictoriaLogsSupportCache {
-  private readonly answers = new Map<string, Promise<VictoriaLogsSupport>>();
+  private readonly answers = new WeakMap<VictoriaLogsSupportSource, Promise<VictoriaLogsSupport>>();
 
   get(datasource: VictoriaLogsSupportSource): Promise<VictoriaLogsSupport> {
-    const cached = this.answers.get(datasource.uid);
+    const cached = this.answers.get(datasource);
     if (cached) {
       return cached;
     }
@@ -65,15 +64,15 @@ export class VictoriaLogsSupportCache {
       .getResource<VictoriaLogsSupport>(VICTORIA_LOGS_SUPPORT_RESOURCE)
       .then((support) => {
         if (!support.versionKnown) {
-          this.answers.delete(datasource.uid);
+          this.answers.delete(datasource);
         }
         return support;
       })
       .catch((error: unknown): VictoriaLogsSupport => {
-        this.answers.delete(datasource.uid);
+        this.answers.delete(datasource);
         return { version: '', versionKnown: false, minVersion: '', supported: false, reason: describeError(error) };
       });
-    this.answers.set(datasource.uid, answer);
+    this.answers.set(datasource, answer);
     return answer;
   }
 }

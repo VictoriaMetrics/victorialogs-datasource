@@ -73,12 +73,18 @@ func fetchVictoriaLogsVersion(ctx context.Context, di *DatasourceInstance) (stri
 		return "", fmt.Errorf("failed to parse datasource URL: %w", err)
 	}
 	u.Path = path.Join(u.Path, buildinfoPath)
-	// the custom query parameters of the datasource may carry what a proxy authorizes by
+	// the query of the datasource URL and its custom query parameters may carry what a proxy authorizes by
 	params, err := url.ParseQuery(di.grafanaSettings.QueryParams)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse query params: %w", err)
 	}
-	u.RawQuery = params.Encode()
+	values := u.Query()
+	for k, vl := range params {
+		for _, v := range vl {
+			values.Add(k, v)
+		}
+	}
+	u.RawQuery = values.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {

@@ -15,19 +15,27 @@ func TestParseVersion(t *testing.T) {
 	}
 	f("v1.53.0", Version{1, 53, 0}, false)
 	f("1.53.0", Version{1, 53, 0}, false)
+	// VictoriaLogs tags no pre-releases: a suffix names a build flavor of the release
 	f("v1.54.1-enterprise", Version{1, 54, 1}, false)
 	f("v1.54.1-cluster", Version{1, 54, 1}, false)
+	f("v1.54.1-enterprise-cluster", Version{1, 54, 1}, false)
 	// untagged builds report the full build string, which names no release
 	f("victoria-logs-20261105-095010-heads-master-0-gabcdef", Version{}, true)
 	f("", Version{}, true)
 }
 
 func TestVersionBefore(t *testing.T) {
+	parse := func(s string) Version {
+		t.Helper()
+		v, err := ParseVersion(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}
 	f := func(a, b string, want bool) {
 		t.Helper()
-		va, _ := ParseVersion(a)
-		vb, _ := ParseVersion(b)
-		if got := va.Before(vb); got != want {
+		if got := parse(a).Before(parse(b)); got != want {
 			t.Fatalf("%s before %s = %v, want %v", a, b, got, want)
 		}
 	}

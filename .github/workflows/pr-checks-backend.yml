@@ -9,6 +9,8 @@ on:
       - 'vendor/**'
       - 'pkg/**'
       - 'cmd/**'
+      - 'README.md'
+      - 'src/README.md'
       - '**/Makefile'
       - '**/Magefile.go'
   pull_request:
@@ -20,6 +22,8 @@ on:
       - 'vendor/**'
       - 'pkg/**'
       - 'cmd/**'
+      - 'README.md'
+      - 'src/README.md'
       - '**/Makefile'
       - '**/Magefile.go'
 

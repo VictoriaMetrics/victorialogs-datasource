@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import React from 'react';
 
 import { VictoriaLogsRequirement, VictoriaLogsSupport, VictoriaLogsSupportCache } from '../../victoriaLogsCompat/victoriaLogsSupport';
@@ -15,14 +15,18 @@ const sortDirection: VictoriaLogsRequirement = {
 
 const renderAlert = (support: VictoriaLogsSupport) => {
   const cache = new VictoriaLogsSupportCache();
-  const datasource = { uid: 'ds', getResource: jest.fn().mockResolvedValue(support) };
+  const datasource = { getResource: jest.fn().mockResolvedValue(support) };
   return { datasource, ...render(<VictoriaLogsSupportAlert datasource={datasource} cache={cache} />) };
 };
 
 describe('VictoriaLogsSupportAlert', () => {
   it('renders nothing for a supported VictoriaLogs', async () => {
     const { container, datasource } = renderAlert({ version: 'v1.54.0', versionKnown: true, minVersion: 'v1.54.0', supported: true });
-    await waitFor(() => expect(datasource.getResource).toHaveBeenCalled());
+    // let the answer settle and render before asserting that nothing is shown
+    await act(async () => {
+      await datasource.getResource.mock.results[0].value;
+    });
+    expect(datasource.getResource).toHaveBeenCalledTimes(1);
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -54,7 +58,8 @@ describe('VictoriaLogsSupportAlert', () => {
       unmet: [sortDirection],
     });
     const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('VictoriaLogs of an unknown version is not supported by this plugin version');
+    expect(alert).toHaveTextContent('The VictoriaLogs version is unknown');
+    expect(alert).toHaveTextContent('requires VictoriaLogs v1.54.0 or newer');
     expect(alert).toHaveTextContent('got response code 404');
     expect(alert).toHaveTextContent('What may not work with it:');
     expect(alert).toHaveTextContent('The order of raw logs needs');

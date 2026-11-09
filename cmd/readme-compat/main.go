@@ -30,8 +30,16 @@ func main() {
 	}
 }
 
-// run rewrites every section under root and reports the files it changed
+// update is a document whose section changed, ready to be written
+type update struct {
+	path    string
+	content []byte
+}
+
+// run rewrites every section under root and reports the files it changed; nothing is written
+// until every section has been rewritten, so a failing one leaves all the files as they were
 func run(root string, sections []section) error {
+	var updates []update
 	for _, s := range sections {
 		path := filepath.Join(root, s.path)
 		content, err := s.content()
@@ -49,10 +57,13 @@ func run(root string, sections []section) error {
 		if updated == string(doc) {
 			continue
 		}
-		if err := os.WriteFile(path, []byte(updated), 0o644); err != nil {
+		updates = append(updates, update{path: path, content: []byte(updated)})
+	}
+	for _, u := range updates {
+		if err := os.WriteFile(u.path, u.content, 0o644); err != nil {
 			return err
 		}
-		fmt.Println("updated", s.path)
+		fmt.Println("updated", u.path)
 	}
 	return nil
 }
