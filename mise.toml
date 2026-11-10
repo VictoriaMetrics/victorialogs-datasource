@@ -1,3 +1,6 @@
 [tools]
 go = "1.27.2"
-node = "24.22.1"
+
+[settings]
+# The Node version is read from .nvmrc, the single place it is declared.
+idiomatic_version_file_enable_tools = ["node"]

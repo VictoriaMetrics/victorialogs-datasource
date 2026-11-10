@@ -1,8 +1,8 @@
 name: Daily plugin validator
 
-# The OSV database and the Grafana plugin validator both change without any
-# commit in this repository, so once a day this workflow re-checks the
-# dependencies on main and proposes a validator upgrade when Grafana ships one.
+# The OSV database changes without any commit in this repository, so once a
+# day this workflow re-checks the dependencies on main. Upgrades of the
+# validator itself are proposed by Renovate, see .github/renovate.json5.
 on:
   schedule:
     - cron: '0 6 * * *'
@@ -10,11 +10,6 @@ on:
 
 permissions:
   contents: read
-
-# A scheduled run and a manual one must not race for the upgrade branch.
-concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: false
 
 jobs:
   vuln-check:
@@ -36,47 +31,3 @@ jobs:
       - name: Check dependencies for vulnerabilities
         run: make vl-plugin-vuln-check
 
-  validator-update:
-    name: Propose plugin validator upgrade
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      # The upgrade branch is pushed with the bot token: a push made with
-      # GITHUB_TOKEN would not trigger the PR checks on an already open PR.
-      - name: Code checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
-        with:
-          token: ${{ secrets.VM_BOT_GH_TOKEN }}
-          persist-credentials: true
-
-      # Most days bring no release; the signing key is only needed to commit.
-      - name: Check for a newer validator release
-        id: update
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          make plugincheck2-update
-          if git diff --quiet Makefile; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Import GPG key
-        if: steps.update.outputs.changed == 'true'
-        uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec  # v6.3.0
-        with:
-          gpg_private_key: ${{ secrets.VM_BOT_GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.VM_BOT_PASSPHRASE }}
-          git_user_signingkey: true
-          git_commit_gpgsign: true
-
-      # The bot token is used so that the PR checks run: events created
-      # with GITHUB_TOKEN never trigger workflows.
-      - name: Propose the upgrade
-        if: steps.update.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.VM_BOT_GH_TOKEN }}
-        run: scripts/plugincheck2-propose-upgrade.sh
