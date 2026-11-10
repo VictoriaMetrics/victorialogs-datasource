@@ -18,6 +18,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 		TimezoneOffset string
 		Fields         []string
 		FieldsLimit    int
+		SortDirection  string
 		rawURL         string
 		queryParams    string
 		want           string
@@ -38,6 +39,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 			TimezoneOffset: opts.TimezoneOffset,
 			Fields:         opts.Fields,
 			FieldsLimit:    opts.FieldsLimit,
+			SortDirection:  opts.SortDirection,
 		}
 		got, err := q.getQueryURL(opts.rawURL, opts.queryParams)
 		if (err != nil) != opts.wantErr {
@@ -125,6 +127,22 @@ func TestQuery_getQueryURL(t *testing.T) {
 		QueryType: QueryTypeInstant,
 		rawURL:    "http://127.0.0.1:9428",
 		want:      "http://127.0.0.1:9428/select/logsql/query?end=1609462800000000000&limit=10&query=_time%3A1s&start=1609459200000000000",
+	}
+	f(o)
+
+	// has sort direction: passed next to the limit it applies to
+	o = opts{
+		RefID:         "1",
+		Expr:          "_time:1s",
+		MaxLines:      10,
+		SortDirection: "asc",
+		TimeRange: backend.TimeRange{
+			From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		QueryType: QueryTypeInstant,
+		rawURL:    "http://127.0.0.1:9428",
+		want:      "http://127.0.0.1:9428/select/logsql/query?end=1609462800000000000&limit=10&query=_time%3A1s&sort_direction=asc&start=1609459200000000000",
 	}
 	f(o)
 

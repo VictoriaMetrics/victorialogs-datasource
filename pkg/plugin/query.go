@@ -62,8 +62,11 @@ type Query struct {
 	// FirstByteTimeoutMs is the budget for VictoriaLogs to start answering; the frontend sets
 	// it on the requests it can replace with the bar-by-bar logs volume. Zero means no budget.
 	FirstByteTimeoutMs int64 `json:"firstByteTimeoutMs"`
-	url                *url.URL
-	ForAlerting        bool `json:"-"`
+	// SortDirection is the `sort_direction` of a logs query with a limit: "asc" for the oldest
+	// matching logs, "desc" for the most recent ones. Empty leaves it to VictoriaLogs.
+	SortDirection string `json:"sortDirection"`
+	url           *url.URL
+	ForAlerting   bool `json:"-"`
 }
 
 // GetQueryURL calculates step and clear expression from template variables,
@@ -169,6 +172,9 @@ func (q *Query) queryInstantURL(queryParams url.Values) string {
 	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, q.TimeRange)
 	values.Set("query", q.Expr)
 	values.Set("limit", strconv.Itoa(q.MaxLines))
+	if q.SortDirection != "" {
+		values.Set("sort_direction", q.SortDirection)
+	}
 	values.Set("start", strconv.FormatInt(q.TimeRange.From.UnixNano(), 10))
 	values.Set("end", strconv.FormatInt(q.TimeRange.To.UnixNano(), 10))
 

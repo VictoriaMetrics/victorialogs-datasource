@@ -92,7 +92,10 @@ export interface Query extends DataQuery {
   streamFilters?: StreamFilterState[];
   /** serialized stream filters for extra_stream_filters query param (set during applyTemplateVariables) */
   extraStreamFilters?: string;
+  /** Sort order picked with the sort button of a dashboard logs panel, saved with the panel */
   direction?: QueryDirection;
+  /** The `sort_direction` arg of this request: preset by a query builder or resolved by prepareRequest per app */
+  sortDirection?: QueryDirection;
   supportingQueryType?: SupportingQueryType;
   queryType?: QueryType;
   /** for /select/logsql/query */

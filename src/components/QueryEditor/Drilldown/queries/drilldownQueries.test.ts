@@ -111,9 +111,8 @@ describe('buildPatternVolumeQuery', () => {
 describe('buildPatternLogsQuery', () => {
   it('filters by the collapsed pattern via pattern_match_full', () => {
     const result = buildPatternLogsQuery(baseQuery, 'demo message <N> level=info', 2);
-    expect(result.expr).toBe(
-      'error | filter pattern_match_full("demo message <N> level=info") | sort by (_time) desc'
-    );
+    expect(result.expr).toBe('error | filter pattern_match_full("demo message <N> level=info")');
+    expect(result.sortDirection).toBe('desc');
     expect(result.queryType).toBe(QueryType.Instant);
     expect(result.maxLines).toBe(50);
     expect(result.refId).toBe('drilldown-pattern-logs-2');
@@ -161,7 +160,8 @@ describe('buildFieldPresenceVolumeQuery', () => {
 describe('buildFieldPresenceLogsQuery', () => {
   it('builds an instant sample query for the logs carrying the field', () => {
     const result = buildFieldPresenceLogsQuery(baseQuery, 'namespace', 3);
-    expect(result.expr).toBe('error AND namespace:* | sort by (_time) desc');
+    expect(result.expr).toBe('error AND namespace:*');
+    expect(result.sortDirection).toBe('desc');
     expect(result.queryType).toBe(QueryType.Instant);
     expect(result.maxLines).toBe(50);
     expect(result.hide).toBe(false);
@@ -173,7 +173,8 @@ describe('buildValueLogsQuery', () => {
   it('builds an instant query narrowed to the field value with a sample limit', () => {
     const result = buildValueLogsQuery({ refId: 'A', expr: '*' }, 'level', 'error', 3);
     expect(result.queryType).toBe(QueryType.Instant);
-    expect(result.expr).toBe(`${addLabelToQuery('*', { key: 'level', value: 'error', operator: '=' })} | sort by (_time) desc`);
+    expect(result.expr).toBe(addLabelToQuery('*', { key: 'level', value: 'error', operator: '=' }));
+    expect(result.sortDirection).toBe('desc');
     expect(result.maxLines).toBe(50);
     expect(result.hide).toBe(false);
     expect(result.refId).toBe('drilldown-logs-3');
@@ -181,7 +182,7 @@ describe('buildValueLogsQuery', () => {
 
   it('escapes quotes and backslashes in the value exactly once', () => {
     const result = buildValueLogsQuery({ refId: 'A', expr: '*' }, 'app', 'say "hi" C:\\tmp', 0);
-    expect(result.expr).toBe('* AND app:="say \\"hi\\" C:\\\\tmp" | sort by (_time) desc');
+    expect(result.expr).toBe('* AND app:="say \\"hi\\" C:\\\\tmp"');
   });
 });
 

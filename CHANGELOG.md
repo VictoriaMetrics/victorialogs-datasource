@@ -2,6 +2,8 @@
 
 ## tip
 
+* BREAKING: require VictoriaLogs `v1.54.0` or newer. Raw logs queries now pass their sort order with the `sort_direction` query arg instead of appending a `sort by (_time)` pipe, so VictoriaLogs applies its top-N optimization in both directions. An older VictoriaLogs ignores the arg: the `Oldest first` order in Explore, the `Direction` option in dashboards and the log context return the newest logs instead. See [#513](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/513).
+
 * FEATURE: check the VictoriaLogs version on `Save & test` and in the query editor. The test fails and the editor shows a warning with the features that do not work when VictoriaLogs is older than the plugin requires. When VictoriaLogs does not report its version via `/select/buildinfo` (added in VictoriaLogs `v1.40.0`), the test passes with a warning and the editor lists the features that may not work. The requirements are listed in the [VictoriaLogs compatibility](https://github.com/VictoriaMetrics/victorialogs-datasource/tree/main#victorialogs-compatibility) section of the README.
 
 ## v0.34.0

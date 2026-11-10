@@ -38,8 +38,8 @@ describe('useValueLogsSample', () => {
     const request = (datasource.query as jest.Mock).mock.calls[0][0];
     expect(request.targets[0].maxLines).toBe(50);
     expect(request.targets[0].expr).toContain('app:=');
-    // the backend applies `limit` without ordering, so the sample must ask for the latest logs
-    expect(request.targets[0].expr).toMatch(/\| sort by \(_time\) desc$/);
+    // the limit keeps the first logs of the sort direction, so the sample asks for the latest ones
+    expect(request.targets[0].sortDirection).toBe('desc');
   });
 
   it('reports in-band response errors', async () => {

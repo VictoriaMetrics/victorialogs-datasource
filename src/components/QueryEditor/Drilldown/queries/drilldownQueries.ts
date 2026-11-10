@@ -170,10 +170,10 @@ export function buildFieldPresenceVolumeQuery(
 export function buildFieldPresenceLogsQuery(query: Query, field: string, refIdSuffix: number): Query {
   return {
     ...query,
-    // addSortPipeToQuery in datasource.query() skips drilldown requests, so the sort belongs
-    // here. Without it the backend applies `limit` to unordered rows and returns arbitrary ones
-    expr: `${addFieldPresenceToExpr(query.expr, field)} | sort by (_time) desc`,
+    expr: addFieldPresenceToExpr(query.expr, field),
     queryType: QueryType.Instant,
+    // datasource.query() keeps a preset direction, so the newest logs are requested whatever the app
+    sortDirection: 'desc',
     maxLines: VALUE_LOGS_SAMPLE_LIMIT,
     hide: false,
     refId: `drilldown-field-logs-${refIdSuffix}`,
@@ -225,8 +225,9 @@ export function buildPatternLogsQuery(query: Query, pattern: string, refIdSuffix
   return {
     ...query,
     // a filter pipe rather than a plain filter, because query.expr may already contain pipes
-    expr: `${query.expr} | filter pattern_match_full("${escapedPattern}") | sort by (_time) desc`,
+    expr: `${query.expr} | filter pattern_match_full("${escapedPattern}")`,
     queryType: QueryType.Instant,
+    sortDirection: 'desc',
     maxLines: VALUE_LOGS_SAMPLE_LIMIT,
     hide: false,
     refId: `drilldown-pattern-logs-${refIdSuffix}`,
@@ -237,10 +238,9 @@ export function buildPatternLogsQuery(query: Query, pattern: string, refIdSuffix
 export function buildRawLogsQuery(query: Query): Query {
   return {
     ...query,
-    // addSortPipeToQuery in datasource.query() skips drilldown requests, so the sort belongs
-    // here. Without it the backend applies `limit` to unordered rows and returns arbitrary ones
-    expr: `${query.expr} | sort by (_time) desc`,
+    expr: query.expr,
     queryType: QueryType.Instant,
+    sortDirection: 'desc',
     maxLines: LOGS_TAB_SAMPLE_LIMIT,
     hide: false,
     refId: 'drilldown-raw-logs',
@@ -250,10 +250,9 @@ export function buildRawLogsQuery(query: Query): Query {
 export function buildValueLogsQuery(query: Query, field: string, value: string, refIdSuffix: number): Query {
   return {
     ...query,
-    // addSortPipeToQuery in datasource.query() skips drilldown requests, so the sort belongs
-    // here. Without it the backend applies `limit` to unordered rows and returns arbitrary ones
-    expr: `${addLabelToQuery(query.expr, { key: field, value, operator: '=' })} | sort by (_time) desc`,
+    expr: addLabelToQuery(query.expr, { key: field, value, operator: '=' }),
     queryType: QueryType.Instant,
+    sortDirection: 'desc',
     maxLines: VALUE_LOGS_SAMPLE_LIMIT,
     hide: false,
     refId: `drilldown-logs-${refIdSuffix}`,

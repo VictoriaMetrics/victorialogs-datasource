@@ -16,7 +16,7 @@ import {
 import type { VictoriaLogsDatasource } from '../datasource';
 import { escapeLabelValueInExactSelector, escapeLabelValueInSelector } from '../languageUtils';
 import { FrameField } from '../transformers/types';
-import { Query } from '../types';
+import { Query, QueryType } from '../types';
 import { getFrameStreamsField } from '../utils/dataFrame/streamFields';
 import { formatNanosEpochToISO } from '../utils/time/nanosEpoch';
 
@@ -135,16 +135,17 @@ export class LogContextProvider {
     return formatNanosEpochToISO(row.timeEpochNs ?? `${row.timeEpochMs}000000`);
   };
 
-  private prepareLogContextQueryExpr = (
-    row: LogRowModel,
-    direction: LogRowContextQueryDirection,
-    limit: number,
-  ): string => {
+  /** The context query: the rows of the stream on one side of the anchor, the closest `limit` of them first */
+  private buildLogContextQuery = (row: LogRowModel, direction: LogRowContextQueryDirection, limit: number): Query => {
     const forward = direction === LogRowContextQueryDirection.Forward;
     const timeFilter = `_time:${forward ? '>' : '<='}${this.getAnchorTimestamp(row)}`;
-    const sortDir = forward ? 'asc' : 'desc';
-    const filterExpr = [this.buildContextFilterExpr(row), timeFilter].filter(Boolean).join(' ');
-    return `${filterExpr} | sort by (_time) ${sortDir} limit ${limit}`;
+    return {
+      expr: [this.buildContextFilterExpr(row), timeFilter].filter(Boolean).join(' '),
+      refId: `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${direction}`,
+      queryType: QueryType.Instant,
+      sortDirection: forward ? 'asc' : 'desc',
+      maxLines: limit,
+    };
   };
 
   getLogRowContext = async (
@@ -160,11 +161,7 @@ export class LogContextProvider {
     options?: LogRowContextOptions
   ): Promise<Query | null> => {
     const direction = options?.direction || LogRowContextQueryDirection.Backward;
-    const limit = options?.limit ?? LOG_CONTEXT_DEFAULT_LIMIT;
-    return {
-      expr: this.prepareLogContextQueryExpr(row, direction, limit),
-      refId: `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${direction}`,
-    };
+    return this.buildLogContextQuery(row, direction, options?.limit ?? LOG_CONTEXT_DEFAULT_LIMIT);
   };
 
   getLogRowContextUi = (row: LogRowModel, runContextQuery?: () => void): ReactNode => {
@@ -173,12 +170,7 @@ export class LogContextProvider {
 
   private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions): DataQueryRequest<Query> => {
     const direction = options?.direction || LogRowContextQueryDirection.Backward;
-    const limit = options?.limit ?? LOG_CONTEXT_DEFAULT_LIMIT;
-
-    const query: Query = {
-      expr: this.prepareLogContextQueryExpr(row, direction, limit),
-      refId: `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${direction}`
-    };
+    const query = this.buildLogContextQuery(row, direction, options?.limit ?? LOG_CONTEXT_DEFAULT_LIMIT);
 
     const range = this.createContextTimeRange(row.timeEpochMs, direction);
 

@@ -52,7 +52,7 @@ import { getRequestVolumeBucketing } from './logsVolume/volumeBucketing';
 import { LOGS_VOLUME_DEFAULT_GROUP_BY, LOGS_VOLUME_GROUPS_LIMIT, queryLogsVolume } from './logsVolumeLegacy';
 import {
   addLabelToQuery,
-  addSortPipeToQuery,
+  getSortDirection,
   getQueryFormat,
   insertPipesBeforeSortClassPipe,
   removeAggregationPipes,
@@ -177,7 +177,7 @@ export class VictoriaLogsDatasource
   }
 
   /**
-   * Resolves the targets of the request for the backend in place: the sort pipe, the line
+   * Resolves the targets of the request for the backend in place: the sort direction, the line
    * limit, the timezone offset of the range start, the format and the step. Done once per
    * request, so a derived request (a volume bar) keeps the parameters of its parent
    */
@@ -188,8 +188,9 @@ export class VictoriaLogsDatasource
       .map(({ templateBuilder, ...q }) => {
         return {
           ...q,
-          // to backend sort for limited data to show first logs in the selected time range if the user clicks on the sort button
-          expr: addSortPipeToQuery(q, request.app, request.liveStreaming),
+          // a direction set by the query builder (drilldown, log context) wins; otherwise the limit keeps the first
+          // logs of the selected direction, so the sort button of the logs panel changes which logs are requested
+          sortDirection: q.sortDirection ?? getSortDirection(q, request.app, request.liveStreaming),
           maxLines: Math.min(q.maxLines ?? this.maxLines, LOGS_LIMIT_HARD_CAP),
           // a volume target already carries its bucket grid shift
           timezoneOffset: q.timezoneOffset ?? timezoneOffset,
