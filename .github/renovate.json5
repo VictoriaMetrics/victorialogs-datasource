@@ -1,0 +1,147 @@
+// Renovate keeps the dependencies of this repository up to date.
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+    // Keeps the GitHub Actions pinned to a commit SHA with the version comment.
+    'helpers:pinGitHubActionDigests',
+  ],
+  timezone: 'UTC',
+  // The whole Monday (UTC): the Mend-hosted app runs a repository only once a
+  // day until a Renovate PR is merged, so a shorter window can be missed.
+  schedule: ['* * * * 1'],
+  // A release must be at least three days old before it is proposed.
+  minimumReleaseAge: '3 days',
+  // The Monday batch has to fit into its schedule window, so the hourly limit
+  // of config:recommended is lifted.
+  prHourlyLimit: 0,
+  prConcurrentLimit: 10,
+  dependencyDashboard: true,
+  automerge: false,
+  // Security updates follow the same schedule and release age as everything else.
+  vulnerabilityAlerts: { enabled: false },
+  osvVulnerabilityAlerts: false,
+  semanticCommits: 'disabled',
+  commitMessagePrefix: 'Automatic chore(deps):',
+  commitMessageAction: 'bump',
+  labels: ['dependencies'],
+  // maintainer of plugin repo
+  reviewers: ['arturminchukov'],
+  // Refreshes the transitive dependencies in yarn.lock once a week; Yarn applies
+  // its own npmMinimalAgeGate from .yarnrc.yml while resolving.
+  lockFileMaintenance: {
+    enabled: true,
+    // The whole Monday (UTC), same as the global schedule.
+    schedule: ['* * * * 1'],
+  },
+  postUpdateOptions: ['gomodTidy'],
+  // The Node image in the Dockerfile is handled by the custom manager below,
+  // the Docker images in compose.yaml are a dev environment only.
+  dockerfile: { enabled: false },
+  'docker-compose': { enabled: false },
+  customManagers: [
+    {
+      // Tool versions in the Makefile, annotated with a "# renovate:" comment
+      // on the line above, e.g.
+      //   # renovate: datasource=github-releases depName=magefile/mage
+      //   MAGE_VERSION = v1.15.0
+      customType: 'regex',
+      managerFilePatterns: ['/^Makefile$/'],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: extractVersion=(?<extractVersion>\\S+))?\\n[A-Z0-9_]+_VERSION = (?<currentValue>\\S+)',
+      ],
+    },
+    {
+      // The Node version of the Docker base image follows .nvmrc; the Alpine
+      // suffix is left alone.
+      customType: 'regex',
+      managerFilePatterns: ['/^Dockerfile$/'],
+      matchStrings: ['FROM node:(?<currentValue>\\d+\\.\\d+\\.\\d+)-alpine'],
+      depNameTemplate: 'node',
+      datasourceTemplate: 'node-version',
+      versioningTemplate: 'node',
+    },
+  ],
+  packageRules: [
+    // --- npm ---------------------------------------------------------------
+    {
+      // Exact versions in package.json: every update of a direct dependency is
+      // an explicit diff. All npm updates (minor, patch, major, pin) travel in
+      // one pull request; see the quarantine rule at the end for exceptions.
+      // By default Renovate still splits a group into a major and a non-major
+      // branch, so the split is turned off explicitly.
+      matchManagers: ['npm'],
+      rangeStrategy: 'pin',
+      groupName: 'npm',
+      separateMajorMinor: false,
+    },
+    {
+      // Renovate runs `yarn set version`, which also replaces the vendored
+      // binary in .yarn/releases and yarnPath in .yarnrc.yml.
+      matchManagers: ['npm'],
+      matchDepTypes: ['packageManager'],
+      groupName: 'yarn',
+    },
+    {
+      // engines.node is a floor, not a pin.
+      matchManagers: ['npm'],
+      matchDepTypes: ['engines'],
+      enabled: false,
+    },
+    // --- Node --------------------------------------------------------------
+    {
+      // .nvmrc and the Dockerfile base image in one pull request. The "node"
+      // versioning only proposes LTS major lines.
+      matchDatasources: ['node-version'],
+      groupName: 'node',
+    },
+    // --- Go ----------------------------------------------------------------
+    {
+      // Renovate does not bump the go directive unless told to.
+      matchManagers: ['gomod'],
+      matchDepNames: ['go'],
+      matchDepTypes: ['golang'],
+      rangeStrategy: 'bump',
+    },
+    {
+      // The go directive in go.mod and the go tool in mise.toml. The mise
+      // manager resolves go through github-tags (golang/go), not the
+      // golang-version datasource, so the match is by name and manager.
+      matchManagers: ['gomod', 'mise'],
+      matchDepNames: ['go'],
+      groupName: 'go',
+    },
+    {
+      // All modules in go.mod, majors and the plugin SDK included.
+      matchManagers: ['gomod'],
+      matchDepTypes: ['require'],
+      groupName: 'go modules',
+    },
+    // --- CI tooling --------------------------------------------------------
+    {
+      matchManagers: ['github-actions'],
+      groupName: 'ci',
+    },
+    {
+      matchDepNames: ['magefile/mage', 'golangci/golangci-lint'],
+      groupName: 'ci',
+    },
+    {
+      // The Grafana plugin validator is checked on every Renovate run, as the
+      // catalog validates each release with its latest version.
+      matchDepNames: ['grafana/plugin-validator'],
+      groupName: 'plugincheck2',
+      commitMessageTopic: 'Grafana plugin validator',
+      // Overrides the Monday-only schedule above.
+      schedule: ['at any time'],
+    },
+    // --- Quarantine --------------------------------------------------------
+    {
+      // Updates that currently break CI: each one gets its own pull request so
+      // the grouped ones stay mergeable. Remove a name once it is migrated.
+      // Last on purpose: it overrides the groupName of every rule above.
+      matchPackageNames: ['typescript'],
+      groupName: null,
+    },
+  ],
+}

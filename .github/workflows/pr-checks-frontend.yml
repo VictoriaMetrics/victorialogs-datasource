@@ -4,23 +4,25 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/workflow/pr-checks-frontend.yml'
+      - '.github/workflows/pr-checks-frontend.yml'
       - '**/*.ts'
       - '**/*.tsx'
       - '**/yarn.lock'
       - '**/package.json'
       - '**/Makefile'
       - '**/Dockerfile'
+      - '.nvmrc'
   pull_request:
     branches: [main]
     paths:
-      - '.github/workflow/pr-checks-frontend.yml'
+      - '.github/workflows/pr-checks-frontend.yml'
       - '**/*.ts'
       - '**/*.tsx'
       - '**/yarn.lock'
       - '**/package.json'
       - '**/Makefile'
       - '**/Dockerfile'
+      - '.nvmrc'
 
 jobs:
   run-check:
@@ -35,7 +37,7 @@ jobs:
       - name: Set up node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with:
-          node-version: 24.22.1
+          node-version-file: .nvmrc
 
       - name: Install all dependencies
         run: yarn install
