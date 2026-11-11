@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -94,7 +95,7 @@ func fetchVictoriaLogsVersion(ctx context.Context, di *DatasourceInstance) (stri
 
 	resp, err := di.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("request error: %w", err)
+		return "", fmt.Errorf("request error: %w", withoutRequestURL(err))
 	}
 	defer func() {
 		_ = resp.Body.Close()
@@ -120,6 +121,16 @@ func fetchVictoriaLogsVersion(ctx context.Context, di *DatasourceInstance) (stri
 		return "", fmt.Errorf("%s reports no version", buildinfoPath)
 	}
 	return buildinfo.Data.Version, nil
+}
+
+// withoutRequestURL drops the request URL the HTTP client puts into its errors: the query of the URL
+// may carry credentials, and the error is shown in the query editor
+func withoutRequestURL(err error) error {
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		return urlErr.Err
+	}
+	return err
 }
 
 // VictoriaLogsSupportHandler answers the resource call of the query editor with the support of the datasource

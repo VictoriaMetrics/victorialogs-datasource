@@ -111,6 +111,32 @@ func TestCheckVictoriaLogsSupport(t *testing.T) {
 	f(http.StatusOK, `{"status":"success","data":{"version":"victoria-logs-20261105-heads-master"}}`, VictoriaLogsSupport{Version: "victoria-logs-20261105-heads-master", Supported: false}, "unknown", all)
 }
 
+func TestCheckVictoriaLogsSupportHidesRequestURL(t *testing.T) {
+	ctx := context.Background()
+	srv := buildinfoServer(t, http.StatusOK, ``, nil, nil)
+	addr := srv.URL
+	// nothing listens on the address anymore: the request fails to connect
+	srv.Close()
+	d := NewDatasource()
+	di, err := d.getInstance(ctx, pluginContextFor(addr+"/?tenant=7"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := checkVictoriaLogsSupport(ctx, di)
+	if got.Supported || got.VersionKnown {
+		t.Fatalf("checkVictoriaLogsSupport() = %+v, want an unknown version", got)
+	}
+	if !strings.Contains(got.Reason, "request error") {
+		t.Fatalf("reason %q does not tell about the failed request", got.Reason)
+	}
+	// the query of the URL may carry credentials, and the reason is shown in the query editor
+	for _, secret := range []string{"token", "secret", "tenant", buildinfoPath} {
+		if strings.Contains(got.Reason, secret) {
+			t.Fatalf("reason %q exposes the request URL: it contains %q", got.Reason, secret)
+		}
+	}
+}
+
 func TestCheckHealthReportsVictoriaLogsSupport(t *testing.T) {
 	ctx := context.Background()
 	f := func(body string, wantStatus backend.HealthStatus, wantMessage string) {
