@@ -143,7 +143,7 @@ export class LogContextProvider {
       expr: [this.buildContextFilterExpr(row), timeFilter].filter(Boolean).join(' '),
       refId: `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${direction}`,
       queryType: QueryType.Instant,
-      sortDirection: forward ? 'asc' : 'desc',
+      direction: forward ? 'asc' : 'desc',
       maxLines: limit,
     };
   };

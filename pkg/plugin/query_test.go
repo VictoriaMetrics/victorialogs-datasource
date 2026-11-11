@@ -18,7 +18,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 		TimezoneOffset string
 		Fields         []string
 		FieldsLimit    int
-		SortDirection  string
+		Direction      string
 		rawURL         string
 		queryParams    string
 		want           string
@@ -39,7 +39,7 @@ func TestQuery_getQueryURL(t *testing.T) {
 			TimezoneOffset: opts.TimezoneOffset,
 			Fields:         opts.Fields,
 			FieldsLimit:    opts.FieldsLimit,
-			SortDirection:  opts.SortDirection,
+			Direction:      opts.Direction,
 		}
 		got, err := q.getQueryURL(opts.rawURL, opts.queryParams)
 		if (err != nil) != opts.wantErr {
@@ -132,10 +132,10 @@ func TestQuery_getQueryURL(t *testing.T) {
 
 	// has sort direction: passed next to the limit it applies to
 	o = opts{
-		RefID:         "1",
-		Expr:          "_time:1s",
-		MaxLines:      10,
-		SortDirection: "asc",
+		RefID:     "1",
+		Expr:      "_time:1s",
+		MaxLines:  10,
+		Direction: "asc",
 		TimeRange: backend.TimeRange{
 			From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 			To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),

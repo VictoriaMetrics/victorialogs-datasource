@@ -45,7 +45,7 @@ describe('LogContextProvider', () => {
   it('builds context query by _stream_id when all stream labels are enabled', async () => {
     const query = await provider.getLogRowContextQuery(buildLogRow());
     expect(query?.expr).toBe('_stream_id:"stream-id-1" _time:<=2023-11-14T22:13:20.000123456Z');
-    expect(query?.sortDirection).toBe('desc');
+    expect(query?.direction).toBe('desc');
   });
 
   it('sends the direction and limit of the context request to the backend', async () => {
@@ -62,7 +62,7 @@ describe('LogContextProvider', () => {
     expect(request.targets[0]).toMatchObject({
       expr: '_stream_id:"stream-id-1" _time:>2023-11-14T22:13:20.000123456Z',
       queryType: QueryType.Instant,
-      sortDirection: 'asc',
+      direction: 'asc',
       maxLines: 42,
     });
     runQuerySpy.mockRestore();
@@ -73,7 +73,7 @@ describe('LogContextProvider', () => {
       direction: LogRowContextQueryDirection.Forward,
     });
     expect(query?.expr).toBe('_stream_id:"stream-id-1" _time:>2023-11-14T22:13:20.000123456Z');
-    expect(query?.sortDirection).toBe('asc');
+    expect(query?.direction).toBe('asc');
   });
 
   it('builds a _stream selector from enabled labels when some are toggled off', async () => {

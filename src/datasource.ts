@@ -188,9 +188,10 @@ export class VictoriaLogsDatasource
       .map(({ templateBuilder, ...q }) => {
         return {
           ...q,
-          // a direction set by the query builder (drilldown, log context) wins; otherwise the limit keeps the first
-          // logs of the selected direction, so the sort button of the logs panel changes which logs are requested
-          sortDirection: q.sortDirection ?? getSortDirection(q, request.app, request.liveStreaming, request.requestId),
+          // the limit keeps the first logs of the direction, so the sort button of the logs panel changes which
+          // logs are requested. Always overwritten: a direction saved with a dashboard panel must not leak into
+          // Explore or into the requests of other apps
+          direction: getSortDirection(q, request.app, request.liveStreaming, request.requestId),
           maxLines: Math.min(q.maxLines ?? this.maxLines, LOGS_LIMIT_HARD_CAP),
           // a volume target already carries its bucket grid shift
           timezoneOffset: q.timezoneOffset ?? timezoneOffset,

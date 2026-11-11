@@ -66,7 +66,10 @@ export function buildLookupQuery(
   return applyPatternFilters(base, patternFilters);
 }
 
-/** Builds a DataQueryRequest for the drilldown queries, which run outside the panel query flow */
+/**
+ * Builds a DataQueryRequest for the drilldown queries, which run outside the panel query flow.
+ * Under the unknown app no sort direction is sent, so a logs sample gets the newest logs, the VictoriaLogs default.
+ */
 export function buildDrilldownRequest(
   targets: Query[],
   range: TimeRange,
@@ -172,8 +175,6 @@ export function buildFieldPresenceLogsQuery(query: Query, field: string, refIdSu
     ...query,
     expr: addFieldPresenceToExpr(query.expr, field),
     queryType: QueryType.Instant,
-    // datasource.query() keeps a preset direction, so the newest logs are requested whatever the app
-    sortDirection: 'desc',
     maxLines: VALUE_LOGS_SAMPLE_LIMIT,
     hide: false,
     refId: `drilldown-field-logs-${refIdSuffix}`,
@@ -227,7 +228,6 @@ export function buildPatternLogsQuery(query: Query, pattern: string, refIdSuffix
     // a filter pipe rather than a plain filter, because query.expr may already contain pipes
     expr: `${query.expr} | filter pattern_match_full("${escapedPattern}")`,
     queryType: QueryType.Instant,
-    sortDirection: 'desc',
     maxLines: VALUE_LOGS_SAMPLE_LIMIT,
     hide: false,
     refId: `drilldown-pattern-logs-${refIdSuffix}`,
@@ -240,7 +240,6 @@ export function buildRawLogsQuery(query: Query): Query {
     ...query,
     expr: query.expr,
     queryType: QueryType.Instant,
-    sortDirection: 'desc',
     maxLines: LOGS_TAB_SAMPLE_LIMIT,
     hide: false,
     refId: 'drilldown-raw-logs',
@@ -252,7 +251,6 @@ export function buildValueLogsQuery(query: Query, field: string, value: string, 
     ...query,
     expr: addLabelToQuery(query.expr, { key: field, value, operator: '=' }),
     queryType: QueryType.Instant,
-    sortDirection: 'desc',
     maxLines: VALUE_LOGS_SAMPLE_LIMIT,
     hide: false,
     refId: `drilldown-logs-${refIdSuffix}`,

@@ -967,15 +967,16 @@ describe('VictoriaLogsDatasource', () => {
         req.targets[0].direction = 'asc';
         localDs.query(req);
 
-        expect(req.targets[0].sortDirection).toBe('asc');
+        expect(req.targets[0].direction).toBe('asc');
         expect(req.targets[0].expr).toBe('error');
         runQuerySpy.mockRestore();
       });
 
+      // a direction saved with a dashboard panel travels with the query into Explore and drilldown
       it.each([
-        ['a drilldown request', CoreApp.Unknown, 'desc'],
-        ['an Explore request', CoreApp.Explore, 'asc'],
-      ])('keeps the sort direction preset by the query builder of %s', (_name, app, sortDirection) => {
+        ['drops it for a drilldown request', CoreApp.Unknown, undefined],
+        ['replaces it with the Explore sort order', CoreApp.Explore, 'desc'],
+      ])('does not let the saved direction leak: %s', (_name, app, expected) => {
         const localDs = createDatasource(templateSrvStub, { jsonData: { maxLines: '500' } });
         const runQuerySpy = jest
           .spyOn(localDs, 'runQuery')
@@ -984,10 +985,10 @@ describe('VictoriaLogsDatasource', () => {
         const req = buildRequest(800);
         req.app = app;
         req.targets[0].queryType = QueryType.Instant;
-        req.targets[0].sortDirection = sortDirection as Query['sortDirection'];
+        req.targets[0].direction = 'asc';
         localDs.query(req);
 
-        expect(req.targets[0].sortDirection).toBe(sortDirection);
+        expect(req.targets[0].direction).toBe(expected);
         runQuerySpy.mockRestore();
       });
 
@@ -1792,7 +1793,7 @@ describe('getDataProvider', () => {
       queryType: QueryType.Instant,
       supportingQueryType: SupportingQueryType.LogsSample,
       expr: 'app:x',
-      sortDirection: 'desc',
+      direction: 'desc',
     });
   });
 
