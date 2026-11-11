@@ -133,6 +133,8 @@ export const getSortDirection = (
   switch (app) {
     case CoreApp.Dashboard:
     case CoreApp.PanelEditor:
+    // the View mode of a panel in the dashboards of Grafana before the scenes
+    case CoreApp.PanelViewer:
       return direction ?? 'desc';
     case CoreApp.Explore:
       return getExploreSortOrder(requestId) === LogsSortOrder.Ascending ? 'asc' : 'desc';

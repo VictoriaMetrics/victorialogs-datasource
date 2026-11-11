@@ -138,15 +138,14 @@ describe('modifyQuery', () => {
       locationService.push('/');
     });
 
-    describe('Dashboard and PanelEditor contexts', () => {
-      it('takes the direction of the query', () => {
-        expect(getSortDirection(instant({ direction: 'asc' }), CoreApp.Dashboard)).toBe('asc');
-        expect(getSortDirection(instant({ direction: 'desc' }), CoreApp.Dashboard)).toBe('desc');
-        expect(getSortDirection(instant({ direction: 'asc' }), CoreApp.PanelEditor)).toBe('asc');
+    describe('Dashboard, PanelEditor and PanelViewer contexts', () => {
+      it.each([CoreApp.Dashboard, CoreApp.PanelEditor, CoreApp.PanelViewer])('takes the direction of the query in %s', (app) => {
+        expect(getSortDirection(instant({ direction: 'asc' }), app)).toBe('asc');
+        expect(getSortDirection(instant({ direction: 'desc' }), app)).toBe('desc');
       });
 
-      it('defaults to desc when the query has no direction', () => {
-        expect(getSortDirection(instant(), CoreApp.Dashboard)).toBe('desc');
+      it.each([CoreApp.Dashboard, CoreApp.PanelEditor, CoreApp.PanelViewer])('defaults to desc in %s when the query has no direction', (app) => {
+        expect(getSortDirection(instant(), app)).toBe('desc');
       });
     });
 
