@@ -1,6 +1,8 @@
 import { LogsSortOrder } from '@grafana/data';
 import { locationService } from '@grafana/runtime';
 
+import { stripMixedRequestIdPrefix } from '../utils/requestId';
+
 import { storeKeys } from './constants';
 import store from './store';
 
@@ -29,11 +31,13 @@ const getExplorePanesUrlState = (): ExplorePanesUrlState => {
  * Grafana keeps it there since 12.4; none for an older Grafana or a request made outside an Explore pane.
  */
 export const getExplorePaneSortOrder = (requestId?: string): LogsSortOrder | undefined => {
-  if (!requestId?.startsWith(EXPLORE_REQUEST_ID_PREFIX)) {
+  // a pane with the mixed datasource hands its request over with a prefixed id
+  const exploreRequestId = requestId ? stripMixedRequestIdPrefix(requestId) : undefined;
+  if (!exploreRequestId?.startsWith(EXPLORE_REQUEST_ID_PREFIX)) {
     return undefined;
   }
   // a request id is `explore_<paneId>` with an optional suffix of a derived request
-  const paneRequestId = requestId.slice(EXPLORE_REQUEST_ID_PREFIX.length);
+  const paneRequestId = exploreRequestId.slice(EXPLORE_REQUEST_ID_PREFIX.length);
   const panes = getExplorePanesUrlState();
   const paneId = Object.keys(panes).find((id) => paneRequestId === id || paneRequestId.startsWith(`${id}_`));
   const sortOrder = paneId ? panes[paneId]?.panelsState?.logs?.sortOrder : undefined;

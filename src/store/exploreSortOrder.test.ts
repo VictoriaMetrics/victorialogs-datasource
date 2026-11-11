@@ -30,6 +30,13 @@ describe('exploreSortOrder', () => {
       expect(getExplorePaneSortOrder('explore_abc_logs_volume')).toBe(LogsSortOrder.Ascending);
     });
 
+    it('finds the pane of a request made through the mixed datasource', () => {
+      openExplore({ abc: pane('Ascending'), xyz: pane('Descending') });
+
+      expect(getExplorePaneSortOrder('mixed-0-explore_abc')).toBe(LogsSortOrder.Ascending);
+      expect(getExplorePaneSortOrder('mixed-1-explore_xyz_logs_volume_0')).toBe(LogsSortOrder.Descending);
+    });
+
     it('finds a pane whose id contains an underscore', () => {
       openExplore({ a_c: pane('Ascending') });
 
