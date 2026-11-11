@@ -13,6 +13,7 @@ import {
   toUtc,
 } from '@grafana/data';
 
+import { TEXT_FILTER_ALL_VALUE } from '../constants';
 import type { VictoriaLogsDatasource } from '../datasource';
 import { escapeLabelValueInExactSelector, escapeLabelValueInSelector } from '../languageUtils';
 import { FrameField } from '../transformers/types';
@@ -135,13 +136,16 @@ export class LogContextProvider {
     return formatNanosEpochToISO(row.timeEpochNs ?? `${row.timeEpochMs}000000`);
   };
 
+  private buildContextQueryRefId = (row: LogRowModel, direction: LogRowContextQueryDirection): string =>
+    `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${direction}`;
+
   /** The context query: the rows of the stream on one side of the anchor, the closest `limit` of them first */
   private buildLogContextQuery = (row: LogRowModel, direction: LogRowContextQueryDirection, limit: number): Query => {
     const forward = direction === LogRowContextQueryDirection.Forward;
     const timeFilter = `_time:${forward ? '>' : '<='}${this.getAnchorTimestamp(row)}`;
     return {
       expr: [this.buildContextFilterExpr(row), timeFilter].filter(Boolean).join(' '),
-      refId: `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${direction}`,
+      refId: this.buildContextQueryRefId(row, direction),
       queryType: QueryType.Instant,
       direction: forward ? 'asc' : 'desc',
       maxLines: limit,
@@ -156,13 +160,20 @@ export class LogContextProvider {
     return lastValueFrom(this.datasource.runQuery(contextRequest));
   };
 
+  /**
+   * The query Grafana opens in Explore from the log context: the stream of the row, as the user narrowed it.
+   * Unlike a context request it has no anchor bound, limit or direction: Grafana picks the time range,
+   * and the pane applies its own sort order and limit, as to any other query.
+   */
   getLogRowContextQuery = async (
     row: LogRowModel,
     options?: LogRowContextOptions
   ): Promise<Query | null> => {
     const direction = options?.direction || LogRowContextQueryDirection.Backward;
     return {
-      ...this.buildLogContextQuery(row, direction, options?.limit ?? LOG_CONTEXT_DEFAULT_LIMIT),
+      expr: this.buildContextFilterExpr(row) || TEXT_FILTER_ALL_VALUE,
+      refId: this.buildContextQueryRefId(row, direction),
+      queryType: QueryType.Instant,
       // Grafana offers to open the context query in a split view only when it knows the data source of the query
       datasource: this.datasource.getRef(),
     };
