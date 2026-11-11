@@ -63,7 +63,7 @@ type Query struct {
 	// it on the requests it can replace with the bar-by-bar logs volume. Zero means no budget.
 	FirstByteTimeoutMs int64 `json:"firstByteTimeoutMs"`
 	// Direction is the sort order of a logs query with a limit: "asc" for the oldest matching
-	// logs, "desc" for the most recent ones. Empty leaves it to VictoriaLogs.
+	// logs, "desc" for the most recent ones. Anything else leaves it to VictoriaLogs.
 	Direction   string `json:"direction"`
 	url         *url.URL
 	ForAlerting bool `json:"-"`
@@ -147,6 +147,18 @@ func (q *Query) queryTailURL(rawURL string, queryParams string) (string, error) 
 }
 
 // queryInstantURL prepare query url for instant query
+// sortDirection returns the `sort_direction` arg for VictoriaLogs, which rejects anything but
+// "asc" and "desc". The direction comes from a saved dashboard or a provisioned query as is,
+// so an unknown value falls back to the VictoriaLogs default instead of failing the query.
+func (q *Query) sortDirection() string {
+	switch direction := strings.ToLower(strings.TrimSpace(q.Direction)); direction {
+	case "asc", "desc":
+		return direction
+	default:
+		return ""
+	}
+}
+
 func (q *Query) queryInstantURL(queryParams url.Values) string {
 	q.url.Path = path.Join(q.url.Path, instantQueryPath)
 	values := q.url.Query()
@@ -172,8 +184,8 @@ func (q *Query) queryInstantURL(queryParams url.Values) string {
 	q.Expr = utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, q.TimeRange)
 	values.Set("query", q.Expr)
 	values.Set("limit", strconv.Itoa(q.MaxLines))
-	if q.Direction != "" {
-		values.Set("sort_direction", q.Direction)
+	if sortDirection := q.sortDirection(); sortDirection != "" {
+		values.Set("sort_direction", sortDirection)
 	}
 	values.Set("start", strconv.FormatInt(q.TimeRange.From.UnixNano(), 10))
 	values.Set("end", strconv.FormatInt(q.TimeRange.To.UnixNano(), 10))

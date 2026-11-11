@@ -146,6 +146,38 @@ func TestQuery_getQueryURL(t *testing.T) {
 	}
 	f(o)
 
+	// has sort direction in another case: normalized, VictoriaLogs accepts only asc and desc
+	o = opts{
+		RefID:     "1",
+		Expr:      "_time:1s",
+		MaxLines:  10,
+		Direction: " DESC ",
+		TimeRange: backend.TimeRange{
+			From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		QueryType: QueryTypeInstant,
+		rawURL:    "http://127.0.0.1:9428",
+		want:      "http://127.0.0.1:9428/select/logsql/query?end=1609462800000000000&limit=10&query=_time%3A1s&sort_direction=desc&start=1609459200000000000",
+	}
+	f(o)
+
+	// has unknown sort direction: dropped, so VictoriaLogs applies its default instead of failing
+	o = opts{
+		RefID:     "1",
+		Expr:      "_time:1s",
+		MaxLines:  10,
+		Direction: "backward",
+		TimeRange: backend.TimeRange{
+			From: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		QueryType: QueryTypeInstant,
+		rawURL:    "http://127.0.0.1:9428",
+		want:      "http://127.0.0.1:9428/select/logsql/query?end=1609462800000000000&limit=10&query=_time%3A1s&start=1609459200000000000",
+	}
+	f(o)
+
 	// has expression and max lines stats
 	o = opts{
 		RefID:    "1",
