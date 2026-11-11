@@ -3,6 +3,7 @@ import { renderHook } from '@testing-library/react';
 import { CoreApp } from '@grafana/data';
 import { locationService } from '@grafana/runtime';
 
+import { storeKeys } from '../../../store/constants';
 import store from '../../../store/store';
 import { Query, QueryType } from '../../../types';
 
@@ -20,6 +21,7 @@ const openExplore = (orders: Record<string, string | undefined>) => {
 describe('useLogsSort in Explore', () => {
   afterEach(() => {
     jest.restoreAllMocks();
+    store.set(storeKeys.LOGS_SORT_ORDER, 'Descending');
     locationService.push('/');
   });
 
@@ -51,22 +53,20 @@ describe('useLogsSort in Explore', () => {
     const onRunQuery = jest.fn();
     renderHook(() => useLogsSort(CoreApp.Explore, query, jest.fn(), onRunQuery, 'explore_abc'));
 
-    store.set('grafana.explore.logs.sortOrder', 'Ascending');
+    store.set(storeKeys.LOGS_SORT_ORDER, 'Ascending');
 
     expect(onRunQuery).not.toHaveBeenCalled();
-    store.set('grafana.explore.logs.sortOrder', 'Descending');
   });
 
   it('follows the last picked order when the pane state has none', () => {
-    store.set('grafana.explore.logs.sortOrder', 'Descending');
+    store.set(storeKeys.LOGS_SORT_ORDER, 'Descending');
     openExplore({ abc: undefined });
     const onRunQuery = jest.fn();
     renderHook(() => useLogsSort(CoreApp.Explore, query, jest.fn(), onRunQuery, 'explore_abc'));
 
-    store.set('grafana.explore.logs.sortOrder', 'Ascending');
+    store.set(storeKeys.LOGS_SORT_ORDER, 'Ascending');
 
     expect(onRunQuery).toHaveBeenCalledTimes(1);
-    store.set('grafana.explore.logs.sortOrder', 'Descending');
   });
 
   // Grafana below 12: no pane state in the URL and no store subscription
