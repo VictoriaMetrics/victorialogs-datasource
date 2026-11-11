@@ -161,7 +161,11 @@ export class LogContextProvider {
     options?: LogRowContextOptions
   ): Promise<Query | null> => {
     const direction = options?.direction || LogRowContextQueryDirection.Backward;
-    return this.buildLogContextQuery(row, direction, options?.limit ?? LOG_CONTEXT_DEFAULT_LIMIT);
+    return {
+      ...this.buildLogContextQuery(row, direction, options?.limit ?? LOG_CONTEXT_DEFAULT_LIMIT),
+      // Grafana offers to open the context query in a split view only when it knows the data source of the query
+      datasource: this.datasource.getRef(),
+    };
   };
 
   getLogRowContextUi = (row: LogRowModel, runContextQuery?: () => void): ReactNode => {

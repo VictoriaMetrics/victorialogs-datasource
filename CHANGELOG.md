@@ -15,6 +15,7 @@
 * BUGFIX: show the `Logs sample` in Explore for `Range` and `Instant` stats queries. The sample was never requested, and its query kept the `stats` pipe, so it returned the aggregated rows instead of the log lines behind the chart. The sample now runs the query without its aggregation pipes (`stats`, `top`, `uniq`, `facets`...). See [#735](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/735). Thanks to @paullacoutiere-oss for contributing.
 * BUGFIX: keep the logs sort order of each pane independent in the Explore split view. Switching the order in one pane re-ran the queries of every pane with the last picked order; now only that pane is re-queried and each pane requests the logs for its own order. Requires Grafana `12.4` or newer, an older Grafana exposes only the last picked order.
 * BUGFIX: request the logs for the `Direction` of a dashboard logs panel in the `View` mode of the panel as well. In the dashboards of Grafana before the scenes the `View` mode always requested the newest logs, whatever the order of the panel.
+* BUGFIX: show the `Open in split view` button in the log context of Explore. The context query did not name its data source, so Grafana hid the button.
 
 ## v0.33.1
 

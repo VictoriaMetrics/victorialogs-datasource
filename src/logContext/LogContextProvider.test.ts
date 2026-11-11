@@ -48,6 +48,12 @@ describe('LogContextProvider', () => {
     expect(query?.direction).toBe('desc');
   });
 
+  it('carries the data source ref, so Grafana can open the context query in a split view', async () => {
+    const datasource = createDatasource(templateSrvStub);
+    const query = await datasource.logContextProvider.getLogRowContextQuery(buildLogRow());
+    expect(query?.datasource).toEqual(datasource.getRef());
+  });
+
   it('sends the direction and limit of the context request to the backend', async () => {
     const datasource = createDatasource(templateSrvStub);
     const runQuerySpy = jest.spyOn(datasource, 'runQuery').mockReturnValue(of({ data: [] }));
