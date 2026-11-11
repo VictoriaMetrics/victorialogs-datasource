@@ -3,8 +3,7 @@ import { AdHocVariableFilter, CoreApp, LogsSortOrder } from '@grafana/data';
 import { splitByPipes } from './LogsQL/splitByPipes';
 import { isExprHasStatsPipeFunc, statsPipeFunctions } from './LogsQL/statsPipeFunctions';
 import { escapeLabelValueInExactSelector } from './languageUtils';
-import { storeKeys } from './store/constants';
-import store from './store/store';
+import { getExploreSortOrder } from './store/exploreSortOrder';
 import { FilterVisualQuery, Format, Query, QueryDirection, QueryType } from './types';
 import {
   buildVisualQueryFromString,
@@ -118,14 +117,15 @@ const recursiveRemove = (filters: FilterVisualQuery, keyValue: string): boolean 
 };
 
 /**
- * The `sort_direction` of a Raw Logs request: the Explore logs sort order in Explore, the
- * direction option in dashboards. None for other apps, other query types and live streams.
+ * The `sort_direction` of a Raw Logs request: the logs sort order of the requesting pane in
+ * Explore, the direction option in dashboards. None for other apps, other query types and live streams.
  * VictoriaLogs ignores the arg itself when the query sorts, limits or aggregates its rows.
  */
 export const getSortDirection = (
   { queryType, direction }: Query,
   app: CoreApp | string,
-  isLiveStreaming = false
+  isLiveStreaming = false,
+  requestId?: string
 ): QueryDirection | undefined => {
   if (queryType !== QueryType.Instant || isLiveStreaming) {
     return undefined;
@@ -135,7 +135,7 @@ export const getSortDirection = (
     case CoreApp.PanelEditor:
       return direction ?? 'desc';
     case CoreApp.Explore:
-      return store.get(storeKeys.LOGS_SORT_ORDER) === LogsSortOrder.Ascending ? 'asc' : 'desc';
+      return getExploreSortOrder(requestId) === LogsSortOrder.Ascending ? 'asc' : 'desc';
     default:
       return undefined;
   }

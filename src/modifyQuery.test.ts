@@ -1,4 +1,5 @@
 import { CoreApp } from '@grafana/data';
+import { locationService } from '@grafana/runtime';
 
 import {
   addLabelToQuery,
@@ -132,6 +133,11 @@ describe('modifyQuery', () => {
     const instant = (overrides: Partial<Query> = {}): Query =>
       ({ expr: 'foo: bar', queryType: QueryType.Instant, ...overrides }) as Query;
 
+    afterEach(() => {
+      jest.restoreAllMocks();
+      locationService.push('/');
+    });
+
     describe('Dashboard and PanelEditor contexts', () => {
       it('takes the direction of the query', () => {
         expect(getSortDirection(instant({ direction: 'asc' }), CoreApp.Dashboard)).toBe('asc');
@@ -150,6 +156,18 @@ describe('modifyQuery', () => {
         expect(getSortDirection(instant({ direction: 'desc' }), CoreApp.Explore)).toBe('asc');
         jest.spyOn(store, 'get').mockReturnValue('Descending');
         expect(getSortDirection(instant(), CoreApp.Explore)).toBe('desc');
+      });
+
+      it('follows the sort order of the requesting pane in a split view', () => {
+        jest.spyOn(store, 'get').mockReturnValue('Ascending');
+        const panes = {
+          abc: { panelsState: { logs: { sortOrder: 'Descending' } } },
+          xyz: { panelsState: { logs: { sortOrder: 'Ascending' } } },
+        };
+        locationService.push(`/explore?panes=${encodeURIComponent(JSON.stringify(panes))}`);
+
+        expect(getSortDirection(instant(), CoreApp.Explore, false, 'explore_abc')).toBe('desc');
+        expect(getSortDirection(instant(), CoreApp.Explore, false, 'explore_xyz')).toBe('asc');
       });
     });
 
