@@ -146,7 +146,6 @@ func (q *Query) queryTailURL(rawURL string, queryParams string) (string, error) 
 	return q.url.String(), nil
 }
 
-// queryInstantURL prepare query url for instant query
 // sortDirection returns the `sort_direction` arg for VictoriaLogs, which rejects anything but
 // "asc" and "desc". The direction comes from a saved dashboard or a provisioned query as is,
 // so an unknown value falls back to the VictoriaLogs default instead of failing the query.
@@ -159,6 +158,7 @@ func (q *Query) sortDirection() string {
 	}
 }
 
+// queryInstantURL prepare query url for instant query
 func (q *Query) queryInstantURL(queryParams url.Values) string {
 	q.url.Path = path.Join(q.url.Path, instantQueryPath)
 	values := q.url.Query()
