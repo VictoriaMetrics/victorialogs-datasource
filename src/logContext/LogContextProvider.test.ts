@@ -246,12 +246,12 @@ describe('LogContextProvider', () => {
       expect(query?.expr).toBe('_stream:{app="nginx"}');
     });
 
-    it('selects all logs when the row has neither _stream_id nor stream labels', async () => {
+    it('returns no query when the row has neither _stream_id nor stream labels', async () => {
       const row = buildLogRow({ dataFrame: buildFrame([''], [null]) });
 
       const query = await provider.getLogRowContextQuery(row);
 
-      expect(query?.expr).toBe('*');
+      expect(query).toBeNull();
     });
   });
 });

@@ -13,7 +13,6 @@ import {
   toUtc,
 } from '@grafana/data';
 
-import { TEXT_FILTER_ALL_VALUE } from '../constants';
 import type { VictoriaLogsDatasource } from '../datasource';
 import { escapeLabelValueInExactSelector, escapeLabelValueInSelector } from '../languageUtils';
 import { FrameField } from '../transformers/types';
@@ -164,14 +163,18 @@ export class LogContextProvider {
    * The query Grafana opens in Explore from the log context: the stream of the row, as the user narrowed it.
    * Unlike a context request it has no anchor bound, limit or direction: Grafana picks the time range,
    * and the pane applies its own sort order and limit, as to any other query.
+   * None for a row without stream data: its query would select every log of the range.
    */
   getLogRowContextQuery = async (
     row: LogRowModel,
     options?: LogRowContextOptions
   ): Promise<Query | null> => {
+    if (!this.hasContextData(row)) {
+      return null;
+    }
     const direction = options?.direction || LogRowContextQueryDirection.Backward;
     return {
-      expr: this.buildContextFilterExpr(row) || TEXT_FILTER_ALL_VALUE,
+      expr: this.buildContextFilterExpr(row),
       refId: this.buildContextQueryRefId(row, direction),
       queryType: QueryType.Instant,
       // Grafana offers to open the context query in a split view only when it knows the data source of the query
