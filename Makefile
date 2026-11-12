@@ -122,7 +122,7 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
 # The lines below are updated by Renovate, see .github/renovate.json5.
 # renovate: datasource=github-releases depName=grafana/plugin-validator extractVersion=^plugin-validator/(?<version>v\d+\.\d+\.\d+)$
-PLUGINCHECK2_VERSION = v0.53.4
+PLUGINCHECK2_VERSION = v0.53.5
 # renovate: datasource=github-releases depName=magefile/mage
 MAGE_VERSION = v1.15.0
 # renovate: datasource=github-releases depName=golangci/golangci-lint
