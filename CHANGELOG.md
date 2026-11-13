@@ -6,6 +6,10 @@
 
 * FEATURE: check the VictoriaLogs version on `Save & test` and in the query editor. The test fails and the editor shows a warning with the features that do not work when VictoriaLogs is older than the plugin requires. When VictoriaLogs does not report its version via `/select/buildinfo` (added in VictoriaLogs `v1.40.0`), the test passes with a warning and the editor lists the features that may not work. The requirements are listed in the [VictoriaLogs compatibility](https://github.com/VictoriaMetrics/victorialogs-datasource/tree/main#victorialogs-compatibility) section of the README.
 
+* BUGFIX: keep a separate logs sort order for each pane of the Explore split view. Switching the order in one pane no longer reloads the other pane. Requires Grafana `12.4` or newer.
+* BUGFIX: respect the `Direction` option of a dashboard logs panel opened in the `View` mode. Older Grafana versions always loaded the newest logs there.
+* BUGFIX: show the `Open in split view` button in the log context of Explore. The context query did not name its data source, so Grafana hid the button.
+
 ## v0.34.0
 
 * FEATURE: expose every log field as its own column in annotation query results, so annotation field mappings can use a single field for `Title` or `Tags`, and a field with an epoch-milliseconds timestamp for `Time end` to draw range annotations. See [#568](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/568). Thanks to @Danielv123 for contributing.
@@ -13,9 +17,6 @@
 * BUGFIX: remove the `Manage alert rules in Alerting UI` switch from the data source settings. Grafana reads its `jsonData.manageAlerts` flag only for the data source-managed rules of Loki and Prometheus, so for VictoriaLogs the switch had no effect: Grafana-managed alert rules could still be created with it turned off. Restricting who can create alert rules is done with Grafana RBAC. See [#727](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/727).
 * BUGFIX: stop failing every alert rule evaluation when an `Instant` stats query matches no logs and VictoriaLogs returns an empty value (for example `stats max(ts)`). The alerting path now reports the empty value as a null sample, the same as dashboards do. See [#747](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/747). Thanks to @sarankumar1325 for contributing.
 * BUGFIX: show the `Logs sample` in Explore for `Range` and `Instant` stats queries. The sample was never requested, and its query kept the `stats` pipe, so it returned the aggregated rows instead of the log lines behind the chart. The sample now runs the query without its aggregation pipes (`stats`, `top`, `uniq`, `facets`...). See [#735](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/735). Thanks to @paullacoutiere-oss for contributing.
-* BUGFIX: keep the logs sort order of each pane independent in the Explore split view. Switching the order in one pane re-ran the queries of every pane with the last picked order; now only that pane is re-queried and each pane requests the logs for its own order. Requires Grafana `12.4` or newer, an older Grafana exposes only the last picked order.
-* BUGFIX: request the logs for the `Direction` of a dashboard logs panel in the `View` mode of the panel as well. In the dashboards of Grafana before the scenes the `View` mode always requested the newest logs, whatever the order of the panel.
-* BUGFIX: show the `Open in split view` button in the log context of Explore. The context query did not name its data source, so Grafana hid the button.
 
 ## v0.33.1
 
