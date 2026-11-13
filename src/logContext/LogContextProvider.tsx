@@ -16,7 +16,7 @@ import {
 import type { VictoriaLogsDatasource } from '../datasource';
 import { escapeLabelValueInExactSelector, escapeLabelValueInSelector } from '../languageUtils';
 import { FrameField } from '../transformers/types';
-import { Query } from '../types';
+import { Query, QueryType } from '../types';
 import { getFrameStreamsField } from '../utils/dataFrame/streamFields';
 import { formatNanosEpochToISO } from '../utils/time/nanosEpoch';
 
@@ -135,16 +135,20 @@ export class LogContextProvider {
     return formatNanosEpochToISO(row.timeEpochNs ?? `${row.timeEpochMs}000000`);
   };
 
-  private prepareLogContextQueryExpr = (
-    row: LogRowModel,
-    direction: LogRowContextQueryDirection,
-    limit: number,
-  ): string => {
+  private buildContextQueryRefId = (row: LogRowModel, direction: LogRowContextQueryDirection): string =>
+    `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${direction}`;
+
+  /** The context query: the rows of the stream on one side of the anchor, the closest `limit` of them first */
+  private buildLogContextQuery = (row: LogRowModel, direction: LogRowContextQueryDirection, limit: number): Query => {
     const forward = direction === LogRowContextQueryDirection.Forward;
     const timeFilter = `_time:${forward ? '>' : '<='}${this.getAnchorTimestamp(row)}`;
-    const sortDir = forward ? 'asc' : 'desc';
-    const filterExpr = [this.buildContextFilterExpr(row), timeFilter].filter(Boolean).join(' ');
-    return `${filterExpr} | sort by (_time) ${sortDir} limit ${limit}`;
+    return {
+      expr: [this.buildContextFilterExpr(row), timeFilter].filter(Boolean).join(' '),
+      refId: this.buildContextQueryRefId(row, direction),
+      queryType: QueryType.Instant,
+      direction: forward ? 'asc' : 'desc',
+      maxLines: limit,
+    };
   };
 
   getLogRowContext = async (
@@ -155,15 +159,26 @@ export class LogContextProvider {
     return lastValueFrom(this.datasource.runQuery(contextRequest));
   };
 
+  /**
+   * The query Grafana opens in Explore from the log context: the stream of the row, as the user narrowed it.
+   * Unlike a context request it has no anchor bound, limit or direction: Grafana picks the time range,
+   * and the pane applies its own sort order and limit, as to any other query.
+   * None for a row without stream data: its query would select every log of the range.
+   */
   getLogRowContextQuery = async (
     row: LogRowModel,
     options?: LogRowContextOptions
   ): Promise<Query | null> => {
+    if (!this.hasContextData(row)) {
+      return null;
+    }
     const direction = options?.direction || LogRowContextQueryDirection.Backward;
-    const limit = options?.limit ?? LOG_CONTEXT_DEFAULT_LIMIT;
     return {
-      expr: this.prepareLogContextQueryExpr(row, direction, limit),
-      refId: `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${direction}`,
+      expr: this.buildContextFilterExpr(row),
+      refId: this.buildContextQueryRefId(row, direction),
+      queryType: QueryType.Instant,
+      // Grafana offers to open the context query in a split view only when it knows the data source of the query
+      datasource: this.datasource.getRef(),
     };
   };
 
@@ -173,12 +188,7 @@ export class LogContextProvider {
 
   private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions): DataQueryRequest<Query> => {
     const direction = options?.direction || LogRowContextQueryDirection.Backward;
-    const limit = options?.limit ?? LOG_CONTEXT_DEFAULT_LIMIT;
-
-    const query: Query = {
-      expr: this.prepareLogContextQueryExpr(row, direction, limit),
-      refId: `${REF_ID_STARTER_LOG_CONTEXT_QUERY}${row.dataFrame.refId}-${direction}`
-    };
+    const query = this.buildLogContextQuery(row, direction, options?.limit ?? LOG_CONTEXT_DEFAULT_LIMIT);
 
     const range = this.createContextTimeRange(row.timeEpochMs, direction);
 

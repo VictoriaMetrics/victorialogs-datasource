@@ -1,6 +1,8 @@
 import { memoize } from 'lodash';
 import { BehaviorSubject, distinctUntilChanged, map, Observable, of, switchMap } from 'rxjs';
 
+import { stripMixedRequestIdPrefix } from '../utils/requestId';
+
 import { IncrementalHitsLoadingController, IncrementalHitsLoadingState } from './IncrementalHitsLoadingController';
 
 /** The running job of a pane as the status row sees it */
@@ -42,7 +44,7 @@ export class IncrementalHitsLoadingRuns {
 }
 
 /** The mixed datasource prefixes the request id of every sub-request; the pane is the request behind it */
-const paneKey = (requestId: string): string => requestId.replace(/^mixed-\d+-/, '');
+const paneKey = stripMixedRequestIdPrefix;
 
 /** The run registry shared by every instance of the datasource with the given uid */
 export const getIncrementalHitsLoadingRuns = memoize((_datasourceUid: string) => new IncrementalHitsLoadingRuns());
