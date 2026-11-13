@@ -8,6 +8,9 @@ on:
       - 'go.*'
       - 'vendor/**'
       - 'pkg/**'
+      - 'cmd/**'
+      - 'README.md'
+      - 'src/README.md'
       - '**/Makefile'
       - '**/Magefile.go'
   pull_request:
@@ -18,6 +21,9 @@ on:
       - 'go.*'
       - 'vendor/**'
       - 'pkg/**'
+      - 'cmd/**'
+      - 'README.md'
+      - 'src/README.md'
       - '**/Makefile'
       - '**/Magefile.go'
 
@@ -51,6 +57,7 @@ jobs:
       - name: Dependencies
         run: |
           make check-all
+          make readme-compat
           git diff --exit-code
       - name: Prapare binary cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0

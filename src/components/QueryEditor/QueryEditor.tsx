@@ -21,6 +21,7 @@ import { StreamFiltersBar } from './StreamFilters/StreamFiltersBar';
 import { StreamFiltersProvider } from './StreamFilters/StreamFiltersContext';
 import TemplateQueryEditor from './TemplateBuilder/TemplateQueryEditor';
 import { serializeQuery } from './TemplateBuilder/serialization';
+import { VictoriaLogsSupportAlert } from './VictoriaLogsSupportAlert';
 import { DEFAULT_QUERY_EXPR, EXPLORE_GRAPH_STYLES } from './constants';
 import { useDefaultExploreGraph } from './hooks/useDefaultExploreGraph';
 import { useLogsSort } from './hooks/usePanelSort';
@@ -130,6 +131,8 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
       />
       <StreamFiltersProvider query={query} onChange={onChange} onRunQuery={onRunQuery}>
         <div className={styles.wrapper}>
+          {/* every query row warns: in a mixed panel the rows belong to different data sources, and a collapsed row renders no editor */}
+          <VictoriaLogsSupportAlert datasource={datasource} />
           <EditorHeader
             editorMode={editorMode}
             onEditorModeChange={onEditorModeChange}

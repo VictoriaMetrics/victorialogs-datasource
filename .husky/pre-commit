@@ -1,0 +1,12 @@
+# README.md and src/README.md carry a table and a sentence generated from
+# pkg/vlcompat/requirements.go; regenerate them when a commit changes the source.
+if git diff --cached --quiet -- pkg/vlcompat cmd/readme-compat; then
+  exit 0
+fi
+# the generated files are staged whole, so unrelated unstaged edits in them would slip into the commit
+if ! git diff --quiet -- README.md src/README.md; then
+  echo "pre-commit: README.md or src/README.md has unstaged changes; stage or stash them before committing changes of the compatibility requirements" >&2
+  exit 1
+fi
+make readme-compat
+git add README.md src/README.md

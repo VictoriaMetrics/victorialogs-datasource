@@ -85,21 +85,26 @@ build-release:
 	git checkout $(TAG) && $(MAKE) vl-plugin-release
 
 golang-test:
-	go test ./pkg/...
+	go test ./pkg/... ./cmd/...
 
 golang-test-race:
-	go test -race ./pkg/...
+	go test -race ./pkg/... ./cmd/...
 
 lint: golangci-lint
-	$(GOLANGCI_LINT) run ./pkg/...
+	$(GOLANGCI_LINT) run ./pkg/... ./cmd/...
 
 fmt:
-	gofmt -l -w -s ./pkg
+	gofmt -l -w -s ./pkg ./cmd
 
 vet:
-	go vet ./pkg/...
+	go vet ./pkg/... ./cmd/...
 
 check-all: fmt vet golangci-lint
+
+# Rewrites the VictoriaLogs compatibility table of README.md and the required
+# version of src/README.md from pkg/vlcompat/requirements.go.
+readme-compat:
+	go run ./cmd/readme-compat
 
 vl-plugin-check: vl-plugin-release plugincheck2
 	rm -rf node_modules
