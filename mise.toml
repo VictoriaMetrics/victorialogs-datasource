@@ -1,5 +1,5 @@
 [tools]
-go = "1.27.2"
+go = "1.27.4"
 
 [settings]
 # The Node version is read from .nvmrc, the single place it is declared.
