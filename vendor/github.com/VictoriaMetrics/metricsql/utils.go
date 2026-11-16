@@ -27,6 +27,9 @@ func VisitAll(e Expr, f func(expr Expr)) {
 		VisitAll(expr.Right, f)
 		VisitAll(&expr.GroupModifier, f)
 		VisitAll(&expr.JoinModifier, f)
+		if expr.JoinModifierPrefix != nil {
+			VisitAll(expr.JoinModifierPrefix, f)
+		}
 	case *FuncExpr:
 		for _, arg := range expr.Args {
 			VisitAll(arg, f)
@@ -65,10 +68,18 @@ func VisitAll(e Expr, f func(expr Expr)) {
 //
 // These expressions are implicitly converted into another expressions, which returns unexpected results most of the time:
 //
-//	rate(default_rollup(sum(foo))[1i:1i])
-//	rate(default_rollup(abs(foo))[1i:1i])
-//	rate(default_rollup(foo + bar)[1i:1i])
-//	rate(default_rollup(foo > 10)[1i:1i])
+//	rate(sum(default_rollup(foo[1i:1i])))
+//	rate(abs(default_rollup(foo[1i:1i])))
+//	rate(default_rollup(foo[1i:1i]) + default_rollup(bar[1i:1i]))
+//	rate(default_rollup(foo[1i:1i]) > 10)
+//
+// A lookbehind window on something other than a series selector is invalid for the same reason,
+// since it is implicitly converted into a subquery with an `1i` step:
+//
+//	sum(foo)[5m]
+//	(foo + bar)[5m]
+//
+// Write such a subquery explicitly, as `sum(foo)[5m:]` or `sum(foo)[5m:1m]`.
 //
 // See https://docs.victoriametrics.com/victoriametrics/metricsql/#implicit-query-conversions
 //
@@ -79,10 +90,33 @@ func IsLikelyInvalid(e Expr) bool {
 		if hasImplicitConversion {
 			return
 		}
+		if re, ok := expr.(*RollupExpr); ok {
+			// Prometheus allows the lookbehind window only for series selectors, such as `foo[5m]`.
+			// It requires the explicit `q[d:]` or `q[d:step]` form for everything else,
+			// while MetricsQL accepts `q[d]` there and turns it into a subquery.
+			// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/6752
+			if re.Window != nil && !re.ForSubquery() {
+				if _, ok := re.Expr.(*MetricExpr); !ok {
+					hasImplicitConversion = true
+				}
+			}
+			return
+		}
 		fe, ok := expr.(*FuncExpr)
 		if !ok {
 			return
 		}
+		if fe.Name == `timestamp` {
+			// In Prometheus, timestamp is defined as a transform function on instant vectors,
+			// but its behavior is closer to a rollup since it returns raw sample timestamps.
+			// VictoriaMetrics explicitly defines timestamp as a rollup function.
+			// To remain consistent with Prometheus, IsLikelyInvalid does not treat timestamp
+			// as an implicit conversion even when applied to non-metric expressions, like timestamp(sum(foo)).
+			//
+			// See more in https://github.com/VictoriaMetrics/VictoriaMetrics/issues/9527#issuecomment-3191439447
+			return
+		}
+
 		idx := GetRollupArgIdx(fe)
 		if idx < 0 || idx >= len(fe.Args) {
 			return
@@ -130,7 +164,8 @@ func checkSupportedFunctions(e Expr) error {
 		if !ok {
 			return
 		}
-		if !IsRollupFunc(fe.Name) && !IsTransformFunc(fe.Name) {
+
+		if !IsSupportedFunction(fe.Name) {
 			err = fmt.Errorf("unsupported function %q", fe.Name)
 		}
 	})
