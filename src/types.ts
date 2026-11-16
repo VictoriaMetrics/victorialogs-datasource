@@ -92,6 +92,10 @@ export interface Query extends DataQuery {
   streamFilters?: StreamFilterState[];
   /** serialized stream filters for extra_stream_filters query param (set during applyTemplateVariables) */
   extraStreamFilters?: string;
+  /**
+   * Sort order of a Raw Logs query, sent as the `sort_direction` arg. Saved with a dashboard panel by its sort
+   * button; prepareRequest resolves it per app on the targets of a request, where Explore takes the order of the pane
+   */
   direction?: QueryDirection;
   supportingQueryType?: SupportingQueryType;
   queryType?: QueryType;

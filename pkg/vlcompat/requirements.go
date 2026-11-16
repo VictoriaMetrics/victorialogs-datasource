@@ -31,6 +31,13 @@ var Requirements = []Requirement{
 		PluginVersion: "v0.35.0",
 		MinVersion:    "v1.40.0",
 	},
+	{
+		Feature:       "Order of raw logs: the Explore sort order, the Direction option in dashboards and the log context",
+		Needs:         "the sort_direction query arg of /select/logsql/query",
+		Link:          "https://github.com/VictoriaMetrics/VictoriaLogs/pull/1355",
+		PluginVersion: "v0.35.0",
+		MinVersion:    "v1.54.0",
+	},
 }
 
 // MinVersion is the oldest VictoriaLogs release that meets every requirement

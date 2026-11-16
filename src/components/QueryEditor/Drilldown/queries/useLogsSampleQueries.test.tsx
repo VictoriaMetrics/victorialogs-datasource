@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { of, Subject } from 'rxjs';
 
-import { dateTime, LoadingState, TimeRange, toDataFrame } from '@grafana/data';
+import { CoreApp, dateTime, LoadingState, TimeRange, toDataFrame } from '@grafana/data';
 
 import { VictoriaLogsDatasource } from '../../../../datasource';
 import { Query } from '../../../../types';
@@ -38,8 +38,8 @@ describe('useValueLogsSample', () => {
     const request = (datasource.query as jest.Mock).mock.calls[0][0];
     expect(request.targets[0].maxLines).toBe(50);
     expect(request.targets[0].expr).toContain('app:=');
-    // the backend applies `limit` without ordering, so the sample must ask for the latest logs
-    expect(request.targets[0].expr).toMatch(/\| sort by \(_time\) desc$/);
+    // under the unknown app no direction is sent, so VictoriaLogs returns the latest logs
+    expect(request.app).toBe(CoreApp.Unknown);
   });
 
   it('reports in-band response errors', async () => {

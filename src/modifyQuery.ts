@@ -3,8 +3,7 @@ import { AdHocVariableFilter, CoreApp, LogsSortOrder } from '@grafana/data';
 import { splitByPipes } from './LogsQL/splitByPipes';
 import { isExprHasStatsPipeFunc, statsPipeFunctions } from './LogsQL/statsPipeFunctions';
 import { escapeLabelValueInExactSelector } from './languageUtils';
-import { storeKeys } from './store/constants';
-import store from './store/store';
+import { getExploreSortOrder } from './store/exploreSortOrder';
 import { FilterVisualQuery, Format, Query, QueryDirection, QueryType } from './types';
 import {
   buildVisualQueryFromString,
@@ -117,36 +116,31 @@ const recursiveRemove = (filters: FilterVisualQuery, keyValue: string): boolean 
   return removed;
 };
 
-export const logsSortOrders = {
-  asc: 'Ascending',
-  desc: 'Descending'
-};
-
-export const addSortPipeToQuery = ({ expr, queryType, direction }: Query, app: CoreApp | string, isLiveStreaming = false) => {
-  let sortDirection: QueryDirection | undefined;
+/**
+ * The `sort_direction` of a Raw Logs request: the logs sort order of the requesting pane in
+ * Explore, the direction option in dashboards. None for other apps, other query types and live streams.
+ * VictoriaLogs ignores the arg itself when the query sorts, limits or aggregates its rows.
+ */
+export const getSortDirection = (
+  { queryType, direction }: Query,
+  app: CoreApp | string,
+  isLiveStreaming = false,
+  requestId?: string
+): QueryDirection | undefined => {
+  if (queryType !== QueryType.Instant || isLiveStreaming) {
+    return undefined;
+  }
   switch (app) {
     case CoreApp.Dashboard:
     case CoreApp.PanelEditor:
-      sortDirection = direction ?? 'desc';
-      break;
+    // the View mode of a panel in the dashboards of Grafana before the scenes
+    case CoreApp.PanelViewer:
+      return direction ?? 'desc';
     case CoreApp.Explore:
-      sortDirection = store.get(storeKeys.LOGS_SORT_ORDER) === LogsSortOrder.Ascending ? 'asc' : 'desc';
-      break;
+      return getExploreSortOrder(requestId) === LogsSortOrder.Ascending ? 'asc' : 'desc';
     default:
-      sortDirection = undefined;
+      return undefined;
   }
-
-  // if a query is not 'Raw logs' or is a live stream, don't add sort pipe
-  if (queryType !== QueryType.Instant || isLiveStreaming || !sortDirection) {
-    return expr;
-  }
-  // checks for existing sort pipe `sort by (...)` or `order by (...)`
-  const exprContainsSort = /\|\s*(?:sort|order)\s*by\s*\(/i.test(expr);
-  if (exprContainsSort) {
-    return expr;
-  }
-  const sortPipe = `sort by (_time) ${sortDirection}`;
-  return `${expr} | ${sortPipe}`;
 };
 
 // Matches a pipe segment that reorders or slices rows: `sort`/`order by`,

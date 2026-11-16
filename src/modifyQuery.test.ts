@@ -1,8 +1,9 @@
 import { CoreApp } from '@grafana/data';
+import { locationService } from '@grafana/runtime';
 
 import {
   addLabelToQuery,
-  addSortPipeToQuery,
+  getSortDirection,
   insertPipesBeforeSortClassPipe,
   removeAggregationPipes,
   removeLabelFromQuery,
@@ -128,224 +129,71 @@ describe('modifyQuery', () => {
     });
   });
 
-  describe('addSortPipeToExpr', () => {
-    describe('Dashboard and PanelEditor contexts', () => {
-      it('should add a sort pipe with asc direction when direction is "asc"', () => {
-        const query = {
-          expr: 'foo: bar',
-          queryType: QueryType.Instant,
-          direction: 'asc'
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar | sort by (_time) asc');
+  describe('getSortDirection', () => {
+    const instant = (overrides: Partial<Query> = {}): Query =>
+      ({ expr: 'foo: bar', queryType: QueryType.Instant, ...overrides }) as Query;
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+      locationService.push('/');
+    });
+
+    describe('Dashboard, PanelEditor and PanelViewer contexts', () => {
+      it.each([CoreApp.Dashboard, CoreApp.PanelEditor, CoreApp.PanelViewer])('takes the direction of the query in %s', (app) => {
+        expect(getSortDirection(instant({ direction: 'asc' }), app)).toBe('asc');
+        expect(getSortDirection(instant({ direction: 'desc' }), app)).toBe('desc');
       });
 
-      it('should add a sort pipe with desc direction when direction is "desc"', () => {
-        const query = {
-          expr: 'foo: bar',
-          queryType: QueryType.Instant,
-          direction: 'desc'
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar | sort by (_time) desc');
-      });
-
-      it('should default to desc when direction is undefined', () => {
-        const query = {
-          expr: 'foo: bar',
-          queryType: QueryType.Instant
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar | sort by (_time) desc');
-      });
-
-      it('should work in PanelEditor context', () => {
-        const query = {
-          expr: 'foo: bar',
-          queryType: QueryType.Instant,
-          direction: 'asc'
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.PanelEditor);
-        expect(result).toBe('foo: bar | sort by (_time) asc');
+      it.each([CoreApp.Dashboard, CoreApp.PanelEditor, CoreApp.PanelViewer])('defaults to desc in %s when the query has no direction', (app) => {
+        expect(getSortDirection(instant(), app)).toBe('desc');
       });
     });
 
     describe('Explore context', () => {
-      it('should add a sort pipe with asc direction when store has Ascending order', () => {
-        const query = {
-          expr: 'foo: bar',
-          queryType: QueryType.Instant
-        } as Query;
-        // Mock store to return Ascending
+      it('follows the logs sort order of Explore', () => {
         jest.spyOn(store, 'get').mockReturnValue('Ascending');
-        const result = addSortPipeToQuery(query, CoreApp.Explore);
-        expect(result).toBe('foo: bar | sort by (_time) asc');
+        expect(getSortDirection(instant({ direction: 'desc' }), CoreApp.Explore)).toBe('asc');
+        jest.spyOn(store, 'get').mockReturnValue('Descending');
+        expect(getSortDirection(instant(), CoreApp.Explore)).toBe('desc');
       });
 
-      it('should add a sort pipe with desc direction when store has Descending order', () => {
-        const query = {
-          expr: 'foo: bar',
-          queryType: QueryType.Instant
-        } as Query;
-        // Mock store to return Descending
-        jest.spyOn(store, 'get').mockReturnValue('Descending');
-        const result = addSortPipeToQuery(query, CoreApp.Explore);
-        expect(result).toBe('foo: bar | sort by (_time) desc');
+      it('follows the sort order of the requesting pane in a split view', () => {
+        jest.spyOn(store, 'get').mockReturnValue('Ascending');
+        const panes = {
+          abc: { panelsState: { logs: { sortOrder: 'Descending' } } },
+          xyz: { panelsState: { logs: { sortOrder: 'Ascending' } } },
+        };
+        locationService.push(`/explore?panes=${encodeURIComponent(JSON.stringify(panes))}`);
+
+        expect(getSortDirection(instant(), CoreApp.Explore, false, 'explore_abc')).toBe('desc');
+        expect(getSortDirection(instant(), CoreApp.Explore, false, 'explore_xyz')).toBe('asc');
       });
     });
 
-    describe('Existing sort pipes detection', () => {
-      it('should not duplicate the sort pipe if expr already contains "sort by (_time)"', () => {
-        const query = {
-          expr: 'foo: bar | sort by (_time) asc',
-          queryType: QueryType.Instant
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar | sort by (_time) asc');
-      });
-
-      it('should not duplicate the sort pipe if expr contains "order by (_time)"', () => {
-        const query = {
-          expr: 'foo: bar | order by (_time) desc',
-          queryType: QueryType.Instant
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar | order by (_time) desc');
-      });
-
-      it('should detect sort with spaces around pipe and keywords', () => {
-        const query = {
-          expr: 'foo: bar |  sort  by  (_time)  asc',
-          queryType: QueryType.Instant
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar |  sort  by  (_time)  asc');
-      });
-
-      it('should detect sort case-insensitively', () => {
-        const query = {
-          expr: 'foo: bar | SORT BY (_time) asc',
-          queryType: QueryType.Instant
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar | SORT BY (_time) asc');
-      });
-
-      it('should detect order case-insensitively', () => {
-        const query = {
-          expr: 'foo: bar | ORDER BY (_time) desc',
-          queryType: QueryType.Instant
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar | ORDER BY (_time) desc');
-      });
+    // VictoriaLogs ignores sort_direction itself when the query sorts, limits or aggregates its rows
+    it('gives the direction whatever the pipes of the query', () => {
+      expect(getSortDirection(instant({ expr: 'foo: bar | sort by (_time) desc', direction: 'asc' }), CoreApp.Dashboard)).toBe('asc');
+      expect(getSortDirection(instant({ expr: 'foo: bar | stats count() by level', direction: 'asc' }), CoreApp.Dashboard)).toBe('asc');
     });
 
     describe('Query type restrictions', () => {
-      it('should not add a sort pipe if query type is Stats', () => {
-        const query = {
-          expr: 'foo: bar',
-          queryType: QueryType.Stats,
-          direction: 'asc'
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar');
-      });
-
-      it('should not add a sort pipe if query type is StatsRange', () => {
-        const query = {
-          expr: 'foo: bar',
-          queryType: QueryType.StatsRange,
-          direction: 'asc'
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar');
-      });
-
-      it('should not add a sort pipe if query type is Hits', () => {
-        const query = {
-          expr: 'foo: bar',
-          queryType: QueryType.Hits,
-          direction: 'asc'
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar');
+      it.each([QueryType.Stats, QueryType.StatsRange, QueryType.Hits])('gives none for the %s query type', (queryType) => {
+        expect(getSortDirection(instant({ queryType, direction: 'asc' }), CoreApp.Dashboard)).toBeUndefined();
       });
     });
 
     describe('Live streaming mode', () => {
-      it('should not add a sort pipe when isLiveStreaming is true', () => {
-        const query = {
-          expr: 'foo: bar',
-          queryType: QueryType.Instant,
-          direction: 'asc'
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard, true);
-        expect(result).toBe('foo: bar');
-      });
-
-      it('should not add a sort pipe in Explore with live streaming', () => {
-        const query = {
-          expr: 'foo: bar',
-          queryType: QueryType.Instant
-        } as Query;
+      it('gives none for a live stream', () => {
         jest.spyOn(store, 'get').mockReturnValue('Ascending');
-        const result = addSortPipeToQuery(query, CoreApp.Explore, true);
-        expect(result).toBe('foo: bar');
+        expect(getSortDirection(instant({ direction: 'asc' }), CoreApp.Dashboard, true)).toBeUndefined();
+        expect(getSortDirection(instant(), CoreApp.Explore, true)).toBeUndefined();
       });
     });
 
     describe('Unknown app context', () => {
-      it('should not add a sort pipe when app context is unknown', () => {
-        const query = {
-          expr: 'foo: bar',
-          queryType: QueryType.Instant,
-          direction: 'asc'
-        } as Query;
-        const result = addSortPipeToQuery(query, 'unknown-app');
-        expect(result).toBe('foo: bar');
-      });
-    });
-
-    describe('Complex queries', () => {
-      it('should add sort pipe to query with existing pipes', () => {
-        const query = {
-          expr: 'foo: bar | stats count() by level',
-          queryType: QueryType.Instant,
-          direction: 'asc'
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar | stats count() by level | sort by (_time) asc');
-      });
-
-      it('should not add sort if _time sorting already exists in complex query', () => {
-        const query = {
-          expr: 'foo: bar | stats count() | sort by (_time) desc',
-          queryType: QueryType.Instant,
-          direction: 'asc'
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar | stats count() | sort by (_time) desc');
-      });
-
-      it('should not add sort if _time sorting already as part of sort pipe', () => {
-        const query = {
-          expr: 'foo: bar | stats count() | sort by (_stream, _time) desc',
-          queryType: QueryType.Instant,
-          direction: 'asc'
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar | stats count() | sort by (_stream, _time) desc');
-      });
-
-      it('should NOT add sort if query already has sort by other field', () => {
-        const query = {
-          expr: 'foo: bar | sort by (level) asc',
-          queryType: QueryType.Instant,
-          direction: 'desc'
-        } as Query;
-        const result = addSortPipeToQuery(query, CoreApp.Dashboard);
-        expect(result).toBe('foo: bar | sort by (level) asc');
+      it('gives none outside Explore and dashboards', () => {
+        expect(getSortDirection(instant({ direction: 'asc' }), 'unknown-app')).toBeUndefined();
+        expect(getSortDirection(instant({ direction: 'asc' }), CoreApp.Unknown)).toBeUndefined();
       });
     });
   });
