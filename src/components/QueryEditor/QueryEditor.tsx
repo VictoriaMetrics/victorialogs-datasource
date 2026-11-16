@@ -49,12 +49,11 @@ const QueryEditor = React.memo<VictoriaLogsQueryEditorProps>((props) => {
     return !isExprHasStatsPipeFunctions(query.expr || '');
   }, [isStatsQuery, editorMode, query.templateBuilder, query.expr]);
   const showStreamFilters = app === CoreApp.Explore;
-  useLogsSort(app, query, onChange, onRunQuery);
+  useLogsSort(app, query, onChange, onRunQuery, data?.request?.requestId);
 
   const varRegExp = useMemo(() => {
     return getQueryExprVariableRegExp(query.expr)?.[0] || null;
   }, [query.expr]);
-  useLogsSort(app, query, onChange, onRunQuery);
 
   const onEditorModeChange = useCallback((newEditorMode: QueryEditorMode) => {
     if (newEditorMode === QueryEditorMode.Builder) {
