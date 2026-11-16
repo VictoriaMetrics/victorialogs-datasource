@@ -402,6 +402,15 @@ func (p *parser) parseExpr() (Expr, error) {
 				}
 			}
 		}
+		for {
+			ok, err := p.parseFillModifier(&be)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				break
+			}
+		}
 		e2, err := p.parseSingleExpr()
 		if err != nil {
 			return nil, err
@@ -504,6 +513,65 @@ func (p *parser) parseSingleExprWithoutRollupSuffix() (Expr, error) {
 	default:
 		return nil, fmt.Errorf(`singleExpr: unexpected token %q; want "(", "{", "-", "+"`, p.lex.Token)
 	}
+}
+
+func (p *parser) parseFillModifier(be *BinaryOpExpr) (bool, error) {
+	if !isBinaryOpFillModifier(p.lex.Token) {
+		return false, nil
+	}
+	if isSetOperator(be.Op) {
+		return false, fmt.Errorf(`fill modifier cannot be applied to %q`, be.Op)
+	}
+	op := strings.ToLower(p.lex.Token)
+	if err := p.lex.Next(); err != nil {
+		return false, err
+	}
+	if p.lex.Token != "(" {
+		p.lex.Prev()
+		return false, nil
+	}
+	if err := p.lex.Next(); err != nil {
+		return false, err
+	}
+	ne, err := p.parseFillValue()
+	if err != nil {
+		return false, fmt.Errorf("cannot parse %s fill value: %w", op, err)
+	}
+	if p.lex.Token != ")" {
+		return false, fmt.Errorf(`%s: unexpected token %q; want ")"`, op, p.lex.Token)
+	}
+	if err := p.lex.Next(); err != nil {
+		return false, err
+	}
+	switch op {
+	case "fill":
+		be.FillLeft = ne
+		be.FillRight = ne
+	case "fill_left":
+		be.FillLeft = ne
+	case "fill_right":
+		be.FillRight = ne
+	}
+	return true, nil
+}
+
+func (p *parser) parseFillValue() (*NumberExpr, error) {
+	neg := false
+	if p.lex.Token == "-" {
+		neg = true
+		if err := p.lex.Next(); err != nil {
+			return nil, err
+		}
+	}
+	ne, err := p.parsePositiveNumberExpr()
+	if err != nil {
+		return nil, err
+	}
+	if neg {
+		ne.N = -ne.N
+		ne.s = "-" + ne.s
+	}
+	return ne, nil
 }
 
 func (p *parser) parsePositiveNumberExpr() (*NumberExpr, error) {
@@ -833,12 +901,16 @@ func expandWithExpr(was []*withArgExpr, e Expr) (Expr, error) {
 			// Already expanded.
 			return t, nil
 		}
-		metricName := ""
 		{
 			var me MetricExpr
 			// Populate me.LabelFilterss
 
+			// Find out if all or-subclauses that specify a metric name agree on one
+			// NB: cannot use a guard value because metric names can be any string
+			commonMetricName := ""
+			haveCommonMetric := true
 			for _, lfes := range t.labelFilterss {
+				localMetricName := ""
 				var lfsNew []LabelFilter
 				for _, lfe := range lfes {
 					if lfe.Value == nil {
@@ -849,15 +921,11 @@ func expandWithExpr(was []*withArgExpr, e Expr) (Expr, error) {
 							// This means label name set and starts and ends with quotes
 							// but value is nil
 							if lfe.IsPossibleMetricName {
-								if metricName == "" {
-									metricName = lfe.Label
-									continue
-								} else {
-									if metricName != lfe.Label {
-										return nil, fmt.Errorf("parse error: metric name must not be set twice: %q or %q", metricName, lfe.Label)
-									}
-									continue
+								var err error
+								if lfsNew, localMetricName, err = checkAndPrependMetricNameFilter(lfsNew, localMetricName, lfe.Label); err != nil {
+									return nil, err
 								}
+								continue
 							}
 							return nil, fmt.Errorf("cannot find WITH template for %q inside %q", lfe.Label, t.AppendString(nil))
 						}
@@ -898,33 +966,42 @@ func expandWithExpr(was []*withArgExpr, e Expr) (Expr, error) {
 						return nil, err
 					}
 					if lf.isMetricNameFilter() {
-						if metricName != "" && metricName != lf.Value {
-							return nil, fmt.Errorf("parse error: metric name must not be set twice: %q or %q", metricName, lf.Value)
+						if lfsNew, localMetricName, err = checkAndPrependMetricNameFilter(lfsNew, localMetricName, lf.Value); err != nil {
+							return nil, err
 						}
-						metricName = lf.Value
-						continue
+					} else {
+						lfsNew = append(lfsNew, *lf)
 					}
-					lfsNew = append(lfsNew, *lf)
+				}
+				if haveCommonMetric && localMetricName != "" {
+					if commonMetricName == "" {
+						commonMetricName = localMetricName
+					} else if commonMetricName != localMetricName {
+						haveCommonMetric = false
+					}
 				}
 				lfsNew = removeDuplicateLabelFilters(lfsNew)
 				me.LabelFilterss = append(me.LabelFilterss, lfsNew)
 			}
-			// Prepend metric name to latest
-			if metricName != "" {
-				lfesCount := len(t.labelFilterss)
-				for i := 1; i <= lfesCount; i++ {
-					lfsLastIndex := len(me.LabelFilterss) - i
-					var lfsNew []LabelFilter
-					var lfNew LabelFilter
-					lfNew.Label = "__name__"
-					lfNew.Value = metricName
-					lfsNew = append(lfsNew, lfNew)
-					lfsNew = append(lfsNew, me.LabelFilterss[lfsLastIndex]...)
-					me.LabelFilterss[lfsLastIndex] = lfsNew
+			// If all or-subclauses that specify a metric name agree on one, prepend it to clauses
+			// where __name__ is missing entirely (incuding regexes and negatives)
+			if haveCommonMetric && commonMetricName != "" {
+				for i, lfs := range me.LabelFilterss {
+					haveNameClause := false
+					for _, lf := range lfs {
+						if lf.Label == "__name__" {
+							haveNameClause = true
+							break
+						}
+					}
+					if !haveNameClause {
+						me.LabelFilterss[i] = prependMetricNameFilter(lfs, commonMetricName)
+					}
 				}
 			}
 			t = &me
 		}
+		metricName := t.getMetricName()
 		if metricName == "" {
 			return t, nil
 		}
@@ -993,6 +1070,20 @@ func expandWithExpr(was []*withArgExpr, e Expr) (Expr, error) {
 	default:
 		return e, nil
 	}
+}
+
+func checkAndPrependMetricNameFilter(lfs []LabelFilter, metricName string, newMetricName string) ([]LabelFilter, string, error) {
+	if metricName != "" && metricName != newMetricName {
+		return nil, "", fmt.Errorf("parse error: metric name must not be set twice: %q or %q", metricName, newMetricName)
+	}
+	return prependMetricNameFilter(lfs, newMetricName), newMetricName, nil
+}
+
+func prependMetricNameFilter(lfs []LabelFilter, metricName string) []LabelFilter {
+	var lf LabelFilter
+	lf.Label = "__name__"
+	lf.Value = metricName
+	return append([]LabelFilter{lf}, lfs...)
 }
 
 func expandWithArgs(was []*withArgExpr, args []Expr) ([]Expr, error) {
@@ -1246,6 +1337,11 @@ func (p *parser) parseIdentList(allowStar bool) ([]string, error) {
 				return nil, err
 			}
 			return idents, nil
+		}
+		if isQuotedString(p.lex.Token) {
+			// indent could be quoted according to prometheus utf-8 encoding
+			// https://github.com/prometheus/proposals/blob/main/proposals/2023-08-21-utf8.md
+			p.lex.Token = p.lex.Token[1 : len(p.lex.Token)-1]
 		}
 		if !isIdentPrefix(p.lex.Token) {
 			return nil, fmt.Errorf(`identList: unexpected token %q; want "ident"`, p.lex.Token)
@@ -1868,6 +1964,12 @@ type BinaryOpExpr struct {
 	// If KeepMetricNames is set to true, then the operation should keep metric names.
 	KeepMetricNames bool
 
+	// FillLeft contains the fill value for fill_left() or fill() modifier.
+	FillLeft *NumberExpr
+
+	// FillRight contains the fill value for fill_right() or fill() modifier.
+	FillRight *NumberExpr
+
 	// Left contains left arg for the `left op right` expression.
 	Left Expr
 
@@ -1943,6 +2045,22 @@ func (be *BinaryOpExpr) appendModifiers(dst []byte) []byte {
 			dst = prefix.AppendString(dst)
 		}
 	}
+	if be.FillLeft != nil && be.FillLeft == be.FillRight {
+		dst = append(dst, " fill("...)
+		dst = be.FillLeft.AppendString(dst)
+		dst = append(dst, ')')
+	} else {
+		if be.FillLeft != nil {
+			dst = append(dst, " fill_left("...)
+			dst = be.FillLeft.AppendString(dst)
+			dst = append(dst, ')')
+		}
+		if be.FillRight != nil {
+			dst = append(dst, " fill_right("...)
+			dst = be.FillRight.AppendString(dst)
+			dst = append(dst, ')')
+		}
+	}
 	return dst
 }
 
@@ -1961,7 +2079,7 @@ func needBinaryOpArgParens(arg Expr) bool {
 }
 
 func isReservedBinaryOpIdent(s string) bool {
-	return isBinaryOpGroupModifier(s) || isBinaryOpJoinModifier(s) || isBinaryOpBoolModifier(s) || isPrefixModifier(s)
+	return isBinaryOpGroupModifier(s) || isBinaryOpJoinModifier(s) || isBinaryOpBoolModifier(s) || isPrefixModifier(s) || isBinaryOpFillModifier(s)
 }
 
 func isPrefixModifier(s string) bool {
@@ -2362,7 +2480,7 @@ func mustGetMetricName(lfss []*labelFilterExpr) string {
 		return ""
 	}
 	lfs := lfss[0]
-	if lfs.Label != "__name__" || lfs.Value == nil || len(lfs.Value.tokens) != 1 {
+	if lfs.Label != "__name__" || lfs.Value == nil || len(lfs.Value.tokens) != 1 || lfs.IsRegexp || lfs.IsNegative {
 		if lfs.IsPossibleMetricName {
 			return lfs.Label
 		}

@@ -12,6 +12,9 @@
   schedule: ['* * * * 1'],
   // A release must be at least three days old before it is proposed.
   minimumReleaseAge: '3 days',
+  // Pin and lock file maintenance updates carry no release timestamp; with the
+  // default 'timestamp-required' their renovate/stability-days stays pending.
+  minimumReleaseAgeBehaviour: 'timestamp-optional',
   // The Monday batch has to fit into its schedule window, so the hourly limit
   // of config:recommended is lifted.
   prHourlyLimit: 0,
@@ -81,6 +84,23 @@
       matchManagers: ['npm'],
       matchDepTypes: ['packageManager'],
       groupName: 'yarn',
+    },
+    {
+      // A resolution overrides a transitive dependency inside the range its
+      // consumers declare (the key may even carry that range, e.g.
+      // "brace-expansion@^1.1.7"), so a major bump breaks those consumers.
+      matchManagers: ['npm'],
+      matchDepTypes: ['resolutions'],
+      matchUpdateTypes: ['major'],
+      enabled: false,
+    },
+    {
+      // React is provided by Grafana at runtime, the version here only drives
+      // the unit tests: it stays on the line the latest supported Grafana
+      // ships. Raise the limit together with Grafana.
+      matchManagers: ['npm'],
+      matchPackageNames: ['react', 'react-dom'],
+      allowedVersions: '<19.3.0',
     },
     {
       // engines.node is a floor, not a pin.

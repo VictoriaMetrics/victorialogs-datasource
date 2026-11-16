@@ -129,9 +129,9 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 # renovate: datasource=github-releases depName=grafana/plugin-validator extractVersion=^plugin-validator/(?<version>v\d+\.\d+\.\d+)$
 PLUGINCHECK2_VERSION = v0.53.8
 # renovate: datasource=github-releases depName=magefile/mage
-MAGE_VERSION = v1.15.0
+MAGE_VERSION = v1.17.2
 # renovate: datasource=github-releases depName=golangci/golangci-lint
-GOLANGCI_LINT_VERSION = v2.2.2
+GOLANGCI_LINT_VERSION = v2.15.0
 
 .PHONY: plugincheck2
 plugincheck2: $(PLUGINCHECK2)
