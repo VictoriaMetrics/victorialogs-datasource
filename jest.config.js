@@ -8,9 +8,18 @@ const { grafanaESModules, nodeModulesToTransform } = require('./.config/jest/uti
 // that need to be transformed
 const additionalESModules = ['@react-hookz/web', '@ver0/deep-equal'];
 
+// The scaffolded config declares a single transform (@swc/jest) for js/ts files
+const [swcTransform] = Object.values(require('./.config/jest.config').transform);
+
 module.exports = {
   // Jest configuration provided by Grafana scaffolding
   ...require('./.config/jest.config'),
+  // Transform .mjs files too: some ESM-only modules (e.g. d3-interpolate, d3-color)
+  // ship their entry point as .mjs, which the scaffolded pattern does not match
+  transform: {
+    ...require('./.config/jest.config').transform,
+    '^.+\\.mjs$': swcTransform,
+  },
   // Override transformIgnorePatterns to include the additional ESM-only modules
   transformIgnorePatterns: [nodeModulesToTransform([...grafanaESModules, ...additionalESModules])],
   // Add module name mapper to resolve react-router/dom
