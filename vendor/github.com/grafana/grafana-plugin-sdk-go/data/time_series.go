@@ -113,7 +113,7 @@ func (f *Frame) TimeSeriesSchema() TimeSeriesSchema {
 // float64ToType converts a float64 value to the specified field type.
 // This is useful if fill missing is enabled and fill missing mode is FillMissingValue,
 // for converting the fill missing value (float64) to the field type.
-func float64ToType(val float64, ftype FieldType) (interface{}, error) {
+func float64ToType(val float64, ftype FieldType) (any, error) {
 	switch ftype {
 	case FieldTypeInt8:
 		return int8(val), nil
@@ -170,11 +170,11 @@ func float64ToType(val float64, ftype FieldType) (interface{}, error) {
 }
 
 // GetMissing returns the value to be filled for a missing row field.
-func GetMissing(fillMissing *FillMissing, field *Field, previousRowIdx int) (interface{}, error) {
+func GetMissing(fillMissing *FillMissing, field *Field, previousRowIdx int) (any, error) {
 	if fillMissing == nil {
 		return nil, ErrFillMissingDisabled
 	}
-	var fillVal interface{}
+	var fillVal any
 	switch fillMissing.Mode {
 	case FillModeNull:
 	//	fillVal = nil
@@ -214,6 +214,13 @@ func GetMissing(fillMissing *FillMissing, field *Field, previousRowIdx int) (int
 // With a conversion of Long to Wide, and then back to Long via WideToLong(), the outputted Long Frame
 // may not match the original inputted Long frame.
 func LongToWide(longFrame *Frame, fillMissing *FillMissing) (*Frame, error) {
+	return LongToWideWithLimit(longFrame, fillMissing, 0)
+}
+
+// LongToWideWithLimit is LongToWide with a ceiling on the size of the wide Frame, in cells (rows times Fields).
+// It returns ErrorWideFrameTooLarge as soon as the Frame being built grows past cellLimit. A cellLimit of 0 or
+// less disables the ceiling.
+func LongToWideWithLimit(longFrame *Frame, fillMissing *FillMissing, cellLimit int64) (*Frame, error) {
 	tsSchema := longFrame.TimeSeriesSchema()
 	if tsSchema.Type != TimeSeriesTypeLong {
 		return nil, fmt.Errorf("can not convert to wide series, expected long format series input but got %s series", tsSchema.Type)
@@ -251,10 +258,11 @@ func LongToWide(longFrame *Frame, fillMissing *FillMissing) (*Frame, error) {
 		longFrame:                 longFrame,
 		tsSchema:                  tsSchema,
 		fillMissing:               fillMissing,
+		cellLimit:                 cellLimit,
 		seenFactors:               map[string]struct{}{},
 		valueFactorToWideFieldIdx: valueFactorToWideFieldIdx,
 	}
-	for longRowIdx := 0; longRowIdx < longLen; longRowIdx++ { // loop over each row of longFrame
+	for longRowIdx := range longLen { // loop over each row of longFrame
 		if err := proc.process(longRowIdx); err != nil {
 			return nil, err
 		}
@@ -284,6 +292,7 @@ type longRowProcessor struct {
 	longFrame           *Frame
 	tsSchema            TimeSeriesSchema
 	fillMissing         *FillMissing
+	cellLimit           int64
 	// seen factor combinations
 	seenFactors map[string]struct{}
 	// value field idx and factors key -> fieldIdx of longFrame (for insertion)
@@ -393,6 +402,18 @@ func (p *longRowProcessor) process(longRowIdx int) error {
 		p.wideFrame.Set(wideFieldIdx, p.wideFrameRowCounter, p.longFrame.CopyAt(longFieldIdx, longRowIdx))
 	}
 
+	return p.checkCellLimit()
+}
+
+func (p *longRowProcessor) checkCellLimit() error {
+	if p.cellLimit <= 0 {
+		return nil
+	}
+	rows := int64(p.wideFrameRowCounter + 1)
+	fields := int64(len(p.wideFrame.Fields))
+	if fields > p.cellLimit/rows {
+		return fmt.Errorf("%w: %d rows and %d fields exceed the limit of %d cells", ErrorWideFrameTooLarge, rows, fields, p.cellLimit)
+	}
 	return nil
 }
 
@@ -501,7 +522,7 @@ func WideToLong(wideFrame *Frame) (*Frame, error) {
 
 	// Populate data of longFrame from wideframe
 	longFrameCounter := 0
-	for wideRowIdx := 0; wideRowIdx < wideLen; wideRowIdx++ { // loop over each row of wideFrame
+	for wideRowIdx := range wideLen { // loop over each row of wideFrame
 		tm, ok := wideFrame.ConcreteAt(tsSchema.TimeIndex, wideRowIdx)
 		if !ok {
 			return nil, fmt.Errorf("time may not have nil values")

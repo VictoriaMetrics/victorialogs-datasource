@@ -10,6 +10,8 @@
 * BUGFIX: respect the `Direction` option of a dashboard logs panel opened in the `View` mode. Older Grafana versions always loaded the newest logs there.
 * BUGFIX: show the `Open in split view` button in the log context of Explore. The context query did not name its data source, so Grafana hid the button.
 
+* SECURITY: build the backend with Go 1.27.4 and update `golang.org/x/net` to v0.62.0. See [pr #766](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/766). Thanks to @binGhzal for contributing.
+
 ## v0.34.0
 
 * FEATURE: expose every log field as its own column in annotation query results, so annotation field mappings can use a single field for `Title` or `Tags`, and a field with an epoch-milliseconds timestamp for `Time end` to draw range annotations. See [#568](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/568). Thanks to @Danielv123 for contributing.
