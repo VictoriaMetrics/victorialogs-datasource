@@ -213,7 +213,11 @@ export const removeAggregationPipes = (expr: string): string => {
 // Matches a pipe segment whose output for a row depends on the other rows of the query
 const CROSS_ROW_PIPE_RE = /^(?:join|union|stream_context|running_stats|total_stats|sample)\b/i;
 
-const NOT_SPLITTABLE_PIPES = [SORT_CLASS_PIPE_RE, AGGREGATION_PIPE_RE, CROSS_ROW_PIPE_RE];
+// Matches a pipe segment that may rewrite `_time`, so a row leaves the time range it was found in.
+// The `as` keyword is optional in LogsQL, so any mention of `_time` in a pipe that writes fields counts
+const TIME_REWRITE_PIPE_RE = /^(?:time_add\b|(?:copy|cp|rename|mv|format|math|eval)\b.*\b_time\b)/i;
+
+const NOT_SPLITTABLE_PIPES = [SORT_CLASS_PIPE_RE, AGGREGATION_PIPE_RE, CROSS_ROW_PIPE_RE, TIME_REWRITE_PIPE_RE];
 
 /**
  * Whether the logs of a time range are the logs of its parts put together, so the
