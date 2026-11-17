@@ -165,7 +165,11 @@ export class VictoriaLogsDatasource
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-    const logsGate = openLogsGate(request, { timeoutMs: INCREMENTAL_HITS_TIMEOUT_MS, runs: getIncrementalHitsLoadingRuns(this.uid) });
+    const logsGate = openLogsGate(request, {
+      timeoutMs: INCREMENTAL_HITS_TIMEOUT_MS,
+      runs: getIncrementalHitsLoadingRuns(this.uid),
+      interpolate: (expr) => this.interpolateString(expr, request.scopedVars),
+    });
     this.pendingLogsGate = logsGate;
     this.prepareRequest(request);
 

@@ -39,8 +39,10 @@ type Cold = RunHelpers['cold'];
 const barByRange = (cold: Cold) => (req: DataQueryRequest<Query>) =>
   cold<DataQueryResponse>('-(a|)', { a: response(`bar${req.range.from.valueOf() / 1000}`) });
 
+const interpolate = (expr: string) => expr;
+
 describe('openLogsGate', () => {
-  const plain = { runs: new IncrementalHitsLoadingRuns() };
+  const plain = { runs: new IncrementalHitsLoadingRuns(), interpolate };
   it('opens a gate for an Explore request of Raw Logs queries, with or without pipes', () => {
     expect(openLogsGate(makeRequest([{ expr: '{app="x"} error' }]), plain)).toBeDefined();
     expect(openLogsGate(makeRequest([{ expr: '* | stats count()' }]), plain)).toBeDefined();
@@ -69,7 +71,7 @@ describe('LogsGate', () => {
   let gate: LogsGate;
   beforeEach(() => {
     scheduler = new TestScheduler((actual, expected) => expect(actual).toEqual(expected));
-    gate = openLogsGate(request, { runs: new IncrementalHitsLoadingRuns() })!;
+    gate = openLogsGate(request, { runs: new IncrementalHitsLoadingRuns(), interpolate })!;
   });
 
   it('holds the hits back until the logs answer, and the logs in Streaming until the volume is finished', () => {
@@ -186,7 +188,7 @@ describe('LogsGate with incremental hits loading', () => {
   beforeEach(() => {
     scheduler = new TestScheduler((actual, expected) => expect(actual).toEqual(expected));
     runs = new IncrementalHitsLoadingRuns();
-    incremental = { timeoutMs: 5, runs };
+    incremental = { timeoutMs: 5, runs, interpolate };
     gate = openLogsGate(request, incremental)!;
   });
 
