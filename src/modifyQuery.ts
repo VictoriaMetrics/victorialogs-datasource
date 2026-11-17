@@ -117,7 +117,7 @@ const recursiveRemove = (filters: FilterVisualQuery, keyValue: string): boolean 
 };
 
 /** The logs sort order of the Explore pane that issued the request */
-export const getExploreSortDirection = (requestId?: string): QueryDirection =>
+const getExploreSortDirection =(requestId?: string): QueryDirection =>
   getExploreSortOrder(requestId) === LogsSortOrder.Ascending ? 'asc' : 'desc';
 
 /**

@@ -3,7 +3,6 @@ import { RunHelpers, TestScheduler } from 'rxjs/testing';
 
 import { CoreApp, DataFrame, DataQueryRequest, DataQueryResponse, dateTime, FieldType, LoadingState, makeTimeRange } from '@grafana/data';
 
-import { volumeRefId } from '../constants';
 import { appendLogsFrame, emptyLogsFrame } from '../transformers/utils/frame/frameUtils';
 import { Query, QueryType, SupportingQueryType } from '../types';
 
@@ -11,6 +10,7 @@ import { IncrementalHitsLoadingController } from './IncrementalHitsLoadingContro
 import { slowQueryFrame } from './firstByteTimeout';
 import { IncrementalHitsLoadingRuns } from './incrementalHitsLoadingRuns';
 import { IncrementalHitsLoadingOptions, LogsGate, openLogsGate } from './logsGate';
+import { volumeRefId } from './volumeHits';
 
 const makeRequest = (targets: Array<Partial<Query>>, overrides: Partial<DataQueryRequest<Query>> = {}) =>
   ({

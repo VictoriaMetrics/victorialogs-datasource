@@ -42,6 +42,7 @@ export class LogsHandOff {
     this.barLogs.error(error);
   }
 
+  /** Ends the volume (the first call wins): with the logs it collected, or with none for the logs to be requested again */
   finishVolume(collectedLogs?: DataFrame[]): void {
     this.barLogs.complete();
     this.volumeDone.next(collectedLogs);

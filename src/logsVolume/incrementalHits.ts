@@ -1,4 +1,4 @@
-import { catchError, concat, concatMap, defer, EMPTY, finalize, ignoreElements, map, Observable, of, scan, switchMap, takeUntil, tap } from 'rxjs';
+import { concat, concatMap, defer, EMPTY, finalize, ignoreElements, map, merge, Observable, of, scan, Subject, switchMap, takeUntil, tap } from 'rxjs';
 
 import { DataFrame, DataQueryRequest, DataQueryResponse, LoadingState, TimeRange } from '@grafana/data';
 
@@ -15,10 +15,20 @@ export type RunQuery = (request: DataQueryRequest<Query>) => Observable<DataQuer
 /** Makes the controller of a job reachable for the query editor; the returned function takes it away again */
 export type RegisterJob = (controller: IncrementalHitsLoadingController) => () => void;
 
-/** Loads the logs of a bar from its hits; emits the progress once they are collected, nothing when the bar needs no logs */
-export type LoadBarLogs = (bar: TimeRange, hits: DataQueryResponse) => Observable<LogsProgress[]>;
+/** How the logs of a bar ended: the progress once they are collected, or `failed` */
+export type BarLogsResult = LogsProgress[] | 'failed';
+
+/** Loads the logs of a bar from its hits; emits how they ended, nothing when the bar needs no logs. Never errors: it reports a failure itself */
+export type LoadBarLogs = (bar: TimeRange, hits: DataQueryResponse) => Observable<BarLogsResult>;
 
 export const noBarLogs: LoadBarLogs = () => EMPTY;
+
+/** The two ways to load the volume bar by bar */
+export interface BarsLoading {
+  /** Every bar is followed by its logs */
+  withLogs(): Observable<DataQueryResponse>;
+  hitsOnly(): Observable<DataQueryResponse>;
+}
 
 /**
  * Loads the volume bar by bar, the logs of every bar right after its hits. Every bar
@@ -39,14 +49,10 @@ export function queryHitsByBars(
     const controller = new IncrementalHitsLoadingController({ totalBars: bars.ranges.length, step: bars.step });
     const release = registerJob(controller);
 
-    const stopJob = () => {
-      controller.stop();
-      return EMPTY;
-    };
+    const logsFailed = new Subject<void>();
     const collectLogs = (bar: TimeRange, hits: DataQueryResponse) =>
       loadLogs(bar, hits).pipe(
-        tap((progress) => controller.logsLoaded(progress)),
-        catchError(stopJob),
+        tap((result) => (result === 'failed' ? logsFailed.next() : controller.logsLoaded(result))),
         ignoreElements()
       );
     const loadBar = (bar: TimeRange) =>
@@ -61,7 +67,7 @@ export function queryHitsByBars(
       scan((acc, response) => acc.concat(response.data), accumulated),
       tap((data) => (accumulated = data)),
       map((data) => ({ data, state: LoadingState.Streaming })),
-      takeUntil(controller.stopped$)
+      takeUntil(merge(controller.stopped$, logsFailed))
     );
 
     return concat(
@@ -77,18 +83,17 @@ export function queryHitsAfterLogs(
   run: RunQuery,
   request: DataQueryRequest<Query>,
   timeoutMs: number | undefined,
-  byBars: (loadLogs: LoadBarLogs) => Observable<DataQueryResponse>,
-  loadLogs: LoadBarLogs
+  bars: BarsLoading
 ): Observable<DataQueryResponse> {
   if (outcome === 'failed') {
     // an empty Done rather than EMPTY: the volume panel leaves its loading state only on a packet
     return of({ data: [], state: LoadingState.Done });
   }
   if (outcome === 'slow') {
-    return byBars(loadLogs);
+    return bars.withLogs();
   }
   if (timeoutMs === undefined) {
     return run(request);
   }
-  return run(withFirstByteTimeout(request, timeoutMs)).pipe(switchMap((response) => (isSlowResponse(response) ? byBars(noBarLogs) : of(response))));
+  return run(withFirstByteTimeout(request, timeoutMs)).pipe(switchMap((response) => (isSlowResponse(response) ? bars.hitsOnly() : of(response))));
 }

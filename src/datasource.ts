@@ -42,7 +42,7 @@ import {
   mergePresetDerivedFields,
   mergePresetLogLevelRules,
 } from './configuration/OpenTelemetryPreset/preset-builder';
-import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE, volumeRefId } from './constants';
+import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
 import LogsQlLanguageProvider from './language_provider';
 import { LiveChannelPathProvider } from './live/LiveChannelPathProvider';
 import { LogContextProvider } from './logContext/LogContextProvider';
@@ -50,6 +50,7 @@ import { isSlowResponse } from './logsVolume/firstByteTimeout';
 import { getIncrementalHitsLoadingRuns } from './logsVolume/incrementalHitsLoadingRuns';
 import { LogsGate, openLogsGate, INCREMENTAL_HITS_TIMEOUT_MS } from './logsVolume/logsGate';
 import { getRequestVolumeBucketing } from './logsVolume/volumeBucketing';
+import { volumeRefId } from './logsVolume/volumeHits';
 import { LOGS_VOLUME_DEFAULT_GROUP_BY, LOGS_VOLUME_GROUPS_LIMIT, queryLogsVolume } from './logsVolumeLegacy';
 import {
   addLabelToQuery,
@@ -648,8 +649,8 @@ export class VictoriaLogsDatasource
         this.pendingLogsGate = undefined;
         // prepared once: the bar requests of the gate differ from the whole-range one only by their range
         const hitsRequest = this.prepareRequest(newRequest);
-        const hits = (req: DataQueryRequest<Query>) => this.runQuery(req);
-        return queryLogsVolume(hitsRequest, logsGate ? logsGate.volume(hitsRequest, hits) : hits(hitsRequest), this.getActiveLevelRules());
+        const run = (req: DataQueryRequest<Query>) => this.runQuery(req);
+        return queryLogsVolume(hitsRequest, logsGate ? logsGate.volume(hitsRequest, run) : run(hitsRequest), this.getActiveLevelRules());
       }
       case SupplementaryQueryType.LogsSample:
         return this.runQuery(this.prepareRequest(markSupportingQueries(newRequest, SupportingQueryType.LogsSample)));

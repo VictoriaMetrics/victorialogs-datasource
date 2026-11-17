@@ -1,4 +1,4 @@
-import { concat, defer, EMPTY, finalize, map, Observable, of, switchMap, tap, timer } from 'rxjs';
+import { catchError, concat, defer, EMPTY, finalize, map, Observable, of, switchMap, tap, timer } from 'rxjs';
 
 import { DataQueryRequest, DataQueryResponse, LoadingState } from '@grafana/data';
 
@@ -7,9 +7,10 @@ import { Query } from '../types';
 import { failOnResponseError, responseErrors } from '../utils/dataQueryResponse';
 
 import { isSlowResponse, withFirstByteTimeout } from './firstByteTimeout';
-import { LoadBarLogs, RunQuery } from './incrementalHits';
+import { BarLogsResult, LoadBarLogs, RunQuery } from './incrementalHits';
 import { LogsCollector } from './logsCollector';
 import { LogsHandOff } from './logsHandOff';
+import { refIdsWithHits } from './volumeHits';
 
 /**
  * The raw logs of a run: an empty frame first, then the response, reported as `Streaming`
@@ -48,9 +49,10 @@ export function queryLogsWithHandOff(
  * synchronous first packet would reset it in between
  */
 const emptyFirst = (request: DataQueryRequest<Query>): Observable<DataQueryResponse> =>
-  timer(0).pipe(
-    map(() => ({ data: request.targets.filter((target) => !target.hide).map((target) => emptyLogsFrame(target.refId)), state: LoadingState.Streaming }))
-  );
+  timer(0).pipe(map(() => ({ data: visibleTargets(request).map((target) => emptyLogsFrame(target.refId)), state: LoadingState.Streaming })));
+
+/** The targets of the request that are sent to the backend */
+export const visibleTargets = (request: DataQueryRequest<Query>): Query[] => request.targets.filter((target) => !target.hide);
 
 /** A failed response passes as is; a good one stays `Streaming` while a waiting volume loads, so the Explore Cancel button covers both */
 function holdWhileVolumeLoads(response: DataQueryResponse, handOff: LogsHandOff): Observable<DataQueryResponse> {
@@ -68,7 +70,7 @@ function holdWhileVolumeLoads(response: DataQueryResponse, handOff: LogsHandOff)
 /** The step of a bar-by-bar volume that collects the logs of its bars and shows them through the hand-off */
 export function loadBarLogs(collector: LogsCollector, request: DataQueryRequest<Query>, run: RunQuery, handOff: LogsHandOff): LoadBarLogs {
   return (bar, hits) => {
-    const targets = collector.targetsMissingLogs(hits);
+    const targets = collector.targetsMissingLogs(refIdsWithHits(hits));
     if (!targets.length) {
       return EMPTY;
     }
@@ -78,8 +80,11 @@ export function loadBarLogs(collector: LogsCollector, request: DataQueryRequest<
         collector.add(response.data);
         handOff.pushLogs(collector.logs);
       }),
-      map(() => collector.progress),
-      tap({ error: (error) => handOff.failLogs(error) })
+      map((): BarLogsResult => collector.progress),
+      catchError((error) => {
+        handOff.failLogs(error);
+        return of<BarLogsResult>('failed');
+      })
     );
   };
 }

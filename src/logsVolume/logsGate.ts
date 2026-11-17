@@ -1,15 +1,15 @@
 import { defer, finalize, Observable, switchMap, tap } from 'rxjs';
 
-import { CoreApp, DataFrame, DataQueryRequest, DataQueryResponse } from '@grafana/data';
+import { CoreApp, DataQueryRequest, DataQueryResponse } from '@grafana/data';
 
-import { getExploreSortDirection, isSplittableByTime } from '../modifyQuery';
-import { Query, QueryDirection, QueryType } from '../types';
+import { isSplittableByTime } from '../modifyQuery';
+import { Query, QueryType } from '../types';
 import { SECOND_MS } from '../utils/time/constants';
 
-import { LoadBarLogs, noBarLogs, queryHitsAfterLogs, queryHitsByBars, RegisterJob, RunQuery } from './incrementalHits';
+import { BarsLoading, LoadBarLogs, noBarLogs, queryHitsAfterLogs, queryHitsByBars, RegisterJob, RunQuery } from './incrementalHits';
 import { IncrementalHitsLoadingRuns } from './incrementalHitsLoadingRuns';
 import { isIncrementalHitsLoadingEnabled } from './incrementalHitsOption';
-import { loadBarLogs, queryLogsWithHandOff } from './incrementalLogs';
+import { loadBarLogs, queryLogsWithHandOff, visibleTargets } from './incrementalLogs';
 import { LogsCollector } from './logsCollector';
 import { LogsHandOff } from './logsHandOff';
 import { getVolumeBars } from './volumeBucketing';
@@ -41,7 +41,7 @@ export interface LogsGate {
 
 /** A gate for an Explore run of visible Raw Logs queries; without the budget when a visible target has the option switched off */
 export function openLogsGate(request: DataQueryRequest<Query>, options: IncrementalHitsLoadingOptions): LogsGate | undefined {
-  const visible = request.targets.filter((query) => !query.hide);
+  const visible = visibleTargets(request);
   if (!isExploreRawLogsRequest(request, visible)) {
     return undefined;
   }
@@ -49,7 +49,7 @@ export function openLogsGate(request: DataQueryRequest<Query>, options: Incremen
   // the pane finds its job by the request that started it
   const registerJob: RegisterJob = (controller) => options.runs.register(request.requestId, controller);
   const logsByBars = visible.every((query) => isSplittableByTime(options.interpolate(query.expr)));
-  return createLogsGate(request, timeoutMs, registerJob, getExploreSortDirection(request.requestId), logsByBars);
+  return createLogsGate(request, timeoutMs, registerJob, logsByBars);
 }
 
 /** Live tailing is excluded: Explore runs no volume for it and its stream never completes */
@@ -60,30 +60,30 @@ const isExploreRawLogsRequest = (request: DataQueryRequest<Query>, visible: Quer
 const isRawLogsQuery = (query: Query): boolean =>
   query.queryType === QueryType.Instant && query.supportingQueryType === undefined;
 
-function createLogsGate(
-  request: DataQueryRequest<Query>,
-  timeoutMs: number | undefined,
-  registerJob: RegisterJob,
-  direction: QueryDirection,
-  logsByBars: boolean
-): LogsGate {
+function createLogsGate(request: DataQueryRequest<Query>, timeoutMs: number | undefined, registerJob: RegisterJob, logsByBars: boolean): LogsGate {
   const handOff = new LogsHandOff();
   let logsClaimed = false;
   return {
     logs: (run) => queryLogsWithHandOff(request, run, handOff, timeoutMs),
     volume: (volumeRequest, run) =>
       defer(() => {
+        // the targets of the logs request are prepared by now: they carry the sort direction and the line limit
+        const targets = visibleTargets(request);
         // only the first subscription feeds the logs: a later one (the volume panel expanded again) finds the hand-off over
-        const collector = logsByBars && !logsClaimed ? new LogsCollector(request.targets.filter((query) => !query.hide)) : undefined;
+        const collector = logsByBars && !logsClaimed ? new LogsCollector(targets) : undefined;
         logsClaimed = true;
-        const loadLogs = collector ? loadBarLogs(collector, request, run, handOff) : noBarLogs;
-        const byBars = (load: LoadBarLogs) => queryHitsByBars(run, volumeRequest, getVolumeBars(volumeRequest, direction), registerJob, load);
-        let collectedLogs: DataFrame[] | undefined;
+        const byBars = (loadLogs: LoadBarLogs) => () =>
+          queryHitsByBars(run, volumeRequest, getVolumeBars(volumeRequest, targets[0]?.direction ?? 'desc'), registerJob, loadLogs);
+        const bars: BarsLoading = {
+          withLogs: byBars(collector ? loadBarLogs(collector, request, run, handOff) : noBarLogs),
+          hitsOnly: byBars(noBarLogs),
+        };
         return handOff.outcome$.pipe(
-          switchMap((outcome) => queryHitsAfterLogs(outcome, run, volumeRequest, timeoutMs, byBars, loadLogs)),
-          tap({ complete: () => (collectedLogs = collector?.logs) }),
-          // finalize: logs held in Streaming are released on success, error and cancellation alike
-          finalize(() => handOff.finishVolume(collectedLogs))
+          switchMap((outcome) => queryHitsAfterLogs(outcome, run, volumeRequest, timeoutMs, bars)),
+          // a volume that got through hands over the logs it collected
+          tap({ complete: () => handOff.finishVolume(collector?.logs) }),
+          // finalize: logs held in Streaming are released on error and cancellation too, to be requested again
+          finalize(() => handOff.finishVolume())
         );
       }),
   };
