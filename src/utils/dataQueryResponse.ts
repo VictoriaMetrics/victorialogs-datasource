@@ -1,3 +1,5 @@
+import { tap } from 'rxjs';
+
 import { DataQueryError, DataQueryResponse } from '@grafana/data';
 
 /**
@@ -13,6 +15,14 @@ export function responseErrors(resp: DataQueryResponse): DataQueryError[] {
   // eslint-disable-next-line @typescript-eslint/no-deprecated
   return resp.error ? [withMessage(resp.error)] : [];
 }
+
+/** An in-band error of a response fails the stream like a thrown one */
+export const failOnResponseError = tap((response: DataQueryResponse) => {
+  const [error] = responseErrors(response);
+  if (error) {
+    throw error;
+  }
+});
 
 /** Fills in `message`, which the callers read without checking the other fields; an empty string counts as missing */
 const withMessage = (error: DataQueryError): DataQueryError => ({

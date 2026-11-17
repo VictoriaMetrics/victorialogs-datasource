@@ -116,6 +116,10 @@ const recursiveRemove = (filters: FilterVisualQuery, keyValue: string): boolean 
   return removed;
 };
 
+/** The logs sort order of the Explore pane that issued the request */
+export const getExploreSortDirection = (requestId?: string): QueryDirection =>
+  getExploreSortOrder(requestId) === LogsSortOrder.Ascending ? 'asc' : 'desc';
+
 /**
  * The `sort_direction` of a Raw Logs request: the logs sort order of the requesting pane in
  * Explore, the direction option in dashboards. None for other apps, other query types and live streams.
@@ -137,7 +141,7 @@ export const getSortDirection = (
     case CoreApp.PanelViewer:
       return direction ?? 'desc';
     case CoreApp.Explore:
-      return getExploreSortOrder(requestId) === LogsSortOrder.Ascending ? 'asc' : 'desc';
+      return getExploreSortDirection(requestId);
     default:
       return undefined;
   }
@@ -205,6 +209,21 @@ export const removeAggregationPipes = (expr: string): string => {
   }
   return segments.slice(0, aggregationIdx).join(' | ');
 };
+
+// Matches a pipe segment whose output for a row depends on the other rows of the query
+const CROSS_ROW_PIPE_RE = /^(?:join|union|stream_context|running_stats|total_stats|sample)\b/i;
+
+const NOT_SPLITTABLE_PIPES = [SORT_CLASS_PIPE_RE, AGGREGATION_PIPE_RE, CROSS_ROW_PIPE_RE];
+
+/**
+ * Whether the logs of a time range are the logs of its parts put together, so the
+ * range can be loaded part by part. `|` characters inside quoted values, parentheses
+ * or `{}` are ignored when locating pipes.
+ */
+export const isSplittableByTime = (expr: string): boolean =>
+  splitByPipes(expr)
+    .slice(1)
+    .every((pipe) => !NOT_SPLITTABLE_PIPES.some((re) => re.test(pipe)));
 
 
 export const getQueryFormat = (expr: string): Format | undefined => {

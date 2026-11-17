@@ -1,20 +1,21 @@
-import { concat, defer, finalize, map, Observable, of, switchMap, timer } from 'rxjs';
+import { concat, defer, EMPTY, finalize, map, Observable, of, switchMap, tap, timer } from 'rxjs';
 
-import { DataFrame, DataQueryRequest, DataQueryResponse, FieldType, LoadingState } from '@grafana/data';
+import { DataQueryRequest, DataQueryResponse, LoadingState } from '@grafana/data';
 
-import { FrameField } from '../transformers/types';
+import { emptyLogsFrame } from '../transformers/utils/frame/frameUtils';
 import { Query } from '../types';
-import { responseErrors } from '../utils/dataQueryResponse';
+import { failOnResponseError, responseErrors } from '../utils/dataQueryResponse';
 
 import { isSlowResponse, withFirstByteTimeout } from './firstByteTimeout';
-import { RunQuery } from './incrementalHits';
+import { LoadBarLogs, RunQuery } from './incrementalHits';
+import { LogsCollector } from './logsCollector';
 import { LogsHandOff } from './logsHandOff';
 
 /**
  * The raw logs of a run: an empty frame first, then the response, reported as `Streaming`
  * while a waiting volume loads. With a budget and a volume already waiting, the request
- * carries the budget; given up by the backend, the logs are requested again once the
- * volume is done
+ * carries the budget; given up by the backend, the logs are the ones the volume collects
+ * with its bars, or are requested again once a volume that collected none is done
  */
 export function queryLogsWithHandOff(
   request: DataQueryRequest<Query>,
@@ -24,14 +25,17 @@ export function queryLogsWithHandOff(
 ): Observable<DataQueryResponse> {
   // decided when the request goes out: by then Explore has subscribed the volume, if it shows one
   const firstAttempt = defer(() => run(timeoutMs !== undefined && handOff.volumeWaits ? withFirstByteTimeout(request, timeoutMs) : request));
-  const afterVolume = () => {
+  const afterSlow = () => {
     handOff.settle('slow');
-    return handOff.volumeDone$.pipe(switchMap(() => run(request)));
+    return concat(
+      handOff.barLogs$.pipe(map((data) => ({ data, state: LoadingState.Streaming }))),
+      handOff.volumeDone$.pipe(switchMap((collected) => (collected ? of({ data: collected, state: LoadingState.Done }) : run(request))))
+    );
   };
 
   return concat(
     emptyFirst(request),
-    firstAttempt.pipe(switchMap((response) => (isSlowResponse(response) ? afterVolume() : holdWhileVolumeLoads(response, handOff))))
+    firstAttempt.pipe(switchMap((response) => (isSlowResponse(response) ? afterSlow() : holdWhileVolumeLoads(response, handOff))))
   ).pipe(
     // an error or a cancellation before the response counts as failed logs
     finalize(() => handOff.settle('failed'))
@@ -61,13 +65,21 @@ function holdWhileVolumeLoads(response: DataQueryResponse, handOff: LogsHandOff)
   );
 }
 
-/** A logs frame without rows; Explore recognises a logs result by `preferredVisualisationType` and the Time/Line field pair */
-export const emptyLogsFrame = (refId: string): DataFrame => ({
-  refId,
-  length: 0,
-  fields: [
-    { name: 'Time', type: FieldType.time, config: {}, values: [] },
-    { name: FrameField.Line, type: FieldType.string, config: {}, values: [] },
-  ],
-  meta: { preferredVisualisationType: 'logs' },
-});
+/** The step of a bar-by-bar volume that collects the logs of its bars and shows them through the hand-off */
+export function loadBarLogs(collector: LogsCollector, request: DataQueryRequest<Query>, run: RunQuery, handOff: LogsHandOff): LoadBarLogs {
+  return (bar, hits) => {
+    const targets = collector.targetsMissingLogs(hits);
+    if (!targets.length) {
+      return EMPTY;
+    }
+    return run({ ...request, range: bar, targets }).pipe(
+      failOnResponseError,
+      tap((response) => {
+        collector.add(response.data);
+        handOff.pushLogs(collector.logs);
+      }),
+      map(() => collector.progress),
+      tap({ error: (error) => handOff.failLogs(error) })
+    );
+  };
+}
