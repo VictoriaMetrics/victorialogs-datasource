@@ -215,7 +215,8 @@ const CROSS_ROW_PIPE_RE = /^(?:join|union|stream_context|running_stats|total_sta
 
 // Matches a pipe segment that may rewrite `_time`, so a row leaves the time range it was found in.
 // The `as` keyword is optional in LogsQL, so any mention of `_time` in a pipe that writes fields counts
-const TIME_REWRITE_PIPE_RE = /^(?:time_add\b|(?:copy|cp|rename|mv|format|math|eval)\b.*\b_time\b)/i;
+const TIME_REWRITE_PIPE_RE =
+  /^(?:time_add\b|(?:copy|cp|rename|mv|format|math|eval|(?:replace|extract)(?:_regexp)?|unpack_(?:json|logfmt|syslog))\b.*\b_time\b)/i;
 
 const NOT_SPLITTABLE_PIPES = [SORT_CLASS_PIPE_RE, AGGREGATION_PIPE_RE, CROSS_ROW_PIPE_RE, TIME_REWRITE_PIPE_RE];
 

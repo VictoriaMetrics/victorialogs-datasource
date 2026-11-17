@@ -239,6 +239,7 @@ describe('LogsGate with incremental hits loading', () => {
     const barHits = (req: DataQueryRequest<Query>): DataFrame => ({
       ...frame(`bar${req.range.from.valueOf() / 1000}`),
       refId: volumeRefId('A'),
+      length: 1,
       fields: [{ name: 'Value', type: FieldType.number, config: {}, values: [5] }],
     });
     const barLogs = (req: DataQueryRequest<Query>): DataFrame => ({

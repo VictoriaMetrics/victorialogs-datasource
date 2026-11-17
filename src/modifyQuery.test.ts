@@ -336,6 +336,7 @@ describe('modifyQuery', () => {
       '{app="x"} error',
       'app:x | unpack_json | fields _time, _msg',
       'app:x | extract "ip=<ip>" | filter ip:""',
+      'app:x | unpack_logfmt | replace ("a", "b") at host',
       'app:x | copy host as server | format "<host>:<port>" as addr',
     ])('is true for `%s`, whose pipes handle every row on its own', (expr) => {
       expect(isSplittableByTime(expr)).toBe(true);
@@ -371,6 +372,12 @@ describe('modifyQuery', () => {
       'app:x | copy ts as _time',
       'app:x | rename ts _time',
       'app:x | math ts * 1000 as _time',
+      'app:x | replace ("T", " ") at _time',
+      'app:x | replace_regexp ("\\.\\d+", "") at _time',
+      'app:x | extract "ts=<_time> " from _msg',
+      'app:x | extract_regexp "ts=(?P<_time>\\S+)" from _msg',
+      'app:x | unpack_json fields (_time, level)',
+      'app:x | unpack_logfmt fields (_time)',
     ])('is false for `%s`, which may rewrite `_time`', (expr) => {
       expect(isSplittableByTime(expr)).toBe(false);
     });
