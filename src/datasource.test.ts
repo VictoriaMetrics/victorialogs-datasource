@@ -26,9 +26,9 @@ import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABL
 import { VictoriaLogsDatasource } from './datasource';
 import { slowQueryFrame } from './logsVolume/firstByteTimeout';
 import { getIncrementalHitsLoadingRuns, IncrementalHitsLoadingJob } from './logsVolume/incrementalHitsLoadingRuns';
-import { emptyLogsFrame } from './logsVolume/incrementalLogs';
 import { queryLogsVolume } from './logsVolumeLegacy';
 import store from './store/store';
+import { emptyLogsFrame } from './transformers/utils/frame/frameUtils';
 import { AdHocFilter, AdHocFiltersMode, FilterActionType, Query, QueryType, SupportingQueryType, ToggleFilterAction } from './types';
 import { buildExactLevelExprMap } from './utils/query/levelExpansion';
 import { DERIVED_LEVEL_FIELD } from './utils/query/levelFormatPipes';
@@ -1962,7 +1962,7 @@ describe('getDataProvider with incremental hits loading', () => {
     expect(hits.map(budget)).toEqual([3000, undefined, undefined, undefined]);
   });
 
-  it('sends the raw logs with the budget while the volume waits, loads the bars when the backend gives them up and requests the logs again', () => {
+  it('sends the raw logs with the budget while the volume waits, loads the bars when the backend gives them up and ends the logs with the ones the bars collected', () => {
     const ds = createDatasource(templateSrvStub);
     const request = makeRequest();
     scheduler.run(({ cold, expectObservable }) => {
@@ -1971,21 +1971,21 @@ describe('getDataProvider with incremental hits loading', () => {
       );
       const logs = ds.query(request);
       ds.getDataProvider(SupplementaryQueryType.LogsVolume, request);
-      // the logs are given up at 3000 ms: bars at 3001, 3002, 3003 ms; the logs are requested again at 3003 ms
+      // the logs are given up at 3000 ms: bars at 3001, 3002, 3003 ms; no bar has hits, so the logs end empty with the volume
       expectObservable(providerSource()).toBe('3001ms ab(cd|)', {
         a: expect.objectContaining({ state: LoadingState.Streaming }),
         b: expect.objectContaining({ state: LoadingState.Streaming }),
         c: expect.objectContaining({ state: LoadingState.Streaming }),
         d: expect.objectContaining({ state: LoadingState.Done }),
       });
-      expectObservable(logs).toBe('p 3003ms (a|)', {
+      expectObservable(logs).toBe('p 3002ms (d|)', {
         p: { data: [emptyLogsFrame('A')], state: LoadingState.Streaming },
-        a: expect.objectContaining({ data: [] }),
+        d: { data: [emptyLogsFrame('A')], state: LoadingState.Done },
       });
     });
     const calls = backendQuery.mock.calls.map(([req]) => req);
-    expect(calls.map((req) => (isHits(req) ? 'hits' : 'logs'))).toEqual(['logs', 'hits', 'hits', 'hits', 'logs']);
-    expect(calls.filter((req) => !isHits(req)).map(budget)).toEqual([3000, undefined]);
+    expect(calls.map((req) => (isHits(req) ? 'hits' : 'logs'))).toEqual(['logs', 'hits', 'hits', 'hits']);
+    expect(calls.filter((req) => !isHits(req)).map(budget)).toEqual([3000]);
     expect(calls.some((req) => isHits(req) && isWholeRange(req, request))).toBe(false);
   });
 

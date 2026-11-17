@@ -1,6 +1,9 @@
-import { DataFrame, FieldType, Labels, QueryResultMeta } from '@grafana/data';
+import { omit } from 'lodash';
+
+import { DataFrame, Field, FieldType, Labels, QueryResultMeta } from '@grafana/data';
 
 import { Query, QueryType } from '../../../types';
+import { FrameField } from '../../types';
 
 export function isMetricFrame(frame: DataFrame): boolean {
   return frame.fields.every((field) => field.type === FieldType.time || field.type === FieldType.number);
@@ -66,3 +69,29 @@ export function dataFrameHasError(frame: DataFrame): boolean {
   const labelSets: Labels[] = frame.fields.find((f) => f.name === 'labels')?.values ?? [];
   return labelSets.some((labels) => labels.__error__ !== undefined);
 }
+
+/** A logs frame without rows; Explore recognises a logs result by `preferredVisualisationType` and the Time/Line field pair */
+export const emptyLogsFrame = (refId: string): DataFrame => ({
+  refId,
+  length: 0,
+  fields: [
+    { name: 'Time', type: FieldType.time, config: {}, values: [] },
+    { name: FrameField.Line, type: FieldType.string, config: {}, values: [] },
+  ],
+  meta: { preferredVisualisationType: 'logs' },
+});
+
+/** The rows of `next` after the rows of `frame`. Both are logs frames of one query, so their fields line up */
+export const appendLogsFrame = (frame: DataFrame, next: DataFrame): DataFrame => ({
+  ...frame,
+  length: frame.length + next.length,
+  fields: frame.fields.map((field, i) => appendField(field, next.fields[i])),
+});
+
+const appendField = (field: Field, next: Field): Field => ({
+  ...omit(field, 'state'),
+  values: field.values.concat(next.values),
+  nanos: field.nanos || next.nanos ? nanosOf(field).concat(nanosOf(next)) : undefined,
+});
+
+const nanosOf = (field: Field): number[] => field.nanos ?? Array(field.values.length).fill(0);

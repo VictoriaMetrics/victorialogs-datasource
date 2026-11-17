@@ -41,7 +41,7 @@ import {
   mergePresetDerivedFields,
   mergePresetLogLevelRules,
 } from './configuration/OpenTelemetryPreset/preset-builder';
-import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE } from './constants';
+import { LOGS_LIMIT_DEFAULT, LOGS_LIMIT_HARD_CAP, TEXT_FILTER_ALL_VALUE, VARIABLE_ALL_VALUE, volumeRefId } from './constants';
 import LogsQlLanguageProvider from './language_provider';
 import { LiveChannelPathProvider } from './live/LiveChannelPathProvider';
 import { LogContextProvider } from './logContext/LogContextProvider';
@@ -92,7 +92,6 @@ import { VariableSupport } from './variableSupport/VariableSupport';
 
 export { resolveAdHocFiltersMode } from './utils/query/adHocFilters';
 
-export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 export const REF_ID_STARTER_LOG_SAMPLE = 'log-sample-';
 
 /**
@@ -588,7 +587,7 @@ export class VictoriaLogsDatasource
           ...query,
           step,
           queryType: QueryType.Hits,
-          refId: `${REF_ID_STARTER_LOG_VOLUME}${query.refId}`,
+          refId: volumeRefId(query.refId),
           supportingQueryType: SupportingQueryType.LogsVolume,
           timezoneOffset: offset,
         };

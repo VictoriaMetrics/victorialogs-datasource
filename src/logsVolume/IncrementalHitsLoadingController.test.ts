@@ -13,9 +13,9 @@ describe('IncrementalHitsLoadingController', () => {
     controller.barLoaded();
     controller.barLoaded();
     expect(states).toEqual([
-      { status: 'running', loadedBars: 0, totalBars: 3, step: '1h' },
-      { status: 'running', loadedBars: 1, totalBars: 3, step: '1h' },
-      { status: 'running', loadedBars: 2, totalBars: 3, step: '1h' },
+      { status: 'running', loadedBars: 0, totalBars: 3, step: '1h', logs: [] },
+      { status: 'running', loadedBars: 1, totalBars: 3, step: '1h', logs: [] },
+      { status: 'running', loadedBars: 2, totalBars: 3, step: '1h', logs: [] },
     ]);
   });
 

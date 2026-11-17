@@ -1,15 +1,18 @@
-import { finalize, Observable, switchMap } from 'rxjs';
+import { finalize, Observable, switchMap, tap } from 'rxjs';
 
-import { CoreApp, DataQueryRequest, DataQueryResponse } from '@grafana/data';
+import { CoreApp, DataFrame, DataQueryRequest, DataQueryResponse } from '@grafana/data';
 
-import { Query, QueryType } from '../types';
+import { getExploreSortDirection, isSplittableByTime } from '../modifyQuery';
+import { Query, QueryDirection, QueryType } from '../types';
 import { SECOND_MS } from '../utils/time/constants';
 
-import { queryHitsAfterLogs, RegisterJob, RunQuery } from './incrementalHits';
+import { LoadBarLogs, noBarLogs, queryHitsAfterLogs, queryHitsByBars, RegisterJob, RunQuery } from './incrementalHits';
 import { IncrementalHitsLoadingRuns } from './incrementalHitsLoadingRuns';
 import { isIncrementalHitsLoadingEnabled } from './incrementalHitsOption';
-import { queryLogsWithHandOff } from './incrementalLogs';
+import { loadBarLogs, queryLogsWithHandOff } from './incrementalLogs';
+import { LogsCollector } from './logsCollector';
 import { LogsHandOff } from './logsHandOff';
+import { getVolumeBars } from './volumeBucketing';
 
 /** How long VictoriaLogs may take to start answering a one-shot request before the backend gives it up and the volume goes bar by bar */
 export const INCREMENTAL_HITS_TIMEOUT_MS = 3 * SECOND_MS;
@@ -24,12 +27,13 @@ export interface IncrementalHitsLoadingOptions {
 /**
  * The two streams of one Explore run. The logs go first; the volume waits for their
  * outcome and skips its request after failed logs. With a budget, logs the backend gave
- * up give way to the bar-by-bar volume and are requested again after it
+ * up give way to the bar-by-bar volume, which loads the logs of every bar after its hits.
+ * Logs that cannot be loaded part by part are requested again after the volume
  */
 export interface LogsGate {
-  /** `run` sends the logs request, and once more after a hand-over */
+  /** `run` sends the logs request, and once more after a volume that collected no logs */
   logs(run: RunQuery): Observable<DataQueryResponse>;
-  /** The hits of the volume request, started once the logs settle */
+  /** The hits of the volume request, started once the logs settle; `run` also sends the logs requests of the bars */
   volume(request: DataQueryRequest<Query>, run: RunQuery): Observable<DataQueryResponse>;
 }
 
@@ -42,7 +46,8 @@ export function openLogsGate(request: DataQueryRequest<Query>, options: Incremen
   const timeoutMs = visible.every(isIncrementalHitsLoadingEnabled) ? options.timeoutMs : undefined;
   // the pane finds its job by the request that started it
   const registerJob: RegisterJob = (controller) => options.runs.register(request.requestId, controller);
-  return createLogsGate(request, timeoutMs, registerJob);
+  const logsByBars = visible.every((query) => isSplittableByTime(query.expr));
+  return createLogsGate(request, timeoutMs, registerJob, getExploreSortDirection(request.requestId), logsByBars);
 }
 
 /** Live tailing is excluded: Explore runs no volume for it and its stream never completes */
@@ -53,15 +58,27 @@ const isExploreRawLogsRequest = (request: DataQueryRequest<Query>, visible: Quer
 const isRawLogsQuery = (query: Query): boolean =>
   query.queryType === QueryType.Instant && query.supportingQueryType === undefined;
 
-function createLogsGate(request: DataQueryRequest<Query>, timeoutMs: number | undefined, registerJob: RegisterJob): LogsGate {
+function createLogsGate(
+  request: DataQueryRequest<Query>,
+  timeoutMs: number | undefined,
+  registerJob: RegisterJob,
+  direction: QueryDirection,
+  logsByBars: boolean
+): LogsGate {
   const handOff = new LogsHandOff();
   return {
     logs: (run) => queryLogsWithHandOff(request, run, handOff, timeoutMs),
-    volume: (volumeRequest, run) =>
-      handOff.outcome$.pipe(
-        switchMap((outcome) => queryHitsAfterLogs(outcome, run, volumeRequest, timeoutMs, registerJob)),
+    volume: (volumeRequest, run) => {
+      const collector = logsByBars ? new LogsCollector(request.targets.filter((query) => !query.hide)) : undefined;
+      const loadLogs = collector ? loadBarLogs(collector, request, run, handOff) : noBarLogs;
+      const byBars = (load: LoadBarLogs) => queryHitsByBars(run, volumeRequest, getVolumeBars(volumeRequest, direction), registerJob, load);
+      let collectedLogs: DataFrame[] | undefined;
+      return handOff.outcome$.pipe(
+        switchMap((outcome) => queryHitsAfterLogs(outcome, run, volumeRequest, timeoutMs, byBars, loadLogs)),
+        tap({ complete: () => (collectedLogs = collector?.logs) }),
         // finalize: logs held in Streaming are released on success, error and cancellation alike
-        finalize(() => handOff.finishVolume())
-      ),
+        finalize(() => handOff.finishVolume(collectedLogs))
+      );
+    },
   };
 }
