@@ -192,7 +192,8 @@ export class VictoriaLogsDatasource
           // logs are requested. Always overwritten: a direction saved with a dashboard panel must not leak into
           // Explore or into the requests of other apps
           direction: getSortDirection(q, request.app, request.liveStreaming, request.requestId),
-          maxLines: Math.min(q.maxLines ?? this.maxLines, LOGS_LIMIT_HARD_CAP),
+          // a zero limit counts as none, like in the backend
+          maxLines: Math.min(q.maxLines || this.maxLines, LOGS_LIMIT_HARD_CAP),
           // a volume target already carries its bucket grid shift
           timezoneOffset: q.timezoneOffset ?? timezoneOffset,
           format: getQueryFormat(q.expr),
