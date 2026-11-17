@@ -22,6 +22,8 @@ export interface IncrementalHitsLoadingOptions {
   timeoutMs?: number;
   /** Where a bar-by-bar job registers its controller for the status row of its pane */
   runs: IncrementalHitsLoadingRuns;
+  /** Resolves the template variables of an expression, as the request will carry it */
+  interpolate: (expr: string) => string;
 }
 
 /**
@@ -46,7 +48,7 @@ export function openLogsGate(request: DataQueryRequest<Query>, options: Incremen
   const timeoutMs = visible.every(isIncrementalHitsLoadingEnabled) ? options.timeoutMs : undefined;
   // the pane finds its job by the request that started it
   const registerJob: RegisterJob = (controller) => options.runs.register(request.requestId, controller);
-  const logsByBars = visible.every((query) => isSplittableByTime(query.expr));
+  const logsByBars = visible.every((query) => isSplittableByTime(options.interpolate(query.expr)));
   return createLogsGate(request, timeoutMs, registerJob, getExploreSortDirection(request.requestId), logsByBars);
 }
 
