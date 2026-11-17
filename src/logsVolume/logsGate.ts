@@ -1,4 +1,4 @@
-import { finalize, Observable, switchMap, tap } from 'rxjs';
+import { defer, finalize, Observable, switchMap, tap } from 'rxjs';
 
 import { CoreApp, DataFrame, DataQueryRequest, DataQueryResponse } from '@grafana/data';
 
@@ -66,19 +66,23 @@ function createLogsGate(
   logsByBars: boolean
 ): LogsGate {
   const handOff = new LogsHandOff();
+  let logsClaimed = false;
   return {
     logs: (run) => queryLogsWithHandOff(request, run, handOff, timeoutMs),
-    volume: (volumeRequest, run) => {
-      const collector = logsByBars ? new LogsCollector(request.targets.filter((query) => !query.hide)) : undefined;
-      const loadLogs = collector ? loadBarLogs(collector, request, run, handOff) : noBarLogs;
-      const byBars = (load: LoadBarLogs) => queryHitsByBars(run, volumeRequest, getVolumeBars(volumeRequest, direction), registerJob, load);
-      let collectedLogs: DataFrame[] | undefined;
-      return handOff.outcome$.pipe(
-        switchMap((outcome) => queryHitsAfterLogs(outcome, run, volumeRequest, timeoutMs, byBars, loadLogs)),
-        tap({ complete: () => (collectedLogs = collector?.logs) }),
-        // finalize: logs held in Streaming are released on success, error and cancellation alike
-        finalize(() => handOff.finishVolume(collectedLogs))
-      );
-    },
+    volume: (volumeRequest, run) =>
+      defer(() => {
+        // only the first subscription feeds the logs: a later one (the volume panel expanded again) finds the hand-off over
+        const collector = logsByBars && !logsClaimed ? new LogsCollector(request.targets.filter((query) => !query.hide)) : undefined;
+        logsClaimed = true;
+        const loadLogs = collector ? loadBarLogs(collector, request, run, handOff) : noBarLogs;
+        const byBars = (load: LoadBarLogs) => queryHitsByBars(run, volumeRequest, getVolumeBars(volumeRequest, direction), registerJob, load);
+        let collectedLogs: DataFrame[] | undefined;
+        return handOff.outcome$.pipe(
+          switchMap((outcome) => queryHitsAfterLogs(outcome, run, volumeRequest, timeoutMs, byBars, loadLogs)),
+          tap({ complete: () => (collectedLogs = collector?.logs) }),
+          // finalize: logs held in Streaming are released on success, error and cancellation alike
+          finalize(() => handOff.finishVolume(collectedLogs))
+        );
+      }),
   };
 }
