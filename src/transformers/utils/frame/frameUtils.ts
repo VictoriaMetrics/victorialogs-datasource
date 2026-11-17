@@ -81,9 +81,13 @@ export const emptyLogsFrame = (refId: string): DataFrame => ({
   meta: { preferredVisualisationType: 'logs' },
 });
 
-/** The rows of `next` after the rows of `frame`. Both are logs frames of one query, so their fields line up */
+/**
+ * The rows of `next` after the rows of `frame`. Both are logs frames of one query, so their fields line up.
+ * The custom meta of both is kept, so a parsing error of either part is reported.
+ */
 export const appendLogsFrame = (frame: DataFrame, next: DataFrame): DataFrame => ({
   ...frame,
+  meta: { ...frame.meta, custom: { ...next.meta?.custom, ...frame.meta?.custom } },
   length: frame.length + next.length,
   fields: frame.fields.map((field, i) => appendField(field, next.fields[i])),
 });
