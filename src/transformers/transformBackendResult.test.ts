@@ -688,8 +688,9 @@ describe('transformBackendResult', () => {
       const derivedFieldConfigs: DerivedFieldConfig[] = [];
       const logLevelRules: LogLevelRule[] = [];
       const result = transformBackendResult(response, request, derivedFieldConfigs, logLevelRules, identityInterpolate);
-      expect(result.data[0].fields[0].values).toStrictEqual([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
-      expect(result.data[0].fields[1].values).toStrictEqual([1, 2, null, 3, 4, null, null, null, 5, null]);
+      // the range starts at 5ms, inside the bucket of 0ms, so the axis starts with it
+      expect(result.data[0].fields[0].values).toStrictEqual([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
+      expect(result.data[0].fields[1].values).toStrictEqual([null, 1, 2, null, 3, 4, null, null, null, 5, null]);
     });
   });
 });
