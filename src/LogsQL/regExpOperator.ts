@@ -125,7 +125,9 @@ export function doubleQuoteRegExp(queryExpr: string, variables: string[]): strin
     const escapedVariable = escapeRegExpChars(variable);
     newQueryExpr = newQueryExpr.replace(
       new RegExp(`:(!?)~\\s*\\$${escapedVariable}\\b`, 'g'),
-      `:$1~"\$${variable}"`
+      // a replacer function keeps the variable name literal: in a replacement string
+      // a name that starts with a digit would be read as a group reference
+      (_match, negation: string) => `:${negation}~"$${variable}"`
     );
   }
   return newQueryExpr;
