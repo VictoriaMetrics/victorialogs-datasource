@@ -23,6 +23,8 @@ describe('replaceMultiVariables', () => {
       ['f:"a" | g:"$var"', `f:"a" | g:"${ESCAPED}"`],
       ['f:~"$var"', `f:~"(${ESCAPED})"`],
       ['{app=~"$var"}', `{app=~"(${ESCAPED})"}`],
+      ['f:!~"$var"', `f:!~"(${ESCAPED})"`],
+      ['{app!~"$var"}', `{app!~"(${ESCAPED})"}`],
     ])('should escape the value in %s', (expr, expected) => {
       expect(expand(expr, [VALUE])).toBe(expected);
     });
@@ -30,6 +32,8 @@ describe('replaceMultiVariables', () => {
     it('should escape every value of a multi-value variable', () => {
       expect(expand('f:"$var"', ['a"b', 'c\\d'])).toBe('f:"a\\"b OR c\\\\d"');
       expect(expand('f:~"$var"', ['a"b', 'c\\d'])).toBe('f:~"(a\\"b|c\\\\d)"');
+      expect(expand('f:!~"$var"', ['a"b', 'c\\d'])).toBe('f:!~"(a\\"b|c\\\\d)"');
+      expect(expand('{app!~"$var"}', ['a', 'b'])).toBe('{app!~"(a|b)"}');
     });
   });
 

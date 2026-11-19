@@ -18,7 +18,7 @@ export function wrapMultiVariable(values: string[]): string {
 /**
  * Replaces the placeholders made by `wrapMultiVariable` with the variable values,
  * formatted for the place they are used in:
- * - a regexp filter (`field:~"$var"`) gets `(v1|v2)`
+ * - a regexp filter (`field:~"$var"`, `field:!~"$var"`) gets `(v1|v2)`
  * - `in($var)` gets a list of quoted values
  * - any other place gets `v1 OR v2`
  *

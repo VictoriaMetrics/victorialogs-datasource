@@ -329,7 +329,7 @@ VictoriaLogs datasource supports automatic variable interpolation with the follo
 - `{field!=$var}` → `{field not_in(...)}`
 
 **5. Regexp Filters:**
-- `field:~$var` and `field:~"$var"` → `field:~"(v1|...|vN)"`
+- `field:~$var` and `field:~"$var"` → `field:~"(v1|...|vN)"`, the same for the negative `field:!~$var`
 - Values are escaped as a LogsQL string, so the variable value is used as the regexp as is: type `\d+`, not `\\d+`
 - Use `field:~"(${var:raw})"` to insert the value without escaping
 

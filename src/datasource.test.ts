@@ -241,6 +241,11 @@ describe('VictoriaLogsDatasource', () => {
         expect(interpolate('_msg:~$var', ['a\\.b', 'c"d'])).toBe('_msg:~"(a\\\\.b|c\\"d)"');
       });
 
+      it('should build a list of values for the negative regexp filter', () => {
+        expect(interpolate('_msg:!~$var', ['a\\.b', 'c"d'])).toBe('_msg:!~"(a\\\\.b|c\\"d)"');
+        expect(interpolate('{app!~"$var"}', ['a', 'b'])).toBe('{app!~"(a|b)"}');
+      });
+
       it('should interpolate a value with a line break', () => {
         expect(interpolate('_msg:"$var"', 'a\nb')).toBe('_msg:"a\\nb"');
       });

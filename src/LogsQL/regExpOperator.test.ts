@@ -261,6 +261,29 @@ describe('regExpOperator', () => {
       const result = isRegExpOperatorInLastFilter('filterName1:~ "\\"([^\\"]*)\\"$filter');
       expect(result).toBeTruthy();
     });
+
+    it.each([
+      ['field:!~"'],
+      ['field: ! ~ "'],
+      ['field:!~"prefix '],
+      ['{app!~"'],
+      ['{env="a", app !~ "'],
+    ])('should return true for the negative regexp operator in %j', (queryExpr) => {
+      expect(isRegExpOperatorInLastFilter(queryExpr)).toBe(true);
+    });
+
+    it.each([
+      ['field:!"'],
+      ['{app!="'],
+      ['field:!~"a" other:"'],
+      ['field:~"a" | other:!"'],
+    ])('should return false without the negative regexp operator in %j', (queryExpr) => {
+      expect(isRegExpOperatorInLastFilter(queryExpr)).toBe(false);
+    });
+
+    it('should return true when the regexp value has "!" before the variable', () => {
+      expect(isRegExpOperatorInLastFilter('field:~"a b! ')).toBe(true);
+    });
   });
 
   describe('doubleQuoteRegExpOperator', () => { 
@@ -309,6 +332,16 @@ describe('regExpOperator', () => {
     it('should handle query with the space before value', () => {
       const result = doubleQuoteRegExp('f1:~ $var', ['var']);
       expect(result).toEqual('f1:~"$var"');
+    });
+
+    it('should wrap variable with double quotes when :!~$ is present', () => {
+      const result = doubleQuoteRegExp('f1:!~$var f2:!~ $var', ['var']);
+      expect(result).toEqual('f1:!~"$var" f2:!~"$var"');
+    });
+
+    it('should not wrap if operator is :!$', () => {
+      const result = doubleQuoteRegExp('f1:!$var', ['var']);
+      expect(result).toEqual('f1:!$var');
     });
   });
 
