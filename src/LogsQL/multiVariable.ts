@@ -4,7 +4,8 @@ import { getOpenQuote } from './openQuote';
 import { isRegExpOperatorInLastFilter } from './regExpOperator';
 
 const VALUES_SEPARATOR = '_separator_';
-const multiVariablePattern = /\$_StartMultiVariable_(.+?)_EndMultiVariable?/g;
+// a value may be empty or contain line breaks, so the values are matched with `[\s\S]*?`
+const multiVariablePattern = /\$_StartMultiVariable_([\s\S]*?)_EndMultiVariable/g;
 
 /**
  * Wraps variable values into a placeholder. The values are formatted later by

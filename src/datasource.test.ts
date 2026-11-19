@@ -241,6 +241,10 @@ describe('VictoriaLogsDatasource', () => {
         expect(interpolate('_msg:~$var', ['a\\.b', 'c"d'])).toBe('_msg:~"(a\\\\.b|c\\"d)"');
       });
 
+      it('should interpolate a value with a line break', () => {
+        expect(interpolate('_msg:"$var"', 'a\nb')).toBe('_msg:"a\\nb"');
+      });
+
       it('should keep the value raw inside backticks', () => {
         expect(interpolate('_msg:~`$var`', '\\d"')).toBe('_msg:~`\\d"`');
       });

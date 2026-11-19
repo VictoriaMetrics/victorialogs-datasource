@@ -58,6 +58,38 @@ describe('replaceMultiVariables', () => {
     });
   });
 
+  describe('value with a line break', () => {
+    it.each([
+      ['f:in($var)', 'f:in("a\\nb")'],
+      ['f:"$var"', 'f:"a\\nb"'],
+      ['f:~"$var"', 'f:~"(a\\nb)"'],
+      ['f:`$var`', 'f:`a\nb`'],
+      ['f:$var', 'f:a\nb'],
+    ])('should replace the placeholder in %s', (expr, expected) => {
+      expect(expand(expr, ['a\nb'])).toBe(expected);
+    });
+
+    it('should replace each placeholder of a multi-line query', () => {
+      expect(expand('f:"$var"\n| g:in($var)', ['a\nb'], ['c\nd', 'e'])).toBe('f:"a\\nb"\n| g:in("c\\nd","e")');
+    });
+  });
+
+  describe('empty value', () => {
+    it.each([
+      ['f:in($var)', 'f:in("")'],
+      ['f:"$var"', 'f:""'],
+      ['f:~"$var"', 'f:~"()"'],
+      ['f:$var', 'f:'],
+    ])('should replace the placeholder of a single empty value in %s', (expr, expected) => {
+      expect(expand(expr, [''])).toBe(expected);
+    });
+
+    it('should keep an empty value next to other values', () => {
+      expect(expand('f:in($var)', ['', 'x'])).toBe('f:in("","x")');
+      expect(expand('f:~"$var"', ['', 'x'])).toBe('f:~"(|x)"');
+    });
+  });
+
   describe('several variables', () => {
     it('should not let a quote in a value change the place of the next variable', () => {
       expect(expand('f:"$var" g:"$var"', ['a"b'], ['c"d'])).toBe('f:"a\\"b" g:"c\\"d"');
