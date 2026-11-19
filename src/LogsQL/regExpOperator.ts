@@ -53,7 +53,7 @@ function hasRegExpOperator(queryExpr: string, operatorIndex: number, isInQuotedS
 
 /**
  * Determines if the last filter in a query expression contains a regular expression operator.
- * The method checks for specific operator patterns, such as `:~` or `=~`, within the context
+ * The method checks for specific operator patterns, such as `:~`, `=~`, `:!~` or `!~`, within the context
  * of the last logical filter in the provided query.
  *
  * @param {string} queryExpr - The query expression to be analyzed. It is the last part of the query before the multivariable expression
@@ -91,6 +91,11 @@ export function isRegExpOperatorInLastFilter(queryExpr: string): boolean {
       return false;
     }
 
+    // Check for negative regexp operator pattern (:!~ or !~)
+    if (char === '!' && hasRegExpOperator(queryExpr, i, isInQuotedSection)) {
+      return true;
+    }
+
     // Check for regexp operator pattern (:~ or =~)
     if (operatorChars.includes(char)) {
       if (hasRegExpOperator(queryExpr, i, isInQuotedSection)) {
@@ -119,8 +124,10 @@ export function doubleQuoteRegExp(queryExpr: string, variables: string[]): strin
   for (const variable of variables) {
     const escapedVariable = escapeRegExpChars(variable);
     newQueryExpr = newQueryExpr.replace(
-      new RegExp(`:~\\s*\\$${escapedVariable}\\b`, 'g'),
-      `:~"\$${variable}"`
+      new RegExp(`:(!?)~\\s*\\$${escapedVariable}\\b`, 'g'),
+      // a replacer function keeps the variable name literal: in a replacement string
+      // a name that starts with a digit would be read as a group reference
+      (_match, negation: string) => `:${negation}~"$${variable}"`
     );
   }
   return newQueryExpr;

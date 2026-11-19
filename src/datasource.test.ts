@@ -209,6 +209,56 @@ describe('VictoriaLogsDatasource', () => {
       expect(replacedQuery.expr).toBe('_stream{val=~"(foo|bar)"}');
     });
 
+    describe('variable value inside a regexp filter', () => {
+      const interpolate = (expr: string, value: string | string[]) => {
+        const templateSrvMock = {
+          replace: jest.fn((a: string, _scopedVars: unknown, format: (value: string | string[]) => string) =>
+            a?.replace(/\$var\b/g, () => format(value))),
+          getVariables: jest.fn().mockReturnValue([{ name: 'var', type: 'textbox', current: { value } }]),
+        } as unknown as TemplateSrv;
+        const ds = createDatasource(templateSrvMock);
+        return ds.applyTemplateVariables({ expr, refId: 'A' }, {}).expr;
+      };
+
+      it.each([
+        ['err', 'service:cpa _msg:~"(err)"'],
+        ['"err\\bx a', 'service:cpa _msg:~"(\\"err\\\\bx a)"'],
+        ['\\d{3}', 'service:cpa _msg:~"(\\\\d{3})"'],
+        ['q"x\\.y `z', 'service:cpa _msg:~"(q\\"x\\\\.y `z)"'],
+      ])('should escape the value %s as a LogsQL string', (value, expected) => {
+        expect(interpolate('service:cpa _msg:~$var', value)).toBe(expected);
+      });
+
+      it('should escape the value inside the quotes written in the query', () => {
+        expect(interpolate('_msg:~"$var"', '\\d"')).toBe('_msg:~"(\\\\d\\")"');
+      });
+
+      it('should escape the value inside a stream filter', () => {
+        expect(interpolate('{app=~"$var"}', 'a\\.b')).toBe('{app=~"(a\\\\.b)"}');
+      });
+
+      it('should escape every value of a multi-value variable', () => {
+        expect(interpolate('_msg:~$var', ['a\\.b', 'c"d'])).toBe('_msg:~"(a\\\\.b|c\\"d)"');
+      });
+
+      it('should build a list of values for the negative regexp filter', () => {
+        expect(interpolate('_msg:!~$var', ['a\\.b', 'c"d'])).toBe('_msg:!~"(a\\\\.b|c\\"d)"');
+        expect(interpolate('{app!~"$var"}', ['a', 'b'])).toBe('{app!~"(a|b)"}');
+      });
+
+      it('should interpolate a value with a line break', () => {
+        expect(interpolate('_msg:"$var"', 'a\nb')).toBe('_msg:"a\\nb"');
+      });
+
+      it('should keep the value raw inside backticks', () => {
+        expect(interpolate('_msg:~`$var`', '\\d"')).toBe('_msg:~`\\d"`');
+      });
+
+      it('should keep quoting values inside in()', () => {
+        expect(interpolate('_msg:in($var)', ['a\\b', 'c"d'])).toBe('_msg:in("a\\\\b","c\\"d")');
+      });
+    });
+
     it('should replace $var with an OR expression when given an array of values', () => {
       const scopedVars = {
         var: { text: 'foo,bar', value: ['foo', 'bar'] },

@@ -16,5 +16,7 @@ export function correctMultiExactOperatorValueAll(expr: string): string {
     // replace ": in(*)" with ":in(*)"
     .replace(/:\s*in\(\s*("?\.?\*"?)\s*\)/g, ':in(*)')
     // replace "word in (.*)" with "word in (*)" for the stream field
-    .replace(/("(?:\\.|[^"\\])*"|[^\s:]+)\s+in\(\s*("?\.?\*"?)\s*\)/g, '$1 in(*)');
+    // only the last character of the word is matched: matching the whole word makes the
+    // replace quadratic on a long list of values without spaces
+    .replace(/([^\s:])\s+in\(\s*("?\.?\*"?)\s*\)/g, '$1 in(*)');
 }
