@@ -28,7 +28,8 @@ import {
 import { config, DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv, TemplateSrv } from '@grafana/runtime';
 
 import { correctMultiExactOperatorValueAll } from './LogsQL/multiExactOperator';
-import { correctRegExpValueAll, doubleQuoteRegExp, isRegExpOperatorInLastFilter } from './LogsQL/regExpOperator';
+import { replaceMultiVariables, wrapMultiVariable } from './LogsQL/multiVariable';
+import { correctRegExpValueAll, doubleQuoteRegExp } from './LogsQL/regExpOperator';
 import QueryEditor from './components/QueryEditor/QueryEditor';
 import {
   buildStreamExtraFilters
@@ -323,7 +324,7 @@ export class VictoriaLogsDatasource
     }
 
     if (Array.isArray(value)) {
-      return value.length > 0 ? `$_StartMultiVariable_${value.join('_separator_')}_EndMultiVariable` : '';
+      return value.length > 0 ? wrapMultiVariable(value) : '';
     }
 
     return value;
@@ -470,28 +471,10 @@ export class VictoriaLogsDatasource
     const variableNamesList = this.templateSrv.getVariables().map(v => v.name);
     expr = doubleQuoteRegExp(expr, variableNamesList);
     expr = this.templateSrv.replace(expr, scopedVars, this.interpolateQueryExpr);
-    expr = this.replaceMultiVariables(expr);
+    expr = replaceMultiVariables(expr);
     expr = correctRegExpValueAll(expr);
     expr = correctMultiExactOperatorValueAll(expr);
     return expr;
-  }
-
-  private replaceMultiVariables(input: string): string {
-    const multiVariablePattern = /\$_StartMultiVariable_(.+?)_EndMultiVariable?/g;
-
-    return input.replace(multiVariablePattern, (match, valueList: string, offset) => {
-      const values = valueList.split('_separator_');
-
-      const queryBeforeOffset = input.slice(0, offset);
-      const precedingChars = queryBeforeOffset.replace(/\s+/g, '').slice(-3);
-
-      if (isRegExpOperatorInLastFilter(queryBeforeOffset)) {
-        return `(${values.join('|')})`;
-      } else if (precedingChars.includes('in(')) {
-        return values.map(value => JSON.stringify(value)).join(',');
-      }
-      return values.join(' OR ');
-    });
   }
 
   private async processMetricFindQuery(query: VariableQuery, timeRange?: TimeRange): Promise<MetricFindValue[]> {

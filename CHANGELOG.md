@@ -9,6 +9,7 @@
 * BUGFIX: keep a separate logs sort order for each pane of the Explore split view. Switching the order in one pane no longer reloads the other pane. Requires Grafana `12.4` or newer, on an older Grafana the panes share the last picked order.
 * BUGFIX: respect the `Direction` option of a dashboard logs panel opened in the `View` mode. Older Grafana versions always loaded the newest logs there.
 * BUGFIX: show the `Open in split view` button in the log context of Explore. The context query did not name its data source, so Grafana hid the button.
+* BUGFIX: escape `"` and `\` in a variable value used in a regexp filter (`field:~$var`) or inside double quotes (`field:"$var"`), so the value is used as is and cannot break the query. Values written with doubled backslashes (`\\d+`) now need a single one (`\d+`). See [#765](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/765).
 
 * SECURITY: build the backend with Go 1.27.4 and update `golang.org/x/net` to v0.62.0. See [pr #766](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/766). Thanks to @binGhzal for contributing.
 
