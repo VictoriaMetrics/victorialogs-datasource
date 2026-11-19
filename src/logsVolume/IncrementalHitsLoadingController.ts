@@ -1,11 +1,20 @@
 import { BehaviorSubject, filter, Observable, Subject, take } from 'rxjs';
 
+/** The log lines collected for one query out of its line limit */
+export interface LogsProgress {
+  refId: string;
+  loaded: number;
+  limit: number;
+}
+
 export interface IncrementalHitsLoadingState {
   status: 'running' | 'paused';
   loadedBars: number;
   totalBars: number;
   /** Bucket step of the bars, e.g. `2d` */
   step: string;
+  /** Empty until a job that loads the logs with its bars has collected the first ones */
+  logs: LogsProgress[];
 }
 
 /** What the job knows about its bars before it starts */
@@ -31,7 +40,7 @@ export class IncrementalHitsLoadingController {
   readonly gate$: Observable<IncrementalHitsLoadingState>;
 
   constructor({ totalBars, step }: IncrementalHitsLoadingBars) {
-    this.stateSubject = new BehaviorSubject<IncrementalHitsLoadingState>({ status: 'running', loadedBars: 0, totalBars, step });
+    this.stateSubject = new BehaviorSubject<IncrementalHitsLoadingState>({ status: 'running', loadedBars: 0, totalBars, step, logs: [] });
     this.state$ = this.stateSubject.asObservable();
     this.gate$ = this.state$.pipe(
       filter((state) => state.status !== 'paused'),
@@ -45,6 +54,10 @@ export class IncrementalHitsLoadingController {
 
   barLoaded(): void {
     this.stateSubject.next({ ...this.state, loadedBars: this.state.loadedBars + 1 });
+  }
+
+  logsLoaded(logs: LogsProgress[]): void {
+    this.stateSubject.next({ ...this.state, logs });
   }
 
   pause(): void {

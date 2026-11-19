@@ -348,18 +348,34 @@ In Explore, `Raw Logs` queries and their logs volume histogram are loaded increm
 
 - the logs are requested first; the histogram request starts once the logs have answered;
 - when VictoriaLogs has not started answering the histogram request within 3 seconds, the request is cancelled and
-  the histogram is loaded bar by bar from the newest to the oldest, so a specific moment can be zoomed into before
-  the whole range is loaded;
+  the histogram is loaded bar by bar in the logs sort order (from the newest bar to the oldest one, or the other way
+  round when the logs are sorted in ascending order), so a specific moment can be zoomed into before the whole range
+  is loaded;
 - when VictoriaLogs has not started answering the logs request itself within 3 seconds, it is cancelled and the
-  histogram is loaded bar by bar right away; the logs are requested again for the whole range once the histogram
-  is complete (or stopped).
+  histogram is loaded bar by bar right away. The logs of every bar that has hits are requested right after the bar,
+  until the line limit of the query is reached; after that only the bars are loaded.
   With the **Logs volume** panel collapsed the logs request simply keeps running.
 
 While the histogram is loaded bar by bar, a status row in the query editor shows the progress
-(`Logs volume is loading incrementally: 12 / 28 bars`) with **Pause**/**Resume** and **Stop** controls. **Pause** lets the bar in flight finish
-and holds the next one; **Stop** keeps the bars loaded so far and lets the logs load, unlike the Explore **Cancel**
-button which discards everything. Zooming into the histogram while it loads cancels the current requests and starts
-over for the new time range.
+(`Logs volume is loading incrementally: 12 / 28 bars, 350 logs (limit 1000)`) with **Pause**/**Resume** and **Stop**
+controls. **Pause** lets the bar in flight finish together with its logs and holds the next one; **Stop** keeps the
+bars and the logs loaded so far, unlike the Explore **Cancel** button which discards everything. Zooming into the
+histogram while it loads cancels the current requests and starts over for the new time range.
+
+The logs are requested once for the whole range after the histogram, instead of bar by bar, when:
+
+- the query has a pipe that sorts, limits or aggregates the logs or depends on other log entries: `sort`, `limit`,
+  `offset`, `first`, `last`, `stats`, `top`, `uniq`, `join`, `union`, `stream_context`, `running_stats`,
+  `total_stats`, `sample` and the like;
+- a bar of the histogram fails to load, or the **Logs volume** panel is collapsed while the histogram is loading.
+
+Limitations of the bar-by-bar loading:
+
+- every bar is a separate request for its own time range, so a subquery filter such as `in(...)`, a variable whose
+  value contains a pipe, and `$__range` or `$__interval` in the query are evaluated per bar;
+- with the `Mixed` data source the logs appear all at once when the histogram is complete;
+- VictoriaLogs older than `v1.36.0` treats the end of the time range as inclusive, so a log entry exactly on the
+  boundary of two bars may appear twice.
 
 The behaviour can be switched off per query with the **Incremental hits loading** option in the query editor.
 With a **Group hits by** field, the top-20 groups are picked within every bar separately, so the tail

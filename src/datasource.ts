@@ -50,6 +50,7 @@ import { isSlowResponse } from './logsVolume/firstByteTimeout';
 import { getIncrementalHitsLoadingRuns } from './logsVolume/incrementalHitsLoadingRuns';
 import { LogsGate, openLogsGate, INCREMENTAL_HITS_TIMEOUT_MS } from './logsVolume/logsGate';
 import { getRequestVolumeBucketing } from './logsVolume/volumeBucketing';
+import { volumeRefId } from './logsVolume/volumeHits';
 import { LOGS_VOLUME_DEFAULT_GROUP_BY, LOGS_VOLUME_GROUPS_LIMIT, queryLogsVolume } from './logsVolumeLegacy';
 import {
   addLabelToQuery,
@@ -93,7 +94,6 @@ import { VariableSupport } from './variableSupport/VariableSupport';
 
 export { resolveAdHocFiltersMode } from './utils/query/adHocFilters';
 
-export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 export const REF_ID_STARTER_LOG_SAMPLE = 'log-sample-';
 
 /**
@@ -166,7 +166,11 @@ export class VictoriaLogsDatasource
   }
 
   query(request: DataQueryRequest<Query>): Observable<DataQueryResponse> {
-    const logsGate = openLogsGate(request, { timeoutMs: INCREMENTAL_HITS_TIMEOUT_MS, runs: getIncrementalHitsLoadingRuns(this.uid) });
+    const logsGate = openLogsGate(request, {
+      timeoutMs: INCREMENTAL_HITS_TIMEOUT_MS,
+      runs: getIncrementalHitsLoadingRuns(this.uid),
+      interpolate: (expr) => this.interpolateString(expr, request.scopedVars),
+    });
     this.pendingLogsGate = logsGate;
     this.prepareRequest(request);
 
@@ -193,7 +197,8 @@ export class VictoriaLogsDatasource
           // logs are requested. Always overwritten: a direction saved with a dashboard panel must not leak into
           // Explore or into the requests of other apps
           direction: getSortDirection(q, request.app, request.liveStreaming, request.requestId),
-          maxLines: Math.min(q.maxLines ?? this.maxLines, LOGS_LIMIT_HARD_CAP),
+          // a zero limit counts as none, like in the backend
+          maxLines: Math.min(q.maxLines || this.maxLines, LOGS_LIMIT_HARD_CAP),
           // a volume target already carries its bucket grid shift
           timezoneOffset: q.timezoneOffset ?? timezoneOffset,
           format: getQueryFormat(q.expr),
@@ -571,7 +576,7 @@ export class VictoriaLogsDatasource
           ...query,
           step,
           queryType: QueryType.Hits,
-          refId: `${REF_ID_STARTER_LOG_VOLUME}${query.refId}`,
+          refId: volumeRefId(query.refId),
           supportingQueryType: SupportingQueryType.LogsVolume,
           timezoneOffset: offset,
         };
@@ -644,8 +649,8 @@ export class VictoriaLogsDatasource
         this.pendingLogsGate = undefined;
         // prepared once: the bar requests of the gate differ from the whole-range one only by their range
         const hitsRequest = this.prepareRequest(newRequest);
-        const hits = (req: DataQueryRequest<Query>) => this.runQuery(req);
-        return queryLogsVolume(hitsRequest, logsGate ? logsGate.volume(hitsRequest, hits) : hits(hitsRequest), this.getActiveLevelRules());
+        const run = (req: DataQueryRequest<Query>) => this.runQuery(req);
+        return queryLogsVolume(hitsRequest, logsGate ? logsGate.volume(hitsRequest, run) : run(hitsRequest), this.getActiveLevelRules());
       }
       case SupplementaryQueryType.LogsSample:
         return this.runQuery(this.prepareRequest(markSupportingQueries(newRequest, SupportingQueryType.LogsSample)));

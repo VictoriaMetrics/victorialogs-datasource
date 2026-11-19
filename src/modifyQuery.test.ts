@@ -5,6 +5,7 @@ import {
   addLabelToQuery,
   getSortDirection,
   insertPipesBeforeSortClassPipe,
+  isSplittableByTime,
   removeAggregationPipes,
   removeLabelFromQuery,
 } from './modifyQuery';
@@ -326,6 +327,68 @@ describe('modifyQuery', () => {
 
     it('ignores aggregation keywords inside quoted values', () => {
       expect(removeAggregationPipes('_msg:"a | stats count()" | unpack_json')).toBe('_msg:"a | stats count()" | unpack_json');
+    });
+  });
+
+  describe('isSplittableByTime', () => {
+    it.each([
+      '*',
+      '{app="x"} error',
+      'app:x | unpack_json | fields _time, _msg',
+      'app:x | extract "ip=<ip>" | filter ip:""',
+      'app:x | unpack_logfmt | replace ("a", "b") at host',
+      'app:x | copy host as server | format "<host>:<port>" as addr',
+    ])('is true for `%s`, whose pipes handle every row on its own', (expr) => {
+      expect(isSplittableByTime(expr)).toBe(true);
+    });
+
+    it.each([
+      'app:x | sort by (_time) desc',
+      'app:x | limit 10',
+      'app:x | offset 5',
+      'app:x | first 3 by (duration)',
+      'app:x | stats count() rows',
+      'app:x | count() rows',
+      'app:x | top 5 by (host)',
+      'app:x | uniq by (host)',
+    ])('is false for `%s`, which sorts, slices or aggregates the rows', (expr) => {
+      expect(isSplittableByTime(expr)).toBe(false);
+    });
+
+    it.each([
+      'app:x | join by (user) (app:y)',
+      'app:x | union (app:y)',
+      'app:x | stream_context before 5',
+      'app:x | running_stats sum(hits) as running',
+      'app:x | total_stats count() total',
+      'app:x | sample 10',
+    ])('is false for `%s`, where a row depends on the other rows', (expr) => {
+      expect(isSplittableByTime(expr)).toBe(false);
+    });
+
+    it.each([
+      'app:x | time_add 1h',
+      'app:x | format "<ts>" as _time',
+      'app:x | copy ts as _time',
+      'app:x | rename ts _time',
+      'app:x | math ts * 1000 as _time',
+      'app:x | replace ("T", " ") at _time',
+      'app:x | replace_regexp ("\\.\\d+", "") at _time',
+      'app:x | extract "ts=<_time> " from _msg',
+      'app:x | extract_regexp "ts=(?P<_time>\\S+)" from _msg',
+      'app:x | unpack_json fields (_time, level)',
+      'app:x | unpack_logfmt fields (_time)',
+    ])('is false for `%s`, which may rewrite `_time`', (expr) => {
+      expect(isSplittableByTime(expr)).toBe(false);
+    });
+
+    it('checks a pipe at any position', () => {
+      expect(isSplittableByTime('app:x | unpack_json | limit 10 | fields _msg')).toBe(false);
+    });
+
+    it('ignores pipe keywords in the filter and inside quoted values', () => {
+      expect(isSplittableByTime('limit OR sort')).toBe(true);
+      expect(isSplittableByTime('_msg:"a | limit 10" | unpack_json')).toBe(true);
     });
   });
 });

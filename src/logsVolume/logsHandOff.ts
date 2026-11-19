@@ -1,18 +1,24 @@
-import { AsyncSubject, Observable } from 'rxjs';
+import { AsyncSubject, Observable, ReplaySubject } from 'rxjs';
+
+import { DataFrame } from '@grafana/data';
 
 /** How the raw logs ended: in time, past the budget, or with an error or a cancellation */
 export type LogsOutcome = 'fast' | 'slow' | 'failed';
 
 /**
- * The two signals between the logs and the volume streams of one Explore run. Both fire
- * once and replay, so either side may subscribe before or after the other has settled
+ * The signals between the logs and the volume streams of one Explore run. All of them
+ * replay, so either side may subscribe before or after the other has settled
  */
 export class LogsHandOff {
   private readonly outcome = new AsyncSubject<LogsOutcome>();
-  private readonly volumeDone = new AsyncSubject<void>();
+  private readonly barLogs = new ReplaySubject<DataFrame[]>(1);
+  private readonly volumeDone = new AsyncSubject<DataFrame[] | undefined>();
 
   readonly outcome$: Observable<LogsOutcome> = this.outcome.asObservable();
-  readonly volumeDone$: Observable<void> = this.volumeDone.asObservable();
+  /** The logs a bar-by-bar volume has collected so far; completes with the volume */
+  readonly barLogs$: Observable<DataFrame[]> = this.barLogs.asObservable();
+  /** Fires when the volume is over, with the logs it collected when it got through its bars */
+  readonly volumeDone$: Observable<DataFrame[] | undefined> = this.volumeDone.asObservable();
 
   /** Whether a volume is subscribed and waiting for the logs to settle */
   get volumeWaits(): boolean {
@@ -28,8 +34,18 @@ export class LogsHandOff {
     return volumeWaits;
   }
 
-  finishVolume(): void {
-    this.volumeDone.next();
+  pushLogs(frames: DataFrame[]): void {
+    this.barLogs.next(frames);
+  }
+
+  failLogs(error: unknown): void {
+    this.barLogs.error(error);
+  }
+
+  /** Ends the volume (the first call wins): with the logs it collected, or with none for the logs to be requested again */
+  finishVolume(collectedLogs?: DataFrame[]): void {
+    this.barLogs.complete();
+    this.volumeDone.next(collectedLogs);
     this.volumeDone.complete();
   }
 }
