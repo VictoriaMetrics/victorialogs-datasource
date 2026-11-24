@@ -346,7 +346,7 @@ VictoriaLogs datasource supports automatic variable interpolation with the follo
 
 > **Note:** available since [v0.33.0](https://github.com/VictoriaMetrics/victorialogs-datasource/releases/tag/v0.33.0).
 
-In Explore mode, `Raw Logs` queries and their logs volume histogram are loaded incrementally if the query time exceeds 3 seconds.
+In Explore mode, when incremental hits loading is enabled, the `Raw Logs` and `Logs volume` requests switch to bar-by-bar loading if a request has not started responding within 3 seconds.
 The incremental loading is following these rules:
 
 - the `Logs` panel is queried first; the `Logs volume` histogram panel is executed after;
@@ -354,7 +354,7 @@ The incremental loading is following these rules:
 - in incremental mode, the volume bars are loaded one-by-one, from the newest to the oldest. At any moment, user can 
   click on a bar to drilldown to a specific moment of time. This should help to significantly narrow the search criteria
   and load logs faster for that narrowed time range. 
-- the incremental mode can be paused or canceled at any time. It can be also disabled in the `Options` section below the query editor.
+- the incremental mode can be paused, resumed or stopped from the status row above the query editor. **Stop** keeps the bars loaded so far and loads the logs; the Explore **Cancel** button discards everything.
 - once all logs bars are loaded, plugin finally executes the `Logs` panel query.
 
 The incremental mode can be turned off per query with the **Incremental hits loading** in the `Options` section below the query editor.
