@@ -344,26 +344,20 @@ VictoriaLogs datasource supports automatic variable interpolation with the follo
 
 ## Incremental hits loading
 
-In Explore, `Raw Logs` queries and their logs volume histogram are loaded incrementally by default:
+> **Note:** available since [v0.33.0](https://github.com/VictoriaMetrics/victorialogs-datasource/releases/tag/v0.33.0).
 
-- the logs are requested first; the histogram request starts once the logs have answered;
-- when VictoriaLogs has not started answering the histogram request within 3 seconds, the request is cancelled and
-  the histogram is loaded bar by bar from the newest to the oldest, so a specific moment can be zoomed into before
-  the whole range is loaded;
-- when VictoriaLogs has not started answering the logs request itself within 3 seconds, it is cancelled and the
-  histogram is loaded bar by bar right away; the logs are requested again for the whole range once the histogram
-  is complete (or stopped).
-  With the **Logs volume** panel collapsed the logs request simply keeps running.
+In Explore mode, `Raw Logs` queries and their logs volume histogram are loaded incrementally if the query time exceeds 3 seconds.
+The incremental loading is following these rules:
 
-While the histogram is loaded bar by bar, a status row in the query editor shows the progress
-(`Logs volume is loading incrementally: 12 / 28 bars`) with **Pause**/**Resume** and **Stop** controls. **Pause** lets the bar in flight finish
-and holds the next one; **Stop** keeps the bars loaded so far and lets the logs load, unlike the Explore **Cancel**
-button which discards everything. Zooming into the histogram while it loads cancels the current requests and starts
-over for the new time range.
+- the `Logs` panel is queried first; the `Logs volume` histogram panel is executed after;
+- if VictoriaLogs didn't answer within 3 seconds, plugin cancels the request and switches to incremental mode
+- in incremental mode, the volume bars are loaded one-by-one, from the newest to the oldest. At any moment, user can 
+  click on a bar to drilldown to a specific moment of time. This should help to significantly narrow the search criteria
+  and load logs faster for that narrowed time range. 
+- the incremental mode can be paused or canceled at any time. It can be also disabled in the `Options` section below the query editor.
+- once all logs bars are loaded, plugin finally executes the `Logs` panel query.
 
-The behaviour can be switched off per query with the **Incremental hits loading** option in the query editor.
-With a **Group hits by** field, the top-20 groups are picked within every bar separately, so the tail
-group `other` may differ from the one of a single whole-range request.
+The incremental mode can be turned off per query with the **Incremental hits loading** in the `Options` section below the query editor.
 
 ## Drilldown
 
