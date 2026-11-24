@@ -2,8 +2,8 @@ import { defer, finalize, Observable, switchMap, tap } from 'rxjs';
 
 import { CoreApp, DataQueryRequest, DataQueryResponse } from '@grafana/data';
 
-import { isSplittableByTime } from '../modifyQuery';
 import { Query, QueryType } from '../types';
+import { queryHasPipes } from '../utils/query/adHocFilters';
 import { SECOND_MS } from '../utils/time/constants';
 
 import { BarsLoading, LoadBarLogs, noBarLogs, queryHitsAfterLogs, queryHitsByBars, RegisterJob, RunQuery } from './incrementalHits';
@@ -30,7 +30,7 @@ export interface IncrementalHitsLoadingOptions {
  * The two streams of one Explore run. The logs go first; the volume waits for their
  * outcome and skips its request after failed logs. With a budget, logs the backend gave
  * up give way to the bar-by-bar volume, which loads the logs of every bar after its hits.
- * Logs that cannot be loaded part by part are requested again after the volume
+ * Logs of a query with pipes are not loaded part by part: they are requested again after the volume
  */
 export interface LogsGate {
   /** `run` sends the logs request, and once more after a volume that collected no logs */
@@ -48,7 +48,8 @@ export function openLogsGate(request: DataQueryRequest<Query>, options: Incremen
   const timeoutMs = visible.every(isIncrementalHitsLoadingEnabled) ? options.timeoutMs : undefined;
   // the pane finds its job by the request that started it
   const registerJob: RegisterJob = (controller) => options.runs.register(request.requestId, controller);
-  const logsByBars = visible.every((query) => isSplittableByTime(options.interpolate(query.expr)));
+  // a pipe may sort, slice, aggregate or move the rows in time, so only plain filters are loaded part by part
+  const logsByBars = visible.every((query) => !queryHasPipes(options.interpolate(query.expr)));
   return createLogsGate(request, timeoutMs, registerJob, logsByBars);
 }
 

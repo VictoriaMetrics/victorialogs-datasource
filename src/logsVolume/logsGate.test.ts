@@ -45,7 +45,7 @@ describe('openLogsGate', () => {
   const plain = { runs: new IncrementalHitsLoadingRuns(), interpolate };
   it('opens a gate for an Explore request of Raw Logs queries, with or without pipes', () => {
     expect(openLogsGate(makeRequest([{ expr: '{app="x"} error' }]), plain)).toBeDefined();
-    expect(openLogsGate(makeRequest([{ expr: '* | stats count()' }]), plain)).toBeDefined();
+    expect(openLogsGate(makeRequest([{ expr: '* | unpack_json' }]), plain)).toBeDefined();
   });
 
   it('opens none outside Explore or for live streaming', () => {
@@ -280,6 +280,37 @@ describe('LogsGate with incremental hits loading', () => {
     expect(logsRequests.map((req) => [budgeted(req), req.targets[0].maxLines])).toEqual([[true, 2], [false, 2], [false, 1]]);
     expect(run.mock.calls.some(([req]) => isHits(req) && req.range === volumeRequest.range)).toBe(false);
   });
+
+  it.each(['* | unpack_json', '{app="x"} error | sort by (_time)', '$piped'])(
+    'requests the slow logs of `%s` once for the whole range after the bars, as a pipe may not be loaded part by part',
+    (expr) => {
+      const piped = makeRequest([{ expr }]);
+      const volumeRequest = makeRequest([{ refId: volumeRefId('A'), queryType: QueryType.Hits }]);
+      // the variable is resolved before the check, so a pipe in its value counts
+      const pipedGate = openLogsGate(piped, { ...incremental, interpolate: (e) => e.replace('$piped', '* | fields _msg') })!;
+      const isHits = (req: DataQueryRequest<Query>) => req.targets[0].queryType === QueryType.Hits;
+      const run = jest.fn<Observable<DataQueryResponse>, [DataQueryRequest<Query>]>();
+      scheduler.run(({ cold, expectObservable }) => {
+        run.mockImplementation((req) => {
+          if (isHits(req)) {
+            return barByRange(cold)(req);
+          }
+          return budgeted(req) ? cold('---(m|)', { m: slow }) : cold('-(a|)', { a: response('logs') });
+        });
+
+        // the backend gives the logs up at 3, bars at 4, 5, 6, then the logs of the whole range at 7
+        expectObservable(pipedGate.volume(volumeRequest, run)).toBe('----ab(cd|)', {
+          a: streaming('bar2'),
+          b: streaming('bar2', 'bar1'),
+          c: streaming('bar2', 'bar1', 'bar0'),
+          d: done('bar2', 'bar1', 'bar0'),
+        });
+        expectObservable(pipedGate.logs(run)).toBe('p------(a|)', { p: cleared, a: response('logs') });
+      });
+      const logsRequests = run.mock.calls.map(([req]) => req).filter((req) => !isHits(req));
+      expect(logsRequests.map((req) => [budgeted(req), req.range === piped.range])).toEqual([[true, true], [false, true]]);
+    }
+  );
 
   it('fails the volume when a bar answers with an in-band error, releases the job and the held logs', () => {
     const boom = { message: 'boom' };
