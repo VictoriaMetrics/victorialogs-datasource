@@ -15,8 +15,8 @@ describe('IncrementalHitsLoadingStatus', () => {
   });
 
   /** A job of the pane: registered while it runs */
-  const startJob = (requestId: string, totalBars: number, step = '1h') => {
-    const controller = new IncrementalHitsLoadingController({ totalBars, step });
+  const startJob = (requestId: string, totalBars: number, logsAfterBars = false) => {
+    const controller = new IncrementalHitsLoadingController({ totalBars, step: '1h', logsAfterBars });
     let release!: () => void;
     act(() => {
       release = getIncrementalHitsLoadingRuns(uid).register(requestId, controller);
@@ -47,6 +47,20 @@ describe('IncrementalHitsLoadingStatus', () => {
     expect(screen.queryByText(/Logs volume/)).not.toBeInTheDocument();
     startJob('explore_a', 3);
     expect(screen.getByText('Logs volume is loading incrementally: 0 / 3 bars')).toBeInTheDocument();
+  });
+
+  it('notes that the logs of a query with pipes are loaded after the last bar', () => {
+    render(<IncrementalHitsLoadingStatus datasourceUid={uid} requestId='explore_a' />);
+    startJob('explore_a', 3, true);
+    expect(screen.getByText(/The query has pipes, so its logs are loaded once/)).toBeInTheDocument();
+    expect(screen.getByText(/so the logs volume is loaded bar by bar/)).toBeInTheDocument();
+  });
+
+  it('has no note about pipes while the logs are loaded with the bars', () => {
+    render(<IncrementalHitsLoadingStatus datasourceUid={uid} requestId='explore_a' />);
+    startJob('explore_a', 3);
+    expect(screen.queryByText(/The query has pipes/)).not.toBeInTheDocument();
+    expect(screen.getByText(/so the results are loaded bar by bar/)).toBeInTheDocument();
   });
 
   it('renders nothing before the pane has run a request', () => {

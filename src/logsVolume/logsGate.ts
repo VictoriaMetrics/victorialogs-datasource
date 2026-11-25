@@ -73,10 +73,11 @@ function createLogsGate(request: DataQueryRequest<Query>, timeoutMs: number | un
         // only the first subscription feeds the logs: a later one (the volume panel expanded again) finds the hand-off over
         const collector = logsByBars && !logsClaimed ? new LogsCollector(targets) : undefined;
         logsClaimed = true;
-        const byBars = (loadLogs: LoadBarLogs) => () =>
-          queryHitsByBars(run, volumeRequest, getVolumeBars(volumeRequest, targets[0]?.direction ?? 'desc'), registerJob, loadLogs);
+        const byBars = (loadLogs: LoadBarLogs, logsAfterBars = false) => () =>
+          queryHitsByBars(run, volumeRequest, getVolumeBars(volumeRequest, targets[0]?.direction ?? 'desc'), registerJob, loadLogs, logsAfterBars);
         const bars: BarsLoading = {
-          withLogs: byBars(collector ? loadBarLogs(collector, request, run, handOff) : noBarLogs),
+          // the status row tells that a query with pipes gets its logs after the last bar
+          withLogs: byBars(collector ? loadBarLogs(collector, request, run, handOff) : noBarLogs, !logsByBars),
           hitsOnly: byBars(noBarLogs),
         };
         return handOff.outcome$.pipe(

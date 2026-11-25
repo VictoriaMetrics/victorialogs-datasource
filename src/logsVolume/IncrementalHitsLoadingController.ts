@@ -15,12 +15,15 @@ export interface IncrementalHitsLoadingState {
   step: string;
   /** Empty until a job that loads the logs with its bars has collected the first ones */
   logs: LogsProgress[];
+  /** The logs are not loaded with the bars: they are requested once for the whole range after the last bar */
+  logsAfterBars: boolean;
 }
 
 /** What the job knows about its bars before it starts */
 export interface IncrementalHitsLoadingBars {
   totalBars: number;
   step: string;
+  logsAfterBars?: boolean;
 }
 
 /**
@@ -39,8 +42,15 @@ export class IncrementalHitsLoadingController {
   /** Emits once as soon as the job is not paused; subscribe before every bar request */
   readonly gate$: Observable<IncrementalHitsLoadingState>;
 
-  constructor({ totalBars, step }: IncrementalHitsLoadingBars) {
-    this.stateSubject = new BehaviorSubject<IncrementalHitsLoadingState>({ status: 'running', loadedBars: 0, totalBars, step, logs: [] });
+  constructor({ totalBars, step, logsAfterBars = false }: IncrementalHitsLoadingBars) {
+    this.stateSubject = new BehaviorSubject<IncrementalHitsLoadingState>({
+      status: 'running',
+      loadedBars: 0,
+      totalBars,
+      step,
+      logs: [],
+      logsAfterBars,
+    });
     this.state$ = this.stateSubject.asObservable();
     this.gate$ = this.state$.pipe(
       filter((state) => state.status !== 'paused'),

@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { useObservable } from 'react-use';
 
 import { GrafanaTheme2 } from '@grafana/data';
-import { Alert, Button, Stack, Text, useStyles2 } from '@grafana/ui';
+import { Alert, Button, Icon, Stack, Text, useStyles2 } from '@grafana/ui';
 
 import { IncrementalHitsLoadingState, LogsProgress } from '../../logsVolume/IncrementalHitsLoadingController';
 import { getIncrementalHitsLoadingRuns } from '../../logsVolume/incrementalHitsLoadingRuns';
@@ -33,6 +33,12 @@ export const IncrementalHitsLoadingStatus = ({ datasourceUid, requestId }: Props
     <div className={styles.row}>
       <Alert severity='warning' title={getTitle(state)} bottomSpacing={0}>
         <Stack direction='column' gap={1}>
+          {state.logsAfterBars && (
+            <Stack direction='row' alignItems='center' gap={0.5}>
+              <Icon name='info-circle' />
+              <Text weight='medium'>{LOGS_AFTER_BARS_NOTE}</Text>
+            </Stack>
+          )}
           <Text variant='bodySmall'>{getExplanation(state)}</Text>
           <Stack direction='row' alignItems='center' gap={1}>
             <Button
@@ -63,8 +69,10 @@ const getTitle = ({ loadedBars, totalBars, logs, status }: IncrementalHitsLoadin
 const formatLogs = ({ refId, loaded, limit }: LogsProgress, _index: number, logs: LogsProgress[]): string =>
   `${logs.length > 1 ? `${refId}: ` : ''}${loaded} logs (limit ${limit})`;
 
-const getExplanation = (state: IncrementalHitsLoadingState): string =>
-  `VictoriaLogs didn't start answering within ${INCREMENTAL_HITS_TIMEOUT_MS / SECOND_MS} s, so the results are loaded bar by bar with step=${state.step}, in the logs sort order. ` +
+const LOGS_AFTER_BARS_NOTE = 'The query has pipes, so its logs are loaded once for the whole range after the last bar';
+
+const getExplanation = ({ step, logsAfterBars }: IncrementalHitsLoadingState): string =>
+  `VictoriaLogs didn't start answering within ${INCREMENTAL_HITS_TIMEOUT_MS / SECOND_MS} s, so the ${logsAfterBars ? 'logs volume is' : 'results are'} loaded bar by bar with step=${step}, in the logs sort order. ` +
   'Select a range on the Logs volume chart to cancel it and drill down into a specific time range. ' +
   'Switch off "Incremental hits loading" in Query options to load everything in one request.';
 

@@ -342,6 +342,30 @@ describe('LogsGate with incremental hits loading', () => {
     });
   });
 
+  it.each([
+    ['{app="x"} error', '---(m|)', false],
+    ['* | unpack_json', '---(m|)', true],
+    // fast logs are shown already, so there is nothing to tell about them
+    ['* | unpack_json', '-(a|)', false],
+  ])('tells the job of `%s` with the logs answering as `%s` whether the logs are left for after the bars: %s', (expr, logsMarble, logsAfterBars) => {
+    const exprRequest = makeRequest([{ expr }]);
+    const exprGate = openLogsGate(exprRequest, incremental)!;
+    const seen = new Set<boolean>();
+    runs.job$(exprRequest.requestId).subscribe((job) => job && seen.add(job.state.logsAfterBars));
+    scheduler.run(({ cold }) => {
+      const isHits = (req: DataQueryRequest<Query>) => req.targets[0].queryType === QueryType.Hits;
+      const run = (req: DataQueryRequest<Query>) => {
+        if (budgeted(req)) {
+          return isHits(req) ? cold('---(m|)', { m: slow }) : cold(logsMarble, { m: slow, a: response('logs') });
+        }
+        return isHits(req) ? barByRange(cold)(req) : cold('-(a|)', { a: response('logs') });
+      };
+      exprGate.logs(run).subscribe();
+      exprGate.volume(makeRequest([{ refId: volumeRefId('A'), queryType: QueryType.Hits }]), run).subscribe();
+    });
+    expect([...seen]).toEqual([logsAfterBars]);
+  });
+
   it('keeps the logs waiting while the bars are paused', () => {
     scheduler.run(({ cold, expectObservable }) => {
       const run = () => cold('---(m|)', { m: slow });

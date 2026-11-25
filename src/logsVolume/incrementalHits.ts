@@ -35,18 +35,20 @@ export interface BarsLoading {
  * response is emitted with the frames accumulated so far as `Streaming`; the last emission
  * is `Done`. The job has a controller of its own for the time it runs: it reports every bar
  * there, waits at its gate while paused and completes early with the bars loaded so far
- * when stopped or when the logs of a bar fail
+ * when stopped or when the logs of a bar fail. `logsAfterBars` tells the controller that
+ * the logs are left for a request after the last bar
  */
 export function queryHitsByBars(
   run: RunQuery,
   request: DataQueryRequest<Query>,
   bars: VolumeBars,
   registerJob: RegisterJob,
-  loadLogs: LoadBarLogs
+  loadLogs: LoadBarLogs,
+  logsAfterBars = false
 ): Observable<DataQueryResponse> {
   return defer(() => {
     let accumulated: DataFrame[] = [];
-    const controller = new IncrementalHitsLoadingController({ totalBars: bars.ranges.length, step: bars.step });
+    const controller = new IncrementalHitsLoadingController({ totalBars: bars.ranges.length, step: bars.step, logsAfterBars });
     const release = registerJob(controller);
 
     const logsFailed = new Subject<void>();
