@@ -351,11 +351,17 @@ The incremental loading is following these rules:
 
 - the `Logs` panel is queried first; the `Logs volume` histogram panel is executed after;
 - if VictoriaLogs didn't answer within 3 seconds, plugin cancels the request and switches to incremental mode
-- in incremental mode, the volume bars are loaded one-by-one, from the newest to the oldest. At any moment, user can 
+- in incremental mode, the volume bars are loaded one-by-one, in the sort order of the logs. At any moment, user can
   click on a bar to drilldown to a specific moment of time. This should help to significantly narrow the search criteria
   and load logs faster for that narrowed time range. 
-- the incremental mode can be paused, resumed or stopped from the status row above the query editor. **Stop** keeps the bars loaded so far and loads the logs; the Explore **Cancel** button discards everything.
-- once all logs bars are loaded, plugin finally executes the `Logs` panel query.
+- after each bar that has hits, plugin loads the logs for the time range of that bar and adds them to the `Logs` panel. When the query reaches its [line limit](#line-limits), plugin loads only the bars.
+- the incremental mode can be paused, resumed or stopped from the status row above the query editor. The status row shows the progress, for example `12 / 28 bars, 350 logs (limit 1000)`. **Stop** keeps the bars and the logs loaded so far; the Explore **Cancel** button discards everything.
+
+Limitations of the incremental mode:
+
+- plugin loads the logs with the bars only for a query that has [filters](https://docs.victoriametrics.com/victorialogs/logsql/#filters) and no [pipes](https://docs.victoriametrics.com/victorialogs/logsql/#pipes). For a query with a pipe, plugin loads all bars first. Then it executes the `Logs` panel query for the full time range.
+- a query with a [subquery filter](https://docs.victoriametrics.com/victorialogs/logsql/#subquery-filter), such as `in(...)`, loads its logs with the bars. Each bar is a separate request, so VictoriaLogs calculates the subquery for the time range of that bar, not for the full time range.
+- if the `Logs volume` panel is collapsed, there are no bars to load, and plugin loads the logs with one usual request.
 
 The incremental mode can be turned off per query with the **Incremental hits loading** in the `Options` section below the query editor.
 
