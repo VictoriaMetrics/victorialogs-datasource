@@ -70,6 +70,10 @@ func (m *contextualLoggerMiddleware) QueryData(ctx context.Context, req *QueryDa
 	return m.BaseHandler.QueryData(ctx, req)
 }
 
+func (m *contextualLoggerMiddleware) QueryChunkedData(ctx context.Context, req *QueryChunkedDataRequest, w ChunkedDataWriter) error {
+	return m.BaseHandler.QueryChunkedData(m.setup(ctx, req.PluginContext), req, w)
+}
+
 func (m *contextualLoggerMiddleware) CallResource(ctx context.Context, req *CallResourceRequest, sender CallResourceResponseSender) error {
 	ctx = m.setup(ctx, req.PluginContext)
 	return m.BaseHandler.CallResource(ctx, req, sender)
@@ -98,19 +102,4 @@ func (m *contextualLoggerMiddleware) PublishStream(ctx context.Context, req *Pub
 func (m *contextualLoggerMiddleware) RunStream(ctx context.Context, req *RunStreamRequest, sender *StreamSender) error {
 	ctx = m.setup(ctx, req.PluginContext)
 	return m.BaseHandler.RunStream(ctx, req, sender)
-}
-
-func (m *contextualLoggerMiddleware) ValidateAdmission(ctx context.Context, req *AdmissionRequest) (*ValidationResponse, error) {
-	ctx = m.setup(ctx, req.PluginContext)
-	return m.BaseHandler.ValidateAdmission(ctx, req)
-}
-
-func (m *contextualLoggerMiddleware) MutateAdmission(ctx context.Context, req *AdmissionRequest) (*MutationResponse, error) {
-	ctx = m.setup(ctx, req.PluginContext)
-	return m.BaseHandler.MutateAdmission(ctx, req)
-}
-
-func (m *contextualLoggerMiddleware) ConvertObjects(ctx context.Context, req *ConversionRequest) (*ConversionResponse, error) {
-	ctx = m.setup(ctx, req.PluginContext)
-	return m.BaseHandler.ConvertObjects(ctx, req)
 }

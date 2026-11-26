@@ -143,33 +143,49 @@ func (f ConvertFromProtobuf) QueryDataRequest(protoReq *pluginv2.QueryDataReques
 
 // QueryDataResponse converts protobuf version of a QueryDataResponse to the SDK version.
 func (f ConvertFromProtobuf) QueryDataResponse(protoRes *pluginv2.QueryDataResponse) (*QueryDataResponse, error) {
+	return queryDataResponseFromProto(protoRes, false)
+}
+
+// ConsumeQueryDataResponse converts protoRes like QueryDataResponse and sets each encoded frame in protoRes to nil once decoded,
+// so a caller that owns protoRes lets the bytes be freed early. After an error, protoRes is partly consumed and must not be reused.
+func (f ConvertFromProtobuf) ConsumeQueryDataResponse(protoRes *pluginv2.QueryDataResponse) (*QueryDataResponse, error) {
+	return queryDataResponseFromProto(protoRes, true)
+}
+
+func queryDataResponseFromProto(protoRes *pluginv2.QueryDataResponse, release bool) (*QueryDataResponse, error) {
 	qdr := &QueryDataResponse{
 		Responses: make(Responses, len(protoRes.Responses)),
 	}
-	var err error
 	for refID, res := range protoRes.Responses {
 		status := Status(res.Status)
 		if !status.IsValid() {
 			status = StatusUnknown
 		}
 
-		dr := DataResponse{Status: status}
+		dr := DataResponse{Status: status, Frames: make(data.Frames, len(res.Frames))}
 
 		switch res.Format {
 		case pluginv2.DataFrameFormat_ARROW:
-			dr.Frames, err = data.UnmarshalArrowFrames(res.Frames)
-			if err != nil {
-				return nil, err
-			}
-		case pluginv2.DataFrameFormat_JSON:
-			dr.Frames = make([]*data.Frame, len(res.Frames))
 			for i, b := range res.Frames {
-				var v *data.Frame
-				err = json.Unmarshal(b, &v)
+				frame, err := data.UnmarshalArrowFrame(b)
 				if err != nil {
 					return nil, err
 				}
-				dr.Frames[i] = v
+				dr.Frames[i] = frame
+				if release {
+					res.Frames[i] = nil
+				}
+			}
+		case pluginv2.DataFrameFormat_JSON:
+			for i, b := range res.Frames {
+				var frame *data.Frame
+				if err := json.Unmarshal(b, &frame); err != nil {
+					return nil, err
+				}
+				dr.Frames[i] = frame
+				if release {
+					res.Frames[i] = nil
+				}
 			}
 		default:
 			return nil, errors.New("unknown data frame format: " + res.Format.String())
@@ -225,9 +241,10 @@ func (f ConvertFromProtobuf) CallResourceResponse(protoResp *pluginv2.CallResour
 	}
 
 	return &CallResourceResponse{
-		Status:  int(protoResp.Code),
-		Body:    protoResp.Body,
-		Headers: headers,
+		Status:      int(protoResp.Code),
+		Body:        protoResp.Body,
+		Headers:     headers,
+		ErrorSource: ErrorSource(protoResp.ErrorSource),
 	}
 }
 
@@ -257,6 +274,7 @@ func (f ConvertFromProtobuf) CheckHealthResponse(protoResp *pluginv2.CheckHealth
 		Status:      status,
 		Message:     protoResp.Message,
 		JSONDetails: protoResp.JsonDetails,
+		ErrorSource: ErrorSource(protoResp.ErrorSource),
 	}
 }
 
@@ -344,6 +362,10 @@ func (f ConvertFromProtobuf) StreamPacket(protoReq *pluginv2.StreamPacket) *Stre
 	}
 }
 
+func (f ConvertFromProtobuf) GrafanaConfig(cfg map[string]string) *config.GrafanaCfg {
+	return config.NewGrafanaCfg(cfg)
+}
+
 // StatusResult ...
 func (f ConvertFromProtobuf) StatusResult(s *pluginv2.StatusResult) *StatusResult {
 	if s == nil {
@@ -355,91 +377,4 @@ func (f ConvertFromProtobuf) StatusResult(s *pluginv2.StatusResult) *StatusResul
 		Reason:  s.Reason,
 		Code:    s.Code,
 	}
-}
-
-// GroupVersionKind ...
-func (f ConvertFromProtobuf) GroupVersionKind(req *pluginv2.GroupVersionKind) GroupVersionKind {
-	return GroupVersionKind{
-		Group:   req.Group,
-		Version: req.Version,
-		Kind:    req.Kind,
-	}
-}
-
-// GroupVersion ...
-func (f ConvertFromProtobuf) GroupVersion(req *pluginv2.GroupVersion) GroupVersion {
-	return GroupVersion{
-		Group:   req.Group,
-		Version: req.Version,
-	}
-}
-
-// RawObject ...
-func (f ConvertFromProtobuf) RawObject(req *pluginv2.RawObject) RawObject {
-	return RawObject{
-		Raw:         req.Raw,
-		ContentType: req.ContentType,
-	}
-}
-
-// RawObjects ...
-func (f ConvertFromProtobuf) RawObjects(req []*pluginv2.RawObject) []RawObject {
-	rawObjects := make([]RawObject, len(req))
-	for i, r := range req {
-		rawObjects[i] = f.RawObject(r)
-	}
-	return rawObjects
-}
-
-// AdmissionRequest ...
-func (f ConvertFromProtobuf) AdmissionRequest(req *pluginv2.AdmissionRequest) *AdmissionRequest {
-	return &AdmissionRequest{
-		PluginContext:  f.PluginContext(req.PluginContext),
-		Operation:      AdmissionRequestOperation(req.Operation),
-		Kind:           f.GroupVersionKind(req.Kind),
-		ObjectBytes:    req.ObjectBytes,
-		OldObjectBytes: req.OldObjectBytes,
-	}
-}
-
-// ConversionRequest ...
-func (f ConvertFromProtobuf) ConversionRequest(req *pluginv2.ConversionRequest) *ConversionRequest {
-	return &ConversionRequest{
-		PluginContext: f.PluginContext(req.PluginContext),
-		UID:           req.Uid,
-		Objects:       f.RawObjects(req.Objects),
-		TargetVersion: f.GroupVersion(req.TargetVersion),
-	}
-}
-
-// MutationResponse ...
-func (f ConvertFromProtobuf) MutationResponse(rsp *pluginv2.MutationResponse) *MutationResponse {
-	return &MutationResponse{
-		Allowed:     rsp.Allowed,
-		Result:      f.StatusResult(rsp.Result),
-		Warnings:    rsp.Warnings,
-		ObjectBytes: rsp.ObjectBytes,
-	}
-}
-
-// ValidationResponse ...
-func (f ConvertFromProtobuf) ValidationResponse(rsp *pluginv2.ValidationResponse) *ValidationResponse {
-	return &ValidationResponse{
-		Allowed:  rsp.Allowed,
-		Result:   f.StatusResult(rsp.Result),
-		Warnings: rsp.Warnings,
-	}
-}
-
-// ConversionResponse ...
-func (f ConvertFromProtobuf) ConversionResponse(rsp *pluginv2.ConversionResponse) *ConversionResponse {
-	return &ConversionResponse{
-		UID:     rsp.Uid,
-		Result:  f.StatusResult(rsp.Result),
-		Objects: f.RawObjects(rsp.Objects),
-	}
-}
-
-func (f ConvertFromProtobuf) GrafanaConfig(cfg map[string]string) *config.GrafanaCfg {
-	return config.NewGrafanaCfg(cfg)
 }

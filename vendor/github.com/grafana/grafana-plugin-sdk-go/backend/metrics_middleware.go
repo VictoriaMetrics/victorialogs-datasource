@@ -64,6 +64,14 @@ func (m *metricsMiddleware) QueryData(ctx context.Context, req *QueryDataRequest
 	return resp, err
 }
 
+func (m *metricsMiddleware) QueryChunkedData(ctx context.Context, req *QueryChunkedDataRequest, w ChunkedDataWriter) error {
+	observer, writer := recordChunkedErrors(w)
+	return m.instrumentRequest(ctx, req.PluginContext, func(ctx context.Context) (RequestStatus, error) {
+		err := m.BaseHandler.QueryChunkedData(ctx, req, writer)
+		return observer.requestStatus(err), err
+	})
+}
+
 func (m *metricsMiddleware) CallResource(ctx context.Context, req *CallResourceRequest, sender CallResourceResponseSender) error {
 	return m.instrumentRequest(ctx, req.PluginContext, func(ctx context.Context) (RequestStatus, error) {
 		innerErr := m.BaseHandler.CallResource(ctx, req, sender)
@@ -118,37 +126,4 @@ func (m *metricsMiddleware) RunStream(ctx context.Context, req *RunStreamRequest
 		return RequestStatusFromError(innerErr), innerErr
 	})
 	return err
-}
-
-func (m *metricsMiddleware) ValidateAdmission(ctx context.Context, req *AdmissionRequest) (*ValidationResponse, error) {
-	var resp *ValidationResponse
-	err := m.instrumentRequest(ctx, req.PluginContext, func(ctx context.Context) (RequestStatus, error) {
-		var innerErr error
-		resp, innerErr = m.BaseHandler.ValidateAdmission(ctx, req)
-		return RequestStatusFromError(innerErr), innerErr
-	})
-
-	return resp, err
-}
-
-func (m *metricsMiddleware) MutateAdmission(ctx context.Context, req *AdmissionRequest) (*MutationResponse, error) {
-	var resp *MutationResponse
-	err := m.instrumentRequest(ctx, req.PluginContext, func(ctx context.Context) (RequestStatus, error) {
-		var innerErr error
-		resp, innerErr = m.BaseHandler.MutateAdmission(ctx, req)
-		return RequestStatusFromError(innerErr), innerErr
-	})
-
-	return resp, err
-}
-
-func (m *metricsMiddleware) ConvertObjects(ctx context.Context, req *ConversionRequest) (*ConversionResponse, error) {
-	var resp *ConversionResponse
-	err := m.instrumentRequest(ctx, req.PluginContext, func(ctx context.Context) (RequestStatus, error) {
-		var innerErr error
-		resp, innerErr = m.BaseHandler.ConvertObjects(ctx, req)
-		return RequestStatusFromError(innerErr), innerErr
-	})
-
-	return resp, err
 }
