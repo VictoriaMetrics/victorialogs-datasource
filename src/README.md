@@ -473,6 +473,10 @@ the `Download logs` button in the header of the query editor. The button is avai
 `Raw Logs` type.
 
 The button opens a dialog with the time range, the query with its variables resolved and the filters of the query.
+The time range is the range of the last run of the query, so the file has the logs of the period that the panel
+shows. If the query has no run yet, the dialog uses the range of the time picker. After a change of the time picker,
+run the query before the download.
+
 Select the format and click `Download`:
 
 - `JSON Lines`: one JSON object for each log, as the `/select/logsql/query` endpoint of VictoriaLogs returns them.
@@ -483,10 +487,13 @@ The plugin streams the file from VictoriaLogs through Grafana to the browser and
 
 Limits of the download:
 
-- The line limit does not apply. The file contains every log that matches the query in the time range, so a wide
-  time range can give a large file and a long query. To stop the query, cancel the download in the browser.
-- VictoriaLogs does not sort the logs. To sort them, add `| sort by (_time)` to the query. The sort of many logs can use much
-  memory in VictoriaLogs.
+- The line limit of the datasource does not apply. The file contains every log that the query returns for the time
+  range, so a wide time range can give a large file and a long query. To stop the query, cancel the download in the
+  browser.
+- The pipes of the query apply as in Explore. For example, a query with `| limit 100` gives a file with at most
+  `100` logs.
+- VictoriaLogs does not sort the logs. To sort them, add `| sort by (_time)` to the query. The sort of many logs
+  can use much memory in VictoriaLogs.
 - The file has the logs as VictoriaLogs returns them. The `View as JSON` option, the derived fields and the
   [log level rules](#log-level-rules) do not change it.
 - If the connection to VictoriaLogs breaks during the download, the browser shows the download as complete, but the
