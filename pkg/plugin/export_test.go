@@ -48,14 +48,16 @@ func TestParseExportQuery(t *testing.T) {
 	})
 
 	invalid := map[string]func(url.Values){
-		"empty query":       func(v url.Values) { v.Set("query", "  ") },
-		"missing start":     func(v url.Values) { v.Del("start") },
-		"non-numeric start": func(v url.Values) { v.Set("start", "now-1h") },
-		"non-numeric end":   func(v url.Values) { v.Set("end", "now") },
-		"start equals end":  func(v url.Values) { v.Set("start", "2000") },
-		"start after end":   func(v url.Values) { v.Set("start", "3000") },
-		"missing format":    func(v url.Values) { v.Del("format") },
-		"unknown format":    func(v url.Values) { v.Set("format", "xml") },
+		"empty query":                 func(v url.Values) { v.Set("query", "  ") },
+		"missing start":               func(v url.Values) { v.Del("start") },
+		"non-numeric start":           func(v url.Values) { v.Set("start", "now-1h") },
+		"non-numeric end":             func(v url.Values) { v.Set("end", "now") },
+		"start overflows nanoseconds": func(v url.Values) { v.Set("start", "-9223372036855") },
+		"end overflows nanoseconds":   func(v url.Values) { v.Set("end", "9223372036855") },
+		"start equals end":            func(v url.Values) { v.Set("start", "2000") },
+		"start after end":             func(v url.Values) { v.Set("start", "3000") },
+		"missing format":              func(v url.Values) { v.Del("format") },
+		"unknown format":              func(v url.Values) { v.Set("format", "xml") },
 	}
 	for name, breakValues := range invalid {
 		t.Run(name, func(t *testing.T) {

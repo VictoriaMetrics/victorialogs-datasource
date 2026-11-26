@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -19,6 +20,9 @@ const (
 
 	exportCopyBufferBytes     = 256 * 1024
 	exportErrorBodyLimitBytes = 4096
+
+	minExportTimeMs = math.MinInt64 / int64(time.Millisecond)
+	maxExportTimeMs = math.MaxInt64 / int64(time.Millisecond)
 )
 
 // exportQuery is a logs export that the query editor requests
@@ -31,6 +35,18 @@ type exportQuery struct {
 	Format             string
 }
 
+// parseExportTimeMs reads a Unix timestamp in milliseconds that the export can send to VictoriaLogs in nanoseconds
+func parseExportTimeMs(values url.Values, name string) (int64, error) {
+	timeMs, err := strconv.ParseInt(values.Get(name), 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be a Unix timestamp in milliseconds: %w", name, err)
+	}
+	if timeMs < minExportTimeMs || timeMs > maxExportTimeMs {
+		return 0, fmt.Errorf("%s must be from %d to %d", name, minExportTimeMs, maxExportTimeMs)
+	}
+	return timeMs, nil
+}
+
 // parseExportQuery reads the export from the query string of the resource call.
 // It ignores the args it does not know, so a caller cannot set a limit or other VictoriaLogs args
 func parseExportQuery(values url.Values) (exportQuery, error) {
@@ -38,13 +54,13 @@ func parseExportQuery(values url.Values) (exportQuery, error) {
 	if expr == "" {
 		return exportQuery{}, fmt.Errorf("query can't be blank")
 	}
-	startMs, err := strconv.ParseInt(values.Get("start"), 10, 64)
+	startMs, err := parseExportTimeMs(values, "start")
 	if err != nil {
-		return exportQuery{}, fmt.Errorf("start must be a Unix timestamp in milliseconds: %w", err)
+		return exportQuery{}, err
 	}
-	endMs, err := strconv.ParseInt(values.Get("end"), 10, 64)
+	endMs, err := parseExportTimeMs(values, "end")
 	if err != nil {
-		return exportQuery{}, fmt.Errorf("end must be a Unix timestamp in milliseconds: %w", err)
+		return exportQuery{}, err
 	}
 	if startMs >= endMs {
 		return exportQuery{}, fmt.Errorf("start must be before end")

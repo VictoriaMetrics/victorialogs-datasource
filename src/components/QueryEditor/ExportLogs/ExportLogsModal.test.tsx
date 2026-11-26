@@ -101,6 +101,24 @@ describe('ExportLogsModal', () => {
     expect(screen.getByText('The CSV format needs VictoriaLogs v1.49.0 or newer.')).toBeInTheDocument();
   });
 
+  it('keeps the time range of the moment it opened', () => {
+    jest.mocked(useUnmetCsvExport).mockReturnValue(undefined);
+    const datasource = {
+      uid: 'vl-uid',
+      applyTemplateVariables: jest.fn().mockReturnValue(query),
+    } as unknown as VictoriaLogsDatasource;
+    const laterRange: TimeRange = { ...timeRange, from: dateTime(START_MS + 1000), to: dateTime(END_MS + 1000) };
+    const modalWith = (range: TimeRange) => (
+      <ExportLogsModal datasource={datasource} query={query} timeRange={range} onClose={jest.fn()} />
+    );
+    const { rerender } = render(modalWith(timeRange));
+
+    rerender(modalWith(laterRange));
+
+    expect(downloadParams().get('start')).toBe(String(START_MS));
+    expect(downloadParams().get('end')).toBe(String(END_MS));
+  });
+
   it('closes on cancel', async () => {
     const { onClose } = renderModal();
 

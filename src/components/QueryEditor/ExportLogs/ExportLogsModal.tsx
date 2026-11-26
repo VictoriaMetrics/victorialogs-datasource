@@ -1,7 +1,7 @@
 import { css } from '@emotion/css';
 import React, { useMemo, useState } from 'react';
 
-import { getDefaultTimeRange, GrafanaTheme2, PanelData, TimeRange } from '@grafana/data';
+import { GrafanaTheme2, PanelData, TimeRange } from '@grafana/data';
 import { Alert, Button, Field, LinkButton, Modal, RadioButtonGroup, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../datasource';
@@ -10,6 +10,7 @@ import { Query } from '../../../types';
 import { ReadOnlyField } from './ReadOnlyField';
 import { DEFAULT_EXPORT_FORMAT, FORMAT_OPTIONS } from './constants';
 import { resolveExportQuery } from './exportQuery';
+import { resolveExportRange } from './exportRange';
 import { buildExportUrl, exportFileName } from './exportUrl';
 import { ExportFormat } from './types';
 import { useUnmetCsvExport } from './useUnmetCsvExport';
@@ -29,10 +30,10 @@ export const ExportLogsModal: React.FC<Props> = ({ datasource, query, panelData,
   const styles = useStyles2(getStyles);
   const [format, setFormat] = useState<ExportFormat>(DEFAULT_EXPORT_FORMAT);
   const [openedAtMs] = useState(() => Date.now());
+  const [range] = useState(() => resolveExportRange(panelData, timeRange));
   const unmetCsvExport = useUnmetCsvExport(datasource);
   const exportQuery = useMemo(() => resolveExportQuery(datasource, query, panelData), [datasource, query, panelData]);
 
-  const range = timeRange ?? panelData?.timeRange ?? getDefaultTimeRange();
   const exportUrl = buildExportUrl({
     datasourceUid: datasource.uid,
     exportQuery,
