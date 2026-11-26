@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"mime"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
 )
 
 const (
@@ -23,7 +25,15 @@ const (
 
 	minExportTimeMs = math.MinInt64 / int64(time.Millisecond)
 	maxExportTimeMs = math.MaxInt64 / int64(time.Millisecond)
+
+	exportCSVMediaType = "text/csv"
+	// The response limit middleware of the plugin SDK adds 1 to the limit, so math.MaxInt64 overflows there
+	exportResponseLimitBytes = math.MaxInt64 / 2
 )
+
+// exportIgnoredParams are the query args that change the content of the file.
+// The datasource URL and the custom query parameters of the datasource must not set them
+var exportIgnoredParams = []string{"limit", "format"}
 
 // exportQuery is a logs export that the query editor requests
 type exportQuery struct {
@@ -94,6 +104,9 @@ func (q exportQuery) url(datasourceURL, customQueryParams string) (string, error
 		for _, value := range paramValues {
 			values.Add(name, value)
 		}
+	}
+	for _, name := range exportIgnoredParams {
+		values.Del(name)
 	}
 	values.Set("query", q.Expr)
 	values.Set("start", strconv.FormatInt(time.UnixMilli(q.StartMs).UnixNano(), 10))
@@ -166,6 +179,19 @@ func exportStatusError(resp *http.Response) error {
 	return fmt.Errorf("VictoriaLogs returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 }
 
+// checkExportFormat fails when VictoriaLogs ignored format=csv, as the releases without the CSV format do
+func checkExportFormat(resp *http.Response, format string) error {
+	if format != exportFormatCSV {
+		return nil
+	}
+	contentType := resp.Header.Get("Content-Type")
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err == nil && mediaType == exportCSVMediaType {
+		return nil
+	}
+	return fmt.Errorf("VictoriaLogs returned %q, not CSV: this VictoriaLogs does not support the CSV format", contentType)
+}
+
 func setExportHeaders(header http.Header, upstream http.Header, format string) {
 	header.Set("Content-Type", upstream.Get("Content-Type"))
 	if contentEncoding := upstream.Get("Content-Encoding"); contentEncoding != "" {
@@ -180,7 +206,7 @@ func (d *Datasource) VLExportLogs(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, "the logs export supports the GET method only", http.StatusMethodNotAllowed)
 		return
 	}
-	ctx := req.Context()
+	ctx := httpclient.WithResponseLimit(req.Context(), exportResponseLimitBytes)
 	query, err := parseExportQuery(req.URL.Query())
 	if err != nil {
 		writeError(rw, http.StatusBadRequest, err)
@@ -208,6 +234,12 @@ func (d *Datasource) VLExportLogs(rw http.ResponseWriter, req *http.Request) {
 		statusErr := exportStatusError(resp)
 		d.logger.Error("VictoriaLogs rejected the logs export", "error", statusErr)
 		writeError(rw, resp.StatusCode, statusErr)
+		return
+	}
+
+	if err := checkExportFormat(resp, query.Format); err != nil {
+		d.logger.Error("VictoriaLogs returned the logs export in a wrong format", "error", err)
+		writeError(rw, http.StatusBadGateway, err)
 		return
 	}
 

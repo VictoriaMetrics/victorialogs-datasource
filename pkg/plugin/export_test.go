@@ -122,6 +122,22 @@ func TestExportQueryURL(t *testing.T) {
 		}
 	})
 
+	t.Run("ignores the limit and the format of the datasource settings", func(t *testing.T) {
+		query := exportQuery{Expr: "*", StartMs: 1, EndMs: 2, Format: exportFormatJSONLines}
+		rawURL, err := query.url("http://vl:9428?limit=5", "limit=10&format=csv&tenant=1")
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		u, err := url.Parse(rawURL)
+		if err != nil {
+			t.Fatalf("the result is not a URL: %s", err)
+		}
+		want := url.Values{"tenant": {"1"}, "query": {"*"}, "start": {"1000000"}, "end": {"2000000"}}
+		if got := u.Query(); got.Encode() != want.Encode() {
+			t.Fatalf("got query %q, want %q", got.Encode(), want.Encode())
+		}
+	})
+
 	t.Run("blank datasource URL", func(t *testing.T) {
 		if _, err := query.url("", ""); err == nil {
 			t.Fatal("expected an error")
@@ -306,8 +322,45 @@ func TestVLExportLogs(t *testing.T) {
 		}
 	})
 
+	t.Run("rejects a response that is not CSV for the CSV format", func(t *testing.T) {
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/stream+json")
+			_, _ = w.Write([]byte(`{"_msg":"error"}` + "\n"))
+		}))
+		defer upstream.Close()
+
+		rr := callExportHandler(http.MethodGet, exportTarget, exportPluginContext(upstream.URL, `{}`))
+
+		if rr.Code == http.StatusOK {
+			t.Fatalf("expected an error status, body %s", rr.Body.String())
+		}
+		if !strings.Contains(rr.Body.String(), "not CSV") {
+			t.Fatalf("the error is not reported: %s", rr.Body.String())
+		}
+		if rr.Header().Get("Content-Disposition") != "" {
+			t.Fatal("an error must not be an attachment")
+		}
+	})
+
+	t.Run("ignores the response limit of Grafana", func(t *testing.T) {
+		t.Setenv("GF_DATAPROXY_RESPONSE_LIMIT", "10")
+		body := strings.Repeat("a", 100)
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+			_, _ = w.Write([]byte(body))
+		}))
+		defer upstream.Close()
+
+		rr := callExportHandler(http.MethodGet, exportTarget, exportPluginContext(upstream.URL, `{}`))
+
+		if rr.Body.String() != body {
+			t.Fatalf("got %d bytes, want %d", rr.Body.Len(), len(body))
+		}
+	})
+
 	t.Run("keeps the received part when VictoriaLogs drops the connection", func(t *testing.T) {
 		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/csv")
 			_, _ = w.Write([]byte("partial"))
 			w.(http.Flusher).Flush()
 			conn, _, err := w.(http.Hijacker).Hijack()
@@ -334,6 +387,7 @@ func TestVLExportLogsStreamsThroughResourceAdapter(t *testing.T) {
 	chunk := bytes.Repeat([]byte("a"), exportCopyBufferBytes)
 	const chunks = 3
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/csv")
 		for i := 0; i < chunks; i++ {
 			_, _ = w.Write(chunk)
 			w.(http.Flusher).Flush()
