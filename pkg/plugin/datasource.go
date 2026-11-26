@@ -64,6 +64,7 @@ func NewDatasource() *Datasource {
 	mux.HandleFunc("/select/tenant_ids", ds.VLAPITenantIDs)
 	mux.HandleFunc("/vmui", ds.VMUIQuery)
 	mux.HandleFunc("/victorialogs/support", ds.VictoriaLogsSupportHandler)
+	mux.HandleFunc("/export/logs", ds.VLExportLogs)
 	ds.CallResourceHandler = httpadapter.New(mux)
 	return &ds
 }

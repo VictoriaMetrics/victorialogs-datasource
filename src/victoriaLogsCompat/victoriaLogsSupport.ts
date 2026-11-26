@@ -1,5 +1,7 @@
 /** A VictoriaLogs API a plugin feature relies on; the list lives in pkg/vlcompat/requirements.go */
 export interface VictoriaLogsRequirement {
+  /** The name of the requirement for the code that checks it */
+  id: string;
   /** What the plugin does with the API */
   feature: string;
   /** The VictoriaLogs API the feature relies on */
