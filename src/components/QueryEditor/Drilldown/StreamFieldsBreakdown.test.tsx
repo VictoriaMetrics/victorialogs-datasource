@@ -41,9 +41,9 @@ const Harness: React.FC = () => {
 };
 
 describe('StreamFieldsBreakdown', () => {
-  it('lists the stream fields with their hit counts on the fields level', () => {
+  it('lists the stream fields with their hit counts on the fields level', async () => {
     render(<Harness />);
-    expect(screen.getByRole('button', { name: 'namespace' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'namespace' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'pod' })).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
     expect(screen.getByText('7')).toBeInTheDocument();
@@ -51,23 +51,24 @@ describe('StreamFieldsBreakdown', () => {
 
   it('opens the values level of a clicked field under a breadcrumb', async () => {
     render(<Harness />);
-    await userEvent.click(screen.getByRole('button', { name: 'namespace' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'namespace' }));
     expect(screen.getByTestId('values-table')).toHaveTextContent('namespace');
     expect(screen.getByRole('button', { name: 'Stream fields' })).toBeInTheDocument();
   });
 
   it('returns to the fields level via the breadcrumb', async () => {
     render(<Harness />);
-    await userEvent.click(screen.getByRole('button', { name: 'pod' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'pod' }));
     await userEvent.click(screen.getByRole('button', { name: 'Stream fields' }));
     expect(screen.queryByTestId('values-table')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'namespace' })).toBeInTheDocument();
   });
 
-  it('orders the fields by log count, whatever order they arrive in', () => {
+  it('orders the fields by log count, whatever order they arrive in', async () => {
     render(<Harness />);
 
-    const names = screen.getAllByRole('button', { name: /^(namespace|pod)$/ }).map((b) => b.textContent);
+    const fieldButtons = await screen.findAllByRole('button', { name: /^(namespace|pod)$/ });
+    const names = fieldButtons.map((b) => b.textContent);
     expect(names).toEqual(['namespace', 'pod']);
   });
 });
