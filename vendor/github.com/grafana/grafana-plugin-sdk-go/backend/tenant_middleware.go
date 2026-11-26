@@ -32,6 +32,10 @@ func (m *tenantIDMiddleware) QueryData(ctx context.Context, req *QueryDataReques
 	return m.BaseHandler.QueryData(ctx, req)
 }
 
+func (m *tenantIDMiddleware) QueryChunkedData(ctx context.Context, req *QueryChunkedDataRequest, w ChunkedDataWriter) error {
+	return m.BaseHandler.QueryChunkedData(m.setup(ctx), req, w)
+}
+
 func (m *tenantIDMiddleware) CallResource(ctx context.Context, req *CallResourceRequest, sender CallResourceResponseSender) error {
 	ctx = m.setup(ctx)
 	return m.BaseHandler.CallResource(ctx, req, sender)
@@ -60,19 +64,4 @@ func (m *tenantIDMiddleware) PublishStream(ctx context.Context, req *PublishStre
 func (m *tenantIDMiddleware) RunStream(ctx context.Context, req *RunStreamRequest, sender *StreamSender) error {
 	ctx = m.setup(ctx)
 	return m.BaseHandler.RunStream(ctx, req, sender)
-}
-
-func (m *tenantIDMiddleware) ValidateAdmission(ctx context.Context, req *AdmissionRequest) (*ValidationResponse, error) {
-	ctx = m.setup(ctx)
-	return m.BaseHandler.ValidateAdmission(ctx, req)
-}
-
-func (m *tenantIDMiddleware) MutateAdmission(ctx context.Context, req *AdmissionRequest) (*MutationResponse, error) {
-	ctx = m.setup(ctx)
-	return m.BaseHandler.MutateAdmission(ctx, req)
-}
-
-func (m *tenantIDMiddleware) ConvertObjects(ctx context.Context, req *ConversionRequest) (*ConversionResponse, error) {
-	ctx = m.setup(ctx)
-	return m.BaseHandler.ConvertObjects(ctx, req)
 }
