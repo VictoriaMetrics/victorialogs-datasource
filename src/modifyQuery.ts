@@ -116,6 +116,10 @@ const recursiveRemove = (filters: FilterVisualQuery, keyValue: string): boolean 
   return removed;
 };
 
+/** The logs sort order of the Explore pane that issued the request */
+const getExploreSortDirection =(requestId?: string): QueryDirection =>
+  getExploreSortOrder(requestId) === LogsSortOrder.Ascending ? 'asc' : 'desc';
+
 /**
  * The `sort_direction` of a Raw Logs request: the logs sort order of the requesting pane in
  * Explore, the direction option in dashboards. None for other apps, other query types and live streams.
@@ -137,7 +141,7 @@ export const getSortDirection = (
     case CoreApp.PanelViewer:
       return direction ?? 'desc';
     case CoreApp.Explore:
-      return getExploreSortOrder(requestId) === LogsSortOrder.Ascending ? 'asc' : 'desc';
+      return getExploreSortDirection(requestId);
     default:
       return undefined;
   }
@@ -205,7 +209,6 @@ export const removeAggregationPipes = (expr: string): string => {
   }
   return segments.slice(0, aggregationIdx).join(' | ');
 };
-
 
 export const getQueryFormat = (expr: string): Format | undefined => {
   if (isExprHasStatsPipeFunc(expr, 'histogram')) {

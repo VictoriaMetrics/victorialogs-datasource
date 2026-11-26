@@ -144,7 +144,7 @@ describe('getVolumeBars', () => {
 
   it('splits the range into one bar per bucket, from the newest to the oldest, and names the step', () => {
     // 3 s at the default 96 target bars → 1 s step
-    const bars = getVolumeBars(request(makeRange(0, 3000)));
+    const bars = getVolumeBars(request(makeRange(0, 3000)), 'desc');
     expect(bars.step).toBe('1s');
     expect(spans(bars.ranges)).toEqual([
       [2000, 3000],
@@ -154,7 +154,7 @@ describe('getVolumeBars', () => {
   });
 
   it('clips the newest and the oldest bar to the range so the bars count exactly what the whole range would', () => {
-    expect(spans(getVolumeBars(request(makeRange(500, 3500))).ranges)).toEqual([
+    expect(spans(getVolumeBars(request(makeRange(500, 3500)), 'desc').ranges)).toEqual([
       [3000, 3500],
       [2000, 3000],
       [1000, 2000],
@@ -163,7 +163,7 @@ describe('getVolumeBars', () => {
   });
 
   it('builds proper time ranges with a raw part', () => {
-    const [bar] = getVolumeBars(request(makeRange(0, 1000))).ranges;
+    const [bar] = getVolumeBars(request(makeRange(0, 1000)), 'desc').ranges;
     expect(bar.raw.from.valueOf()).toBe(0);
     expect(bar.raw.to.valueOf()).toBe(1000);
   });

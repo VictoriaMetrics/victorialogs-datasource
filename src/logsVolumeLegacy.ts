@@ -21,7 +21,7 @@ import { LogLevelRule } from './configuration/LogLevelRules/types';
 import { extractLevelFromLabels } from './configuration/LogLevelRules/utils';
 import { getRequestVolumeBucketing } from './logsVolume/volumeBucketing';
 import { Query } from './types';
-import { responseErrors } from './utils/dataQueryResponse';
+import { failOnResponseError } from './utils/dataQueryResponse';
 import { DERIVED_LEVEL_FIELD, parseDerivedLevel } from './utils/query/levelFormatPipes';
 
 /** Cap on the number of series when the volume is grouped by a custom field — VictoriaLogs merges the tail into one bucket */
@@ -66,12 +66,8 @@ export const queryLogsVolume = (
   };
 
   return source.pipe(
+    failOnResponseError,
     map((response) => {
-      // an in-band response error fails the stream like a thrown one
-      const [error] = responseErrors(response);
-      if (error) {
-        throw error;
-      }
       // every packet carries the hits of the whole range, so each one is aggregated from scratch
       const state = response.state ?? LoadingState.Done;
       const aggregated = aggregateVolumeFrames(response.data.map(toDataFrame), request.targets, request, rules);

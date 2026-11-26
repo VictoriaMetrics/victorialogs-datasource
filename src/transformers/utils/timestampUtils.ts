@@ -19,13 +19,10 @@ export const generateTimestampsWithStep = (
   stepMs: number
 ) => {
   const result: number[] = [];
-  const stepsToFirstTimestamp = Math.ceil((startMs - firstNotNullTimestampMs) / stepMs);
-  let firstTimestampMs = firstNotNullTimestampMs + stepsToFirstTimestamp * stepMs;
-
-  // If the first timestamp is before 'start', set it to 'start'
-  if (firstTimestampMs < startMs) {
-    firstTimestampMs = startMs;
-  }
+  // VictoriaLogs labels a bucket with its grid start, so the bucket that contains 'start'
+  // may have a label before 'start'. The axis begins with that bucket to keep its value
+  const stepsToFirstTimestamp = Math.floor((startMs - firstNotNullTimestampMs) / stepMs);
+  const firstTimestampMs = firstNotNullTimestampMs + stepsToFirstTimestamp * stepMs;
 
   // Calculate the total number of steps from 'firstTimestamp' to 'end'
   const totalSteps = Math.floor((endMs - firstTimestampMs) / stepMs);

@@ -12,6 +12,7 @@
 * BUGFIX: show the `Open in split view` button in the log context of Explore. The context query did not name its data source, so Grafana hid the button.
 * BUGFIX: fix the query editor freezing for several seconds when a multi-value variable with thousands of selected values is used in a query.
 * BUGFIX: fix the interpolation of a multi-value variable in a negative regexp filter (`field:!~$var`), and of a variable value that is empty or has a line break.
+* BUGFIX: keep the first bucket of `Range` stats queries with a custom `Step`. The bucket that contains the start of the time range was dropped when its timestamp was before the start, so its data was missing from the panel. See [pr #778](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/778).
 
 * SECURITY: build the backend with Go 1.27.4 and update `golang.org/x/net` to v0.62.0. See [pr #766](https://github.com/VictoriaMetrics/victorialogs-datasource/pull/766). Thanks to @binGhzal for contributing.
 
