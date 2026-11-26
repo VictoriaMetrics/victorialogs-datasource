@@ -1,4 +1,4 @@
-import ESLintPlugin from 'eslint-webpack-plugin';
+import DiagnosticsPlugin from 'diagnostics-webpack-plugin';
 import path from 'path';
 import ReplaceInFileWebpackPlugin from 'replace-in-file-webpack-plugin';
 import type { Configuration } from 'webpack';
@@ -12,12 +12,10 @@ const config = async (env): Promise<Configuration> => {
   const baseConfig = await grafanaConfig(env);
 
   baseConfig.plugins = baseConfig.plugins?.map((plugin) => {
-    // A lint error must not kill `yarn dev`. The 7.9.1 scaffold already resolves
-    // `failOnError` to false in development, so today this override is a defensive
-    // pin: pre-7.9.1 scaffolds defaulted to true and webpack-cli turned the lint
-    // error into a fatal exit (code 2), and scaffold updates regenerate .config
-    if (plugin instanceof ESLintPlugin) {
-      return new ESLintPlugin({ ...plugin.options, failOnError: false });
+    // The scaffold plugin fails the build on a lint error. `yarn lint` owns that
+    // check, so the build reports lint errors as warnings
+    if (plugin instanceof DiagnosticsPlugin) {
+      return new DiagnosticsPlugin({ ...plugin.given, reportAs: { errors: 'warning' } });
     }
     // The %VERSION%/%TODAY%/%PLUGIN_ID% substitution must run against the overridden
     // output directory — the scaffold rules are reused as-is, only `dir` is redirected

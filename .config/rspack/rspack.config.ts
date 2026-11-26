@@ -78,7 +78,7 @@ const config = async (env): Promise<Configuration> => {
                 },
                 transform: {
                   react: {
-                    development: !env.production,
+                    development: false,
                     refresh: false,
                   },
                 },

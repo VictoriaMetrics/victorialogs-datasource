@@ -3372,16 +3372,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/eslint@npm:^9.6.1":
-  version: 9.6.1
-  resolution: "@types/eslint@npm:9.6.1"
-  dependencies:
-    "@types/estree": "npm:*"
-    "@types/json-schema": "npm:*"
-  checksum: 10c0/69ba24fee600d1e4c5abe0df086c1a4d798abf13792d8cfab912d76817fe1a894359a1518557d21237fbaf6eda93c5ab9309143dee4c59ef54336d1b3570420e
-  languageName: node
-  linkType: hard
-
 "@types/esrecurse@npm:^4.3.1":
   version: 4.3.1
   resolution: "@types/esrecurse@npm:4.3.1"
@@ -3389,7 +3379,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/estree@npm:*, @types/estree@npm:^1.0.10, @types/estree@npm:^1.0.6, @types/estree@npm:^1.0.8, @types/estree@npm:^1.0.9":
+"@types/estree@npm:^1.0.10, @types/estree@npm:^1.0.6, @types/estree@npm:^1.0.8, @types/estree@npm:^1.0.9":
   version: 1.0.10
   resolution: "@types/estree@npm:1.0.10"
   checksum: 10c0/d258926dac68425e77e43fd64045123b77f998ab2cf0bd0cc5a6ff016c365e60ed26f42adac64551906c1beab3bea08d60d113f905829ac60cfd6409db4761e9
@@ -3483,7 +3473,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/json-schema@npm:*, @types/json-schema@npm:^7.0.15, @types/json-schema@npm:^7.0.9":
+"@types/json-schema@npm:^7.0.15, @types/json-schema@npm:^7.0.9":
   version: 7.0.15
   resolution: "@types/json-schema@npm:7.0.15"
   checksum: 10c0/a996a745e6c5d60292f36731dd41341339d4eeed8180bb09226e5c8d23759067692b1d88e5d91d72ee83dfc00d3aca8e7bd43ea120516c17922cbcb7c3e252db
@@ -5143,7 +5133,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"color-name@npm:~1.1.4":
+"color-name@npm:^1.1.4, color-name@npm:~1.1.4":
   version: 1.1.4
   resolution: "color-name@npm:1.1.4"
   checksum: 10c0/a1a3f914156960902f46f7f56bc62effc6c94e84b2cae157a526b1c1f74b677a47ec602bf68a61abfa2b42d15b7c5651c6dbe72a43af720bc588dff885b10f95
@@ -5348,6 +5338,13 @@ __metadata:
   version: 0.0.10
   resolution: "cssfilter@npm:0.0.10"
   checksum: 10c0/478a227a616fb6e9bb338eb95f690df141b86231ec737cbea574484f31a09a51db894b4921afc4987459dae08d584355fd689ff2a7a7c7a74de4bb4c072ce553
+  languageName: node
+  linkType: hard
+
+"cssfontparser@npm:^1.2.1":
+  version: 1.2.1
+  resolution: "cssfontparser@npm:1.2.1"
+  checksum: 10c0/ceb9b2976d503dbff3ac2aff0229b263affb4fb221a6947b357682cd8a952f6995253646ca5f820020d2fe05b5e29b56dbdd2343388c32203e8dd0ed15bdc1ca
   languageName: node
   linkType: hard
 
@@ -5586,6 +5583,35 @@ __metadata:
   version: 3.1.0
   resolution: "detect-newline@npm:3.1.0"
   checksum: 10c0/c38cfc8eeb9fda09febb44bcd85e467c970d4e3bf526095394e5a4f18bc26dd0cf6b22c69c1fa9969261521c593836db335c2795218f6d781a512aea2fb8209d
+  languageName: node
+  linkType: hard
+
+"diagnostics-webpack-plugin@npm:1.1.4":
+  version: 1.1.4
+  resolution: "diagnostics-webpack-plugin@npm:1.1.4"
+  dependencies:
+    jest-worker: "npm:^30.5.1"
+    picomatch: "npm:^4.0.4"
+    tinyglobby: "npm:^0.2.17"
+  peerDependencies:
+    "@biomejs/biome": ^2.0.0
+    eslint: ^9.0.0 || ^10.0.0
+    oxlint: ^1.0.0
+    stylelint: ^17.0.0 || ^18.0.0
+    typescript: ^5.0.0 || ^6.0.0 || ^7.1.0-0
+    webpack: ^5.106.0
+  peerDependenciesMeta:
+    "@biomejs/biome":
+      optional: true
+    eslint:
+      optional: true
+    oxlint:
+      optional: true
+    stylelint:
+      optional: true
+    typescript:
+      optional: true
+  checksum: 10c0/1cf3a14cdd89247de07523a76071aeafcd9c179498b0a53c736a27d1f58015e75f9c13dcaaff3cb0b8822f6b5ca99d95b5c0f50b2fa04e147837140616de6563
   languageName: node
   linkType: hard
 
@@ -6227,21 +6253,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-webpack-plugin@npm:6.0.0":
-  version: 6.0.0
-  resolution: "eslint-webpack-plugin@npm:6.0.0"
-  dependencies:
-    "@types/eslint": "npm:^9.6.1"
-    micromatch: "npm:^4.0.8"
-    normalize-path: "npm:^3.0.0"
-    schema-utils: "npm:^4.3.3"
-  peerDependencies:
-    eslint: ^9.0.0 || ^10.0.0
-    webpack: ^5.0.0
-  checksum: 10c0/9805305057c5a715287d23a03e9359f41b7b52407c4e73d81d4168843a52d548cf621d3a6341456918be1914a06d594b8021b67c18038c69473afab62b1a9302
-  languageName: node
-  linkType: hard
-
 "eslint@npm:10.15.0":
   version: 10.15.0
   resolution: "eslint@npm:10.15.0"
@@ -6858,17 +6869,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"glob@npm:14.0.6":
-  version: 14.0.6
-  resolution: "glob@npm:14.0.6"
-  dependencies:
-    minimatch: "npm:^11.0.5"
-    minipass: "npm:^7.1.3"
-    path-scurry: "npm:^3.0.0"
-  checksum: 10c0/5b8621a6a363abc630de0a542f0f8d0a919a0a5e154626b5fdf1e97425e8709783b0b27cc1eb9d65a5ce097db84e904fe50f8f1dc8c0579c49583c0ac30f8ac7
-  languageName: node
-  linkType: hard
-
 "glob@npm:^10.4.1":
   version: 10.5.0
   resolution: "glob@npm:10.5.0"
@@ -7348,6 +7348,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"intersection-observer@npm:0.12.2":
+  version: 0.12.2
+  resolution: "intersection-observer@npm:0.12.2"
+  checksum: 10c0/9591f46b2b742f5801ed69dbc8860f487771b4af8361e7a5dcb28a377beff2ba56336a2b090af261825430d225dae9417121496d2e6925e000e4a469958843ff
+  languageName: node
+  linkType: hard
+
 "invariant@npm:^2.2.2":
   version: 2.2.4
   resolution: "invariant@npm:2.2.4"
@@ -7799,6 +7806,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jest-canvas-mock@npm:2.5.8":
+  version: 2.5.8
+  resolution: "jest-canvas-mock@npm:2.5.8"
+  dependencies:
+    cssfontparser: "npm:^1.2.1"
+    moo-color: "npm:^1.0.2"
+  checksum: 10c0/25e621650bebb0a7c86fa6cf0ba8ab463dd784514a922875b2707e458d29aef943de5b9f3032d378f089c15d6676bd10f4542b822a67d9e715eb93c4ae11c51e
+  languageName: node
+  linkType: hard
+
 "jest-changed-files@npm:30.5.1":
   version: 30.5.1
   resolution: "jest-changed-files@npm:30.5.1"
@@ -8209,7 +8226,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jest-worker@npm:30.5.1":
+"jest-worker@npm:30.5.1, jest-worker@npm:^30.5.1":
   version: 30.5.1
   resolution: "jest-worker@npm:30.5.1"
   dependencies:
@@ -8864,6 +8881,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"moo-color@npm:^1.0.2":
+  version: 1.0.3
+  resolution: "moo-color@npm:1.0.3"
+  dependencies:
+    color-name: "npm:^1.1.4"
+  checksum: 10c0/778c82f67f638c03a1d0fa78dcd6ea376a9f17b5e78e349c7e34a290b496dbdb43fd0b1c38070e2062d5e784bcf08e57f499015fcbcf52b3a1887d7825ebb80d
+  languageName: node
+  linkType: hard
+
 "moo@npm:^0.5.0":
   version: 0.5.3
   resolution: "moo@npm:0.5.3"
@@ -9352,16 +9378,6 @@ __metadata:
     lru-cache: "npm:^11.0.0"
     minipass: "npm:^7.1.2"
   checksum: 10c0/b35ad37cf6557a87fd057121ce2be7695380c9138d93e87ae928609da259ea0a170fac6f3ef1eb3ece8a068e8b7f2f3adf5bb2374cf4d4a57fe484954fcc9482
-  languageName: node
-  linkType: hard
-
-"path-scurry@npm:^3.0.0":
-  version: 3.0.0
-  resolution: "path-scurry@npm:3.0.0"
-  dependencies:
-    lru-cache: "npm:^11.0.0"
-    minipass: "npm:^7.1.2"
-  checksum: 10c0/3256223b51952732bc5460f574143d7d9904cd6d68fac3072906162c90e9f27fdf6f3fe812287e65a876f92d73c12a58368b28749ed07a58bdb04dc76f60a938
   languageName: node
   linkType: hard
 
@@ -10583,7 +10599,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"schema-utils@npm:>1.0.0, schema-utils@npm:^4.2.0, schema-utils@npm:^4.3.0, schema-utils@npm:^4.3.3":
+"schema-utils@npm:>1.0.0, schema-utils@npm:^4.2.0, schema-utils@npm:^4.3.0":
   version: 4.8.3
   resolution: "schema-utils@npm:4.8.3"
   dependencies:
@@ -11486,7 +11502,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tinyglobby@npm:^0.2.12, tinyglobby@npm:^0.2.15":
+"tinyglobby@npm:^0.2.12, tinyglobby@npm:^0.2.15, tinyglobby@npm:^0.2.17":
   version: 0.2.17
   resolution: "tinyglobby@npm:0.2.17"
   dependencies:
@@ -12079,6 +12095,7 @@ __metadata:
     "@typescript-eslint/parser": "npm:8.73.0"
     copy-webpack-plugin: "npm:14.0.0"
     css-loader: "npm:7.1.5"
+    diagnostics-webpack-plugin: "npm:1.1.4"
     eslint: "npm:10.15.0"
     eslint-config-prettier: "npm:10.1.8"
     eslint-plugin-import: "npm:2.32.0"
@@ -12088,13 +12105,13 @@ __metadata:
     eslint-plugin-react: "npm:7.37.5"
     eslint-plugin-react-hooks: "npm:7.1.1"
     eslint-plugin-unused-imports: "npm:4.4.1"
-    eslint-webpack-plugin: "npm:6.0.0"
     fork-ts-checker-webpack-plugin: "npm:9.2.0"
-    glob: "npm:14.0.6"
     husky: "npm:9.1.7"
     identity-obj-proxy: "npm:3.0.0"
     imports-loader: "npm:5.0.0"
+    intersection-observer: "npm:0.12.2"
     jest: "npm:30.5.2"
+    jest-canvas-mock: "npm:2.5.8"
     jest-environment-jsdom: "npm:30.5.2"
     lodash: "npm:4.18.1"
     prettier: "npm:3.10.1"
