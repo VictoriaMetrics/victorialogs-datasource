@@ -2,6 +2,8 @@
 
 ## tip
 
+## v0.35.0
+
 * BREAKING: require VictoriaLogs `v1.54.0` or newer. Raw logs queries now pass their sort order with the `sort_direction` query arg instead of appending a `sort by (_time)` pipe, so VictoriaLogs applies its top-N optimization in both directions. An older VictoriaLogs ignores the arg: the `Oldest first` order in Explore, the `Direction` option in dashboards and the log context return the newest logs instead. See [#513](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/513).
 * BREAKING: escape `"` and `\` in a variable value used in a regexp filter (`field:~$var`) or inside double quotes (`field:"$var"`), so the value is used as is and cannot break the query. If a variable value has backslashes or quotes escaped by hand, remove the escaping: write `\d+` instead of `\\d+`. See [#765](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/765).
 
