@@ -29,6 +29,8 @@ const (
 	maxExportTimeMs = math.MaxInt64 / int64(time.Millisecond)
 
 	exportCSVMediaType = "text/csv"
+	// A file name cannot have a colon on Windows, so the time has hyphens
+	exportFileTimeLayout = "2006-01-02T15-04-05Z"
 	// The response limit middleware of the plugin SDK adds 1 to the limit, so math.MaxInt64 overflows there
 	exportResponseLimitBytes = math.MaxInt64 / 2
 )
@@ -205,9 +207,9 @@ func checkExportFormat(resp *http.Response, format string) error {
 	return fmt.Errorf("VictoriaLogs returned %q, not CSV: this VictoriaLogs does not support the CSV format", contentType)
 }
 
-// exportFileName has the time of the download, so the browser does not give the same name to two files
+// exportFileName has the UTC time of the download, so the browser does not give the same name to two files
 func exportFileName(format string, now time.Time) string {
-	return fmt.Sprintf("export-%d.%s", now.UnixMilli(), format)
+	return fmt.Sprintf("export-%s.%s", now.UTC().Format(exportFileTimeLayout), format)
 }
 
 func setExportHeaders(header http.Header, upstream http.Header, fileName string) {

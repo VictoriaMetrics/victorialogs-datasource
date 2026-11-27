@@ -17,11 +17,11 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 )
 
-var exportCSVDisposition = regexp.MustCompile(`^attachment; filename="export-\d+\.csv"$`)
+var exportCSVDisposition = regexp.MustCompile(`^attachment; filename="export-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z\.csv"$`)
 
 func TestExportFileName(t *testing.T) {
 	got := exportFileName(exportFormatJSONLines, time.UnixMilli(1600000000123))
-	if want := "export-1600000000123.jsonl"; got != want {
+	if want := "export-2020-09-13T12-26-40Z.jsonl"; got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }
