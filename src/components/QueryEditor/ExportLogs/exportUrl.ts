@@ -26,5 +26,3 @@ export const buildExportUrl = ({ datasourceUid, exportQuery, startMs, endMs, for
   const resourcesUrl = `api/datasources/uid/${encodeURIComponent(datasourceUid)}/resources`;
   return `${resourcesUrl}/${EXPORT_LOGS_RESOURCE}?${params.toString()}`;
 };
-
-export const exportFileName = (format: ExportFormat, nowMs: number): string => `export-${nowMs}.${format}`;

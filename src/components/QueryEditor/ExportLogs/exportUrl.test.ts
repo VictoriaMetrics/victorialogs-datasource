@@ -1,4 +1,4 @@
-import { buildExportUrl, exportFileName } from './exportUrl';
+import { buildExportUrl } from './exportUrl';
 
 const parse = (exportUrl: string) => {
   const [path, search] = exportUrl.split('?');
@@ -35,12 +35,5 @@ describe('buildExportUrl', () => {
     const { params } = parse(buildExportUrl({ datasourceUid: 'uid', exportQuery, startMs: 1, endMs: 2, format: 'jsonl' }));
     expect(params.has('extra_filters')).toBe(false);
     expect(params.has('extra_stream_filters')).toBe(false);
-  });
-});
-
-describe('exportFileName', () => {
-  it('names the file by the time and the format', () => {
-    expect(exportFileName('jsonl', 1700000000000)).toBe('export-1700000000000.jsonl');
-    expect(exportFileName('csv', 1700000000000)).toBe('export-1700000000000.csv');
   });
 });

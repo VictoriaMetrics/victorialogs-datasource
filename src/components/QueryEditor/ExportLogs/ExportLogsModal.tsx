@@ -11,7 +11,7 @@ import { ReadOnlyField } from './ReadOnlyField';
 import { DEFAULT_EXPORT_FORMAT, FORMAT_OPTIONS } from './constants';
 import { resolveExportQuery } from './exportQuery';
 import { resolveExportRange } from './exportRange';
-import { buildExportUrl, exportFileName } from './exportUrl';
+import { buildExportUrl } from './exportUrl';
 import { ExportFormat } from './types';
 import { useUnmetCsvExport } from './useUnmetCsvExport';
 
@@ -29,7 +29,6 @@ interface Props {
 export const ExportLogsModal: React.FC<Props> = ({ datasource, query, panelData, timeRange, onClose }) => {
   const styles = useStyles2(getStyles);
   const [format, setFormat] = useState<ExportFormat>(DEFAULT_EXPORT_FORMAT);
-  const [openedAtMs] = useState(() => Date.now());
   const [range] = useState(() => resolveExportRange(panelData, timeRange));
   const unmetCsvExport = useUnmetCsvExport(datasource);
   const exportQuery = useMemo(() => resolveExportQuery(datasource, query, panelData), [datasource, query, panelData]);
@@ -75,7 +74,6 @@ export const ExportLogsModal: React.FC<Props> = ({ datasource, query, panelData,
             icon='download-alt'
             href={exportUrl}
             target='_blank'
-            download={exportFileName(format, openedAtMs)}
             onClick={onClose}
           >
             Download

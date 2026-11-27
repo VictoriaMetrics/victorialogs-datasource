@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -355,6 +356,29 @@ func TestVLExportLogs(t *testing.T) {
 
 		if rr.Body.String() != body {
 			t.Fatalf("got %d bytes, want %d", rr.Body.Len(), len(body))
+		}
+	})
+
+	t.Run("sends the request one time when VictoriaLogs drops the connection", func(t *testing.T) {
+		var requests atomic.Int32
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			requests.Add(1)
+			conn, _, err := w.(http.Hijacker).Hijack()
+			if err != nil {
+				t.Errorf("failed to hijack the connection: %s", err)
+				return
+			}
+			_ = conn.Close()
+		}))
+		defer upstream.Close()
+
+		rr := callExportHandler(http.MethodGet, exportTarget, exportPluginContext(upstream.URL, `{}`))
+
+		if rr.Code == http.StatusOK {
+			t.Fatalf("expected an error status, body %s", rr.Body.String())
+		}
+		if got := requests.Load(); got != 1 {
+			t.Fatalf("got %d requests to VictoriaLogs, want 1", got)
 		}
 	})
 

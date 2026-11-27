@@ -148,7 +148,9 @@ func copyFlushing(dst http.ResponseWriter, src io.Reader) error {
 	}
 }
 
-func (di *DatasourceInstance) sendExportRequest(ctx context.Context, reqURL string) (*http.Response, error) {
+// openExport starts the export request. It does not send the request a second time after an error:
+// VictoriaLogs can still run the first one, and a query without a limit is heavy
+func (di *DatasourceInstance) openExport(ctx context.Context, reqURL string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, di.grafanaSettings.HTTPMethod, reqURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new request with context: %w", withoutRequestURL(err))
@@ -159,16 +161,6 @@ func (di *DatasourceInstance) sendExportRequest(ctx context.Context, reqURL stri
 		return nil, fmt.Errorf("failed to make http request: %w", withoutRequestURL(err))
 	}
 	return resp, nil
-}
-
-// openExport starts the export request. A proxy between the plugin and VictoriaLogs can close
-// an idle connection at the moment the plugin reuses it, so a trivial error gets one more attempt
-func (di *DatasourceInstance) openExport(ctx context.Context, reqURL string) (*http.Response, error) {
-	resp, err := di.sendExportRequest(ctx, reqURL)
-	if err == nil || !isTrivialError(err) {
-		return resp, err
-	}
-	return di.sendExportRequest(ctx, reqURL)
 }
 
 func exportStatusError(resp *http.Response) error {

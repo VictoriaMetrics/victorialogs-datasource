@@ -13,7 +13,6 @@ import { useUnmetCsvExport } from './useUnmetCsvExport';
 
 jest.mock('./useUnmetCsvExport');
 
-const NOW_MS = 1700000000000;
 const START_MS = 1600000000000;
 const END_MS = 1600000060000;
 
@@ -54,10 +53,6 @@ const downloadParams = () => {
 };
 
 describe('ExportLogsModal', () => {
-  beforeEach(() => {
-    jest.spyOn(Date, 'now').mockReturnValue(NOW_MS);
-  });
-
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -74,7 +69,8 @@ describe('ExportLogsModal', () => {
       extra_filters: '{"level":"error"}',
       extra_stream_filters: '{app="nginx"}',
     });
-    expect(downloadLink()).toHaveAttribute('download', `export-${NOW_MS}.jsonl`);
+    expect(downloadLink()).toHaveAttribute('target', '_blank');
+    expect(downloadLink()).not.toHaveAttribute('download');
   });
 
   it('shows the resolved query and its filters', () => {
@@ -91,7 +87,6 @@ describe('ExportLogsModal', () => {
     await userEvent.click(screen.getByRole('radio', { name: 'CSV' }));
 
     expect(downloadParams().get('format')).toBe('csv');
-    expect(downloadLink()).toHaveAttribute('download', `export-${NOW_MS}.csv`);
   });
 
   it('disables CSV for a VictoriaLogs that does not support it', () => {
