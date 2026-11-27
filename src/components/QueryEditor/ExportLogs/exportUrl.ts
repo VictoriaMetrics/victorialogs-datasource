@@ -17,6 +17,9 @@ export const buildExportUrl = ({ datasourceUid, exportQuery, startMs, endMs, for
     end: String(endMs),
     format,
   });
+  if (exportQuery.intervalMs !== undefined) {
+    params.set('interval_ms', String(exportQuery.intervalMs));
+  }
   if (exportQuery.extraFilters) {
     params.set('extra_filters', exportQuery.extraFilters);
   }

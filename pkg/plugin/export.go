@@ -14,6 +14,8 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
+
+	"github.com/VictoriaMetrics/victorialogs-datasource/pkg/utils"
 )
 
 const (
@@ -42,6 +44,7 @@ type exportQuery struct {
 	ExtraStreamFilters string
 	StartMs            int64
 	EndMs              int64
+	IntervalMs         int64
 	Format             string
 }
 
@@ -55,6 +58,18 @@ func parseExportTimeMs(values url.Values, name string) (int64, error) {
 		return 0, fmt.Errorf("%s must be from %d to %d", name, minExportTimeMs, maxExportTimeMs)
 	}
 	return timeMs, nil
+}
+
+// parseExportIntervalMs reads the interval of the last data request. The query editor sends it for the interval variables
+func parseExportIntervalMs(values url.Values) (int64, error) {
+	if !values.Has("interval_ms") {
+		return 0, nil
+	}
+	intervalMs, err := strconv.ParseInt(values.Get("interval_ms"), 10, 64)
+	if err != nil || intervalMs < 0 {
+		return 0, fmt.Errorf("interval_ms must be a number of milliseconds that is not negative")
+	}
+	return intervalMs, nil
 }
 
 // parseExportQuery reads the export from the query string of the resource call.
@@ -75,6 +90,10 @@ func parseExportQuery(values url.Values) (exportQuery, error) {
 	if startMs >= endMs {
 		return exportQuery{}, fmt.Errorf("start must be before end")
 	}
+	intervalMs, err := parseExportIntervalMs(values)
+	if err != nil {
+		return exportQuery{}, err
+	}
 	format := values.Get("format")
 	if format != exportFormatJSONLines && format != exportFormatCSV {
 		return exportQuery{}, fmt.Errorf("format must be %q or %q", exportFormatJSONLines, exportFormatCSV)
@@ -85,6 +104,7 @@ func parseExportQuery(values url.Values) (exportQuery, error) {
 		ExtraStreamFilters: values.Get("extra_stream_filters"),
 		StartMs:            startMs,
 		EndMs:              endMs,
+		IntervalMs:         intervalMs,
 		Format:             format,
 	}, nil
 }
@@ -108,9 +128,10 @@ func (q exportQuery) url(datasourceURL, customQueryParams string) (string, error
 	for _, name := range exportIgnoredParams {
 		values.Del(name)
 	}
-	values.Set("query", q.Expr)
-	values.Set("start", strconv.FormatInt(time.UnixMilli(q.StartMs).UnixNano(), 10))
-	values.Set("end", strconv.FormatInt(time.UnixMilli(q.EndMs).UnixNano(), 10))
+	timeRange := backend.TimeRange{From: time.UnixMilli(q.StartMs), To: time.UnixMilli(q.EndMs)}
+	values.Set("query", utils.ReplaceTemplateVariable(q.Expr, q.IntervalMs, timeRange))
+	values.Set("start", strconv.FormatInt(timeRange.From.UnixNano(), 10))
+	values.Set("end", strconv.FormatInt(timeRange.To.UnixNano(), 10))
 	if q.ExtraFilters != "" {
 		values.Set("extra_filters", q.ExtraFilters)
 	}

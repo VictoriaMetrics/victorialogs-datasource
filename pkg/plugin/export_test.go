@@ -30,6 +30,7 @@ func TestParseExportQuery(t *testing.T) {
 		values.Set("extra_filters", `{"level":"error"}`)
 		values.Set("extra_stream_filters", `{app="nginx"}`)
 		values.Set("limit", "10")
+		values.Set("interval_ms", "30000")
 
 		got, err := parseExportQuery(values)
 		if err != nil {
@@ -41,6 +42,7 @@ func TestParseExportQuery(t *testing.T) {
 			ExtraStreamFilters: `{app="nginx"}`,
 			StartMs:            1000,
 			EndMs:              2000,
+			IntervalMs:         30000,
 			Format:             exportFormatJSONLines,
 		}
 		if got != want {
@@ -57,6 +59,8 @@ func TestParseExportQuery(t *testing.T) {
 		"end overflows nanoseconds":   func(v url.Values) { v.Set("end", "9223372036855") },
 		"start equals end":            func(v url.Values) { v.Set("start", "2000") },
 		"start after end":             func(v url.Values) { v.Set("start", "3000") },
+		"non-numeric interval":        func(v url.Values) { v.Set("interval_ms", "30s") },
+		"negative interval":           func(v url.Values) { v.Set("interval_ms", "-1") },
 		"missing format":              func(v url.Values) { v.Del("format") },
 		"unknown format":              func(v url.Values) { v.Set("format", "xml") },
 	}
@@ -136,6 +140,28 @@ func TestExportQueryURL(t *testing.T) {
 		want := url.Values{"tenant": {"1"}, "query": {"*"}, "start": {"1000000"}, "end": {"2000000"}}
 		if got := u.Query(); got.Encode() != want.Encode() {
 			t.Fatalf("got query %q, want %q", got.Encode(), want.Encode())
+		}
+	})
+
+	t.Run("replaces the interval and range variables as a data query does", func(t *testing.T) {
+		query := exportQuery{
+			Expr:       "* | stats by (_time:$__interval) count() | math $__interval_ms | filter _time:$__range",
+			StartMs:    1000,
+			EndMs:      61000,
+			IntervalMs: 30000,
+			Format:     exportFormatJSONLines,
+		}
+		rawURL, err := query.url("http://vl:9428", "")
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		u, err := url.Parse(rawURL)
+		if err != nil {
+			t.Fatalf("the result is not a URL: %s", err)
+		}
+		want := "* | stats by (_time:30s) count() | math 30000 | filter _time:[1, 61]"
+		if got := u.Query().Get("query"); got != want {
+			t.Fatalf("got query %q, want %q", got, want)
 		}
 	})
 

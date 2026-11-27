@@ -29,6 +29,7 @@ describe('resolveExportQuery', () => {
     expect(applyTemplateVariables).toHaveBeenCalledWith(query, scopedVars, filters);
     expect(exportQuery).toEqual({
       expr: 'app:nginx',
+      intervalMs: undefined,
       extraFilters: '{"level":"error"}',
       extraStreamFilters: '{app="nginx"}',
     });
@@ -40,26 +41,16 @@ describe('resolveExportQuery', () => {
     const exportQuery = resolveExportQuery(datasource, query, undefined);
 
     expect(applyTemplateVariables).toHaveBeenCalledWith(query, {}, undefined);
-    expect(exportQuery).toEqual({ expr: 'error', extraFilters: undefined, extraStreamFilters: undefined });
+    expect(exportQuery).toEqual({ expr: 'error', intervalMs: undefined, extraFilters: undefined, extraStreamFilters: undefined });
   });
 
-  it('replaces the interval variables that applyTemplateVariables keeps for the backend', () => {
-    const { datasource } = sourceReturning({ expr: '* | stats by (_time:$__interval) count() | math $__interval_ms' });
-    const scopedVars = {
-      __interval: { value: '30s', text: '30s' },
-      __interval_ms: { value: 30000, text: '30000' },
-    };
+  it('keeps the interval and range variables for the backend and sends the interval of the last request', () => {
+    const expr = '* | stats by (_time:$__interval) count() | math $__interval_ms | filter _time:$__range';
+    const { datasource } = sourceReturning({ expr });
 
-    const exportQuery = resolveExportQuery(datasource, query, panelDataWith({ scopedVars }));
+    const exportQuery = resolveExportQuery(datasource, query, panelDataWith({ scopedVars: {}, intervalMs: 30000 }));
 
-    expect(exportQuery.expr).toBe('* | stats by (_time:30s) count() | math 30000');
-  });
-
-  it('keeps the interval variables when the last request has no interval', () => {
-    const { datasource } = sourceReturning({ expr: '* | stats by (_time:$__interval) count()' });
-
-    const exportQuery = resolveExportQuery(datasource, query, panelDataWith({ scopedVars: {} }));
-
-    expect(exportQuery.expr).toBe('* | stats by (_time:$__interval) count()');
+    expect(exportQuery.expr).toBe(expr);
+    expect(exportQuery.intervalMs).toBe(30000);
   });
 });
