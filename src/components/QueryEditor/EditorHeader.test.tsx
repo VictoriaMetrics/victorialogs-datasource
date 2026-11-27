@@ -34,7 +34,7 @@ const renderHeader = (app: CoreApp, queryType: QueryType) => {
   );
 };
 
-const downloadButton = () => screen.queryByRole('button', { name: 'Download logs' });
+const downloadButton = () => screen.queryByRole('button', { name: /download logs/i });
 
 describe('EditorHeader', () => {
   it('shows the logs download for a Raw Logs query in Explore', () => {
