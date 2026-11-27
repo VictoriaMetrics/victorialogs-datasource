@@ -1596,3 +1596,33 @@ func TestVLAPIQuery_ContentEncoding(t *testing.T) {
 		})
 	}
 }
+
+func TestResourceHandlers_UnreachableVictoriaLogs(t *testing.T) {
+	upstream := httptest.NewServer(http.NotFoundHandler())
+	upstream.Close()
+
+	ds := NewDatasource()
+	handlers := map[string]http.HandlerFunc{
+		"VLAPIQuery":     ds.VLAPIQuery,
+		"VLAPITenantIDs": ds.VLAPITenantIDs,
+	}
+	for name, handler := range handlers {
+		t.Run(name, func(t *testing.T) {
+			pluginCtx := backend.PluginContext{
+				DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+					URL:      upstream.URL,
+					JSONData: []byte(`{"httpMethod":"GET"}`),
+				},
+			}
+			ctx := backend.WithPluginContext(context.Background(), pluginCtx)
+			req := httptest.NewRequest(http.MethodGet, "/select/logsql/field_names", strings.NewReader("{}")).WithContext(ctx)
+
+			rr := httptest.NewRecorder()
+			handler(rr, req)
+
+			if rr.Code != http.StatusBadGateway {
+				t.Fatalf("got status %d, want %d, body %s", rr.Code, http.StatusBadGateway, rr.Body.String())
+			}
+		})
+	}
+}

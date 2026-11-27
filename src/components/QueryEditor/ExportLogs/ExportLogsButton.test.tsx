@@ -14,9 +14,12 @@ jest.mock('./ExportLogsModal', () => ({ ExportLogsModal: () => <div>modal</div> 
 
 const query: Query = { refId: 'A', expr: 'app:nginx' };
 const editedQuery: Query = { ...query, expr: 'app:apache' };
+
+const emptyQuery: Query = { ...query, expr: '' };
 const datasource = {} as VictoriaLogsDatasource;
 
-const panelDataOf = (state: LoadingState): PanelData => ({ state, request: { targets: [query] } }) as unknown as PanelData;
+const panelDataOf = (state: LoadingState, lastRunQuery = query): PanelData =>
+  ({ state, request: { targets: [lastRunQuery] } }) as unknown as PanelData;
 
 const buttonFor = (editorQuery: Query, panelData?: PanelData) => (
   <ExportLogsButton datasource={datasource} query={editorQuery} panelData={panelData} />
@@ -41,6 +44,12 @@ describe('ExportLogsButton', () => {
     render(buttonFor(query, panelDataOf(LoadingState.Error)));
 
     expect(screen.getByRole('button', { name: QUERY_ERROR_BLOCK })).toBeDisabled();
+  });
+
+  it('is disabled for an empty query that the panel ran', () => {
+    render(buttonFor(emptyQuery, panelDataOf(LoadingState.Done, emptyQuery)));
+
+    expect(screen.getByRole('button', { name: 'Download logs' })).toBeDisabled();
   });
 
   it('closes the modal when the query changes after the run', async () => {

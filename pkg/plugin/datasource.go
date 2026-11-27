@@ -579,7 +579,7 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		if !isTrivialError(err) {
 			// Return unexpected error to the caller.
-			writeError(rw, http.StatusBadRequest, err)
+			writeError(rw, http.StatusBadGateway, err)
 			return
 		}
 
@@ -594,7 +594,7 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 		// the connection. So we do a one more attempt in hope request will succeed.
 		resp, err = di.httpClient.Do(newReq)
 		if err != nil {
-			writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to make http request: %w", err))
+			writeError(rw, http.StatusBadGateway, fmt.Errorf("failed to make http request: %w", err))
 			return
 		}
 	}
@@ -661,14 +661,14 @@ func (d *Datasource) VLAPITenantIDs(rw http.ResponseWriter, req *http.Request) {
 	newReq.Header.Del(projectIDHeader)
 	resp, err := di.httpClient.Do(newReq)
 	if err != nil {
-		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to make http request: %w", err))
+		writeError(rw, http.StatusBadGateway, fmt.Errorf("failed to make http request: %w", err))
 		return
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to read http response body: %w", err))
+		writeError(rw, http.StatusBadGateway, fmt.Errorf("failed to read http response body: %w", err))
 		return
 	}
 

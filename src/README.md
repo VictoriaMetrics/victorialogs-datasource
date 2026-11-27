@@ -475,8 +475,9 @@ The button is available in Explore for a query of the `Raw Logs` type. The [line
 to the file. Select the `JSON Lines` or the `CSV` format in the dialog and click `Download`.
 
 VictoriaLogs stops a query that runs longer than its `-search.maxQueryDuration` command-line flag, `30s` by default.
-The browser then shows the download as complete, but the file is not complete. For a large download, decrease the
-time range or add filters to the query, or increase the flag in VictoriaLogs.
+The browser then shows the download as complete, but the file is not complete. The same occurs when the connection
+to VictoriaLogs breaks during the download. For a large download, decrease the time range or add filters to the
+query, or increase the flag in VictoriaLogs.
 
 ## Correlations
 

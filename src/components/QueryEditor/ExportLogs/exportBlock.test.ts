@@ -32,6 +32,12 @@ describe('getExportBlock', () => {
     expect(getExportBlock(edited, panelDataOf([{ ...query, streamFilters: [] }]))).toBe(QUERY_NOT_RUN_BLOCK);
   });
 
+  it('blocks the export when the ad hoc filters changed after the run', () => {
+    const edited: Query = { ...query, adHocFilters: [{ key: 'level', operator: '=', value: 'error' }] };
+
+    expect(getExportBlock(edited, panelDataOf([{ ...query, adHocFilters: [] }]))).toBe(QUERY_NOT_RUN_BLOCK);
+  });
+
   it('blocks the export when the query returned an error', () => {
     expect(getExportBlock(query, panelDataOf([{ ...query }], LoadingState.Error))).toBe(QUERY_ERROR_BLOCK);
   });
