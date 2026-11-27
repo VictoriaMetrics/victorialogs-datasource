@@ -47,7 +47,7 @@ var Requirements = []Requirement{
 		Feature:       "Download logs in the CSV format from the query editor in Explore",
 		Needs:         "the format=csv query arg of /select/logsql/query for an arbitrary query",
 		Link:          "https://github.com/VictoriaMetrics/VictoriaLogs/commit/0c582a94e2bab435e0bd1dd7fcb05697abce974f",
-		PluginVersion: "v0.35.0",
+		PluginVersion: "v0.36.0",
 		MinVersion:    "v1.49.0",
 	},
 }
