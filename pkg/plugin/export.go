@@ -253,7 +253,7 @@ func (d *Datasource) VLExportLogs(rw http.ResponseWriter, req *http.Request) {
 	if resp.StatusCode != http.StatusOK {
 		statusErr := exportStatusError(resp)
 		d.logger.Error("VictoriaLogs rejected the logs export", "error", statusErr)
-		writeError(rw, resp.StatusCode, statusErr)
+		writeError(rw, upstreamErrorStatus(resp.StatusCode), statusErr)
 		return
 	}
 

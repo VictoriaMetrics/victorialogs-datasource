@@ -26,6 +26,22 @@ func TestExportFileName(t *testing.T) {
 	}
 }
 
+func TestUpstreamErrorStatus(t *testing.T) {
+	statuses := map[int]int{
+		http.StatusBadRequest:          http.StatusBadRequest,
+		http.StatusUnprocessableEntity: http.StatusUnprocessableEntity,
+		http.StatusUnauthorized:        http.StatusBadGateway,
+		http.StatusForbidden:           http.StatusBadGateway,
+		http.StatusInternalServerError: http.StatusBadGateway,
+		http.StatusServiceUnavailable:  http.StatusBadGateway,
+	}
+	for upstream, want := range statuses {
+		if got := upstreamErrorStatus(upstream); got != want {
+			t.Errorf("VictoriaLogs status %d: got %d, want %d", upstream, got, want)
+		}
+	}
+}
+
 func TestParseExportQuery(t *testing.T) {
 	valid := func() url.Values {
 		return url.Values{
@@ -333,8 +349,8 @@ func TestVLExportLogs(t *testing.T) {
 
 	t.Run("rejects an invalid query", func(t *testing.T) {
 		rr := callExportHandler(http.MethodGet, "/export/logs?query=error", exportPluginContext("http://127.0.0.1:1", `{}`))
-		if rr.Code == http.StatusOK {
-			t.Fatalf("expected an error status, body %s", rr.Body.String())
+		if rr.Code != http.StatusBadRequest {
+			t.Fatalf("got status %d, want %d, body %s", rr.Code, http.StatusBadRequest, rr.Body.String())
 		}
 		if rr.Header().Get("Content-Disposition") != "" {
 			t.Fatal("an error must not be an attachment")
@@ -349,8 +365,11 @@ func TestVLExportLogs(t *testing.T) {
 
 		rr := callExportHandler(http.MethodGet, exportTarget, exportPluginContext(upstream.URL, `{}`))
 
-		if rr.Code == http.StatusOK {
-			t.Fatalf("expected an error status, body %s", rr.Body.String())
+		if rr.Code != http.StatusBadRequest {
+			t.Fatalf("got status %d, want %d, body %s", rr.Code, http.StatusBadRequest, rr.Body.String())
+		}
+		if !strings.Contains(rr.Body.String(), `"error":"Bad Request"`) {
+			t.Fatalf("the status text is not reported: %s", rr.Body.String())
 		}
 		if !strings.Contains(rr.Body.String(), "cannot parse query") {
 			t.Fatalf("the error is not reported: %s", rr.Body.String())
@@ -369,8 +388,8 @@ func TestVLExportLogs(t *testing.T) {
 
 		rr := callExportHandler(http.MethodGet, exportTarget, exportPluginContext(upstream.URL, `{}`))
 
-		if rr.Code == http.StatusOK {
-			t.Fatalf("expected an error status, body %s", rr.Body.String())
+		if rr.Code != http.StatusBadGateway {
+			t.Fatalf("got status %d, want %d, body %s", rr.Code, http.StatusBadGateway, rr.Body.String())
 		}
 		if !strings.Contains(rr.Body.String(), "not CSV") {
 			t.Fatalf("the error is not reported: %s", rr.Body.String())
@@ -411,8 +430,8 @@ func TestVLExportLogs(t *testing.T) {
 
 		rr := callExportHandler(http.MethodGet, exportTarget, exportPluginContext(upstream.URL, `{}`))
 
-		if rr.Code == http.StatusOK {
-			t.Fatalf("expected an error status, body %s", rr.Body.String())
+		if rr.Code != http.StatusBadGateway {
+			t.Fatalf("got status %d, want %d, body %s", rr.Code, http.StatusBadGateway, rr.Body.String())
 		}
 		if got := requests.Load(); got != 1 {
 			t.Fatalf("got %d requests to VictoriaLogs, want 1", got)

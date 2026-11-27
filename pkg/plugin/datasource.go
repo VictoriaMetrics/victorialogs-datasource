@@ -608,7 +608,7 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		d.logger.Error("VictoriaLogs returned error", "status", resp.StatusCode, "body", string(body))
-		writeError(rw, resp.StatusCode, fmt.Errorf("VictoriaLogs returned status %d: %s", resp.StatusCode, string(body)))
+		writeError(rw, upstreamErrorStatus(resp.StatusCode), fmt.Errorf("VictoriaLogs returned status %d: %s", resp.StatusCode, string(body)))
 		return
 	}
 
@@ -814,10 +814,22 @@ func parseCustomHeaders(jsonData json.RawMessage, decryptedSecureJSONData map[st
 	return headers, nil
 }
 
+// upstreamErrorStatus is the status that a resource returns for an error status of VictoriaLogs.
+// Grafana takes a 401 of its API for an expired session and a 403 for a missing permission of the user,
+// so these two and the server errors become 502
+func upstreamErrorStatus(statusCode int) int {
+	isAuthError := statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden
+	isClientError := statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError
+	if isClientError && !isAuthError {
+		return statusCode
+	}
+	return http.StatusBadGateway
+}
+
 func writeError(rw http.ResponseWriter, statusCode int, err error) {
 	d := make(map[string]interface{})
 
-	d["error"] = "Internal Server Error"
+	d["error"] = http.StatusText(statusCode)
 	d["message"] = err.Error()
 
 	var b []byte
@@ -827,7 +839,7 @@ func writeError(rw http.ResponseWriter, statusCode int, err error) {
 	}
 
 	rw.Header().Add("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusInternalServerError)
+	rw.WriteHeader(statusCode)
 
 	_, err = rw.Write(b)
 	if err != nil {
