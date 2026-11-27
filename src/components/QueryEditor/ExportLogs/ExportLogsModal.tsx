@@ -2,6 +2,7 @@ import { css } from '@emotion/css';
 import React, { useMemo, useState } from 'react';
 
 import { GrafanaTheme2, PanelData, TimeRange } from '@grafana/data';
+import { config } from '@grafana/runtime';
 import { Alert, Button, Field, LinkButton, Modal, RadioButtonGroup, useStyles2 } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../datasource';
@@ -35,6 +36,7 @@ export const ExportLogsModal: React.FC<Props> = ({ datasource, query, panelData,
 
   const exportUrl = buildExportUrl({
     datasourceUid: datasource.uid,
+    orgId: config.bootData.user.orgId,
     exportQuery,
     startMs: range.from.valueOf(),
     endMs: range.to.valueOf(),

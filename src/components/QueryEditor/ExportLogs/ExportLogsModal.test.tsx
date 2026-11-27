@@ -12,6 +12,10 @@ import { ExportLogsModal } from './ExportLogsModal';
 import { useUnmetCsvExport } from './useUnmetCsvExport';
 
 jest.mock('./useUnmetCsvExport');
+jest.mock('@grafana/runtime', () => ({
+  ...jest.requireActual('@grafana/runtime'),
+  config: { bootData: { user: { orgId: 3 } } },
+}));
 
 const START_MS = 1600000000000;
 const END_MS = 1600000060000;
@@ -62,6 +66,7 @@ describe('ExportLogsModal', () => {
 
     expect(downloadLink().getAttribute('href')).toContain('api/datasources/uid/vl-uid/resources/export/logs?');
     expect(Object.fromEntries(downloadParams())).toEqual({
+      orgId: '3',
       query: 'app:nginx',
       start: String(START_MS),
       end: String(END_MS),

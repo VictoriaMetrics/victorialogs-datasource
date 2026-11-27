@@ -205,12 +205,17 @@ func checkExportFormat(resp *http.Response, format string) error {
 	return fmt.Errorf("VictoriaLogs returned %q, not CSV: this VictoriaLogs does not support the CSV format", contentType)
 }
 
-func setExportHeaders(header http.Header, upstream http.Header, format string) {
+// exportFileName has the time of the download, so the browser does not give the same name to two files
+func exportFileName(format string, now time.Time) string {
+	return fmt.Sprintf("export-%d.%s", now.UnixMilli(), format)
+}
+
+func setExportHeaders(header http.Header, upstream http.Header, fileName string) {
 	header.Set("Content-Type", upstream.Get("Content-Type"))
 	if contentEncoding := upstream.Get("Content-Encoding"); contentEncoding != "" {
 		header.Set("Content-Encoding", contentEncoding)
 	}
-	header.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="export.%s"`, format))
+	header.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
 }
 
 // VLExportLogs streams the full result of a logs query as a file
@@ -256,7 +261,7 @@ func (d *Datasource) VLExportLogs(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	setExportHeaders(rw.Header(), resp.Header, query.Format)
+	setExportHeaders(rw.Header(), resp.Header, exportFileName(query.Format, time.Now()))
 	rw.WriteHeader(http.StatusOK)
 	// The browser already has the 200 status, so the interrupted file looks complete to it
 	if err := copyFlushing(rw, resp.Body); err != nil && ctx.Err() == nil {

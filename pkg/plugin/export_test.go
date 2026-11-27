@@ -8,12 +8,23 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 )
+
+var exportCSVDisposition = regexp.MustCompile(`^attachment; filename="export-\d+\.csv"$`)
+
+func TestExportFileName(t *testing.T) {
+	got := exportFileName(exportFormatJSONLines, time.UnixMilli(1600000000123))
+	if want := "export-1600000000123.jsonl"; got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+}
 
 func TestParseExportQuery(t *testing.T) {
 	valid := func() url.Values {
@@ -285,7 +296,7 @@ func TestVLExportLogs(t *testing.T) {
 		if got := rr.Header().Get("Content-Type"); got != "text/csv" {
 			t.Fatalf("unexpected Content-Type %q", got)
 		}
-		if got := rr.Header().Get("Content-Disposition"); got != `attachment; filename="export.csv"` {
+		if got := rr.Header().Get("Content-Disposition"); !exportCSVDisposition.MatchString(got) {
 			t.Fatalf("unexpected Content-Disposition %q", got)
 		}
 		if upstreamReq.Method != http.MethodPost {
@@ -467,7 +478,7 @@ func TestVLExportLogsStreamsThroughResourceAdapter(t *testing.T) {
 	if responses[0].Status != http.StatusOK {
 		t.Fatalf("got status %d in the first response", responses[0].Status)
 	}
-	if got := responses[0].Headers["Content-Disposition"]; len(got) != 1 || got[0] != `attachment; filename="export.csv"` {
+	if got := responses[0].Headers["Content-Disposition"]; len(got) != 1 || !exportCSVDisposition.MatchString(got[0]) {
 		t.Fatalf("unexpected Content-Disposition %v in the first response", got)
 	}
 	var totalBytes int
