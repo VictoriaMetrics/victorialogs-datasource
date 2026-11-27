@@ -64,6 +64,7 @@ func NewDatasource() *Datasource {
 	mux.HandleFunc("/select/tenant_ids", ds.VLAPITenantIDs)
 	mux.HandleFunc("/vmui", ds.VMUIQuery)
 	mux.HandleFunc("/victorialogs/support", ds.VictoriaLogsSupportHandler)
+	mux.HandleFunc("/export/logs", ds.VLExportLogs)
 	ds.CallResourceHandler = httpadapter.New(mux)
 	return &ds
 }
@@ -578,7 +579,7 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		if !isTrivialError(err) {
 			// Return unexpected error to the caller.
-			writeError(rw, http.StatusBadRequest, err)
+			writeError(rw, http.StatusBadGateway, err)
 			return
 		}
 
@@ -593,7 +594,7 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 		// the connection. So we do a one more attempt in hope request will succeed.
 		resp, err = di.httpClient.Do(newReq)
 		if err != nil {
-			writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to make http request: %w", err))
+			writeError(rw, http.StatusBadGateway, fmt.Errorf("failed to make http request: %w", err))
 			return
 		}
 	}
@@ -607,7 +608,7 @@ func (d *Datasource) VLAPIQuery(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		d.logger.Error("VictoriaLogs returned error", "status", resp.StatusCode, "body", string(body))
-		writeError(rw, resp.StatusCode, fmt.Errorf("VictoriaLogs returned status %d: %s", resp.StatusCode, string(body)))
+		writeError(rw, upstreamErrorStatus(resp.StatusCode), fmt.Errorf("VictoriaLogs returned status %d: %s", resp.StatusCode, string(body)))
 		return
 	}
 
@@ -660,14 +661,14 @@ func (d *Datasource) VLAPITenantIDs(rw http.ResponseWriter, req *http.Request) {
 	newReq.Header.Del(projectIDHeader)
 	resp, err := di.httpClient.Do(newReq)
 	if err != nil {
-		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to make http request: %w", err))
+		writeError(rw, http.StatusBadGateway, fmt.Errorf("failed to make http request: %w", err))
 		return
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		writeError(rw, http.StatusBadRequest, fmt.Errorf("failed to read http response body: %w", err))
+		writeError(rw, http.StatusBadGateway, fmt.Errorf("failed to read http response body: %w", err))
 		return
 	}
 
@@ -813,10 +814,22 @@ func parseCustomHeaders(jsonData json.RawMessage, decryptedSecureJSONData map[st
 	return headers, nil
 }
 
+// upstreamErrorStatus is the status that a resource returns for an error status of VictoriaLogs.
+// Grafana takes a 401 of its API for an expired session and a 403 for a missing permission of the user,
+// so these two and the server errors become 502
+func upstreamErrorStatus(statusCode int) int {
+	isAuthError := statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden
+	isClientError := statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError
+	if isClientError && !isAuthError {
+		return statusCode
+	}
+	return http.StatusBadGateway
+}
+
 func writeError(rw http.ResponseWriter, statusCode int, err error) {
 	d := make(map[string]interface{})
 
-	d["error"] = "Internal Server Error"
+	d["error"] = http.StatusText(statusCode)
 	d["message"] = err.Error()
 
 	var b []byte
@@ -826,7 +839,7 @@ func writeError(rw http.ResponseWriter, statusCode int, err error) {
 	}
 
 	rw.Header().Add("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusInternalServerError)
+	rw.WriteHeader(statusCode)
 
 	_, err = rw.Write(b)
 	if err != nil {

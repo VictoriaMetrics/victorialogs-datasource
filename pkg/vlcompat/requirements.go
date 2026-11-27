@@ -7,6 +7,8 @@ import "fmt"
 
 // Requirement is a VictoriaLogs API a plugin feature relies on
 type Requirement struct {
+	// ID names the requirement for the code that checks it; it does not change between releases
+	ID string `json:"id"`
 	// Feature is what the plugin does with the API
 	Feature string `json:"feature"`
 	// Needs is the VictoriaLogs API the feature relies on
@@ -25,6 +27,7 @@ type Requirement struct {
 // the query editor
 var Requirements = []Requirement{
 	{
+		ID:            "buildinfo",
 		Feature:       "Compatibility check: Save & test on the data source page and the warning in the query editor",
 		Needs:         "the /select/buildinfo endpoint reporting the VictoriaLogs version",
 		Link:          "https://github.com/VictoriaMetrics/VictoriaLogs/pull/851",
@@ -32,11 +35,20 @@ var Requirements = []Requirement{
 		MinVersion:    "v1.40.0",
 	},
 	{
+		ID:            "sortDirection",
 		Feature:       "Order of raw logs: the Explore sort order, the Direction option in dashboards and the log context",
 		Needs:         "the sort_direction query arg of /select/logsql/query",
 		Link:          "https://github.com/VictoriaMetrics/VictoriaLogs/pull/1355",
 		PluginVersion: "v0.35.0",
 		MinVersion:    "v1.54.0",
+	},
+	{
+		ID:            "csvExport",
+		Feature:       "Download logs in the CSV format from the query editor in Explore",
+		Needs:         "the format=csv query arg of /select/logsql/query for an arbitrary query",
+		Link:          "https://github.com/VictoriaMetrics/VictoriaLogs/commit/0c582a94e2bab435e0bd1dd7fcb05697abce974f",
+		PluginVersion: "v0.36.0",
+		MinVersion:    "v1.49.0",
 	},
 }
 

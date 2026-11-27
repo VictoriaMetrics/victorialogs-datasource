@@ -6,6 +6,7 @@ import { VictoriaLogsRequirement, VictoriaLogsSupport, VictoriaLogsSupportCache 
 import { VictoriaLogsSupportAlert } from './VictoriaLogsSupportAlert';
 
 const sortDirection: VictoriaLogsRequirement = {
+  id: 'sortDirection',
   feature: 'The order of raw logs',
   needs: 'the sort_direction query arg',
   link: 'https://github.com/VictoriaMetrics/VictoriaLogs/pull/1355',

@@ -6,9 +6,10 @@ import { Button, Stack, useStyles2 } from '@grafana/ui';
 
 import { LOGS_LIMIT_HARD_CAP } from '../../constants';
 import { VictoriaLogsDatasource } from '../../datasource';
-import { Query, QueryEditorMode } from '../../types';
+import { Query, QueryEditorMode, QueryType } from '../../types';
 
 import { DrilldownButton } from './Drilldown/DrilldownButton';
+import { ExportLogsButton } from './ExportLogs';
 import { LevelQueryFilter } from './LevelQueryFilter/LeveQueryFilter';
 import { LogsQLSyntaxHelp } from './LogsQLSyntaxHelp';
 import { QueryEditorHelp } from './QueryEditorHelp';
@@ -48,6 +49,8 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   const styles = useStyles2(getStyles);
   const isMaxLinesOverCap = query.maxLines !== undefined && query.maxLines > LOGS_LIMIT_HARD_CAP;
 
+  const canExportLogs = app === CoreApp.Explore && query.queryType === QueryType.Instant;
+
   const levelFilter = app === CoreApp.Explore && (
     <LevelQueryFilter logLevelRules={datasource.logLevelRules} query={query} onChange={onChange} onRunQuery={onRunQuery} />
   );
@@ -65,6 +68,9 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             onChange={onChange}
             onRunQuery={onRunQuery}
           />
+        )}
+        {canExportLogs && (
+          <ExportLogsButton datasource={datasource} query={query} panelData={data} timeRange={timeRange} />
         )}
         <VmuiLink query={query} panelData={data} datasource={datasource} />
         <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange} />

@@ -56,6 +56,7 @@ the table is stale.
 |---|---|---|---|
 | Compatibility check: Save & test on the data source page and the warning in the query editor | [the /select/buildinfo endpoint reporting the VictoriaLogs version](https://github.com/VictoriaMetrics/VictoriaLogs/pull/851) | v0.35.0 | v1.40.0 |
 | Order of raw logs: the Explore sort order, the Direction option in dashboards and the log context | [the sort_direction query arg of /select/logsql/query](https://github.com/VictoriaMetrics/VictoriaLogs/pull/1355) | v0.35.0 | v1.54.0 |
+| Download logs in the CSV format from the query editor in Explore | [the format=csv query arg of /select/logsql/query for an arbitrary query](https://github.com/VictoriaMetrics/VictoriaLogs/commit/0c582a94e2bab435e0bd1dd7fcb05697abce974f) | v0.36.0 | v1.49.0 |
 <!-- vlcompat:table:end -->
 
 ## Installation

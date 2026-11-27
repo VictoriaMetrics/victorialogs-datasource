@@ -466,6 +466,19 @@ datasources:
       maxLines: 1000
 ```
 
+## Download logs
+
+> **Note:** available since [v0.35.0](https://github.com/VictoriaMetrics/victorialogs-datasource/releases/tag/v0.35.0).
+
+To save the full result of a query as a file, click the `Download logs` button in the header of the query editor.
+The button is available in Explore for a query of the `Raw Logs` type. The [line limit](#line-limits) does not apply
+to the file. Select the `JSON Lines` or the `CSV` format in the dialog and click `Download`.
+
+VictoriaLogs stops a query that runs longer than its `-search.maxQueryDuration` command-line flag, `30s` by default.
+The browser then shows the download as complete, but the file is not complete. The same occurs when the connection
+to VictoriaLogs breaks during the download. For a large download, decrease the time range or add filters to the
+query, or increase the flag in VictoriaLogs.
+
 ## Correlations
 
 Signals can be correlated together if they share the same list of attributes, so they can uniquely identify the
