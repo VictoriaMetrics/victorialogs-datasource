@@ -1,9 +1,8 @@
-import { css } from '@emotion/css';
 import React, { useMemo, useState } from 'react';
 
-import { GrafanaTheme2, PanelData, TimeRange } from '@grafana/data';
+import { PanelData, TimeRange } from '@grafana/data';
 import { config } from '@grafana/runtime';
-import { Alert, Button, Field, LinkButton, Modal, RadioButtonGroup, useStyles2 } from '@grafana/ui';
+import { Alert, Button, Field, LinkButton, Modal, RadioButtonGroup, Stack } from '@grafana/ui';
 
 import { VictoriaLogsDatasource } from '../../../datasource';
 import { Query } from '../../../types';
@@ -28,7 +27,6 @@ interface Props {
 }
 
 export const ExportLogsModal: React.FC<Props> = ({ datasource, query, panelData, timeRange, onClose }) => {
-  const styles = useStyles2(getStyles);
   const [format, setFormat] = useState<ExportFormat>(DEFAULT_EXPORT_FORMAT);
   const [range] = useState(() => resolveExportRange(panelData, timeRange));
   const unmetCsvExport = useUnmetCsvExport(datasource);
@@ -48,7 +46,7 @@ export const ExportLogsModal: React.FC<Props> = ({ datasource, query, panelData,
 
   return (
     <Modal title='Download logs' isOpen onDismiss={onClose}>
-      <div className={styles.content}>
+      <Stack direction='column' gap={2}>
         <Alert title='The line limit does not apply to the download' severity='info' bottomSpacing={0}>
           The file contains every log that matches the query in the time range. VictoriaLogs does not sort the logs.
           To sort them, add <code>| sort by (_time)</code> to the query.
@@ -67,7 +65,7 @@ export const ExportLogsModal: React.FC<Props> = ({ datasource, query, panelData,
           <ReadOnlyField label='Stream filters' value={exportQuery.extraStreamFilters} />
         )}
         {exportQuery.extraFilters && <ReadOnlyField label='Filters' value={exportQuery.extraFilters} />}
-        <div className={styles.actions}>
+        <Stack justifyContent='flex-end' gap={1}>
           <Button variant='secondary' onClick={onClose}>
             Cancel
           </Button>
@@ -80,21 +78,8 @@ export const ExportLogsModal: React.FC<Props> = ({ datasource, query, panelData,
           >
             Download
           </LinkButton>
-        </div>
-      </div>
+        </Stack>
+      </Stack>
     </Modal>
   );
 };
-
-const getStyles = (theme: GrafanaTheme2) => ({
-  content: css({
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing(2),
-  }),
-  actions: css({
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: theme.spacing(1),
-  }),
-});
